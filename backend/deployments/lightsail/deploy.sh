@@ -16,7 +16,9 @@ NC='\033[0m' # No Color
 LIGHTSAIL_INSTANCE_NAME="handreceipt-app"
 LIGHTSAIL_REGION="us-east-1"
 LIGHTSAIL_BUNDLE_ID="nano_2_0"  # 512 MB RAM, 1 vCPU, 20 GB SSD
-LIGHTSAIL_BLUEPRINT_ID="ubuntu_20_04"
+LIGHTSAIL_BLUEPRINT_ID="ubuntu_24_04"
+SSH_KEY_NAME="handreceipt-key"
+SSH_KEY_PATH="~/.ssh/handreceipt-key.pem"
 
 # Function to print colored output
 print_status() {
@@ -77,6 +79,7 @@ create_lightsail_instance() {
         --availability-zone "${LIGHTSAIL_REGION}a" \
         --blueprint-id "$LIGHTSAIL_BLUEPRINT_ID" \
         --bundle-id "$LIGHTSAIL_BUNDLE_ID" \
+        --key-pair-name "$SSH_KEY_NAME" \
         --user-data file://user-data.sh
     
     print_status "Instance creation initiated. Waiting for it to be running..."
@@ -138,12 +141,12 @@ deploy_application() {
     
     # Copy files to instance
     print_status "Copying files to instance..."
-    scp -o StrictHostKeyChecking=no -i ~/.ssh/LightsailDefaultKey-${LIGHTSAIL_REGION}.pem \
+    scp -o StrictHostKeyChecking=no -i $SSH_KEY_PATH \
         handreceipt-deploy.tar.gz ubuntu@${INSTANCE_IP}:/home/ubuntu/
     
     # Deploy on instance
     print_status "Deploying on instance..."
-    ssh -o StrictHostKeyChecking=no -i ~/.ssh/LightsailDefaultKey-${LIGHTSAIL_REGION}.pem ubuntu@${INSTANCE_IP} << 'EOF'
+    ssh -o StrictHostKeyChecking=no -i $SSH_KEY_PATH ubuntu@${INSTANCE_IP} << 'EOF'
         # Extract deployment package
         tar -xzf handreceipt-deploy.tar.gz
         
