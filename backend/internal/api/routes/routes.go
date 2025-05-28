@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/toole-brendan/handreceipt-go/internal/api/handlers"
 	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
@@ -10,6 +12,15 @@ import (
 
 // SetupRoutes configures all the API routes for the application
 func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository) {
+	// Health check endpoint (no authentication required)
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "healthy",
+			"service": "handreceipt-api",
+			"version": "1.0.0",
+		})
+	})
+
 	// Initialize session middleware
 	middleware.SetupSession(router)
 
