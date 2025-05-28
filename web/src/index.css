@@ -1,0 +1,825 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* D-Din Font */
+@font-face {
+  font-family: 'D-Din';
+  src: url('/fonts/d-din.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'D-Din';
+  src: url('/fonts/d-din-bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* PT Serif Font - Elegant Serif for Branding Elements */
+@font-face {
+  font-family: 'PT Serif';
+  src: url('https://fonts.gstatic.com/s/ptserif/v17/EJRVQgYoZZY2vCFuvAFbzr-tdg.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PT Serif';
+  src: url('https://fonts.gstatic.com/s/ptserif/v17/EJRSQgYoZZY2vCFuvAFb_r-dYadYaA.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Layout dimensions */
+  --sidebar-width: 250px;
+  --sidebar-collapsed-width: 70px;
+  --header-height: 64px;
+  --mobile-nav-height: 56px;
+  --content-max-width: 1280px;
+  
+  /* Content widths for different sizes */
+  --content-width-narrow: 768px;
+  --content-width-default: 1024px;
+  --content-width-wide: 1280px;
+  
+  /* Content spacing */
+  --content-spacing-xs: 0.5rem;
+  --content-spacing-sm: 0.75rem;
+  --content-spacing-md: 1rem;
+  --content-spacing-lg: 1.5rem;
+  --content-spacing-xl: 2rem;
+  
+  /* Breakpoints */
+  --mobile-breakpoint: 768px;
+  --tablet-breakpoint: 1024px;
+  
+  /* Padding */
+  --page-padding-x: 1.5rem;
+  --page-padding-y: 1.5rem;
+  
+  /* Element scaling ratios for responsive design */
+  --scale-ratio-mobile: 0.85;
+  --scale-ratio-tablet: 0.92;
+  --scale-ratio-desktop: 1;
+  
+  /* Z-index layers */
+  --z-index-sidebar: 40;
+  --z-index-header: 30;
+  --z-index-dropdown: 20;
+  --z-index-modal: 50;
+  
+  /* Animation durations */
+  --transition-fast: 150ms;
+  --transition-medium: 300ms;
+  --transition-slow: 500ms;
+  
+  /* Radius */
+  --radius: 0rem; /* 8VC uses square corners */
+  
+  /* 8VC Light Theme Color Palette as DEFAULT */
+  /* Base colors */
+  --background: 0 0% 100%; /* White */
+  --foreground: 0 0% 7%; /* Dark gray #111111 */
+  
+  /* Card colors */
+  --card: 0 0% 92%; /* Light gray - Adjusted slightly darker */
+  --card-foreground: 0 0% 7%; /* Dark gray text */
+  
+  /* Popover colors */
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 7%;
+  
+  /* Primary colors - Updated Primary Blue */
+  --primary: 217 91% 75%; /* Even Lighter Blue */
+  --primary-foreground: 0 0% 100%;
+  --primary-50: 264 100% 97%;
+  --primary-100: 264 100% 94%;
+  --primary-200: 264 95% 88%;
+  --primary-300: 264 90% 80%;
+  --primary-400: 264 85% 70%;
+  --primary-500: 264 64% 52%; /* Main purple */
+  --primary-600: 264 70% 48%;
+  --primary-700: 264 75% 42%;
+  --primary-800: 264 80% 35%;
+  --primary-900: 264 85% 30%;
+  
+  /* Secondary colors */
+  --secondary: 264 46% 60%; /* Lighter purple #9E77ED */
+  --secondary-foreground: 0 0% 100%;
+  
+  /* Muted colors */
+  --muted: 0 0% 94%; /* Light gray - Adjusted slightly darker */
+  --muted-foreground: 0 0% 40%; /* Medium gray #666666 */
+  
+  /* Accent colors */
+  --accent: 264 64% 52%; /* Same as primary */
+  --accent-foreground: 0 0% 100%;
+  
+  /* States */
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+  
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 100%;
+  
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 0%;
+  
+  --info: 218 81% 59%;
+  --info-foreground: 0 0% 100%;
+  
+  /* Border & input */
+  --border: 0 0% 30%; /* Updated: Darker gray for light mode border */
+  --input: 0 0% 94%; /* Adjusted to match muted */
+  --ring: 264 64% 52%;
+  
+  /* Chart colors */
+  --chart-1: 264 64% 52%;
+  --chart-2: 244 63% 50%;
+  --chart-3: 324 64% 55%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 184 80% 45%;
+  
+  /* Sidebar colors for light mode */
+  --sidebar-background: 0 0% 92%; /* Updated: Match adjusted card background (Slightly Darker Gray) */
+  --sidebar-foreground: 0 0% 7%; /* Dark gray */
+  --sidebar-primary: 264 64% 52%; /* 8VC Purple */
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 264 64% 52%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 30%; /* Updated: Match main border */
+  --sidebar-ring: 264 64% 52%;
+}
+
+/* Light mode is now the default theme */
+
+/* Dark mode - 8VC Dark Theme */
+.dark {
+  /* Base colors - 8VC Dark Theme */
+  --background: 0 0% 0%; /* Black */
+  --foreground: 0 0% 100%; /* White */
+  
+  /* Card and container colors */
+  --card: 0 0% 7%; /* Dark gray #111111 */
+  --card-foreground: 0 0% 100%; /* White */
+  
+  /* Popover colors */
+  --popover: 0 0% 7%; /* Dark gray #111111 */
+  --popover-foreground: 0 0% 100%; /* White */
+  
+  /* Primary colors - same as light for consistency */
+  --primary: 217 50% 55% / 0.85; /* Grayer, translucent Blue */
+  --primary-foreground: 0 0% 100%;
+  
+  /* Secondary colors - same as light */
+  --secondary: 264 46% 60%; /* Lighter purple #9E77ED */
+  --secondary-foreground: 0 0% 100%;
+  
+  /* Muted colors - darker */
+  --muted: 0 0% 7%; /* Dark gray #111111 */
+  --muted-foreground: 0 0% 67%; /* Gray #AAAAAA */
+  
+  /* Accent colors - same as primary */
+  --accent: 264 64% 52%; /* Same as primary */
+  --accent-foreground: 0 0% 100%;
+  
+  /* States - same as light */
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+  
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 100%;
+  
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 0%;
+  
+  --info: 218 81% 59%;
+  --info-foreground: 0 0% 100%;
+  
+  /* Border & input - darker */
+  --border: 0 0% 25%; /* Updated: Lighter gray for dark mode border */
+  --input: 0 0% 7%;
+  --ring: 264 64% 52%;
+  
+  /* Chart colors - same as light */
+  --chart-1: 264 64% 52%;
+  --chart-2: 244 63% 50%;
+  --chart-3: 324 64% 55%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 184 80% 45%;
+  
+  /* Sidebar colors - 8VC style darker */
+  --sidebar-background: 0 0% 7%; /* Updated: Match card background (Dark Gray) */
+  --sidebar-foreground: 0 0% 100%; /* White text for contrast */
+  --sidebar-primary: 264 64% 52%; /* 8VC Purple */
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 264 64% 52%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 25%; /* Updated: Match main border */
+  --sidebar-ring: 264 64% 52%;
+}
+
+/* Responsive adjustments for tablet and larger devices */
+@media (min-width: 640px) {
+  :root {
+    --page-padding-x: 1.5rem;
+    --page-padding-y: 1.25rem;
+  }
+}
+
+/* Responsive adjustments for desktop devices */
+@media (min-width: 1024px) {
+  :root {
+    --page-padding-x: 2rem;
+    --page-padding-y: 1.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    @apply font-sans antialiased tracking-tight text-foreground bg-background;
+    font-feature-settings: "kern", "liga", "ss01", "ss02";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Smooth scrolling for all scrollable areas */
+  html, body, .scrollable {
+    scroll-behavior: smooth;
+  }
+
+  /* Improved focus styles for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary ring-2 ring-primary/20;
+  }
+
+  /* 8VC Typography scale enhancements */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight text-foreground;
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl leading-tight font-medium;
+    letter-spacing: -0.025em;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl leading-tight font-medium;
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl leading-snug font-medium;
+    letter-spacing: -0.015em;
+  }
+
+  h4 {
+    @apply text-lg sm:text-xl leading-snug font-normal;
+    letter-spacing: -0.01em;
+  }
+
+  h5 {
+    @apply text-base sm:text-lg font-normal leading-normal;
+    letter-spacing: -0.005em;
+  }
+
+  h6 {
+    @apply text-sm sm:text-base font-normal leading-normal;
+    letter-spacing: -0.005em;
+  }
+  
+  /* 8VC specific typography styles */
+  .text-logo {
+    @apply font-serif font-light tracking-widest;
+  }
+  
+  .text-section-header {
+    @apply font-medium uppercase text-sm tracking-wider;
+  }
+  
+  .text-subtitle {
+    @apply font-light text-base tracking-wide;
+  }
+  
+  .text-body {
+    @apply font-light text-base leading-relaxed;
+  }
+  
+  .text-nav-item {
+    @apply uppercase text-xs tracking-wider font-light;
+    letter-spacing: 0.075em;
+  }
+  
+  .text-category-tag {
+    @apply uppercase text-xs font-medium tracking-widest;
+  }
+
+  /* Code & monospace */
+  code, pre {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    font-size: 0.875rem;
+  }
+
+  /* Links */
+  a {
+    @apply text-primary hover:text-primary-600 transition-colors duration-200;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer components {
+  /* Main content layout with sidebar awareness */
+  .main-content {
+    @apply transition-all duration-300 min-h-screen bg-background flex-1;
+    margin-left: var(--sidebar-width);
+    margin-top: -6px; /* Smaller negative margin to avoid cutting off content */
+    max-width: calc(100% - var(--sidebar-width));
+  }
+
+  .main-content.sidebar-collapsed {
+    margin-left: var(--sidebar-collapsed-width);
+    max-width: calc(100% - var(--sidebar-collapsed-width));
+  }
+
+  /* For mobile views */
+  @media (max-width: 768px) {
+    .main-content, .main-content.sidebar-collapsed {
+      margin-left: 0;
+      margin-top: -6px; /* Match desktop negative margin */
+      max-width: 100%;
+      width: 100%;
+      padding-bottom: var(--mobile-nav-height);
+    }
+    
+    .page-container {
+      padding-left: var(--page-padding-x);
+      padding-right: var(--page-padding-x);
+      width: 100%;
+    }
+  }
+  
+  /* Sidebar Styles - 8VC theme */
+  .sidebar {
+    @apply h-screen bg-sidebar border-r border-sidebar-border flex-shrink-0 flex-col transition-all duration-300 fixed left-0 top-0;
+    width: var(--sidebar-width);
+    z-index: var(--z-index-sidebar);
+  }
+
+  .sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .sidebar-item {
+    @apply flex items-center px-4 py-2.5 text-gray-900 hover:bg-primary-50 rounded-none cursor-pointer my-0.5 transition-colors;
+    letter-spacing: 0.075em;
+    font-family: 'D-Din', sans-serif;
+  }
+  
+  /* Dark mode sidebar text */
+  .dark .sidebar-item {
+    @apply text-gray-100 hover:bg-white/5;
+  }
+
+  .sidebar-item.active {
+    @apply bg-primary-100 text-primary-700 font-medium border-l-2 border-primary;
+  }
+  
+  /* Dark mode active sidebar item */
+  .dark .sidebar-item.active {
+    @apply bg-white/5 text-white font-medium border-l-2 border-primary;
+  }
+
+  .sidebar-item-icon {
+    @apply h-5 w-5 mr-3 flex-shrink-0;
+  }
+
+  .sidebar nav.collapsed .sidebar-item {
+    @apply justify-center px-0;
+  }
+
+  .sidebar nav.collapsed .sidebar-item-icon {
+    @apply mr-0;
+  }
+
+  .sidebar nav {
+    @apply flex-1 px-2 py-4 space-y-1 overflow-y-auto;
+  }
+  
+  .sidebar nav.collapsed {
+    @apply px-2 py-4;
+  }
+  
+  /* Military-style button variations */
+  .btn-military {
+    @apply bg-venture-purple text-white font-medium py-2 px-4 rounded-sm shadow-military 
+    hover:bg-venture-purple/90 transition-all duration-200;
+  }
+  
+  .btn-military-outline {
+    @apply border border-venture-purple text-venture-purple bg-transparent font-medium py-2 px-4 rounded-sm 
+    hover:bg-venture-purple/10 transition-all duration-200;
+  }
+  
+  .btn-military-success {
+    @apply bg-success text-success-foreground font-medium py-2 px-4 rounded-sm shadow-military 
+    hover:bg-success/90 transition-all duration-200;
+  }
+  
+  .btn-military-alert {
+    @apply bg-destructive text-destructive-foreground font-medium py-2 px-4 rounded-sm shadow-military 
+    hover:bg-destructive/90 transition-all duration-200;
+  }
+  
+  /* Light mode button variations */
+  .light .btn-military {
+    @apply shadow-sm;
+  }
+  
+  .light .btn-military-outline {
+    @apply border-venture-purple text-venture-purple hover:bg-venture-purple/10 hover:border-venture-purple;
+  }
+  
+  /* Card styles with military aesthetic */
+  .card-military {
+    @apply bg-card border border-border rounded-sm shadow-military p-4 text-card-foreground;
+  }
+  
+  .card-military-elevated {
+    @apply bg-card border border-border rounded-sm shadow-elevated p-4 text-card-foreground;
+  }
+  
+  /* Light mode card adjustments */
+  .light .card-military,
+  .light .card-military-elevated {
+    @apply border-border shadow-military;
+  }
+  
+  /* 8VC Dashboard Cards */
+  .dashboard-card {
+    @apply bg-white border border-gray-200 rounded-none overflow-hidden shadow-none;
+  }
+  
+  .dashboard-card .card-header {
+    @apply border-b border-gray-200 pb-3;
+  }
+  
+  .dashboard-card .card-title {
+    @apply uppercase text-xs tracking-wider font-medium text-gray-500;
+  }
+  
+  .dashboard-card .card-value {
+    @apply text-3xl font-light tracking-tight text-gray-900;
+  }
+  
+  .dashboard-card .card-metric {
+    @apply text-xs tracking-wide uppercase text-gray-500;
+  }
+  
+  /* Minimal Headers in 8VC style */
+  .dashboard-card CardHeader, 
+  .dashboard-card .card-header {
+    @apply py-4 px-6 border-b border-gray-200;
+  }
+  
+  /* Content padding in 8VC style */
+  .dashboard-card CardContent,
+  .dashboard-card .card-content {
+    @apply p-6;
+  }
+  
+  /* Dark mode dashboard cards */
+  .dark .dashboard-card {
+    @apply bg-black border border-white/10;
+  }
+  
+  .dark .dashboard-card .card-header {
+    @apply border-b border-white/10;
+  }
+  
+  .dark .dashboard-card .card-title {
+    @apply text-gray-400;
+  }
+  
+  .dark .dashboard-card .card-value {
+    @apply text-white;
+  }
+  
+  .dark .dashboard-card .card-metric {
+    @apply text-gray-400;
+  }
+  
+  /* 8VC Style Typography */
+  .display-heading {
+    @apply font-sans text-4xl md:text-5xl font-light leading-tight tracking-tight;
+    font-size: var(--font-size-display);
+  }
+  .display-heading-italic {
+    @apply font-sans text-4xl md:text-5xl font-light leading-tight tracking-tight italic;
+    font-size: var(--font-size-display);
+  }
+  .heading-large {
+    @apply font-sans text-3xl md:text-4xl font-light leading-tight;
+    font-size: var(--font-size-heading);
+  }
+  .heading-medium {
+    @apply font-sans text-2xl md:text-3xl font-light leading-tight;
+    font-size: var(--font-size-subheading);
+  }
+  /* 8VC Category Tag */
+  .category-tag {
+    @apply uppercase text-xs tracking-widest text-gray-500 dark:text-gray-400 font-medium;
+    letter-spacing: 0.15em;
+  }
+  /* 8VC Horizontal Divider */
+  .horizontal-divider {
+    @apply w-full h-px bg-gray-200 dark:bg-gray-800 my-8;
+  }
+  
+  /* Performance indicators */
+  .metric-up {
+    @apply text-green-500 flex items-center;
+  }
+  
+  .metric-down {
+    @apply text-red-500 flex items-center;
+  }
+  
+  /* Layout utilities */
+  .content-narrow {
+    max-width: var(--content-width-narrow);
+  }
+  
+  .content-default {
+    max-width: var(--content-width-default);
+  }
+  
+  .content-wide {
+    max-width: var(--content-width-wide);
+  }
+  
+  .content-full {
+    max-width: 100%;
+  }
+  
+  /* Spacing utilities */
+  .spacing-xs > * + * {
+    margin-top: var(--content-spacing-xs);
+  }
+  
+  .spacing-sm > * + * {
+    margin-top: var(--content-spacing-sm);
+  }
+  
+  .spacing-md > * + * {
+    margin-top: var(--content-spacing-md);
+  }
+  
+  .spacing-lg > * + * {
+    margin-top: var(--content-spacing-lg);
+  }
+  
+  .spacing-xl > * + * {
+    margin-top: var(--content-spacing-xl);
+  }
+  
+  /* Element scaling for responsive design */
+  .responsive-scale {
+    transition: transform var(--transition-medium) cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  
+  @media (max-width: 640px) {
+    .responsive-scale {
+      transform: scale(var(--scale-ratio-mobile));
+    }
+  }
+  
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .responsive-scale {
+      transform: scale(var(--scale-ratio-tablet));
+    }
+  }
+  
+  /* Page wrapper with proper spacings */
+  .page-wrapper {
+    @apply mx-auto transition-all duration-200;
+    max-width: var(--content-max-width);
+    padding: 0 var(--page-padding-x) var(--page-padding-y); /* Remove top padding */
+  }
+  
+  /* Content containers with controlled width */
+  .container-narrow {
+    @apply mx-auto;
+    max-width: min(var(--content-width-narrow), calc(100% - 2rem));
+  }
+  
+  .container-default {
+    @apply mx-auto;
+    max-width: min(var(--content-width-default), calc(100% - 2rem));
+  }
+  
+  .container-wide {
+    @apply mx-auto;
+    max-width: min(var(--content-width-wide), calc(100% - 2rem));
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn var(--transition-medium) cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+  
+  .animate-slide-in {
+    animation: slideIn var(--transition-medium) cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+  
+  /* Military-style data display */
+  .data-table-military {
+    @apply w-full text-sm;
+  }
+  
+  .data-table-military th {
+    @apply bg-muted text-xs uppercase tracking-wider font-medium py-2 px-3 text-left text-muted-foreground;
+  }
+  
+  .data-table-military td {
+    @apply py-2.5 px-3 border-t border-border;
+  }
+  
+  .data-table-military tr:hover td {
+    @apply bg-muted/40;
+  }
+  
+  /* Light mode specific table styles */
+  .light .data-table-military th {
+    @apply bg-muted text-primary-800 text-xs uppercase tracking-wider font-medium;
+  }
+  
+  .light .data-table-military td {
+    @apply border-border;
+  }
+  
+  .light .data-table-military tr:hover td {
+    @apply bg-primary-50;
+  }
+  
+  /* Status indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full inline-block mr-2;
+  }
+  
+  .status-dot.active {
+    @apply bg-success;
+  }
+  
+  .status-dot.inactive {
+    @apply bg-muted-foreground;
+  }
+  
+  .status-dot.warning {
+    @apply bg-warning;
+  }
+  
+  .status-dot.error {
+    @apply bg-destructive;
+  }
+  
+  /* Light mode status indicators - slightly brighter */
+  .light .status-dot.active {
+    @apply bg-success ring-1 ring-success/30;
+  }
+  
+  .light .status-dot.warning {
+    @apply bg-warning ring-1 ring-warning/30;
+  }
+  
+  .light .status-dot.error {
+    @apply bg-destructive ring-1 ring-destructive/30;
+  }
+  
+  /* Military-inspired form controls */
+  .input-military {
+    @apply bg-input border-border rounded-sm px-3 py-2 text-foreground w-full 
+    focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-200;
+  }
+  
+  .select-military {
+    @apply bg-input border-border rounded-sm px-3 py-2 text-foreground w-full 
+    focus:ring-1 focus:ring-primary focus:border-primary transition-all duration-200;
+  }
+  
+  /* Light mode form controls */
+  .light .input-military,
+  .light .select-military {
+    @apply bg-input border-border text-foreground shadow-sm;
+  }
+  
+  /* Grid layout for dashboard panels */
+  .grid-dashboard {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  /* Define animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  /* Badge styles */
+  .badge-military {
+    @apply inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium;
+  }
+  
+  /* Badge styling for different themes */
+  /* Light mode is default */
+  .badge-military.primary {
+    @apply bg-venture-purple/20 text-venture-purple;
+  }
+  
+  .badge-military.success {
+    @apply bg-success/15 text-success;
+  }
+  
+  .badge-military.warning {
+    @apply bg-warning/20 text-warning-foreground;
+  }
+  
+  .badge-military.danger {
+    @apply bg-destructive/15 text-destructive;
+  }
+  
+  /* Dark mode badges */
+  .dark .badge-military.primary {
+    @apply bg-primary/20 text-primary-foreground;
+  }
+  
+  .dark .badge-military.success {
+    @apply bg-success/20 text-success-foreground;
+  }
+  
+  .dark .badge-military.warning {
+    @apply bg-warning/20 text-warning-foreground;
+  }
+  
+  .dark .badge-military.danger {
+    @apply bg-destructive/20 text-destructive-foreground;
+  }
+  
+  /* Header and section styles */
+  .section-header {
+    @apply text-lg font-medium mb-3 pb-2 border-b border-border text-venture-purple;
+    letter-spacing: -0.01em;
+  }
+  
+  .section-subheader {
+    @apply text-sm uppercase font-medium mb-2 text-venture-purple/80 tracking-wider;
+  }
+  
+  /* Dark mode section headers */
+  .dark .section-header {
+    @apply border-border/50 text-white;
+  }
+  
+  .dark .section-subheader {
+    @apply text-gray-300;
+  }
+  
+  /* Dashboard specific - Sharp corners */
+  .dashboard-container * {
+    border-radius: 0 !important;
+  }
+  
+  /* Override specific rounded elements on the dashboard */
+  /* Dashboard card styles are defined above */
+  
+  /* Button overrides for sharp corners */
+  .btn-sharp, 
+  .btn-sharp * {
+    @apply rounded-none;
+  }
+}

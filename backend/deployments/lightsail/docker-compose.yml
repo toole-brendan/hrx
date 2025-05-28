@@ -1,0 +1,200 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - HR_DATABASE_HOST=postgres
+      - HR_DATABASE_PORT=5432
+      - HR_DATABASE_USER=handreceipt
+      - HR_DATABASE_PASSWORD=handreceipt_password
+      - HR_DATABASE_DB_NAME=handreceipt
+      - HR_IMMUDB_HOST=immudb
+      - HR_IMMUDB_PORT=3322
+      - HR_IMMUDB_USERNAME=immudb
+      - HR_IMMUDB_PASSWORD=immudb
+      - HR_MINIO_ENDPOINT=minio:9000
+      - HR_MINIO_ACCESS_KEY_ID=minioadmin
+      - HR_MINIO_SECRET_ACCESS_KEY=minioadmin
+      - HR_JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-super-secret-jwt-key-change-this-in-production}
+      - HR_SERVER_ENVIRONMENT=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      immudb:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: handreceipt
+      POSTGRES_USER: handreceipt
+      POSTGRES_PASSWORD: handreceipt_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U handreceipt -d handreceipt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  immudb:
+    image: codenotary/immudb:1.4.1
+    ports:
+      - "3322:3322"
+      - "9497:9497"
+    volumes:
+      - immudb_data:/var/lib/immudb
+    environment:
+      IMMUDB_ADDRESS: "0.0.0.0"
+      IMMUDB_PORT: "3322"
+      IMMUDB_ADMIN_PASSWORD: "immudb"
+    command: ["immudb", "--address=0.0.0.0", "--port=3322"]
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  # Background worker for scheduled tasks
+  worker:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.worker
+    environment:
+      - HR_DATABASE_HOST=postgres
+      - HR_DATABASE_PORT=5432
+      - HR_DATABASE_USER=handreceipt
+      - HR_DATABASE_PASSWORD=handreceipt_password
+      - HR_DATABASE_DB_NAME=handreceipt
+      - HR_IMMUDB_HOST=immudb
+      - HR_IMMUDB_PORT=3322
+      - HR_IMMUDB_USERNAME=immudb
+      - HR_IMMUDB_PASSWORD=immudb
+      - HR_MINIO_ENDPOINT=minio:9000
+      - HR_MINIO_ACCESS_KEY_ID=minioadmin
+      - HR_MINIO_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      immudb:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+volumes:
+  postgres_data:
+    driver: local
+  immudb_data:
+    driver: local
+  minio_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  handreceipt-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

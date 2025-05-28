@@ -1,0 +1,15 @@
+name: HandReceipt
+options:
+  bundleIdPrefix: com.handreceipt
+  deploymentTarget:
+    iOS: 15.0
+targets:
+  HandReceipt:
+    type: application
+    platform: iOS
+    sources:
+      - HandReceipt
+    settings:
+      base:
+        INFOPLIST_FILE: HandReceipt/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.handreceipt.HandReceipt 
