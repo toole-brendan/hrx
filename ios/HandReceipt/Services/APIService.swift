@@ -48,6 +48,9 @@ protocol APIServiceProtocol {
     func approveTransfer(transferId: Int) async throws -> Transfer
     func rejectTransfer(transferId: Int) async throws -> Transfer
 
+    // --- QR Transfer Functions ---
+    func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse
+
     // --- User Functions ---
     func fetchUsers(searchQuery: String?) async throws -> [UserSummary] // Expect UserSummary for selection
 
@@ -718,6 +721,34 @@ class APIService: APIServiceProtocol {
         debugPrint("NSN search returned \(response.count) results")
         return response
     }
+
+    // --- QR Transfer Functions ---
+    func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse {
+        debugPrint("Initiating QR transfer with data: \(qrData)")
+        let endpoint = baseURL.appendingPathComponent("/transfers/qr-initiate")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuthHeader(to: &request)
+        
+        // Create the request body manually since we have a dictionary
+        let requestBody: [String: Any] = [
+            "qr_data": qrData,
+            "scanned_at": scannedAt
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            debugPrint("Successfully encoded QR transfer request body")
+        } catch {
+            debugPrint("ERROR: Failed to encode QR transfer request: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let response = try await performRequest(request: request) as QRTransferResponse
+        debugPrint("QR transfer initiated successfully: \(response.transferId)")
+        return response
+    }
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)
@@ -811,4 +842,8 @@ struct CreatePropertyInput: Codable {
         case nsn
         case lin
     }
+}
+
+struct QRTransferResponse: Decodable {
+    let transferId: Int
 } 

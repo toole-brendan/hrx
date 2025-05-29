@@ -1,0 +1,446 @@
+name: Deploy HandReceipt to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_frontend:
+        description: 'Deploy frontend to S3/CloudFront'
+        type: boolean
+        default: true
+      deploy_backend:
+        description: 'Deploy backend to Lightsail'
+        type: boolean
+        default: true
+      force_ip_mode:
+        description: 'Force direct IP mode (bypass DNS)'
+        type: boolean
+        default: false
+      skip_ssl_setup:
+        description: 'Skip SSL certificate setup'
+        type: boolean
+        default: false
+
+env:
+  # S3/CloudFront Configuration
+  S3_BUCKET: www.handreceipt.com
+  CLOUDFRONT_DISTRIBUTION_ID: E3T7VX6HV95Q5O
+  
+  # Lightsail Configuration  
+  LIGHTSAIL_INSTANCE_NAME: handreceipt-primary
+  LIGHTSAIL_INSTANCE_IP: 44.193.254.155
+  LIGHTSAIL_REGION: us-east-1
+  
+  # Domain Configuration
+  FRONTEND_DOMAIN: handreceipt.com
+  API_DOMAIN: api.handreceipt.com
+  API_PORT: 8080
+
+permissions:
+  contents: read
+
+jobs:
+  detect-api-endpoint:
+    name: Detect Working API Endpoint
+    runs-on: ubuntu-latest
+    outputs:
+      api_url: ${{ steps.detect.outputs.api_url }}
+      dns_working: ${{ steps.detect.outputs.dns_working }}
+      ssl_working: ${{ steps.detect.outputs.ssl_working }}
+    steps:
+      - name: Test DNS Resolution
+        id: dns_test
+        run: |
+          echo "Testing DNS resolution for ${{ env.API_DOMAIN }}..."
+          if nslookup ${{ env.API_DOMAIN }} | grep -q "${{ env.LIGHTSAIL_INSTANCE_IP }}"; then
+            echo "dns_resolved=true" >> $GITHUB_OUTPUT
+            echo "✅ DNS is working: ${{ env.API_DOMAIN }} → ${{ env.LIGHTSAIL_INSTANCE_IP }}"
+          else
+            echo "dns_resolved=false" >> $GITHUB_OUTPUT
+            echo "❌ DNS not working for ${{ env.API_DOMAIN }}"
+          fi
+
+      - name: Test SSL Certificate
+        id: ssl_test
+        if: steps.dns_test.outputs.dns_resolved == 'true'
+        run: |
+          echo "Testing SSL certificate for https://${{ env.API_DOMAIN }}..."
+          if curl -s -f --max-time 10 https://${{ env.API_DOMAIN }}/api/auth/me > /dev/null 2>&1; then
+            echo "ssl_working=true" >> $GITHUB_OUTPUT
+            echo "✅ SSL is working"
+          else
+            echo "ssl_working=false" >> $GITHUB_OUTPUT
+            echo "❌ SSL not working"
+          fi
+
+      - name: Test Direct IP Connection
+        id: ip_test
+        run: |
+          echo "Testing direct IP connection..."
+          if curl -s -f --max-time 10 http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/api/auth/me > /dev/null 2>&1; then
+            echo "ip_working=true" >> $GITHUB_OUTPUT
+            echo "✅ Direct IP connection working"
+          else
+            echo "ip_working=false" >> $GITHUB_OUTPUT
+            echo "❌ Direct IP connection failed"
+            exit 1
+          fi
+
+      - name: Determine Best API URL
+        id: detect
+        run: |
+          DNS_RESOLVED="${{ steps.dns_test.outputs.dns_resolved }}"
+          SSL_WORKING="${{ steps.ssl_test.outputs.ssl_working }}"
+          IP_WORKING="${{ steps.ip_test.outputs.ip_working }}"
+          FORCE_IP="${{ inputs.force_ip_mode }}"
+          
+          echo "DNS_RESOLVED: $DNS_RESOLVED"
+          echo "SSL_WORKING: $SSL_WORKING" 
+          echo "IP_WORKING: $IP_WORKING"
+          echo "FORCE_IP: $FORCE_IP"
+          
+          if [ "$FORCE_IP" = "true" ] || [ "$DNS_RESOLVED" = "false" ]; then
+            API_URL="http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/api"
+            echo "🔗 Using direct IP: $API_URL"
+            echo "dns_working=false" >> $GITHUB_OUTPUT
+            echo "ssl_working=false" >> $GITHUB_OUTPUT
+          elif [ "$DNS_RESOLVED" = "true" ] && [ "$SSL_WORKING" = "true" ]; then
+            API_URL="https://${{ env.API_DOMAIN }}/api"
+            echo "🔒 Using HTTPS with DNS: $API_URL"
+            echo "dns_working=true" >> $GITHUB_OUTPUT
+            echo "ssl_working=true" >> $GITHUB_OUTPUT
+          elif [ "$DNS_RESOLVED" = "true" ]; then
+            API_URL="http://${{ env.API_DOMAIN }}/api"
+            echo "🌐 Using HTTP with DNS: $API_URL"
+            echo "dns_working=true" >> $GITHUB_OUTPUT
+            echo "ssl_working=false" >> $GITHUB_OUTPUT
+          else
+            API_URL="http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/api"
+            echo "⚡ Fallback to direct IP: $API_URL"
+            echo "dns_working=false" >> $GITHUB_OUTPUT
+            echo "ssl_working=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "Final API URL: $API_URL"
+
+  build-frontend:
+    name: Build Frontend
+    if: ${{ inputs.deploy_frontend }}
+    needs: detect-api-endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Create Production Environment
+        working-directory: ./web
+        run: |
+          echo "Creating .env.production with API URL: ${{ needs.detect-api-endpoint.outputs.api_url }}"
+          cat > .env.production << EOF
+          VITE_API_URL=${{ needs.detect-api-endpoint.outputs.api_url }}
+          NODE_ENV=production
+          VITE_BUILD_TARGET=production
+          EOF
+          echo "Environment file created:"
+          cat .env.production
+
+      - name: Build Frontend
+        working-directory: ./web
+        run: npm run build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: web/dist/public/
+          retention-days: 7
+
+  deploy-frontend:
+    name: Deploy Frontend to S3
+    if: ${{ inputs.deploy_frontend }}
+    needs: [detect-api-endpoint, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: web/dist/public/
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.LIGHTSAIL_REGION }}
+
+      - name: Deploy to S3 with Smart Caching
+        run: |
+          echo "🚀 Deploying frontend to S3..."
+          
+          # Create deploy directory
+          mkdir -p dist_deploy
+          cp -r web/dist/public/* dist_deploy/
+          
+          # Upload JS files with long cache
+          aws s3 sync dist_deploy/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "max-age=31536000,public" \
+            --exclude "*" \
+            --include "*.js" \
+            --content-type "application/javascript"
+          
+          # Upload CSS files with long cache
+          aws s3 sync dist_deploy/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "max-age=31536000,public" \
+            --exclude "*" \
+            --include "*.css" \
+            --content-type "text/css"
+          
+          # Upload font files
+          aws s3 sync dist_deploy/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "max-age=31536000,public" \
+            --exclude "*" \
+            --include "*.woff2" \
+            --content-type "font/woff2"
+          
+          # Upload other assets
+          aws s3 sync dist_deploy/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "max-age=31536000,public" \
+            --exclude "*.html" \
+            --exclude "*.js" \
+            --exclude "*.css" \
+            --exclude "*.woff2"
+          
+          # Upload HTML with no-cache
+          aws s3 sync dist_deploy/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "no-cache" \
+            --exclude "*" \
+            --include "*.html" \
+            --content-type "text/html"
+          
+          # Clean up
+          rm -rf dist_deploy
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          echo "🔄 Invalidating CloudFront cache..."
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+  deploy-backend:
+    name: Deploy Backend to Lightsail
+    if: ${{ inputs.deploy_backend }}
+    needs: detect-api-endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.LIGHTSAIL_REGION }}
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ env.LIGHTSAIL_INSTANCE_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Backend Code
+        run: |
+          echo "🚀 Deploying backend to Lightsail..."
+          
+          # Create deployment package
+          tar czf deployment.tar.gz \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='web/node_modules' \
+            --exclude='web/dist' \
+            --exclude='.github' \
+            .
+          
+          # Upload deployment package
+          scp -i ~/.ssh/lightsail_key deployment.tar.gz ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
+          
+          # Deploy on remote server
+          ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'EOF'
+            set -e
+            
+            echo "📦 Extracting deployment package..."
+            cd /opt/handreceipt
+            sudo tar xzf /tmp/deployment.tar.gz --strip-components=1
+            
+            echo "🔧 Building backend..."
+            sudo chown -R ubuntu:ubuntu /opt/handreceipt
+            cd /opt/handreceipt/backend
+            sudo go build -o main ./cmd/api
+            
+            echo "🔄 Restarting services..."
+            cd /opt/handreceipt/backend/deployments/lightsail
+            sudo docker-compose down || true
+            sudo docker-compose up -d
+            
+            echo "⏳ Waiting for services to start..."
+            sleep 30
+            
+            echo "✅ Backend deployment complete"
+          EOF
+
+      - name: Setup SSL Certificate
+        if: ${{ needs.detect-api-endpoint.outputs.dns_working == 'true' && needs.detect-api-endpoint.outputs.ssl_working == 'false' && !inputs.skip_ssl_setup }}
+        run: |
+          echo "🔒 Setting up SSL certificate..."
+          ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'EOF'
+            set -e
+            
+            echo "Installing certbot..."
+            sudo apt update
+            sudo apt install -y certbot python3-certbot-nginx
+            
+            echo "Generating SSL certificate for ${{ env.API_DOMAIN }}..."
+            sudo certbot --nginx -d ${{ env.API_DOMAIN }} --non-interactive --agree-tos --email ${{ secrets.ADMIN_EMAIL }} --redirect
+            
+            echo "Setting up auto-renewal..."
+            sudo systemctl enable certbot.timer
+            sudo systemctl start certbot.timer
+            
+            echo "✅ SSL setup complete"
+          EOF
+
+  health-check:
+    name: Post-Deployment Health Check
+    needs: [detect-api-endpoint, deploy-frontend, deploy-backend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Deployment Propagation
+        run: |
+          echo "⏳ Waiting 60 seconds for deployment to propagate..."
+          sleep 60
+
+      - name: Test Frontend Health
+        if: ${{ inputs.deploy_frontend }}
+        run: |
+          echo "🌐 Testing frontend at https://${{ env.FRONTEND_DOMAIN }}"
+          
+          for i in {1..5}; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.FRONTEND_DOMAIN }})
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Frontend health check passed (HTTP $HTTP_CODE)"
+              break
+            else
+              echo "Attempt $i: Frontend returned HTTP $HTTP_CODE, retrying..."
+              sleep 10
+            fi
+            
+            if [ $i -eq 5 ]; then
+              echo "❌ Frontend health check failed after 5 attempts"
+              exit 1
+            fi
+          done
+
+      - name: Test Backend Health
+        if: ${{ inputs.deploy_backend }}
+        run: |
+          API_URL="${{ needs.detect-api-endpoint.outputs.api_url }}"
+          echo "🔗 Testing backend at $API_URL/auth/me"
+          
+          for i in {1..5}; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/auth/me")
+            if [ "$HTTP_CODE" = "401" ]; then
+              echo "✅ Backend health check passed (HTTP $HTTP_CODE - expected for unauthenticated request)"
+              break
+            elif [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Backend health check passed (HTTP $HTTP_CODE)"
+              break
+            else
+              echo "Attempt $i: Backend returned HTTP $HTTP_CODE, retrying..."
+              sleep 10
+            fi
+            
+            if [ $i -eq 5 ]; then
+              echo "❌ Backend health check failed after 5 attempts"
+              exit 1
+            fi
+          done
+
+      - name: Test Frontend-Backend Integration
+        if: ${{ inputs.deploy_frontend && inputs.deploy_backend }}
+        run: |
+          echo "🔄 Testing frontend-backend integration..."
+          
+          # Check if frontend can reach the configured API
+          FRONTEND_API_CALLS=$(curl -s https://${{ env.FRONTEND_DOMAIN }} | grep -o "fetch.*api" | head -5 || echo "No API calls found in initial page")
+          echo "Frontend API configuration: $FRONTEND_API_CALLS"
+          
+          echo "✅ Integration test complete"
+
+      - name: DNS and SSL Status Summary
+        run: |
+          echo "📋 Deployment Summary:"
+          echo "DNS Working: ${{ needs.detect-api-endpoint.outputs.dns_working }}"
+          echo "SSL Working: ${{ needs.detect-api-endpoint.outputs.ssl_working }}"
+          echo "API URL: ${{ needs.detect-api-endpoint.outputs.api_url }}"
+          
+          if [ "${{ needs.detect-api-endpoint.outputs.dns_working }}" = "false" ]; then
+            echo "⚠️ DNS not working yet. To enable DNS:"
+            echo "1. Verify A record: ${{ env.API_DOMAIN }} → ${{ env.LIGHTSAIL_INSTANCE_IP }}"
+            echo "2. Wait for DNS propagation (up to 24 hours)"
+            echo "3. Re-run deployment with DNS working"
+          fi
+          
+          if [ "${{ needs.detect-api-endpoint.outputs.ssl_working }}" = "false" ] && [ "${{ needs.detect-api-endpoint.outputs.dns_working }}" = "true" ]; then
+            echo "⚠️ SSL not working yet. To enable SSL:"
+            echo "1. Re-run deployment without 'skip_ssl_setup' checked"
+            echo "2. Or manually run: sudo certbot --nginx -d ${{ env.API_DOMAIN }}"
+          fi
+
+  notify:
+    name: Deployment Notification
+    needs: [detect-api-endpoint, deploy-frontend, deploy-backend, health-check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Success Notification
+        if: ${{ needs.health-check.result == 'success' }}
+        run: |
+          echo "🎉 HandReceipt deployment successful!"
+          echo "Frontend: https://${{ env.FRONTEND_DOMAIN }}"
+          echo "API: ${{ needs.detect-api-endpoint.outputs.api_url }}"
+          
+          # Add Slack/Discord webhook here if desired
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"🎉 HandReceipt deployment successful!"}' \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Deployment Failure Notification
+        if: ${{ needs.health-check.result == 'failure' }}
+        run: |
+          echo "❌ HandReceipt deployment failed!"
+          echo "Check the logs above for details."
+          
+          # Add failure notification here if desired 

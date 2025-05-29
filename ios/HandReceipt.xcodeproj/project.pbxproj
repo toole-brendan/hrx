@@ -25,6 +25,13 @@
 		746506184194C32049616F45 /* PropertyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 097C24F1EA75B2E56BCBCC08 /* PropertyDetailView.swift */; };
 		902492E2AE615BA4C6ACC792 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AEE26AF958DBCB601C895CD /* ContentView.swift */; };
 		9CAA7907B48AF7D46F77FB02 /* UserSelectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE530B592D095523725035D /* UserSelectionViewModel.swift */; };
+		BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */; };
+		BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */; };
+		BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */; };
+		BF2DF4412DE929E700E450D6 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4402DE929E700E450D6 /* QRScannerView.swift */; };
+		BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */; };
+		BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */; };
+		BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */; };
 		BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */; };
 		BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */; };
 		BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */; };
@@ -62,6 +69,13 @@
 		B28E9A92DD3453473BE10961 /* UserSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionView.swift; sourceTree = "<group>"; };
 		B32078152333561CB10233BA /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		BBE530B592D095523725035D /* UserSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionViewModel.swift; sourceTree = "<group>"; };
+		BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndustrialComponents.swift; sourceTree = "<group>"; };
+		BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncService.swift; sourceTree = "<group>"; };
+		BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePropertyView.swift; sourceTree = "<group>"; };
+		BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSNSearchView.swift; sourceTree = "<group>"; };
+		BF2DF4402DE929E700E450D6 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = HandReceipt.xcdatamodel; sourceTree = "<group>"; };
 		BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HandReceiptApp.swift; path = HandReceipt/HandReceiptApp.swift; sourceTree = "<group>"; };
 		BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStyles.swift; sourceTree = "<group>"; };
@@ -108,6 +122,8 @@
 		9AD52AE44496465F5F0F3B16 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */,
+				BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */,
 				B32078152333561CB10233BA /* APIService.swift */,
 			);
 			path = Services;
@@ -116,6 +132,7 @@
 		BFC223CE2DAB3E1F00ACF884 /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */,
 				BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */,
 				BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */,
 				BFC223CD2DAB3E1F00ACF884 /* CommonImports.swift */,
@@ -135,6 +152,9 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */,
+				BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */,
+				BF2DF4402DE929E700E450D6 /* QRScannerView.swift */,
 				8322A1CD58E045E33629F8B1 /* AuthenticatedTabView.swift */,
 				7F0B20078F52C4DC41D93104 /* CameraView.swift */,
 				CDEC488299CE976110299615 /* LoginView.swift */,
@@ -161,6 +181,7 @@
 		FDCDCC68F23010E36445F051 /* HandReceipt */ = {
 			isa = PBXGroup;
 			children = (
+				BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */,
 				8AEE26AF958DBCB601C895CD /* ContentView.swift */,
 				D5ACDDBD58550DB16AF3B5B4 /* Info.plist */,
 				BFC223CE2DAB3E1F00ACF884 /* Common */,
@@ -240,14 +261,21 @@
 				649E4FB8CB9A2BAAA06A65F8 /* PropertyDetailViewModel.swift in Sources */,
 				FFA463230EB2A719A3E334F9 /* ReferenceDBViewModel.swift in Sources */,
 				6647A7F294F0B05BBAA6BCD7 /* ReferenceDatabaseBrowserView.swift in Sources */,
+				BF2DF4412DE929E700E450D6 /* QRScannerView.swift in Sources */,
+				BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */,
+				BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */,
 				1299AA22A3FCD62C0D1EF061 /* ReferenceItem.swift in Sources */,
 				BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */,
 				BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */,
+				BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */,
+				BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */,
 				BFC223D12DAB3E1F00ACF884 /* CommonImports.swift in Sources */,
 				4263559251C2849EDF4EC0F6 /* ReferenceItemDetailView.swift in Sources */,
 				0E15AB56596FFD79CE89E2D4 /* ReferenceItemDetailViewModel.swift in Sources */,
 				35EF675708F8DDFCA2E0CD06 /* ScanView.swift in Sources */,
+				BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */,
 				D8EA460483AC0CF32381B58C /* ScanViewModel.swift in Sources */,
+				BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */,
 				EC2C299F01AD11DD03AA3084 /* TransfersView.swift in Sources */,
 				6EC03ABD395528E42D8AC7D1 /* TransfersViewModel.swift in Sources */,
 				DE3312936DE375DAEC9A4552 /* UserSelectionView.swift in Sources */,
@@ -435,6 +463,19 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */,
+			);
+			currentVersion = BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */;
+			path = HandReceipt.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 9C222FDD40496D3BD89B10F0 /* Project object */;
 }
