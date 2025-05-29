@@ -58,6 +58,9 @@ protocol APIServiceProtocol {
     func lookupNSN(nsn: String) async throws -> NSNLookupResponse
     func lookupLIN(lin: String) async throws -> NSNLookupResponse
     func searchNSN(query: String, limit: Int?) async throws -> NSNSearchResponse
+
+    // Add function to create a new property
+    func createProperty(_ property: CreatePropertyInput) async throws -> Property
 }
 
 // Debug print function to avoid cluttering 
@@ -424,6 +427,27 @@ class APIService: APIServiceProtocol {
         return property
     }
 
+    // Create Property Implementation
+    func createProperty(_ input: CreatePropertyInput) async throws -> Property {
+        debugPrint("Creating property with serial number: \(input.serialNumber)")
+        let endpoint = baseURL.appendingPathComponent("/inventory")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try encoder.encode(input)
+            debugPrint("Successfully encoded property creation data")
+        } catch {
+            debugPrint("ERROR: Failed to encode property creation data: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let createdProperty = try await performRequest(request: request) as Property
+        debugPrint("Successfully created property with ID: \(createdProperty.id)")
+        return createdProperty
+    }
+
     // --- Transfer Functions (Async/Await) ---
     
     // Fetch Transfers (with optional filters)
@@ -764,4 +788,27 @@ struct NSNSearchResponse: Codable {
     let success: Bool
     let data: [NSNDetails]
     let count: Int
+}
+
+// Add CreatePropertyInput model
+struct CreatePropertyInput: Codable {
+    let name: String
+    let serialNumber: String
+    let description: String?
+    let currentStatus: String
+    let propertyModelId: Int?
+    let assignedToUserId: Int?
+    let nsn: String?
+    let lin: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case serialNumber = "serial_number"
+        case description
+        case currentStatus = "current_status"
+        case propertyModelId = "property_model_id"
+        case assignedToUserId = "assigned_to_user_id"
+        case nsn
+        case lin
+    }
 } 

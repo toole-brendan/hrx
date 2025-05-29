@@ -1,0 +1,9 @@
+{
+  "user": {
+    "id": 1,
+    "username": "cpt.rodriguez",
+    "name": "CPT Rodriguez",
+    "rank": "CPT",
+    "email": "rodriguez@example.mil"
+  }
+} 

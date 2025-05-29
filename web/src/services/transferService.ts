@@ -1,32 +1,49 @@
 import { Transfer } from '@/types';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+/**
+ * Get authentication headers
+ */
+function getAuthHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    // Cookie-based auth is handled automatically by fetch with credentials
+  };
+}
+
 /**
  * Fetches all transfers from the API
  */
 export async function fetchTransfers(): Promise<Transfer[]> {
-  // TODO: Add authentication headers if required
-  const response = await fetch('/api/transfers');
+  const response = await fetch(`${API_BASE_URL}/transfers`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include', // Include cookies for session auth
+  });
+  
   if (!response.ok) {
-    throw new Error('Failed to fetch transfers');
+    throw new Error(`Failed to fetch transfers: ${response.statusText}`);
   }
-  return response.json();
+  
+  const data = await response.json();
+  return data.transfers || data || []; // Handle both {transfers: [...]} and direct array response
 }
 
 /**
  * Create a new transfer
  */
 export async function createTransfer(newTransferData: Omit<Transfer, 'id' | 'date' | 'status'>): Promise<Transfer> {
-  // TODO: Add authentication headers if required
-  const response = await fetch('/api/transfers', {
+  const response = await fetch(`${API_BASE_URL}/transfers`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
+    credentials: 'include',
     body: JSON.stringify(newTransferData),
   });
   
   if (!response.ok) {
-    throw new Error('Failed to create transfer');
+    const error = await response.text();
+    throw new Error(`Failed to create transfer: ${error}`);
   }
   
   return response.json();
@@ -42,17 +59,16 @@ export async function updateTransferStatus(params: {
 }): Promise<Transfer> {
   const { id, status, reason } = params;
   
-  // TODO: Add authentication headers if required
-  const response = await fetch(`/api/transfers/${id}/status`, {
+  const response = await fetch(`${API_BASE_URL}/transfers/${id}/status`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
+    credentials: 'include',
     body: JSON.stringify({ status, reason }),
   });
   
   if (!response.ok) {
-    throw new Error(`Failed to ${status} transfer`);
+    const error = await response.text();
+    throw new Error(`Failed to ${status} transfer: ${error}`);
   }
   
   return response.json();
@@ -62,11 +78,14 @@ export async function updateTransferStatus(params: {
  * Get a single transfer by ID
  */
 export async function getTransferById(id: string): Promise<Transfer> {
-  // TODO: Add authentication headers if required
-  const response = await fetch(`/api/transfers/${id}`);
+  const response = await fetch(`${API_BASE_URL}/transfers/${id}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
   
   if (!response.ok) {
-    throw new Error('Failed to fetch transfer');
+    throw new Error(`Failed to fetch transfer: ${response.statusText}`);
   }
   
   return response.json();
@@ -76,25 +95,13 @@ export async function getTransferById(id: string): Promise<Transfer> {
  * Delete a transfer (if permitted)
  */
 export async function deleteTransfer(id: string): Promise<void> {
-  // TODO: Add authentication headers if required
-  const response = await fetch(`/api/transfers/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/transfers/${id}`, {
     method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include',
   });
   
   if (!response.ok) {
-    throw new Error('Failed to delete transfer');
+    throw new Error(`Failed to delete transfer: ${response.statusText}`);
   }
-}
-
-/**
- * Helper function to create authorization headers
- * (Can be used in the above functions if needed)
- */
-function getAuthHeaders(): HeadersInit {
-  // TODO: Get token from auth context or storage
-  const token = localStorage.getItem('authToken');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
 } 

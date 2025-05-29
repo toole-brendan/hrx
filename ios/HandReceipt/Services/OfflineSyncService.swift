@@ -141,11 +141,32 @@ class OfflineSyncService {
         let decoder = JSONDecoder()
         let propertyData = try decoder.decode(CreatePropertyPayload.self, from: payload)
         
+        // Convert to API input format
+        let createInput = CreatePropertyInput(
+            name: propertyData.itemName,
+            serialNumber: propertyData.serialNumber,
+            description: propertyData.description,
+            currentStatus: "Operational", // Default status
+            propertyModelId: nil, // TODO: Link to property model if NSN/LIN is provided
+            assignedToUserId: nil, // Will be set by server to current user
+            nsn: propertyData.nsn,
+            lin: propertyData.lin
+        )
+        
         // Call API to create property
-        // This would need to be added to APIService
         debugPrint("Creating property on server: \(propertyData.serialNumber)")
-        // let createdProperty = try await apiService.createProperty(propertyData)
-        // coreDataStack.cacheProperty(createdProperty)
+        let createdProperty = try await apiService.createProperty(createInput)
+        coreDataStack.cacheProperty(createdProperty)
+        
+        // If there's a photo hash, update the sync queue with the property ID
+        if let photoHash = propertyData.photoHash {
+            // Update any pending photo uploads with the new property ID
+            let pendingPhotos = coreDataStack.getPendingPhotoUploads()
+            for photo in pendingPhotos where photo.sha256Hash == photoHash {
+                photo.propertyId = Int32(createdProperty.id)
+                coreDataStack.save()
+            }
+        }
     }
     
     private func syncProperties() async {

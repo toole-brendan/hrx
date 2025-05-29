@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "name": "M4 Carbine",
+      "serial_number": "M4-12345",
+      "current_status": "Operational",
+      "description": "5.56mm carbine rifle",
+      "category": "weapons",
+      "location": "Arms Room A",
+      "assigned_to_user_id": 1,
+      "assigned_date": "2024-01-15T08:00:00Z",
+      "nsn": "1005-01-382-0953",
+      "lin": "C74940",
+      "components": []
+    },
+    {
+      "id": 2,
+      "name": "AN/PRC-152 Radio",
+      "serial_number": "PRC-98765",
+      "current_status": "Operational",
+      "description": "Multiband handheld radio",
+      "category": "communications",
+      "location": "Comms Vault",
+      "assigned_to_user_id": 1,
+      "assigned_date": "2024-01-20T10:00:00Z",
+      "nsn": "5820-01-522-9195",
+      "components": [
+        {
+          "id": "comp-1",
+          "name": "Battery Pack",
+          "serialNumber": "BAT-111",
+          "description": "Rechargeable Li-Ion battery"
+        }
+      ]
+    }
+  ]
+} 

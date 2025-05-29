@@ -1,12 +1,8 @@
 import { useState, useEffect, useMemo, useReducer, useCallback } from "react";
-import { transfers as mockTransfers } from "@/lib/mockData";
+import { useInventoryItems, useOfflineSync, useUpdateInventoryItemComponents } from "@/hooks/useInventory";
+import { useTransfers } from "@/hooks/useTransfers";
 import { InventoryItem, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  getInventoryItemsFromDB, 
-  updateInventoryItemInDB, 
-  updateInventoryItemComponentsInDB 
-} from "@/lib/idb";
 import { 
   Card, 
   CardContent, 
@@ -138,49 +134,42 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [state, dispatch] = useReducer(propertyBookReducer, initialState);
   
   // State that remains outside the reducer
-  const [propertyBookItems, setPropertyBookItems] = useState<InventoryItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   
   const { toast } = useToast();
+  
+  // Use React Query hooks for data fetching
+  const { data: inventoryItems = [], isLoading, error } = useInventoryItems();
+  const { data: transfers = [] } = useTransfers();
+  const updateComponents = useUpdateInventoryItemComponents();
+  
+  // Setup offline sync
+  useOfflineSync();
 
-  // Load data from IndexedDB
+  // Update loading and error states
   useEffect(() => {
-    const loadData = async () => {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'SET_ERROR', payload: null });
-      
-      try {
-        const items = await getInventoryItemsFromDB();
-        setPropertyBookItems(items);
-        console.log(`Loaded ${items.length} property book items from IndexedDB.`);
-      } catch (err) {
-        console.error("Failed to load property book items from IndexedDB:", err);
-        dispatch({ type: 'SET_ERROR', payload: "Failed to load property book data." });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
-    };
-    loadData();
-  }, []);
+    dispatch({ type: 'SET_LOADING', payload: isLoading });
+    dispatch({ type: 'SET_ERROR', payload: error?.message || null });
+  }, [isLoading, error]);
 
   // Create memoized data for assigned items
   const assignedToMe: DisplayItem[] = useMemo(() => {
     // Map existing properties to ensure categories are using the new system
-    return propertyBookItems.map(item => ({
+    return inventoryItems.map(item => ({
       ...item,
       // Derive category from name if not already set or using old system
       category: getCategoryFromName(item.name)
     }));
-  }, [propertyBookItems]);
+  }, [inventoryItems]);
   
   // Create memoized data for signed-out items based on transfers
   const signedOutItems: DisplayItem[] = useMemo(() => {
-    return mockTransfers
+    return transfers
       .filter(transfer => transfer.status === "approved") // Assuming approved means signed out
       .map(transfer => {
-        const originalItem = propertyBookItems.find(i => i.serialNumber === transfer.serialNumber);
+        const originalItem = inventoryItems.find(i => i.serialNumber === transfer.serialNumber);
         const derivedCategory = getCategoryFromName(transfer.name);
         
         return {
@@ -200,7 +189,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           parentItemId: originalItem?.parentItemId,
         }
       });
-  }, [propertyBookItems]);
+  }, [inventoryItems, transfers]);
 
   // Filter items based on search and category
   const getFilteredItems = useCallback((items: DisplayItem[], tab: string): DisplayItem[] => {
@@ -292,27 +281,15 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     const newComponent: Component = { ...newComponentData, id: uuidv4() };
     const updatedComponents = [...(selectedItem.components || []), newComponent];
     
-    try {
-      // Update only the components, not the entire item
-      const updatedItem = await updateInventoryItemComponentsInDB(selectedItem.id, updatedComponents);
-      
-      if (updatedItem) {
-        toast({ title: "Component Added", description: `${newComponent.name} added.` });
-        setSelectedItem(updatedItem);
-        
-        // Update local state to reflect the change
-        setPropertyBookItems(prevItems => 
-          prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
-        );
+    updateComponents.mutate(
+      { id: selectedItem.id, components: updatedComponents },
+      {
+        onSuccess: (updatedItem) => {
+          toast({ title: "Component Added", description: `${newComponent.name} added.` });
+          setSelectedItem(updatedItem);
+        }
       }
-    } catch (err) {
-      console.error("Failed to add component:", err);
-      toast({ 
-        title: "Error", 
-        description: "Failed to save component changes.", 
-        variant: "destructive" 
-      });
-    }
+    );
   };
 
   // Handler for updating a component
@@ -323,27 +300,15 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       comp.id === updatedComponent.id ? updatedComponent : comp
     );
     
-    try {
-      // Update only the components, not the entire item
-      const updatedItem = await updateInventoryItemComponentsInDB(selectedItem.id, updatedComponents);
-      
-      if (updatedItem) {
-        toast({ title: "Component Updated", description: `${updatedComponent.name} updated.` });
-        setSelectedItem(updatedItem);
-        
-        // Update local state to reflect the change
-        setPropertyBookItems(prevItems => 
-          prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
-        );
+    updateComponents.mutate(
+      { id: selectedItem.id, components: updatedComponents },
+      {
+        onSuccess: (updatedItem) => {
+          toast({ title: "Component Updated", description: `${updatedComponent.name} updated.` });
+          setSelectedItem(updatedItem);
+        }
       }
-    } catch (err) {
-      console.error("Failed to update component:", err);
-      toast({ 
-        title: "Error", 
-        description: "Failed to save component changes.", 
-        variant: "destructive" 
-      });
-    }
+    );
   };
 
   // Handler for removing a component
@@ -353,30 +318,18 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     const componentToRemove = selectedItem.components.find(c => c.id === componentId);
     const updatedComponents = selectedItem.components.filter(comp => comp.id !== componentId);
     
-    try {
-      // Update only the components, not the entire item
-      const updatedItem = await updateInventoryItemComponentsInDB(selectedItem.id, updatedComponents);
-      
-      if (updatedItem) {
-        toast({ 
-          title: "Component Removed", 
-          description: `${componentToRemove?.name || 'Component'} removed.` 
-        });
-        setSelectedItem(updatedItem);
-        
-        // Update local state to reflect the change
-        setPropertyBookItems(prevItems => 
-          prevItems.map(item => item.id === updatedItem.id ? updatedItem : item)
-        );
+    updateComponents.mutate(
+      { id: selectedItem.id, components: updatedComponents },
+      {
+        onSuccess: (updatedItem) => {
+          toast({ 
+            title: "Component Removed", 
+            description: `${componentToRemove?.name || 'Component'} removed.` 
+          });
+          setSelectedItem(updatedItem);
+        }
       }
-    } catch (err) {
-      console.error("Failed to remove component:", err);
-      toast({ 
-        title: "Error", 
-        description: "Failed to save component changes.", 
-        variant: "destructive" 
-      });
-    }
+    );
   };
 
   // Handler for bulk actions
@@ -453,7 +406,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   // Effect for handling direct navigation to an item via id prop
   useEffect(() => {
     if (!state.isLoading && id) {
-      const assignedItem = propertyBookItems.find(item => item.id === id);
+      const assignedItem = inventoryItems.find(item => item.id === id);
       const signedOutItemDetails = signedOutItems.find(item => item.id === id); 
       
       let itemToSelect: DisplayItem | null = null;
@@ -478,7 +431,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         setDetailsModalOpen(true);
       }
     }
-  }, [id, propertyBookItems, signedOutItems, state.isLoading]);
+  }, [id, inventoryItems, signedOutItems, state.isLoading]);
 
   // UI components and layout
   const actions = (
