@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -504,11 +505,55 @@ type MockLedgerService struct {
 	events map[string][]uint
 }
 
-func (m *MockLedgerService) LogItemCreation(itemID uint, serialNumber string, userID uint) error {
+func (m *MockLedgerService) LogItemCreation(property domain.Property, userID uint) error {
 	if m.events == nil {
 		m.events = make(map[string][]uint)
 	}
-	m.events["ITEM_CREATE"] = append(m.events["ITEM_CREATE"], itemID)
+	m.events["ITEM_CREATE"] = append(m.events["ITEM_CREATE"], property.ID)
+	return nil
+}
+
+func (m *MockLedgerService) LogTransferEvent(transfer domain.Transfer, serialNumber string) error {
+	if m.events == nil {
+		m.events = make(map[string][]uint)
+	}
+	m.events["TRANSFER_EVENT"] = append(m.events["TRANSFER_EVENT"], transfer.PropertyID)
+	return nil
+}
+
+func (m *MockLedgerService) LogStatusChange(itemID uint, serialNumber string, oldStatus string, newStatus string, userID uint) error {
+	if m.events == nil {
+		m.events = make(map[string][]uint)
+	}
+	m.events["STATUS_CHANGE"] = append(m.events["STATUS_CHANGE"], itemID)
+	return nil
+}
+
+func (m *MockLedgerService) LogMaintenanceEvent(maintenanceRecordID string, itemID uint, initiatingUserID uint, performingUserID sql.NullInt64, eventType string, maintenanceType sql.NullString, description string) error {
+	if m.events == nil {
+		m.events = make(map[string][]uint)
+	}
+	m.events["MAINTENANCE_EVENT"] = append(m.events["MAINTENANCE_EVENT"], itemID)
+	return nil
+}
+
+func (m *MockLedgerService) LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error {
+	if m.events == nil {
+		m.events = make(map[string][]uint)
+	}
+	m.events["CORRECTION_EVENT"] = append(m.events["CORRECTION_EVENT"], userID)
+	return nil
+}
+
+func (m *MockLedgerService) GetItemHistory(itemID uint) ([]map[string]interface{}, error) {
+	return []map[string]interface{}{}, nil
+}
+
+func (m *MockLedgerService) VerifyDocument(documentID string, tableName string) (bool, error) {
+	return true, nil
+}
+
+func (m *MockLedgerService) Initialize() error {
 	return nil
 }
 
@@ -567,6 +612,18 @@ func (m *MockLedgerService) GetLedgerHistory(limit int, offset int) ([]interface
 
 func (m *MockLedgerService) GetAllCorrectionEvents() ([]domain.CorrectionEvent, error) {
 	return []domain.CorrectionEvent{}, nil
+}
+
+func (m *MockLedgerService) GetCorrectionEventByID(eventID string) (*domain.CorrectionEvent, error) {
+	return &domain.CorrectionEvent{EventID: eventID}, nil
+}
+
+func (m *MockLedgerService) GetCorrectionEventsByOriginalID(originalEventID string) ([]domain.CorrectionEvent, error) {
+	return []domain.CorrectionEvent{}, nil
+}
+
+func (m *MockLedgerService) GetGeneralHistory() ([]domain.GeneralLedgerEvent, error) {
+	return []domain.GeneralLedgerEvent{}, nil
 }
 
 func (m *MockLedgerService) Close() error {
@@ -640,7 +697,7 @@ func (m *MockRepository) GetPropertyModelByID(id uint) (*domain.PropertyModel, e
 }
 
 func (m *MockRepository) GetPropertyModelByNSN(nsn string) (*domain.PropertyModel, error) {
-	return &domain.PropertyModel{ID: 1, Nsn: nsn}, nil
+	return &domain.PropertyModel{ID: 1, Nsn: &nsn}, nil
 }
 
 func (m *MockRepository) ListPropertyModels(typeID *uint) ([]domain.PropertyModel, error) {
