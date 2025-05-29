@@ -53,6 +53,11 @@ protocol APIServiceProtocol {
 
     // Add requirement for base URL string for cookie clearing
     var baseURLString: String { get }
+    
+    // --- NSN/LIN Lookup Functions ---
+    func lookupNSN(nsn: String) async throws -> NSNLookupResponse
+    func lookupLIN(lin: String) async throws -> NSNLookupResponse
+    func searchNSN(query: String, limit: Int?) async throws -> NSNSearchResponse
 }
 
 // Debug print function to avoid cluttering 
@@ -634,6 +639,61 @@ class APIService: APIServiceProtocol {
         let _: EmptyResponse = try await performRequest(request: request)
         debugPrint("Photo deleted successfully")
     }
+    
+    // --- NSN/LIN Lookup Functions ---
+    
+    func lookupNSN(nsn: String) async throws -> NSNLookupResponse {
+        debugPrint("Looking up NSN: \(nsn)")
+        guard let encodedNSN = nsn.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+            throw APIError.invalidURL
+        }
+        
+        let endpoint = baseURL.appendingPathComponent("/nsn/\(encodedNSN)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as NSNLookupResponse
+        debugPrint("NSN lookup successful: \(response.data.itemName)")
+        return response
+    }
+    
+    func lookupLIN(lin: String) async throws -> NSNLookupResponse {
+        debugPrint("Looking up LIN: \(lin)")
+        guard let encodedLIN = lin.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+            throw APIError.invalidURL
+        }
+        
+        let endpoint = baseURL.appendingPathComponent("/lin/\(encodedLIN)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as NSNLookupResponse
+        debugPrint("LIN lookup successful: \(response.data.itemName)")
+        return response
+    }
+    
+    func searchNSN(query: String, limit: Int? = 20) async throws -> NSNSearchResponse {
+        debugPrint("Searching NSN with query: \(query)")
+        
+        var components = URLComponents(url: baseURL.appendingPathComponent("/nsn/search"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "q", value: query)
+        ]
+        if let limit = limit {
+            components.queryItems?.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as NSNSearchResponse
+        debugPrint("NSN search returned \(response.count) results")
+        return response
+    }
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)
@@ -665,4 +725,43 @@ struct PhotoVerificationResponse: Codable {
 
 struct DeletePhotoRequest: Codable {
     let filename: String
+}
+
+// Add NSN response models
+struct NSNLookupResponse: Codable {
+    let success: Bool
+    let data: NSNDetails
+}
+
+struct NSNDetails: Codable {
+    let nsn: String
+    let lin: String?
+    let nomenclature: String
+    let fsc: String?
+    let niin: String?
+    let unitPrice: Double?
+    let manufacturer: String?
+    let partNumber: String?
+    let specifications: [String: String]?
+    let lastUpdated: Date
+    
+    // Map server field names
+    private enum CodingKeys: String, CodingKey {
+        case nsn, lin, nomenclature, fsc, niin
+        case unitPrice = "unit_price"
+        case manufacturer
+        case partNumber = "part_number"
+        case specifications
+        case lastUpdated = "last_updated"
+    }
+    
+    var itemName: String {
+        return nomenclature
+    }
+}
+
+struct NSNSearchResponse: Codable {
+    let success: Bool
+    let data: [NSNDetails]
+    let count: Int
 } 

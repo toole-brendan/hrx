@@ -17,6 +17,15 @@ struct ManualSNEntryView: View {
     @State private var showingConfirmationAlert = false
     @State private var itemToConfirm: Property? = nil
 
+    @State private var nsn: String = ""
+    @State private var lin: String = ""
+    @State private var description: String = ""
+    
+    @State private var showingNSNSearch = false
+    @State private var nsnSearchQuery = ""
+    @State private var nsnSearchResults: [NSNDetails] = []
+    @State private var isSearchingNSN = false
+
     var body: some View {
         NavigationView { // Added for Title and potentially other navigation
             VStack(spacing: 16) {
@@ -49,6 +58,67 @@ struct ManualSNEntryView: View {
                     }
                 }
                 .padding(.horizontal)
+
+                // NSN/LIN Fields with lookup
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("NSN (Optional)")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                            
+                            HStack {
+                                TextField("13-digit NSN", text: $nsn)
+                                    .textFieldStyle(IndustrialTextFieldStyle())
+                                    .autocapitalization(.none)
+                                    .onChange(of: nsn) { newValue in
+                                        // Format NSN as user types (####-##-###-####)
+                                        if newValue.count == 13 && !newValue.contains("-") {
+                                            let formatted = formatNSN(newValue)
+                                            nsn = formatted
+                                        }
+                                    }
+                                
+                                Button(action: lookupNSN) {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundColor(AppColors.primary)
+                                }
+                                .disabled(nsn.replacingOccurrences(of: "-", with: "").count != 13)
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("LIN (Optional)")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                            
+                            HStack {
+                                TextField("6-character LIN", text: $lin)
+                                    .textFieldStyle(IndustrialTextFieldStyle())
+                                    .autocapitalization(.allCharacters)
+                                    .onChange(of: lin) { newValue in
+                                        lin = String(newValue.prefix(6)).uppercased()
+                                    }
+                                
+                                Button(action: lookupLIN) {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundColor(AppColors.primary)
+                                }
+                                .disabled(lin.count != 6)
+                            }
+                        }
+                    }
+                    
+                    Button(action: { showingNSNSearch = true }) {
+                        HStack {
+                            Image(systemName: "text.magnifyingglass")
+                            Text("Search NSN Database")
+                        }
+                        .font(.caption)
+                        .foregroundColor(AppColors.primary)
+                    }
+                }
+                .padding(.bottom)
 
                 // --- Status/Result Area --- 
                 VStack {
@@ -128,6 +198,97 @@ struct ManualSNEntryView: View {
              // Optionally clear state when view appears if needed
             // viewModel.clearAndReset()
         }
+
+        .sheet(isPresented: $showingNSNSearch) {
+            NSNSearchView(
+                searchQuery: $nsnSearchQuery,
+                searchResults: $nsnSearchResults,
+                isSearching: $isSearchingNSN,
+                onSelect: { selectedNSN in
+                    applyNSNDetails(selectedNSN)
+                    showingNSNSearch = false
+                }
+            )
+        }
+    }
+
+    // MARK: - NSN/LIN Lookup Functions
+    
+    private func lookupNSN() {
+        let cleanNSN = nsn.replacingOccurrences(of: "-", with: "")
+        guard cleanNSN.count == 13 else { return }
+        
+        Task {
+            do {
+                let response = try await apiService.lookupNSN(nsn: cleanNSN)
+                await MainActor.run {
+                    applyNSNDetails(response.data)
+                }
+            } catch {
+                print("NSN lookup failed: \(error)")
+                // Show error alert
+            }
+        }
+    }
+    
+    private func lookupLIN() {
+        guard lin.count == 6 else { return }
+        
+        Task {
+            do {
+                let response = try await apiService.lookupLIN(lin: lin)
+                await MainActor.run {
+                    applyNSNDetails(response.data)
+                }
+            } catch {
+                print("LIN lookup failed: \(error)")
+                // Show error alert
+            }
+        }
+    }
+    
+    private func applyNSNDetails(_ details: NSNDetails) {
+        if !itemName.isEmpty && itemName != details.itemName {
+            // Ask user if they want to overwrite
+            // For now, just append
+            itemName = "\(itemName) - \(details.itemName)"
+        } else {
+            itemName = details.itemName
+        }
+        
+        if let detailsNSN = details.nsn {
+            nsn = formatNSN(detailsNSN)
+        }
+        
+        if let detailsLIN = details.lin {
+            lin = detailsLIN
+        }
+        
+        if description.isEmpty {
+            var desc = ""
+            if let manufacturer = details.manufacturer {
+                desc += "Manufacturer: \(manufacturer)\n"
+            }
+            if let partNumber = details.partNumber {
+                desc += "Part Number: \(partNumber)\n"
+            }
+            if let price = details.unitPrice {
+                desc += "Unit Price: $\(String(format: "%.2f", price))\n"
+            }
+            description = desc.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+    
+    private func formatNSN(_ nsn: String) -> String {
+        let clean = nsn.replacingOccurrences(of: "-", with: "")
+        guard clean.count == 13 else { return nsn }
+        
+        let part1 = clean.prefix(4)
+        let part2 = clean.dropFirst(4).prefix(2)
+        let part3 = clean.dropFirst(6).prefix(3)
+        let part4 = clean.dropFirst(9)
+        
+        return "\(part1)-\(part2)-\(part3)-\(part4)"
     }
 }
 

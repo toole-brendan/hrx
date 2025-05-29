@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/toole-brendan/handreceipt-go/internal/api/routes"
+	"github.com/toole-brendan/handreceipt-go/internal/config"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/platform/database"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
@@ -120,14 +123,47 @@ func main() {
 	// Ensure Close is called on shutdown (using defer in main is tricky, consider signal handling)
 	// defer ledgerService.Close()
 
+	// Initialize NSN Service
+	logger := logrus.New()
+	logger.SetLevel(logrus.InfoLevel)
+
+	nsnConfig := &config.NSNConfig{
+		CacheEnabled:   viper.GetBool("nsn.cache_enabled"),
+		CacheTTL:       viper.GetDuration("nsn.cache_ttl"),
+		APIEndpoint:    viper.GetString("nsn.api_endpoint"),
+		APIKey:         viper.GetString("nsn.api_key"),
+		TimeoutSeconds: viper.GetInt("nsn.timeout_seconds"),
+		RateLimitRPS:   viper.GetInt("nsn.rate_limit_rps"),
+		BulkBatchSize:  viper.GetInt("nsn.bulk_batch_size"),
+	}
+
+	// Set defaults if not configured
+	if nsnConfig.TimeoutSeconds == 0 {
+		nsnConfig.TimeoutSeconds = 30
+	}
+	if nsnConfig.RateLimitRPS == 0 {
+		nsnConfig.RateLimitRPS = 10
+	}
+	if nsnConfig.BulkBatchSize == 0 {
+		nsnConfig.BulkBatchSize = 1000
+	}
+
+	nsnService := nsn.NewNSNService(nsnConfig, db, logger)
+	if err := nsnService.Initialize(); err != nil {
+		log.Printf("WARNING: Failed to initialize NSN service: %v", err)
+		// NSN service is not critical, so we continue
+	} else {
+		log.Println("NSN service initialized successfully")
+	}
+
 	// Create Gin router
 	router := gin.Default()
 
 	// CORS middleware
 	router.Use(corsMiddleware())
 
-	// Setup routes, passing the LedgerService interface, Repository, and Storage Service
-	routes.SetupRoutes(router, ledgerService, repo, storageService)
+	// Setup routes, passing the LedgerService interface, Repository, Storage Service, and NSN Service
+	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService)
 
 	// Get server port, prioritizing environment variable, then config, then default
 	var port int

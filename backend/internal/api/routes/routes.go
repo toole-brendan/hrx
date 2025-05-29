@@ -4,15 +4,17 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/toole-brendan/handreceipt-go/internal/api/handlers"
 	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
 // SetupRoutes configures all the API routes for the application
-func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService *storage.MinIOService) {
+func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService *storage.MinIOService, nsnService *nsn.NSNService) {
 	// Health check endpoint (no authentication required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -36,6 +38,10 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
 	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
+
+	// Add NSN handler
+	logger := logrus.New()
+	nsnHandler := handlers.NewNSNHandler(nsnService, logger)
 	// ... more handlers will be added in the future
 
 	// TODO: Update other handlers to use repository when needed
@@ -138,5 +144,8 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			photos.GET("/property/:propertyId/verify", photoHandler.VerifyPhotoHash)
 			photos.DELETE("/property/:propertyId", photoHandler.DeletePropertyPhoto)
 		}
+
+		// Register NSN routes
+		RegisterNSNRoutes(protected, nsnHandler, middleware.SessionAuthMiddleware())
 	}
 }
