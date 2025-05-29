@@ -13,6 +13,24 @@ function getAuthHeaders(): HeadersInit {
 }
 
 /**
+ * Maps backend transfer format to frontend Transfer format
+ */
+function mapBackendTransferToFrontend(backendTransfer: any): Transfer {
+  return {
+    id: backendTransfer.id.toString(),
+    name: backendTransfer.property?.name || backendTransfer.item_name || 'Unknown Item',
+    serialNumber: backendTransfer.property?.serial_number || backendTransfer.serial_number || '',
+    from: backendTransfer.from_user?.name || backendTransfer.from || 'Unknown',
+    to: backendTransfer.to_user?.name || backendTransfer.to || 'Unknown',
+    date: backendTransfer.request_date || new Date().toISOString(),
+    status: backendTransfer.status?.toLowerCase() || 'pending',
+    approvedDate: backendTransfer.resolved_date && backendTransfer.status === 'Approved' ? backendTransfer.resolved_date : undefined,
+    rejectedDate: backendTransfer.resolved_date && backendTransfer.status === 'Rejected' ? backendTransfer.resolved_date : undefined,
+    rejectionReason: backendTransfer.status === 'Rejected' && backendTransfer.notes ? backendTransfer.notes : undefined,
+  };
+}
+
+/**
  * Fetches all transfers from the API
  */
 export async function fetchTransfers(): Promise<Transfer[]> {
@@ -27,18 +45,27 @@ export async function fetchTransfers(): Promise<Transfer[]> {
   }
   
   const data = await response.json();
-  return data.transfers || data || []; // Handle both {transfers: [...]} and direct array response
+  const transfers = data.transfers || data || [];
+  return transfers.map(mapBackendTransferToFrontend);
 }
 
 /**
  * Create a new transfer
  */
-export async function createTransfer(newTransferData: Omit<Transfer, 'id' | 'date' | 'status'>): Promise<Transfer> {
+export async function createTransfer(transferData: {
+  propertyId: number;
+  toUserId: number;
+  notes?: string;
+}): Promise<Transfer> {
   const response = await fetch(`${API_BASE_URL}/transfers`, {
     method: 'POST',
     headers: getAuthHeaders(),
     credentials: 'include',
-    body: JSON.stringify(newTransferData),
+    body: JSON.stringify({
+      property_id: transferData.propertyId,
+      to_user_id: transferData.toUserId,
+      notes: transferData.notes,
+    }),
   });
   
   if (!response.ok) {
@@ -46,7 +73,8 @@ export async function createTransfer(newTransferData: Omit<Transfer, 'id' | 'dat
     throw new Error(`Failed to create transfer: ${error}`);
   }
   
-  return response.json();
+  const backendTransfer = await response.json();
+  return mapBackendTransferToFrontend(backendTransfer);
 }
 
 /**
@@ -55,15 +83,21 @@ export async function createTransfer(newTransferData: Omit<Transfer, 'id' | 'dat
 export async function updateTransferStatus(params: { 
   id: string; 
   status: 'approved' | 'rejected'; 
-  reason?: string;
+  notes?: string;
 }): Promise<Transfer> {
-  const { id, status, reason } = params;
+  const { id, status, notes } = params;
+  
+  // Map frontend status to backend format
+  const backendStatus = status === 'approved' ? 'Approved' : 'Rejected';
   
   const response = await fetch(`${API_BASE_URL}/transfers/${id}/status`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
     credentials: 'include',
-    body: JSON.stringify({ status, reason }),
+    body: JSON.stringify({ 
+      status: backendStatus, 
+      notes: notes 
+    }),
   });
   
   if (!response.ok) {
@@ -71,7 +105,8 @@ export async function updateTransferStatus(params: {
     throw new Error(`Failed to ${status} transfer: ${error}`);
   }
   
-  return response.json();
+  const backendTransfer = await response.json();
+  return mapBackendTransferToFrontend(backendTransfer);
 }
 
 /**
@@ -86,6 +121,30 @@ export async function getTransferById(id: string): Promise<Transfer> {
   
   if (!response.ok) {
     throw new Error(`Failed to fetch transfer: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  const backendTransfer = data.transfer || data;
+  return mapBackendTransferToFrontend(backendTransfer);
+}
+
+/**
+ * Initiate a transfer by QR code scan
+ */
+export async function initiateTransferByQR(qrData: {
+  qrData: Record<string, any>;
+  scannedAt: string;
+}): Promise<{ transferId: string; status: string }> {
+  const response = await fetch(`${API_BASE_URL}/transfers/qr-initiate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(qrData),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to initiate QR transfer: ${error}`);
   }
   
   return response.json();

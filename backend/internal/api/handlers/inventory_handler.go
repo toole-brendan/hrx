@@ -102,6 +102,17 @@ func (h *InventoryHandler) CreateInventoryItem(c *gin.Context) {
 		return
 	}
 
+	// Check for duplicate serial number
+	existingItem, err := h.Repo.GetPropertyBySerialNumber(input.SerialNumber)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing serial number"})
+		return
+	}
+	if existingItem != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("A digital twin with serial number '%s' already exists", input.SerialNumber)})
+		return
+	}
+
 	// Prepare the inventory item for database insertion
 	item := &domain.Property{ // Changed to pointer
 		Name:             input.Name,

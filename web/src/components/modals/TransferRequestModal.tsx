@@ -7,27 +7,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createTransfer } from "@/services/transferService";
+import { InventoryItem } from "@/types";
+import { Loader2 } from "lucide-react";
 
 interface TransferRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  itemName: string;
-  serialNumber: string;
+  item: InventoryItem;
+  onTransferSuccess?: () => void;
 }
 
 const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
   isOpen,
   onClose,
-  itemName,
-  serialNumber
+  item,
+  onTransferSuccess
 }) => {
   const [transferType, setTransferType] = useState<"individual" | "unit">("individual");
   const [recipient, setRecipient] = useState("");
   const [reason, setReason] = useState("");
   const [urgency, setUrgency] = useState("normal");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Mock data for dropdown options
+  // Mock data for dropdown options - in production, these would come from an API
   const recentTransferRecipients = [
     { id: "1", name: "SGT James Wilson" },
     { id: "2", name: "CPT Sarah Johnson" },
@@ -42,24 +47,60 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
     { id: "4", name: "HHC, 2-506 IN" }
   ];
 
-  const handleSubmit = () => {
-    // In a real app, this would make an API call to submit the transfer request
-    toast({
-      title: "Transfer Request Submitted",
-      description: `Request to transfer ${itemName} to ${recipient} has been submitted for approval.`
-    });
-    onClose();
+  // Create transfer mutation
+  const createTransferMutation = useMutation({
+    mutationFn: createTransfer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      
+      toast({
+        title: "Transfer Request Submitted",
+        description: `Request to transfer ${item.name} to ${recipient} has been submitted for approval.`
+      });
 
-    // Reset form
-    setTransferType("individual");
-    setRecipient("");
-    setReason("");
-    setUrgency("normal");
+      // Reset form
+      setTransferType("individual");
+      setRecipient("");
+      setReason("");
+      setUrgency("normal");
+
+      onTransferSuccess?.();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Transfer Request Failed",
+        description: error.message || "Failed to submit transfer request. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSubmit = () => {
+    if (!recipient || !reason) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a recipient and provide a reason for the transfer.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In production, you would look up the actual user ID from the selected recipient
+    // For now, we'll use a placeholder
+    const recipientUserId = 2; // This should be looked up based on the recipient name
+
+    createTransferMutation.mutate({
+      propertyId: parseInt(item.id),
+      toUserId: recipientUserId,
+      notes: `${reason}\n\nUrgency: ${urgency}\nTransfer Type: ${transferType}`,
+    });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !createTransferMutation.isPending && onClose()}>
+      <DialogContent className="sm:max-w-md bg-card rounded-none">
         <DialogHeader>
           <DialogTitle>Transfer Request</DialogTitle>
           <DialogDescription>
@@ -74,9 +115,9 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
             </Label>
             <Input
               id="item-name"
-              value={itemName}
+              value={item.name}
               readOnly
-              className="col-span-3"
+              className="col-span-3 rounded-none"
             />
           </div>
           
@@ -86,9 +127,9 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
             </Label>
             <Input
               id="serial-number"
-              value={serialNumber}
+              value={item.serialNumber}
               readOnly
-              className="col-span-3 font-mono"
+              className="col-span-3 font-mono rounded-none"
             />
           </div>
 
@@ -98,14 +139,15 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
               value={transferType} 
               onValueChange={(value) => setTransferType(value as "individual" | "unit")}
               className="flex space-x-4"
+              disabled={createTransferMutation.isPending}
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="individual" id="individual" />
-                <Label htmlFor="individual">Individual</Label>
+                <Label htmlFor="individual" className="cursor-pointer">Individual</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="unit" id="unit" />
-                <Label htmlFor="unit">Unit</Label>
+                <Label htmlFor="unit" className="cursor-pointer">Unit</Label>
               </div>
             </RadioGroup>
           </div>
@@ -113,8 +155,11 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
           {transferType === "individual" ? (
             <div className="grid gap-2">
               <Label htmlFor="recipient">Recipient</Label>
-              <Select onValueChange={setRecipient}>
-                <SelectTrigger>
+              <Select 
+                onValueChange={setRecipient} 
+                disabled={createTransferMutation.isPending}
+              >
+                <SelectTrigger className="rounded-none">
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
                 <SelectContent>
@@ -129,8 +174,11 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
           ) : (
             <div className="grid gap-2">
               <Label htmlFor="unit">Unit</Label>
-              <Select onValueChange={setRecipient}>
-                <SelectTrigger>
+              <Select 
+                onValueChange={setRecipient}
+                disabled={createTransferMutation.isPending}
+              >
+                <SelectTrigger className="rounded-none">
                   <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
                 <SelectContent>
@@ -151,15 +199,20 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
               placeholder="Provide reason for transfer"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="resize-none"
+              className="resize-none rounded-none"
               rows={3}
+              disabled={createTransferMutation.isPending}
             />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="urgency">Urgency</Label>
-            <Select value={urgency} onValueChange={setUrgency}>
-              <SelectTrigger>
+            <Select 
+              value={urgency} 
+              onValueChange={setUrgency}
+              disabled={createTransferMutation.isPending}
+            >
+              <SelectTrigger className="rounded-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -173,15 +226,27 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={createTransferMutation.isPending}
+            className="rounded-none"
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
-            className="bg-[#4B5320] hover:bg-[#3a4019]"
-            disabled={!recipient || !reason}
+            className="bg-[#4B5320] hover:bg-[#3a4019] rounded-none"
+            disabled={!recipient || !reason || createTransferMutation.isPending}
           >
-            Submit Request
+            {createTransferMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Request'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

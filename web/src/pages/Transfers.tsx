@@ -107,7 +107,8 @@ import {
 import { 
   fetchTransfers, 
   createTransfer, 
-  updateTransferStatus 
+  updateTransferStatus,
+  initiateTransferByQR
 } from '@/services/transferService';
 
 // --- State Management with useReducer (Modified) ---
@@ -249,6 +250,25 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     }
   });
 
+  // Add mutation for QR-initiated transfers
+  const initiateTransferByQRMutation = useMutation({
+    mutationFn: initiateTransferByQR,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      toast({
+        title: "Transfer Initiated",
+        description: `Transfer request ${data.transferId} has been sent to the current holder.`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Transfer Failed",
+        description: error.message || "Failed to initiate transfer via QR code",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Helper for Blockchain recording
   const handleBlockchainRecord = (transfer: Transfer) => {
     if (!user) {
@@ -306,7 +326,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const handleReject = (id: string, reason: string = "Rejected by recipient") => {
     // No longer need START_LOADING/STOP_LOADING dispatch
     if (transferToConfirm?.id === id && transferToConfirm?.action === 'reject') {
-        updateStatusMutation.mutate({ id, status: 'rejected', reason });
+        updateStatusMutation.mutate({ id, status: 'rejected', notes: reason });
         // Logic moved to onSuccess
     }
   };
@@ -324,24 +344,29 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     // Logic moved to onSuccess
   };
 
-  // Update QR Scan handler (no direct mutation needed here, just opens modals/forms)
+  // Update QR Scan handler to use the new API endpoint
   const handleScanComplete = (result: string) => {
     try {
-      const [serialNumber, name] = result.split('|');
-      if (!serialNumber) throw new Error("Invalid QR Code format");
-
-      const existingTransfer = transfers.find(item => item.serialNumber === serialNumber);
-
-      if (existingTransfer) {
-        dispatch({ type: 'SHOW_DETAILS', payload: existingTransfer });
-        toast({ title: "Transfer Found", description: `Showing details for ${existingTransfer.name}` });
-      } else {
-        // Pre-fill new transfer form? (Optional enhancement)
-        dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true });
-        toast({ title: "New Transfer Initiated", description: `Ready to create transfer for SN: ${serialNumber}` });
+      // Parse the QR data - expecting JSON format from our QR codes
+      const qrData = JSON.parse(result);
+      
+      // Validate it's a HandReceipt QR code
+      if (qrData.type !== 'handreceipt_property') {
+        throw new Error("Invalid QR Code - not a HandReceipt property code");
       }
+
+      // Use mutation to initiate transfer
+      initiateTransferByQRMutation.mutate({
+        qrData: qrData,
+        scannedAt: new Date().toISOString()
+      });
+      
     } catch (error) {
-      toast({ title: "QR Scan Error", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
+      toast({ 
+        title: "QR Scan Error", 
+        description: error instanceof Error ? error.message : "Invalid QR code format", 
+        variant: "destructive" 
+      });
     } finally {
       dispatch({ type: 'TOGGLE_SCANNER', payload: false });
     }

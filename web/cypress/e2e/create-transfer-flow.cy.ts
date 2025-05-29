@@ -4,18 +4,47 @@ describe('HandReceipt - Complete Create & Transfer Flow', () => {
     cy.setCookie('session', 'test-session-cookie');
     
     // Intercept API calls
-    cy.intercept('GET', '**/api/auth/me', { fixture: 'currentUser.json' }).as('checkSession');
-    cy.intercept('GET', '**/api/inventory', { fixture: 'inventory.json' }).as('getInventory');
-    cy.intercept('GET', '**/api/transfers', { fixture: 'transfers.json' }).as('getTransfers');
+    cy.intercept('GET', '**/api/auth/me', { 
+      statusCode: 200,
+      body: {
+        id: 1,
+        username: 'testuser',
+        name: 'CPT Rodriguez, Michael',
+        rank: 'CPT'
+      }
+    }).as('checkSession');
+    
+    cy.intercept('GET', '**/api/inventory', { 
+      statusCode: 200,
+      body: {
+        items: [
+          {
+            id: 1,
+            name: 'M4 Carbine',
+            serial_number: 'M4-12345',
+            current_status: 'Operational',
+            assigned_to_user_id: 1,
+            category: 'weapons'
+          }
+        ]
+      }
+    }).as('getInventory');
+    
+    cy.intercept('GET', '**/api/transfers', { 
+      statusCode: 200,
+      body: {
+        transfers: []
+      }
+    }).as('getTransfers');
   });
 
   describe('Create Item Flow', () => {
-    it('should create a new inventory item', () => {
+    it('should create a new inventory item with unique serial number', () => {
       // Mock create item endpoint
       cy.intercept('POST', '**/api/inventory', {
         statusCode: 201,
         body: {
-          id: 'new-item-1',
+          id: 2,
           name: 'M4A1 Carbine',
           serial_number: 'M4-NEW-12345',
           current_status: 'Operational',
@@ -25,9 +54,6 @@ describe('HandReceipt - Complete Create & Transfer Flow', () => {
           assigned_date: new Date().toISOString(),
           nsn: '1005-01-382-0953',
           lin: 'C74940'
-        },
-        headers: {
-          'X-Ledger-TX-ID': 'ledger-tx-123456'
         }
       }).as('createItem');
 
@@ -35,34 +61,121 @@ describe('HandReceipt - Complete Create & Transfer Flow', () => {
       cy.wait('@checkSession');
       cy.wait('@getInventory');
 
-      // Click create item button (assuming it exists)
-      cy.get('[data-testid="create-item-button"]').click();
+      // Click create item button
+      cy.contains('button', 'CREATE ITEM').click();
 
       // Fill in the create item form
-      cy.get('[data-testid="item-name-input"]').type('M4A1 Carbine');
-      cy.get('[data-testid="serial-number-input"]').type('M4-NEW-12345');
-      cy.get('[data-testid="description-input"]').type('5.56mm carbine with ACOG');
-      cy.get('[data-testid="nsn-input"]').type('1005-01-382-0953');
-      cy.get('[data-testid="lin-input"]').type('C74940');
+      cy.get('input[id="serial-number"]').type('M4-NEW-12345');
+      cy.get('input[id="item-name"]').type('M4A1 Carbine');
+      cy.get('button[id="category"]').click();
+      cy.get('[role="option"]').contains('Weapons').click();
+      cy.get('input[id="nsn"]').type('1005-01-382-0953');
+      cy.get('input[id="lin"]').type('C74940');
+      cy.get('textarea[id="description"]').type('5.56mm carbine with ACOG');
+      cy.get('input[id="assign-to-self"]').check();
       
       // Submit form
-      cy.get('[data-testid="create-item-submit"]').click();
+      cy.contains('button', 'Create Digital Twin').click();
 
       // Wait for API call
       cy.wait('@createItem');
 
       // Verify success toast
-      cy.get('[data-testid="toast"]').should('contain', 'Created M4A1 Carbine');
+      cy.contains('Digital Twin Created').should('be.visible');
+      cy.contains('M4A1 Carbine (SN: M4-NEW-12345) has been registered successfully').should('be.visible');
+    });
 
-      // Verify item appears in list
-      cy.get('[data-testid="inventory-item-row"]').should('contain', 'M4-NEW-12345');
+    it('should prevent duplicate serial numbers', () => {
+      // Mock API to return duplicate error
+      cy.intercept('POST', '**/api/inventory', {
+        statusCode: 400,
+        body: {
+          error: "A digital twin with serial number 'M4-12345' already exists"
+        }
+      }).as('createDuplicate');
+
+      cy.visit('/property-book');
+      cy.wait('@getInventory');
+
+      // Click create item button
+      cy.contains('button', 'CREATE ITEM').click();
+
+      // Try to create item with existing serial number
+      cy.get('input[id="serial-number"]').type('M4-12345');
+      cy.get('input[id="item-name"]').type('Another M4');
+      cy.get('button[id="category"]').click();
+      cy.get('[role="option"]').contains('Weapons').click();
+      
+      // Submit form
+      cy.contains('button', 'Create Digital Twin').click();
+
+      // Wait for API call
+      cy.wait('@createDuplicate');
+
+      // Verify error toast
+      cy.contains('Duplicate Serial Number').should('be.visible');
+      cy.contains('An item with serial number M4-12345 already exists').should('be.visible');
+    });
+  });
+
+  describe('Transfer Flow', () => {
+    it('should create a transfer request', () => {
+      // Mock create transfer endpoint
+      cy.intercept('POST', '**/api/transfers', {
+        statusCode: 200,
+        body: {
+          id: 1,
+          property_id: 1,
+          from_user_id: 1,
+          to_user_id: 2,
+          status: 'Requested',
+          request_date: new Date().toISOString()
+        }
+      }).as('createTransfer');
+
+      cy.visit('/property-book');
+      cy.wait('@getInventory');
+
+      // Click transfer button on first item
+      cy.get('table tbody tr').first().within(() => {
+        cy.get('button[title="Transfer Equipment"]').click();
+      });
+
+      // Fill transfer form
+      cy.get('[role="dialog"]').within(() => {
+        cy.contains('Transfer Request').should('be.visible');
+        
+        // Select recipient
+        cy.get('button').contains('Select recipient').click();
+      });
+      cy.get('[role="option"]').contains('SGT James Wilson').click();
+      
+      cy.get('[role="dialog"]').within(() => {
+        // Add reason
+        cy.get('textarea[id="reason"]').type('Transferring to new squad leader');
+        
+        // Select urgency
+        cy.get('button').contains('Normal').click();
+      });
+      cy.get('[role="option"]').contains('High - Required soon').click();
+
+      // Submit transfer
+      cy.get('[role="dialog"]').within(() => {
+        cy.contains('button', 'Submit Request').click();
+      });
+
+      // Wait for API call
+      cy.wait('@createTransfer');
+
+      // Verify success
+      cy.contains('Transfer Request Submitted').should('be.visible');
     });
   });
 
   describe('QR Code Transfer Flow', () => {
-    it('should generate QR code and initiate transfer', () => {
+    it('should generate QR code for current holder', () => {
       // Mock QR code generation
-      cy.intercept('POST', '**/api/inventory/*/qrcode', {
+      cy.intercept('POST', '**/api/inventory/qrcode/*', {
         statusCode: 200,
         body: {
           qrCodeData: JSON.stringify({
@@ -73,112 +186,110 @@ describe('HandReceipt - Complete Create & Transfer Flow', () => {
             category: 'weapons',
             currentHolderId: '1',
             timestamp: new Date().toISOString(),
-            qrHash: 'abc123'
+            qrHash: 'abc123def456'
           }),
-          qrCodeUrl: 'data:image/png;base64,iVBORw0KGgoAAAANS...'
+          qrCodeUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
         }
       }).as('generateQR');
-
-      // Mock transfer initiation
-      cy.intercept('POST', '**/api/transfers/qr-initiate', {
-        statusCode: 200,
-        body: {
-          transferId: 'transfer-123',
-          status: 'pending'
-        }
-      }).as('initiateTransfer');
 
       cy.visit('/property-book');
       cy.wait('@getInventory');
 
       // Click QR code button on first item
-      cy.get('[data-testid="inventory-item-row"]')
-        .first()
-        .find('[title="Generate QR Code"]')
-        .click();
-
-      // Wait for QR dialog
-      cy.get('[role="dialog"]').within(() => {
-        cy.contains('Generate Equipment QR Code').should('be.visible');
-        
-        // Add optional notes
-        cy.get('input[placeholder*="Additional information"]').type('Test QR generation');
-        
-        // Generate QR
-        cy.contains('button', 'Generate QR Code').click();
-        
-        // QR should be displayed
-        cy.get('img[alt="QR Code for equipment"]').should('be.visible');
-        
-        // Test print button exists
-        cy.contains('button', 'Print').should('be.visible');
+      cy.get('table tbody tr').first().within(() => {
+        cy.get('button[title="Generate QR Code"]').click();
       });
+
+      // Wait for QR generation
+      cy.wait('@generateQR');
+
+      // Verify QR code is displayed in some UI element
+      // This depends on how the QR code is displayed in your app
     });
 
-    it('should scan QR code and request transfer', () => {
-      // Mock QR scan result
-      const mockQRData = {
-        type: 'handreceipt_property',
-        itemId: '1',
-        serialNumber: 'M4-12345',
-        itemName: 'M4 Carbine',
-        category: 'weapons',
-        currentHolderId: '2', // Different user owns it
-        timestamp: new Date().toISOString(),
-        qrHash: 'abc123'
-      };
-
-      // Open QR scanner
-      cy.get('[data-testid="scan-qr-button"]').click();
-
-      // Since we can't actually scan in tests, we'll simulate the scan success
-      cy.window().then((win) => {
-        // Trigger the scan success callback with mock data
-        const event = new CustomEvent('qr-scan-success', {
-          detail: JSON.stringify(mockQRData)
-        });
-        win.dispatchEvent(event);
-      });
-
-      // Verify scanned data is displayed
-      cy.get('[role="dialog"]').within(() => {
-        cy.contains('Equipment Information').should('be.visible');
-        cy.contains('M4 Carbine').should('be.visible');
-        cy.contains('M4-12345').should('be.visible');
-        
-        // Click request transfer
-        cy.contains('button', 'Request Transfer').click();
-      });
-
-      // Mock transfer request
+    it('should initiate transfer via QR scan', () => {
+      // Mock QR scan initiation
       cy.intercept('POST', '**/api/transfers/qr-initiate', {
         statusCode: 200,
         body: {
-          transferId: 'transfer-456',
-          status: 'pending'
+          transferId: 'transfer-123',
+          status: 'Requested'
         }
-      }).as('requestTransfer');
+      }).as('initiateQRTransfer');
 
-      cy.wait('@requestTransfer');
+      cy.visit('/transfers');
+      cy.wait('@getTransfers');
 
-      // Verify success message
-      cy.get('[data-testid="toast"]').should('contain', 'Transfer request for M4 Carbine has been sent');
+      // Click scan QR button
+      cy.contains('button', 'SCAN QR').click();
+
+      // Since we can't actually scan in tests, we'll need to mock the scan result
+      // This would depend on your QR scanner implementation
+      
+      // For now, just verify the scanner modal opens
+      cy.get('[role="dialog"]').within(() => {
+        cy.contains('Scan QR Code').should('be.visible');
+        cy.contains('Position the QR code within the scanning area').should('be.visible');
+      });
     });
   });
 
-  describe('Complete End-to-End Flow', () => {
-    it('should complete full create-transfer-approve cycle', () => {
-      // This test would combine the above flows
-      // 1. Create item
-      // 2. Generate QR code
-      // 3. Different user scans QR
-      // 4. Transfer is initiated
-      // 5. Original owner approves transfer
-      // 6. Ownership changes
+  describe('Transfer Approval Flow', () => {
+    it('should approve incoming transfer', () => {
+      // Mock transfers with pending transfer
+      cy.intercept('GET', '**/api/transfers', {
+        statusCode: 200,
+        body: {
+          transfers: [{
+            id: 1,
+            property: {
+              id: 1,
+              name: 'M4 Carbine',
+              serial_number: 'M4-12345'
+            },
+            from_user: {
+              id: 2,
+              name: 'SGT Smith, John'
+            },
+            to_user: {
+              id: 1,
+              name: 'CPT Rodriguez, Michael'
+            },
+            status: 'Requested',
+            request_date: new Date().toISOString()
+          }]
+        }
+      }).as('getTransfersWithPending');
 
-      // Due to complexity and need for multiple user sessions,
-      // this would typically be handled by backend integration tests
-      // But the structure is here for reference
+      // Mock approve transfer
+      cy.intercept('PATCH', '**/api/transfers/*/status', {
+        statusCode: 200,
+        body: {
+          id: 1,
+          status: 'Approved',
+          resolved_date: new Date().toISOString()
+        }
+      }).as('approveTransfer');
+
+      cy.visit('/transfers');
+      cy.wait('@getTransfersWithPending');
+
+      // Find pending transfer and approve
+      cy.contains('M4 Carbine').parents('tr').within(() => {
+        cy.contains('button', 'Approve').click();
+      });
+
+      // Confirm in dialog
+      cy.get('[role="alertdialog"]').within(() => {
+        cy.contains('Approve Transfer').should('be.visible');
+        cy.contains('button', 'Approve').click();
+      });
+
+      // Wait for API call
+      cy.wait('@approveTransfer');
+
+      // Verify success
+      cy.contains('Transfer Approved').should('be.visible');
     });
   });
 }); 

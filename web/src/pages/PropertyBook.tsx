@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useReducer, useCallback } from "react";
-import { useInventoryItems, useOfflineSync, useUpdateInventoryItemComponents } from "@/hooks/useInventory";
+import { useInventoryItems, useOfflineSync, useUpdateInventoryItemComponents, useCreateInventoryItem } from "@/hooks/useInventory";
 import { useTransfers } from "@/hooks/useTransfers";
 import { InventoryItem, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
@@ -50,7 +50,8 @@ import {
   SearchX,
   ArrowUpDown,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkActionMenu from "@/components/shared/BulkActionMenu";
@@ -65,6 +66,7 @@ import {
   getCategoryIcon,
   normalizeItemStatus 
 } from "@/lib/inventoryUtils";
+import CreateItemDialog from "@/components/inventory/CreateItemDialog";
 
 interface PropertyBookProps {
   id?: string;
@@ -137,6 +139,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
   
   const { toast } = useToast();
   
@@ -144,6 +147,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const { data: inventoryItems = [], isLoading, error } = useInventoryItems();
   const { data: transfers = [] } = useTransfers();
   const updateComponents = useUpdateInventoryItemComponents();
+  const createInventoryItem = useCreateInventoryItem();
   
   // Setup offline sync
   useOfflineSync();
@@ -433,9 +437,63 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     }
   }, [id, inventoryItems, signedOutItems, state.isLoading]);
 
+  // Handler for creating a new item
+  const handleCreateItem = useCallback(async (itemData: {
+    name: string;
+    serialNumber: string;
+    description?: string;
+    category: string;
+    nsn?: string;
+    lin?: string;
+    assignToSelf: boolean;
+  }) => {
+    try {
+      await createInventoryItem.mutateAsync({
+        name: itemData.name,
+        serialNumber: itemData.serialNumber,
+        description: itemData.description,
+        currentStatus: 'Operational',
+        nsn: itemData.nsn,
+        lin: itemData.lin,
+        assignedToUserId: itemData.assignToSelf ? parseInt(localStorage.getItem('userId') || '0') : undefined,
+      });
+
+      toast({
+        title: "Digital Twin Created",
+        description: `${itemData.name} (SN: ${itemData.serialNumber}) has been registered successfully.`,
+      });
+      
+      setCreateItemModalOpen(false);
+    } catch (error: any) {
+      if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        toast({
+          title: "Duplicate Serial Number",
+          description: `An item with serial number ${itemData.serialNumber} already exists.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error Creating Item",
+          description: error.message || "Failed to create the digital twin. Please try again.",
+          variant: "destructive",
+        });
+      }
+      throw error; // Re-throw to let the dialog handle loading state
+    }
+  }, [createInventoryItem, toast]);
+
   // UI components and layout
   const actions = (
     <div className="flex items-center gap-2">
+      <Button 
+        size="sm" 
+        variant="blue"
+        className="h-9 px-3 flex items-center gap-1.5"
+        onClick={() => setCreateItemModalOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+        <span className="text-xs uppercase tracking-wider">Create Item</span>
+      </Button>
       <Button 
         size="sm" 
         variant="blue"
@@ -557,13 +615,30 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         </CardContent>
       </Card>
 
+      {/* Create Item Dialog */}
+      <CreateItemDialog
+        isOpen={createItemModalOpen}
+        onClose={() => setCreateItemModalOpen(false)}
+        onSubmit={handleCreateItem}
+      />
+
       {/* Transfer Request Modal */}
       {selectedItem && (
-        <TransferRequestModal 
+        <TransferRequestModal
           isOpen={transferModalOpen}
-          onClose={() => setTransferModalOpen(false)}
-          itemName={selectedItem.name}
-          serialNumber={selectedItem.serialNumber}
+          onClose={() => {
+            setTransferModalOpen(false);
+            setSelectedItem(null);
+          }}
+          item={selectedItem}
+          onTransferSuccess={() => {
+            setTransferModalOpen(false);
+            setSelectedItem(null);
+            toast({
+              title: "Transfer Initiated",
+              description: "The transfer request has been sent successfully."
+            });
+          }}
         />
       )}
 
