@@ -686,3 +686,139 @@ sudo docker-compose logs app | grep ERROR
 
 
 ssh -i ~/.ssh/handreceipt-new ubuntu@44.193.254.155 "cd /opt/handreceipt && sudo docker stop handreceipt_app_1 && sudo docker rm handreceipt_app_1 && sudo docker build -t handreceipt_app:latest -f Dockerfile . && sudo docker run -d --name handreceipt_app_1 --network handreceipt_handreceipt-network -p 8080:8080 handreceipt_app:latest && echo 'Rebuilt and restarted app'"
+
+## Lessons Learned from Deployment
+
+### 1. Environment Variable Override Issues
+- **Problem**: Docker Compose environment variables were overriding config file settings with encrypted values
+- **Solution**: Remove conflicting environment variables from docker-compose.yml or ensure they match config file values
+- **Key Learning**: When using both config files and environment variables, be aware of precedence
+
+### 2. Nil Pointer Dereference in Optional Services
+- **Problem**: Application crashed when ledger service was disabled but code tried to call Initialize() on nil
+- **Solution**: Add nil checks before calling methods on optional services
+- **Code Fix**:
+  ```go
+  if ledgerService != nil {
+      if err := ledgerService.Initialize(); err != nil {
+          log.Fatalf("Failed to initialize Ledger service: %v", err)
+      }
+  }
+  ```
+
+### 3. Route Conflicts in Gin Framework
+- **Problem**: Route `/api/inventory/:propertyId/qrcode` conflicted with `/api/inventory/:id`
+- **Solution**: Place specific routes before wildcard routes
+- **Key Learning**: Order matters in route registration - specific paths should come before parameterized ones
+
+### 4. Service Dependencies and Network Issues
+- **Problem**: Services couldn't resolve hostnames in Docker network
+- **Solution**: Ensure all services are on the same Docker network and use service names as hostnames
+- **Debugging**: Use `docker network inspect` to verify container connectivity
+
+### 5. Debugging Container Restart Loops
+- **Best Practices**:
+  - Always check logs first: `sudo docker logs --tail=50 <container_name>`
+  - Test configuration separately: Run container without environment overrides
+  - Use health checks to verify service status
+  - Build without cache when fixes aren't applying: `docker build --no-cache`
+
+## Next Steps and Improvements
+
+### Immediate Actions
+1. **Enable SSL/TLS**
+   ```bash
+   sudo certbot --nginx -d your-domain.com
+   ```
+
+2. **Re-enable Disabled Services**
+   - Fix ImmuDB connection issues (check network configuration)
+   - Resolve MinIO authentication (verify credentials match between services)
+   - Update config.yaml to set `enabled: true` once fixed
+
+3. **Set Up Monitoring**
+   - Configure Prometheus and Grafana (already included in docker-compose)
+   - Set up alerts for service failures
+   - Monitor disk space and memory usage
+
+### Production Readiness
+1. **Security Hardening**
+   - Change all default passwords
+   - Implement rate limiting
+   - Set up WAF rules in Lightsail
+   - Enable audit logging
+
+2. **Performance Optimization**
+   - Configure PostgreSQL for production workloads
+   - Set up Redis for caching (currently disabled)
+   - Implement connection pooling
+
+3. **Backup Strategy**
+   - Automate daily backups to S3
+   - Test restore procedures
+   - Set up cross-region replication
+
+4. **High Availability**
+   - Set up load balancer
+   - Configure auto-scaling
+   - Implement health checks at load balancer level
+
+### Development Workflow Improvements
+1. **CI/CD Pipeline**
+   - Set up GitHub Actions for automated testing
+   - Implement automated deployment on merge to main
+   - Add staging environment
+
+2. **Configuration Management**
+   - Move sensitive values to AWS Secrets Manager
+   - Use environment-specific config files
+   - Implement configuration validation
+
+3. **Documentation**
+   - Document all API endpoints with Swagger/OpenAPI
+   - Create runbooks for common operations
+   - Maintain architecture diagrams
+
+### Monitoring and Alerting Setup
+```bash
+# Access Grafana
+http://YOUR_IP:3000
+# Default credentials: admin / cvOrf7fVpmyxvnkqeKOo5g==
+
+# Access Prometheus
+http://YOUR_IP:9090
+```
+
+## Quick Recovery Commands
+
+If the app stops working, use these commands to quickly recover:
+
+```bash
+# Quick restart
+ssh -i ~/.ssh/handreceipt-key ubuntu@YOUR_IP "cd /opt/handreceipt && sudo docker-compose restart app"
+
+# Full rebuild and restart
+ssh -i ~/.ssh/handreceipt-key ubuntu@YOUR_IP "cd /opt/handreceipt && sudo docker-compose build app && sudo docker-compose up -d app"
+
+# View recent errors
+ssh -i ~/.ssh/handreceipt-key ubuntu@YOUR_IP "cd /opt/handreceipt && sudo docker-compose logs --tail=100 app | grep -E 'ERROR|FATAL|panic'"
+
+# Emergency recovery (use working image)
+ssh -i ~/.ssh/handreceipt-key ubuntu@YOUR_IP "cd /opt/handreceipt && sudo docker-compose stop app && sudo docker rm handreceipt_app_1 && sudo docker run -d --name handreceipt_app_1 --network handreceipt_handreceipt-network -p 8080:8080 -v /opt/handreceipt/configs:/app/configs:ro handreceipt_app:working"
+```
+
+## Current Deployment Status
+
+As of the last deployment:
+- ✅ API Server: Running on port 8080
+- ✅ PostgreSQL: Running with persistent data
+- ✅ Nginx: Running as reverse proxy
+- ❌ ImmuDB: Disabled due to connection issues
+- ❌ MinIO: Disabled due to authentication issues
+- ⚠️ Worker: May need restart if using same image as app
+
+**API Endpoint**: http://44.193.254.155:8080
+**Health Check**: http://44.193.254.155:8080/health
+
+
+ssh -i ~/.ssh/handreceipt-new ubuntu@44.193.254.155 "cd /opt/handreceipt && sudo docker stop handreceipt_app_1 && sudo docker rm handreceipt_app_1 && sudo docker build -t handreceipt_app:latest -f Dockerfile . && sudo docker run -d --name handreceipt_app_1 --network handreceipt_handreceipt-network -p 8080:8080 handreceipt_app:latest && echo 'Rebuilt and restarted app'"
