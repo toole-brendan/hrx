@@ -53,7 +53,7 @@ immudb:
   username: "immudb"
   password: "immudb"
   database: "defaultdb"
-  enabled: true
+  enabled: false
 
 minio:
   endpoint: "localhost:9000"
@@ -62,7 +62,7 @@ minio:
   use_ssl: false
   bucket_name: "handreceipt"
   region: "us-east-1"
-  enabled: true
+  enabled: false
 
 nsn:
   api_endpoint: ""
