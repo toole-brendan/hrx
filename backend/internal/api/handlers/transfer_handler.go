@@ -113,12 +113,16 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 	}
 
 	// Get user ID from context (representing the user performing the update)
-	_, exists := c.Get("userID") // TODO: Use this userID for authorization check
+	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
-	// TODO: Add authorization logic here - does this user have permission to update this transfer?
+	currentUserID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format in context"})
+		return
+	}
 
 	// Fetch transfer from repository
 	transfer, err := h.Repo.GetTransferByID(uint(id))
@@ -131,6 +135,34 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 		return
 	}
 
+	// Authorization: Check if user is allowed to update this transfer
+	switch updateData.Status {
+	case "Approved", "Rejected":
+		// Only the recipient (ToUserID) can approve or reject
+		if currentUserID != transfer.ToUserID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Only the transfer recipient can approve or reject"})
+			return
+		}
+	case "Cancelled":
+		// Only the sender (FromUserID) can cancel a pending transfer
+		if currentUserID != transfer.FromUserID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Only the transfer sender can cancel"})
+			return
+		}
+		// Can only cancel if still in "Requested" status
+		if transfer.Status != "Requested" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Can only cancel transfers in 'Requested' status"})
+			return
+		}
+	default:
+		// For other status changes, require admin role or ownership
+		// For now, we'll restrict to participants only
+		if currentUserID != transfer.FromUserID && currentUserID != transfer.ToUserID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to update this transfer"})
+			return
+		}
+	}
+
 	// Fetch the related inventory item using repository for serial number
 	item, err := h.Repo.GetPropertyByID(transfer.PropertyID)
 	if err != nil {
@@ -141,6 +173,7 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 	}
 
 	// Update fields
+	previousStatus := transfer.Status
 	transfer.Status = updateData.Status
 	if updateData.Notes != nil {
 		transfer.Notes = updateData.Notes
@@ -158,6 +191,25 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 	if err := h.Repo.UpdateTransfer(transfer); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update transfer status: " + err.Error()})
 		return
+	}
+
+	// If approved, update the property ownership
+	if transfer.Status == "Approved" && previousStatus != "Approved" {
+		// Update the property's current holder
+		item.AssignedToUserID = &transfer.ToUserID
+		item.UpdatedAt = time.Now().UTC()
+
+		if err := h.Repo.UpdateProperty(item); err != nil {
+			// Rollback transfer status change
+			transfer.Status = previousStatus
+			transfer.ResolvedDate = nil
+			h.Repo.UpdateTransfer(transfer)
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update property ownership"})
+			return
+		}
+
+		log.Printf("Property %d ownership transferred from user %d to user %d", item.ID, transfer.FromUserID, transfer.ToUserID)
 	}
 
 	// Log the updated state to Ledger Service

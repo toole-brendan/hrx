@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22225" systemVersion="23B92" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    
+    <!-- Cached Property Entity -->
+    <entity name="CachedProperty" representedClassName="CachedProperty" syncable="YES">
+        <attribute name="id" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="itemName" attributeType="String"/>
+        <attribute name="serialNumber" attributeType="String"/>
+        <attribute name="itemDescription" optional="YES" attributeType="String"/>
+        <attribute name="nsn" optional="YES" attributeType="String"/>
+        <attribute name="lin" optional="YES" attributeType="String"/>
+        <attribute name="currentHolderId" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="photoUrl" optional="YES" attributeType="String"/>
+        <attribute name="lastSyncedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isDirty" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+    </entity>
+    
+    <!-- Cached Transfer Entity -->
+    <entity name="CachedTransfer" representedClassName="CachedTransfer" syncable="YES">
+        <attribute name="id" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="propertyId" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="fromUserId" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="toUserId" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="status" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="requestDate" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="resolvedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastSyncedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isDirty" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+    </entity>
+    
+    <!-- Sync Queue Entity for offline operations -->
+    <entity name="SyncQueueItem" representedClassName="SyncQueueItem" syncable="YES">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="operationType" attributeType="String"/> <!-- CREATE, UPDATE, DELETE, TRANSFER_REQUEST, TRANSFER_APPROVE, etc -->
+        <attribute name="entityType" attributeType="String"/> <!-- PROPERTY, TRANSFER -->
+        <attribute name="entityId" optional="YES" attributeType="Integer 32" usesScalarValueType="YES"/>
+        <attribute name="payload" attributeType="Binary"/> <!-- JSON encoded data -->
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="retryCount" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lastAttemptAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="status" attributeType="String" defaultValueString="PENDING"/> <!-- PENDING, IN_PROGRESS, FAILED, COMPLETED -->
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
+    </entity>
+    
+    <!-- Photo Queue for offline photo uploads -->
+    <entity name="PendingPhotoUpload" representedClassName="PendingPhotoUpload" syncable="YES">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="propertyId" optional="YES" attributeType="Integer 32" usesScalarValueType="YES"/>
+        <attribute name="localImagePath" attributeType="String"/>
+        <attribute name="sha256Hash" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="uploadStatus" attributeType="String" defaultValueString="PENDING"/>
+        <attribute name="retryCount" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+    </entity>
+    
+</model> 
