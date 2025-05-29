@@ -496,9 +496,6 @@ func createTestProperty(t *testing.T, repo repository.Repository, name, serial s
 	return property
 }
 
-func stringPtr(s string) *string {
-	return &s
-}
 
 // Mock ledger service for testing
 type MockLedgerService struct {
