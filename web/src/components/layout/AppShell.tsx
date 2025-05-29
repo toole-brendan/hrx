@@ -15,7 +15,7 @@ interface AppShellProps {
 }
 
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar, toggleTheme, theme } = useApp();
   const isMobile = useIsMobile();
   
@@ -33,6 +33,20 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
     // Navigate to the dashboard page
     window.location.href = '/';
   };
+  
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="border border-gray-800/70 dark:border-gray-100/70 px-4 py-1.5 mb-4">
+            <h1 className="text-lg font-light tracking-widest text-gray-800 dark:text-gray-100 m-0 font-['Georgia']">HandReceipt</h1>
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   if (!isAuthenticated) {
     // Render a simpler layout for unauthenticated pages (login)

@@ -1,3 +1,5 @@
+// web/src/components/layout/Sidebar.tsx
+
 import { useContext } from "react";
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
@@ -23,11 +25,8 @@ import {
   FileText,
   User,
   Bell,
-  UserCog,
-  History,
-  FileClock,
-  ShieldCheck,
 } from "lucide-react";
+import { getNavigationPath } from "@/lib/navigation";
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -69,7 +68,9 @@ const Sidebar = ({
   };
 
   const isActive = (path: string) => {
-    return location === path;
+    const currentPath = location;
+    const navPath = getNavigationPath(path);
+    return currentPath === navPath || currentPath.startsWith(navPath + '/');
   };
 
   const handleLinkClick = (onClick?: () => void) => {
@@ -84,7 +85,7 @@ const Sidebar = ({
   
   const handleLogoClick = () => {
     // Navigate to the dashboard page
-    window.location.href = '/';
+    window.location.href = getNavigationPath('/dashboard');
   };
   
   const handleQRScanClick = () => {
@@ -115,7 +116,7 @@ const Sidebar = ({
 
   // Updated nav items according to the new structure
   const navItems: NavItem[] = [
-    { path: "/", icon: <Home className="sidebar-item-icon" />, label: "Dashboard" },
+    { path: "/dashboard", icon: <Home className="sidebar-item-icon" />, label: "Dashboard" },
     { path: "/property-book", icon: <BookOpen className="sidebar-item-icon" />, label: "Property Book" },
     { path: "/sensitive-items", icon: <Shield className="sidebar-item-icon" />, label: "Sensitive Items" },
     { 
@@ -126,14 +127,6 @@ const Sidebar = ({
     { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" },
     { path: "/qr-management", icon: <QrCode className="sidebar-item-icon" />, label: "QR Management" },
     { path: "/reports", icon: <FileText className="sidebar-item-icon" />, label: "Reports" }
-  ];
-  
-  // Admin nav items (conditionally rendered)
-  const adminNavItems: NavItem[] = [
-    { path: "/user-management", icon: <UserCog className="sidebar-item-icon" />, label: "User Management" },
-    { path: "/audit-log", icon: <History className="sidebar-item-icon" />, label: "Ledger History" },
-    { path: "/correction-log", icon: <FileClock className="sidebar-item-icon" />, label: "Correction Log" },
-    { path: "/ledger-verification", icon: <ShieldCheck className="sidebar-item-icon" />, label: "Ledger Verification" },
   ];
   
   // Footer actions
@@ -221,7 +214,7 @@ const Sidebar = ({
                 )}
               </div>
             ) : (
-              <Link key={item.path} href={item.path}>
+              <Link key={item.path} href={getNavigationPath(item.path)}>
                 <div 
                   onClick={() => handleLinkClick()}
                   className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
@@ -269,7 +262,7 @@ const Sidebar = ({
           </div>
           
           {/* Settings link */}
-          <Link href={settingsAction.path}>
+          <Link href={getNavigationPath(settingsAction.path)}>
             <div 
               onClick={() => handleLinkClick()}
               className={`sidebar-item ${isActive(settingsAction.path) ? "active" : ""}`}
@@ -280,7 +273,7 @@ const Sidebar = ({
           </Link>
           
           {/* Profile link */}
-          <Link href="/profile">
+          <Link href={getNavigationPath("/profile")}>
             <div
               className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
               onClick={() => handleLinkClick()}
@@ -381,7 +374,7 @@ const Sidebar = ({
                 )}
               </div>
             ) : (
-              <Link key={item.path} href={item.path}>
+              <Link key={item.path} href={getNavigationPath(item.path)}>
                 <div
                   className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
                   onClick={() => handleLinkClick()}
@@ -397,26 +390,6 @@ const Sidebar = ({
               </Link>
             )
           )}
-          
-          {/* Admin section divider and items (conditional based on role) */}
-          {/* TODO: Add role check (e.g., user?.role === 'Admin') */}
-          <div className="px-2 pt-4">
-            <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
-            <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2 pl-2">
-              {sidebarCollapsed ? "ADM" : "Administration"}
-            </p>
-          </div>
-          {adminNavItems.map((item) => (
-            <Link key={item.path} href={item.path}>
-              <div
-                className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
-                onClick={() => handleLinkClick()}
-              >
-                {item.icon}
-                {!sidebarCollapsed && <span className="text-nav-item">{item.label}</span>}
-              </div>
-            </Link>
-          ))}
         </nav>
         
         {/* Bottom action links section */}
@@ -466,7 +439,7 @@ const Sidebar = ({
             </div>
             
             {/* Settings link */}
-            <Link href={settingsAction.path}>
+            <Link href={getNavigationPath(settingsAction.path)}>
               <div
                 className={`sidebar-item ${isActive(settingsAction.path) ? "active" : ""}`}
                 onClick={() => handleLinkClick()}
@@ -477,7 +450,7 @@ const Sidebar = ({
             </Link>
             
             {/* Profile link */}
-            <Link href="/profile">
+            <Link href={getNavigationPath("/profile")}>
               <div
                 className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
                 onClick={() => handleLinkClick()}
