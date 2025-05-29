@@ -38,6 +38,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
 	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
+	qrCodeHandler := handlers.NewQRCodeHandler(ledgerService, repo)
 
 	// Add NSN handler
 	logger := logrus.New()
@@ -78,6 +79,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			inventory.GET("/:id", inventoryHandler.GetInventoryItem)
 			inventory.PATCH("/:id/status", inventoryHandler.UpdateInventoryItemStatus)
 			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
+			inventory.GET("/:propertyId/qrcodes", qrCodeHandler.GetPropertyQRCodes)
 		}
 
 		// Transfer routes
@@ -129,6 +131,13 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			reference.GET("/types", referenceDBHandler.ListPropertyTypes)
 			reference.GET("/models", referenceDBHandler.ListPropertyModels)
 			reference.GET("/models/nsn/:nsn", referenceDBHandler.GetPropertyModelByNSN)
+		}
+
+		// QR Code management routes
+		qrCodes := protected.Group("/qrcodes")
+		{
+			qrCodes.GET("", qrCodeHandler.GetAllQRCodes)
+			qrCodes.POST("/:id/report-damaged", qrCodeHandler.ReportQRCodeDamaged)
 		}
 
 		// User management routes

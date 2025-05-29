@@ -11,125 +11,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageWrapper } from "@/components/ui/page-wrapper";
 import { PageHeader } from "@/components/ui/page-header";
 import { Separator } from "@/components/ui/separator";
-import { Printer, QrCode, RefreshCw, AlertTriangle, Plus, Tag, ArrowUpDown, Filter, Search, X, Calendar, Clock } from "lucide-react";
+import { Printer, QrCode, RefreshCw, AlertTriangle, Plus, Tag, ArrowUpDown, Filter, Search, X, Calendar, Clock, Loader2 } from "lucide-react";
 import QRCodeGenerator from "@/components/common/QRCodeGenerator";
-import { inventory } from "@/lib/mockData";
-import { InventoryItem } from "@/types";
+import { QRCodeWithItem } from "@/types";
 import { subDays, addDays, format } from "date-fns";
-
-// Interface for QR code item
-interface QRCodeItem extends InventoryItem {
-  qrCodeStatus: "active" | "damaged" | "missing" | "replaced";
-  lastPrinted?: string;
-  lastUpdated?: string;
-}
-
-// Generate realistic military equipment mock data
-const generateMilitaryMockData = (): QRCodeItem[] => {
-  const today = new Date();
-  const oneYearAgo = subDays(today, 365);
-  
-  const equipmentTypes = [
-    // Weapons
-    {category: "weapon", items: [
-      {name: "M4A1 Carbine", serialPrefix: "W"},
-      {name: "M17 Pistol", serialPrefix: "P"},
-      {name: "M249 SAW", serialPrefix: "S"}
-    ]},
-    // Optics
-    {category: "optics", items: [
-      {name: "ACOG RCO", serialPrefix: "RCO"},
-      {name: "Aimpoint CCO", serialPrefix: "CCO"},
-      {name: "AN/PEQ-15", serialPrefix: "PEQ"},
-      {name: "AN/PVS-14 NVG", serialPrefix: "NVG"}
-    ]},
-    // Comms
-    {category: "communication", items: [
-      {name: "PRC-152 Radio", serialPrefix: "R"},
-      {name: "PRC-148 Radio", serialPrefix: "HR"},
-      {name: "SINCGARS Radio", serialPrefix: "SR"}
-    ]},
-    // Support
-    {category: "other", items: [
-      {name: "Tool Kit", serialPrefix: "TK"},
-      {name: "MEP-803A Generator", serialPrefix: "G"},
-      {name: "IOTV Vest", serialPrefix: "V"},
-      {name: "ACH Helmet", serialPrefix: "H"}
-    ]}
-  ];
-  
-  const generateRandomDate = (start: Date, end: Date) => {
-    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString().split('T')[0];
-  };
-  
-  const generateSerialNumber = (prefix: string) => {
-    return `${prefix}${Math.floor(100000 + Math.random() * 900000)}`;
-  };
-  
-  const items: QRCodeItem[] = [];
-  
-  // Generate 25-30 items
-  const itemCount = 25 + Math.floor(Math.random() * 5);
-  
-  for (let i = 0; i < itemCount; i++) {
-    const typeGroup = equipmentTypes[Math.floor(Math.random() * equipmentTypes.length)];
-    const equipmentType = typeGroup.items[Math.floor(Math.random() * typeGroup.items.length)];
-    const serialNumber = generateSerialNumber(equipmentType.serialPrefix);
-    const assignedDate = generateRandomDate(oneYearAgo, today);
-    
-    // Determine QR code status with realistic distribution
-    let qrCodeStatus: "active" | "damaged" | "missing" | "replaced" = "active";
-    const statusRoll = Math.random();
-    if (statusRoll > 0.90) qrCodeStatus = "damaged";
-    else if (statusRoll > 0.85) qrCodeStatus = "missing";
-    else if (statusRoll > 0.75) qrCodeStatus = "replaced";
-    
-    const lastUpdated = generateRandomDate(new Date(assignedDate), today);
-    
-    // For replaced codes, ensure lastPrinted is after lastUpdated
-    let lastPrinted = qrCodeStatus === "replaced" 
-        ? generateRandomDate(new Date(lastUpdated), today) 
-        : Math.random() > 0.3 ? assignedDate : undefined;
-    
-    items.push({
-      id: `qr-${equipmentType.name.toLowerCase().replace(/\s+/g, '-')}-${serialNumber}`,
-      name: equipmentType.name,
-      serialNumber,
-      assignedDate,
-      status: "Operational",
-      description: `Standard issue ${equipmentType.name}`,
-      category: typeGroup.category,
-      location: "A Co, 2-1 INF",
-      qrCodeStatus,
-      lastUpdated,
-      lastPrinted
-    });
-  }
-  
-  return items;
-};
-
-// Mock data for QR code items using the generator
-const mockQRItems: QRCodeItem[] = generateMilitaryMockData();
+import { 
+  useQRCodes, 
+  useGeneratePropertyQRCode, 
+  useReportQRCodeDamaged, 
+  useBatchReplaceDamagedQRCodes 
+} from "@/hooks/useQRCode";
 
 interface QRManagementProps {
   code?: string;
 }
 
 const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
-  const [qrItems, setQrItems] = useState<QRCodeItem[]>(mockQRItems);
-  const [filteredItems, setFilteredItems] = useState<QRCodeItem[]>(mockQRItems);
+  // API hooks
+  const { data: qrCodesData, isLoading, error, refetch } = useQRCodes();
+  const generateQRCode = useGeneratePropertyQRCode();
+  const reportDamaged = useReportQRCodeDamaged();
+  const batchReplace = useBatchReplaceDamagedQRCodes();
+
+  // Local state
+  const [filteredItems, setFilteredItems] = useState<QRCodeWithItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<QRCodeItem | null>(null);
-  const [newItemInfo, setNewItemInfo] = useState({ name: "", serialNumber: "" });
+  const [selectedItem, setSelectedItem] = useState<QRCodeWithItem | null>(null);
+  const [newItemInfo, setNewItemInfo] = useState({ itemId: "", name: "", serialNumber: "", category: "other" });
   const [reportReason, setReportReason] = useState("");
   const { toast } = useToast();
   const [qrValue, setQrValue] = useState("");
   const [qrDetailsOpen, setQrDetailsOpen] = useState(false);
+
+  // Get QR codes from API response
+  const qrItems = qrCodesData || [];
 
   // Apply filters
   useEffect(() => {
@@ -139,8 +58,8 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
     if (searchTerm) {
       result = result.filter(
         (item) => 
-          item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
+          item.inventoryItem?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+          item.inventoryItem?.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -155,47 +74,42 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
   // If a code is provided, find and show the specific QR code
   useEffect(() => {
     if (code) {
-      // Show the provided QR code
       setQrValue(code);
       setQrDetailsOpen(true);
     }
   }, [code]);
 
   // Handle opening the report dialog
-  const handleOpenReportDialog = (item: QRCodeItem) => {
+  const handleOpenReportDialog = (item: QRCodeWithItem) => {
     setSelectedItem(item);
     setIsReportDialogOpen(true);
   };
 
   // Handle opening the print dialog
-  const handleOpenPrintDialog = (item: QRCodeItem) => {
+  const handleOpenPrintDialog = (item: QRCodeWithItem) => {
     setSelectedItem(item);
     setIsPrintDialogOpen(true);
   };
 
   // Handle opening the generate dialog
   const handleOpenGenerateDialog = () => {
-    setNewItemInfo({ name: "", serialNumber: "" });
+    setNewItemInfo({ itemId: "", name: "", serialNumber: "", category: "other" });
     setIsGenerateDialogOpen(true);
   };
 
   // Handle reporting a damaged QR code
   const handleReportDamaged = () => {
     if (selectedItem && reportReason) {
-      // Update the QR code status in the list
-      const updatedItems = qrItems.map(item => 
-        item.id === selectedItem.id ? { ...item, qrCodeStatus: "damaged" as const } : item
+      reportDamaged.mutate(
+        { qrCodeId: selectedItem.id, reason: reportReason },
+        {
+          onSuccess: () => {
+            setIsReportDialogOpen(false);
+            setReportReason("");
+            refetch(); // Refresh the data
+          }
+        }
       );
-      
-      setQrItems(updatedItems);
-      
-      toast({
-        title: "QR Code Reported",
-        description: `The QR code for ${selectedItem.name} has been reported as damaged.`,
-      });
-      
-      setIsReportDialogOpen(false);
-      setReportReason("");
     }
   };
 
@@ -208,7 +122,7 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
         printWindow.document.write(`
           <html>
             <head>
-              <title>Print QR Code - ${selectedItem.name}</title>
+              <title>Print QR Code - ${selectedItem.inventoryItem?.name}</title>
               <style>
                 body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
                 .print-container { display: flex; flex-direction: column; align-items: center; }
@@ -225,11 +139,11 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
             <body>
               <div class="print-container">
                 <div class="item-details">
-                  <h2>${selectedItem.name}</h2>
-                  <div class="serial">SN: ${selectedItem.serialNumber}</div>
+                  <h2>${selectedItem.inventoryItem?.name}</h2>
+                  <div class="serial">SN: ${selectedItem.inventoryItem?.serialNumber}</div>
                 </div>
                 <div class="qr-container">
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedItem.name}|${selectedItem.serialNumber}" alt="QR Code" />
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedItem.qrCodeData}" alt="QR Code" />
                 </div>
                 <div class="instructions">
                   <p>1. Print this page</p>
@@ -246,25 +160,9 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
         printWindow.document.close();
       }
       
-      // In a real application, this would trigger a print process
-      // Update the last printed date
-      const updatedItems = qrItems.map(item => 
-        item.id === selectedItem.id 
-          ? { 
-              ...item, 
-              lastPrinted: new Date().toISOString().split('T')[0],
-              qrCodeStatus: (item.qrCodeStatus === "damaged" || item.qrCodeStatus === "missing") ? 
-                "replaced" as const : 
-                "active" as const
-            } 
-          : item
-      );
-      
-      setQrItems(updatedItems);
-      
       toast({
         title: "QR Code Print Preview Generated",
-        description: `The QR code for ${selectedItem.name} has been prepared for printing.`,
+        description: `The QR code for ${selectedItem.inventoryItem?.name} has been prepared for printing.`,
       });
       
       setIsPrintDialogOpen(false);
@@ -273,31 +171,14 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
 
   // Handle generating a new QR code
   const handleGenerateNewQRCode = () => {
-    if (newItemInfo.name && newItemInfo.serialNumber) {
-      // In a real application, this would create a new item with a QR code
-      const newItem: QRCodeItem = {
-        id: `qr-${Date.now()}`,
-        name: newItemInfo.name,
-        serialNumber: newItemInfo.serialNumber,
-        assignedDate: new Date().toISOString().split('T')[0],
-        status: "Operational",
-        description: "Newly generated item",
-        category: "other",
-        location: "Inventory",
-        qrCodeStatus: "active",
-        lastUpdated: new Date().toISOString().split('T')[0],
-        lastPrinted: new Date().toISOString().split('T')[0]
-      };
-      
-      setQrItems([newItem, ...qrItems]);
-      
-      toast({
-        title: "QR Code Generated",
-        description: `A new QR code for ${newItemInfo.name} has been created.`,
+    if (newItemInfo.itemId) {
+      generateQRCode.mutate(newItemInfo.itemId, {
+        onSuccess: () => {
+          setIsGenerateDialogOpen(false);
+          setNewItemInfo({ itemId: "", name: "", serialNumber: "", category: "other" });
+          refetch(); // Refresh the data
+        }
       });
-      
-      setIsGenerateDialogOpen(false);
-      setNewItemInfo({ name: "", serialNumber: "" });
     }
   };
 
@@ -313,46 +194,14 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
       return;
     }
     
-    // Initial toast to show starting the process
-    toast({
-      title: "Batch Replace Started",
-      description: `Processing ${damagedItems.length} damaged QR codes...`,
+    batchReplace.mutate(damagedItems, {
+      onSuccess: () => {
+        refetch(); // Refresh the data
+        if (statusFilter === "damaged") {
+          setStatusFilter("replaced");
+        }
+      }
     });
-    
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    // Update all damaged QR codes to replaced
-    const updatedItems = qrItems.map(item => 
-      item.qrCodeStatus === "damaged" 
-        ? { 
-            ...item, 
-            qrCodeStatus: "replaced" as const,
-            lastPrinted: new Date().toISOString().split('T')[0]
-          } 
-        : item
-    );
-    
-    setQrItems(updatedItems);
-    
-    // Success toast with detailed information
-    toast({
-      title: "Batch Replace Complete",
-      description: `${damagedItems.length} QR codes have been replaced and queued for printing.`,
-    });
-    
-    // If we're currently in the damaged tab, switch to show all
-    if (statusFilter === "damaged") {
-      setStatusFilter("replaced");
-      
-      // Show toast indicating we switched views
-      setTimeout(() => {
-        toast({
-          title: "View Updated",
-          description: "Showing newly replaced QR codes.",
-        });
-      }, 500);
-    }
   };
 
   // Function to clear all filters
@@ -366,15 +215,10 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
     if (!date) return 'N/A';
     
     try {
-      // Ensure we have a Date object
       const dateObj = typeof date === 'string' ? new Date(date) : date;
-      
-      // Check if date is valid
       if (isNaN(dateObj.getTime())) return 'INVALID';
       
-      // Format as ddMMMyyyy
       const formatted = format(dateObj, 'ddMMMyyyy');
-      // Extract the month part (characters 2-5) and convert to uppercase
       const day = formatted.substring(0, 2);
       const month = formatted.substring(2, 5).toUpperCase();
       const year = formatted.substring(5);
@@ -385,21 +229,36 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
     }
   };
 
-  // Render QR code status badge
-  const renderStatusBadge = (status: QRCodeItem["qrCodeStatus"]) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
-      case "damaged":
-        return <Badge className="bg-red-500 hover:bg-red-600">Damaged</Badge>;
-      case "missing":
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Missing</Badge>;
-      case "replaced":
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Replaced</Badge>;
-      default:
-        return null;
-    }
-  };
+  // Show loading state
+  if (isLoading) {
+    return (
+      <PageWrapper withPadding={true}>
+        <div className="pt-16 pb-10">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading QR codes...</span>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <PageWrapper withPadding={true}>
+        <div className="pt-16 pb-10">
+          <div className="flex items-center justify-center h-64">
+            <AlertTriangle className="h-8 w-8 text-red-500" />
+            <span className="ml-2 text-red-500">Failed to load QR codes</span>
+            <Button onClick={() => refetch()} className="ml-4">
+              Retry
+            </Button>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper withPadding={true}>
@@ -526,8 +385,8 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                         </div>
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="text-lg font-normal">{item.name}</h3>
-                            <div className="text-sm font-mono text-muted-foreground">SN: {item.serialNumber}</div>
+                            <h3 className="text-lg font-normal">{item.inventoryItem?.name}</h3>
+                            <div className="text-sm font-mono text-muted-foreground">SN: {item.inventoryItem?.serialNumber}</div>
                           </div>
                           <Badge className="uppercase text-[10px] tracking-wider font-medium rounded-none py-0.5 px-2.5"
                             variant="outline"
@@ -566,8 +425,10 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                         "border-t-blue-500/50"
                       }`}>
                         <QRCodeGenerator 
-                          itemName={item.name} 
-                          serialNumber={item.serialNumber} 
+                          itemId={item.inventoryItemId}
+                          itemName={item.inventoryItem?.name || "Unknown Item"} 
+                          serialNumber={item.inventoryItem?.serialNumber || "N/A"} 
+                          category={item.inventoryItem?.category || "other"}
                         />
                         {item.qrCodeStatus !== "active" && (
                           <div className="absolute top-2 right-2 p-1 rounded-full bg-card shadow-sm">
@@ -583,12 +444,12 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
                             <span className="text-xs text-muted-foreground">Assigned:</span>
-                            <span className="ml-1 text-xs font-medium">{formatMilitaryDate(item.assignedDate)}</span>
+                            <span className="ml-1 text-xs font-medium">{formatMilitaryDate(item.inventoryItem?.assignedDate)}</span>
                           </div>
                           <div className="flex items-center">
                             <Clock className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
                             <span className="text-xs text-muted-foreground">Status:</span>
-                            <span className="ml-1 text-xs font-medium">{item.status}</span>
+                            <span className="ml-1 text-xs font-medium">{item.inventoryItem?.status}</span>
                           </div>
                           {item.lastPrinted && (
                             <div className="flex items-center">
@@ -681,8 +542,8 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                           </div>
                           <div className="flex justify-between items-start mb-3">
                             <div>
-                              <h3 className="text-lg font-normal">{item.name}</h3>
-                              <div className="text-sm font-mono text-muted-foreground">SN: {item.serialNumber}</div>
+                              <h3 className="text-lg font-normal">{item.inventoryItem?.name}</h3>
+                              <div className="text-sm font-mono text-muted-foreground">SN: {item.inventoryItem?.serialNumber}</div>
                             </div>
                             <Badge 
                               variant="outline"
@@ -695,8 +556,10 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                         
                         <div className={`flex justify-center py-4 px-4 bg-muted/30 relative border-t-2 border-t-red-500/50`}>
                           <QRCodeGenerator 
-                            itemName={item.name} 
-                            serialNumber={item.serialNumber} 
+                            itemId={item.inventoryItemId}
+                            itemName={item.inventoryItem?.name || "Unknown Item"} 
+                            serialNumber={item.inventoryItem?.serialNumber || "N/A"} 
+                            category={item.inventoryItem?.category || "other"}
                           />
                           <div className="absolute top-2 right-2 p-1 rounded-full bg-card shadow-sm">
                             <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -711,12 +574,12 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                             <div className="flex items-center">
                               <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
                               <span className="text-xs text-muted-foreground">Assigned:</span>
-                              <span className="ml-1 text-xs font-medium">{formatMilitaryDate(item.assignedDate)}</span>
+                              <span className="ml-1 text-xs font-medium">{formatMilitaryDate(item.inventoryItem?.assignedDate)}</span>
                             </div>
                             <div className="flex items-center">
                               <Clock className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
                               <span className="text-xs text-muted-foreground">Status:</span>
-                              <span className="ml-1 text-xs font-medium">{item.status}</span>
+                              <span className="ml-1 text-xs font-medium">{item.inventoryItem?.status}</span>
                             </div>
                             {item.lastUpdated && (
                               <div className="flex items-center">
@@ -902,11 +765,11 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Name:</span>
-                        <span className="ml-1 font-medium">{selectedItem.name}</span>
+                        <span className="ml-1 font-medium">{selectedItem.inventoryItem?.name}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Serial Number:</span>
-                        <span className="ml-1 font-medium font-mono">{selectedItem.serialNumber}</span>
+                        <span className="ml-1 font-medium font-mono">{selectedItem.inventoryItem?.serialNumber}</span>
                       </div>
                     </div>
                   </div>
@@ -972,14 +835,16 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                   <div className="uppercase text-[10px] tracking-wider font-medium text-muted-foreground">
                     ITEM INFORMATION
                   </div>
-                  <h3 className="text-lg font-normal">{selectedItem.name}</h3>
-                  <p className="text-sm font-mono text-muted-foreground">SN: {selectedItem.serialNumber}</p>
+                  <h3 className="text-lg font-normal">{selectedItem.inventoryItem?.name}</h3>
+                  <p className="text-sm font-mono text-muted-foreground">SN: {selectedItem.inventoryItem?.serialNumber}</p>
                 </div>
                 
                 <div className="p-6 border border-border bg-muted/30 mb-4">
                   <QRCodeGenerator 
-                    itemName={selectedItem.name} 
-                    serialNumber={selectedItem.serialNumber} 
+                    itemId={selectedItem.inventoryItemId}
+                    itemName={selectedItem.inventoryItem?.name || "Unknown Item"} 
+                    serialNumber={selectedItem.inventoryItem?.serialNumber || "N/A"} 
+                    category={selectedItem.inventoryItem?.category || "other"}
                   />
                 </div>
                 
@@ -1068,8 +933,10 @@ const QRManagement: React.FC<QRManagementProps> = ({ code }) => {
                   <div className="flex justify-center">
                     <div className="p-6 border border-border bg-muted/30">
                       <QRCodeGenerator 
+                        itemId={newItemInfo.itemId}
                         itemName={newItemInfo.name} 
                         serialNumber={newItemInfo.serialNumber} 
+                        category={newItemInfo.category}
                       />
                     </div>
                   </div>

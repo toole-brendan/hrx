@@ -39,6 +39,10 @@ type Repository interface {
 	// QR Code operations
 	CreateQRCode(qrCode *domain.QRCode) error
 	GetQRCodeByHash(hash string) (*domain.QRCode, error)
+	GetQRCodeByID(id uint) (*domain.QRCode, error)
+	UpdateQRCode(qrCode *domain.QRCode) error
+	ListAllQRCodes() ([]domain.QRCode, error)
+	ListQRCodesForProperty(propertyID uint) ([]domain.QRCode, error)
 	DeactivateQRCodesForProperty(propertyID uint) error
 	GetActiveQRCodeForProperty(propertyID uint) (*domain.QRCode, error)
 

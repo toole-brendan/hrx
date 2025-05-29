@@ -214,6 +214,36 @@ func (r *gormRepository) GetQRCodeByHash(hash string) (*domain.QRCode, error) {
 	return &qrCode, nil
 }
 
+func (r *gormRepository) GetQRCodeByID(id uint) (*domain.QRCode, error) {
+	var qrCode domain.QRCode
+	err := r.db.First(&qrCode, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("QR code with ID %d not found", id)
+		}
+		return nil, err
+	}
+	return &qrCode, nil
+}
+
+func (r *gormRepository) UpdateQRCode(qrCode *domain.QRCode) error {
+	return r.db.Save(qrCode).Error
+}
+
+func (r *gormRepository) ListAllQRCodes() ([]domain.QRCode, error) {
+	var qrCodes []domain.QRCode
+	err := r.db.Order("created_at DESC").Find(&qrCodes).Error
+	return qrCodes, err
+}
+
+func (r *gormRepository) ListQRCodesForProperty(propertyID uint) ([]domain.QRCode, error) {
+	var qrCodes []domain.QRCode
+	err := r.db.Where("inventory_item_id = ?", propertyID).
+		Order("created_at DESC").
+		Find(&qrCodes).Error
+	return qrCodes, err
+}
+
 func (r *gormRepository) DeactivateQRCodesForProperty(propertyID uint) error {
 	// Deactivate all active QR codes for this property
 	now := time.Now()

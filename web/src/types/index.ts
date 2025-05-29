@@ -112,6 +112,26 @@ export interface Notification {
   read: boolean;
 }
 
+// QR Code Types
+export interface QRCode {
+  id: string;
+  inventoryItemId: string;
+  qrCodeData: string;
+  qrCodeHash: string;
+  generatedByUserId: string;
+  isActive: boolean;
+  createdAt: string;
+  deactivatedAt?: string;
+}
+
+// Extended QR Code with item info for UI
+export interface QRCodeWithItem extends QRCode {
+  inventoryItem?: InventoryItem;
+  qrCodeStatus: "active" | "damaged" | "missing" | "replaced";
+  lastPrinted?: string;
+  lastUpdated?: string;
+}
+
 // -----------
 // Consumables
 // -----------

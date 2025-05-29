@@ -205,6 +205,39 @@ func (r *PostgresRepository) GetQRCodeByHash(hash string) (*domain.QRCode, error
 	return &qrCode, nil
 }
 
+func (r *PostgresRepository) GetQRCodeByID(id uint) (*domain.QRCode, error) {
+	var qrCode domain.QRCode
+	if err := r.db.First(&qrCode, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &qrCode, nil
+}
+
+func (r *PostgresRepository) UpdateQRCode(qrCode *domain.QRCode) error {
+	return r.db.Save(qrCode).Error
+}
+
+func (r *PostgresRepository) ListAllQRCodes() ([]domain.QRCode, error) {
+	var qrCodes []domain.QRCode
+	if err := r.db.Order("created_at DESC").Find(&qrCodes).Error; err != nil {
+		return nil, err
+	}
+	return qrCodes, nil
+}
+
+func (r *PostgresRepository) ListQRCodesForProperty(propertyID uint) ([]domain.QRCode, error) {
+	var qrCodes []domain.QRCode
+	if err := r.db.Where("inventory_item_id = ?", propertyID).
+		Order("created_at DESC").
+		Find(&qrCodes).Error; err != nil {
+		return nil, err
+	}
+	return qrCodes, nil
+}
+
 func (r *PostgresRepository) DeactivateQRCodesForProperty(propertyID uint) error {
 	// Deactivate all active QR codes for this property
 	now := time.Now()

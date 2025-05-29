@@ -1,4 +1,15 @@
+import { QRCode, QRCodeWithItem } from '@/types';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+/**
+ * Get authentication headers
+ */
+function getAuthHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+  };
+}
 
 /**
  * Generate SHA-256 hash using Web Crypto API
@@ -78,25 +89,79 @@ export async function parseQRCodeData(qrString: string): Promise<QRCodeData | nu
 }
 
 /**
- * Generate QR code for an item (only current holder can do this)
+ * Generate QR code for a property item (only current holder can do this)
+ * Using the correct backend endpoint
  */
-export async function generateItemQRCode(itemId: string): Promise<{
+export async function generatePropertyQRCode(propertyId: string): Promise<{
   qrCodeData: string;
   qrCodeUrl: string;
 }> {
-  const response = await fetch(`${API_BASE_URL}/inventory/${itemId}/qrcode`, {
+  const response = await fetch(`${API_BASE_URL}/inventory/qrcode/${propertyId}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   
   if (!response.ok) {
-    throw new Error(`Failed to generate QR code: ${response.statusText}`);
+    const error = await response.text();
+    throw new Error(`Failed to generate QR code: ${error}`);
   }
   
   return response.json();
+}
+
+/**
+ * Get all QR codes with their associated inventory items
+ * Note: This endpoint may need to be added to the backend
+ */
+export async function getAllQRCodes(): Promise<QRCodeWithItem[]> {
+  const response = await fetch(`${API_BASE_URL}/qrcodes`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch QR codes: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  return data.qrcodes || [];
+}
+
+/**
+ * Get QR codes for a specific property
+ */
+export async function getPropertyQRCodes(propertyId: string): Promise<QRCode[]> {
+  const response = await fetch(`${API_BASE_URL}/inventory/${propertyId}/qrcodes`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch QR codes: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  return data.qrCodes || [];
+}
+
+/**
+ * Report a QR code as damaged
+ */
+export async function reportQRCodeDamaged(qrCodeId: string, reason: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/qrcodes/${qrCodeId}/report-damaged`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ reason }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to report QR code as damaged: ${error}`);
+  }
 }
 
 /**
@@ -108,9 +173,7 @@ export async function initiateTransferByQR(qrData: QRCodeData): Promise<{
 }> {
   const response = await fetch(`${API_BASE_URL}/transfers/qr-initiate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
     body: JSON.stringify({
       qrData,
