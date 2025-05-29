@@ -68,11 +68,12 @@ class OfflineSyncService {
     private func syncAll() async {
         debugPrint("Starting full sync process")
         
+        // TODO: Uncomment when Core Data entities are implemented
         // 1. Process sync queue items
-        await processSyncQueue()
+        // await processSyncQueue()
         
         // 2. Upload pending photos
-        await uploadPendingPhotos()
+        // await uploadPendingPhotos()
         
         // 3. Sync properties from server
         await syncProperties()
@@ -81,11 +82,13 @@ class OfflineSyncService {
         await syncTransfers()
         
         // 5. Clean up old sync items
-        coreDataStack.cleanupCompletedSyncItems()
+        // coreDataStack.cleanupCompletedSyncItems()
         
         debugPrint("Full sync process completed")
     }
     
+    // TODO: Implement when SyncQueueItem entity is created
+    /*
     private func processSyncQueue() async {
         let pendingItems = coreDataStack.getPendingSyncItems()
         debugPrint("Processing \(pendingItems.count) pending sync items")
@@ -133,6 +136,7 @@ class OfflineSyncService {
             }
         }
     }
+    */
     
     // MARK: - Property Sync
     

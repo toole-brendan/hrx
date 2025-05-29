@@ -50,191 +50,212 @@ class CoreDataStack {
         }
     }
     
-    // MARK: - Sync Queue Operations
+    // MARK: - Sync Queue Management
     
-    func addToSyncQueue(operationType: String, entityType: String, entityId: Int32? = nil, payload: Data) {
-        let context = newBackgroundContext()
-        
+    // TODO: Implement these methods when Core Data entities are created
+    // These entities need to be added to the .xcdatamodeld file
+    
+    /*
+    func addToSyncQueue(action: String, endpoint: String, payload: [String: Any], priority: Int = 0) {
+        let context = persistentContainer.viewContext
         context.perform {
             let syncItem = SyncQueueItem(context: context)
             syncItem.id = UUID()
-            syncItem.operationType = operationType
-            syncItem.entityType = entityType
-            syncItem.entityId = entityId ?? 0
-            syncItem.payload = payload
+            syncItem.action = action
+            syncItem.endpoint = endpoint
+            syncItem.payloadData = try? JSONSerialization.data(withJSONObject: payload)
+            syncItem.priority = Int32(priority)
+            syncItem.status = "pending"
             syncItem.createdAt = Date()
-            syncItem.status = "PENDING"
             syncItem.retryCount = 0
             
-            self.save(context: context)
-            debugPrint("Added item to sync queue: \(operationType) \(entityType)")
+            self.saveContext()
         }
     }
     
     func getPendingSyncItems(limit: Int = 50) -> [SyncQueueItem] {
         let fetchRequest: NSFetchRequest<SyncQueueItem> = SyncQueueItem.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "status == %@", "PENDING")
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+        fetchRequest.predicate = NSPredicate(format: "status == %@", "pending")
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(key: "priority", ascending: false),
+            NSSortDescriptor(key: "createdAt", ascending: true)
+        ]
         fetchRequest.fetchLimit = limit
         
         do {
-            return try viewContext.fetch(fetchRequest)
+            return try persistentContainer.viewContext.fetch(fetchRequest)
         } catch {
-            debugPrint("Error fetching sync items: \(error)")
+            debugPrint("Failed to fetch pending sync items: \(error)")
             return []
         }
     }
     
     func updateSyncItemStatus(item: SyncQueueItem, status: String, errorMessage: String? = nil) {
-        item.status = status
-        item.lastAttemptAt = Date()
-        if let errorMessage = errorMessage {
-            item.errorMessage = errorMessage
-            item.retryCount += 1
-        }
-        save()
-    }
-    
-    // MARK: - Property Cache Operations
-    
-    func cacheProperty(_ property: Property) {
-        let context = newBackgroundContext()
-        
+        let context = persistentContainer.viewContext
         context.perform {
+            item.status = status
+            item.lastAttempt = Date()
+            item.errorMessage = errorMessage
+            
+            if status == "failed" {
+                item.retryCount += 1
+            }
+            
+            self.saveContext()
+        }
+    }
+    */
+    
+    // MARK: - Property Caching
+    
+    // TODO: Implement when CachedProperty entity is created
+    /*
+    func cacheProperty(_ property: Property) {
+        let context = persistentContainer.newBackgroundContext()
+        context.perform {
+            // Check if property already exists
             let fetchRequest: NSFetchRequest<CachedProperty> = CachedProperty.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %d", property.id)
             
-            let cachedProperty: CachedProperty
-            if let existing = try? context.fetch(fetchRequest).first {
-                cachedProperty = existing
-            } else {
+            var cachedProperty: CachedProperty
+            
+            do {
+                let existingProperties = try context.fetch(fetchRequest)
+                cachedProperty = existingProperties.first ?? CachedProperty(context: context)
+            } catch {
                 cachedProperty = CachedProperty(context: context)
-                cachedProperty.id = Int32(property.id)
             }
             
-            cachedProperty.itemName = property.itemName
+            // Update properties
+            cachedProperty.id = Int32(property.id)
             cachedProperty.serialNumber = property.serialNumber
-            cachedProperty.itemDescription = property.description
             cachedProperty.nsn = property.nsn
-            cachedProperty.lin = property.lin
-            cachedProperty.currentHolderId = Int32(property.currentHolderId)
-            cachedProperty.createdAt = property.createdAt
-            cachedProperty.updatedAt = property.updatedAt
-            cachedProperty.photoUrl = property.photoUrl
-            cachedProperty.lastSyncedAt = Date()
-            cachedProperty.isDirty = false
+            cachedProperty.itemName = property.itemName
+            cachedProperty.propertyDescription = property.description
+            cachedProperty.manufacturer = property.manufacturer
+            cachedProperty.imageUrl = property.imageUrl
+            cachedProperty.status = property.status
+            cachedProperty.location = property.location
+            cachedProperty.lastUpdated = Date()
             
-            self.save(context: context)
+            self.saveBackgroundContext(context)
         }
     }
     
     func getCachedProperties() -> [CachedProperty] {
         let fetchRequest: NSFetchRequest<CachedProperty> = CachedProperty.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "updatedAt", ascending: false)]
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "lastUpdated", ascending: false)]
         
         do {
-            return try viewContext.fetch(fetchRequest)
+            return try persistentContainer.viewContext.fetch(fetchRequest)
         } catch {
-            debugPrint("Error fetching cached properties: \(error)")
+            debugPrint("Failed to fetch cached properties: \(error)")
             return []
         }
     }
+    */
     
-    // MARK: - Transfer Cache Operations
+    // MARK: - Transfer Caching
     
+    // TODO: Implement when CachedTransfer entity is created
+    /*
     func cacheTransfer(_ transfer: Transfer) {
-        let context = newBackgroundContext()
-        
+        let context = persistentContainer.newBackgroundContext()
         context.perform {
+            // Check if transfer already exists
             let fetchRequest: NSFetchRequest<CachedTransfer> = CachedTransfer.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %d", transfer.id)
             
-            let cachedTransfer: CachedTransfer
-            if let existing = try? context.fetch(fetchRequest).first {
-                cachedTransfer = existing
-            } else {
+            var cachedTransfer: CachedTransfer
+            
+            do {
+                let existingTransfers = try context.fetch(fetchRequest)
+                cachedTransfer = existingTransfers.first ?? CachedTransfer(context: context)
+            } catch {
                 cachedTransfer = CachedTransfer(context: context)
-                cachedTransfer.id = Int32(transfer.id)
             }
             
+            // Update properties
+            cachedTransfer.id = Int32(transfer.id)
             cachedTransfer.propertyId = Int32(transfer.propertyId)
+            cachedTransfer.propertySerialNumber = transfer.propertySerialNumber
+            cachedTransfer.propertyName = transfer.propertyName
             cachedTransfer.fromUserId = Int32(transfer.fromUserId)
             cachedTransfer.toUserId = Int32(transfer.toUserId)
-            cachedTransfer.status = transfer.status
+            cachedTransfer.status = transfer.status.rawValue
+            cachedTransfer.requestTimestamp = transfer.requestTimestamp
+            cachedTransfer.approvalTimestamp = transfer.approvalTimestamp
             cachedTransfer.notes = transfer.notes
-            cachedTransfer.requestDate = transfer.requestDate
-            cachedTransfer.resolvedDate = transfer.resolvedDate
-            cachedTransfer.lastSyncedAt = Date()
-            cachedTransfer.isDirty = false
+            cachedTransfer.lastUpdated = Date()
             
-            self.save(context: context)
+            self.saveBackgroundContext(context)
         }
     }
     
     func getCachedTransfers() -> [CachedTransfer] {
         let fetchRequest: NSFetchRequest<CachedTransfer> = CachedTransfer.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "requestDate", ascending: false)]
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "requestTimestamp", ascending: false)]
         
         do {
-            return try viewContext.fetch(fetchRequest)
+            return try persistentContainer.viewContext.fetch(fetchRequest)
         } catch {
-            debugPrint("Error fetching cached transfers: \(error)")
+            debugPrint("Failed to fetch cached transfers: \(error)")
             return []
         }
     }
+    */
     
-    // MARK: - Photo Queue Operations
+    // MARK: - Photo Upload Queue
     
-    func addPendingPhotoUpload(propertyId: Int32?, localPath: String, sha256Hash: String) {
-        let context = newBackgroundContext()
-        
+    // TODO: Implement when PendingPhotoUpload entity is created
+    /*
+    func queuePhotoUpload(propertyId: Int, imageData: Data, filename: String) {
+        let context = persistentContainer.newBackgroundContext()
         context.perform {
             let photoUpload = PendingPhotoUpload(context: context)
             photoUpload.id = UUID()
-            photoUpload.propertyId = propertyId ?? 0
-            photoUpload.localImagePath = localPath
-            photoUpload.sha256Hash = sha256Hash
+            photoUpload.propertyId = Int32(propertyId)
+            photoUpload.imageData = imageData
+            photoUpload.filename = filename
             photoUpload.createdAt = Date()
-            photoUpload.uploadStatus = "PENDING"
+            photoUpload.status = "pending"
             photoUpload.retryCount = 0
             
-            self.save(context: context)
-            debugPrint("Added pending photo upload: \(localPath)")
+            self.saveBackgroundContext(context)
         }
     }
     
     func getPendingPhotoUploads() -> [PendingPhotoUpload] {
         let fetchRequest: NSFetchRequest<PendingPhotoUpload> = PendingPhotoUpload.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "uploadStatus == %@", "PENDING")
+        fetchRequest.predicate = NSPredicate(format: "status == %@", "pending")
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
         
         do {
-            return try viewContext.fetch(fetchRequest)
+            return try persistentContainer.viewContext.fetch(fetchRequest)
         } catch {
-            debugPrint("Error fetching pending photo uploads: \(error)")
+            debugPrint("Failed to fetch pending photo uploads: \(error)")
             return []
         }
     }
+    */
     
-    // MARK: - Cleanup Operations
+    // MARK: - Cleanup Methods
     
-    func cleanupCompletedSyncItems(olderThan days: Int = 7) {
-        let context = newBackgroundContext()
-        
+    func clearSyncQueue() {
+        // TODO: Implement when SyncQueueItem entity is created
+        /*
+        let context = persistentContainer.viewContext
         context.perform {
             let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SyncQueueItem.fetchRequest()
-            let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
-            fetchRequest.predicate = NSPredicate(format: "status == %@ AND lastAttemptAt < %@", "COMPLETED", cutoffDate as NSDate)
-            
             let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
             
             do {
                 try context.execute(deleteRequest)
-                self.save(context: context)
-                debugPrint("Cleaned up old sync items")
+                try context.save()
             } catch {
-                debugPrint("Error cleaning up sync items: \(error)")
+                debugPrint("Failed to clear sync queue: \(error)")
             }
         }
+        */
     }
 } 

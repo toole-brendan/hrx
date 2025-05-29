@@ -500,26 +500,27 @@ class QRScannerViewModel: NSObject, ObservableObject {
 // MARK: - QR Code Scanning Delegate
 
 extension QRScannerViewModel: AVCaptureMetadataOutputObjectsDelegate {
-    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        guard isScanning, !isProcessing,
-              let metadataObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+    nonisolated func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        guard let metadataObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
               let stringValue = metadataObject.stringValue else { return }
         
-        // Debounce rapid scans
-        scanDebounceTimer?.invalidate()
-        scanDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
-            self.lastScannedCode = nil
-        }
-        
-        // Stop scanning temporarily
-        stopScanning()
-        
-        // Haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
-        
-        // Process the QR code
-        Task {
+        Task { @MainActor in
+            guard isScanning, !isProcessing else { return }
+            
+            // Debounce rapid scans
+            scanDebounceTimer?.invalidate()
+            scanDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
+                self.lastScannedCode = nil
+            }
+            
+            // Stop scanning temporarily
+            stopScanning()
+            
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Process the QR code
             if let property = await processQRCode(stringValue) {
                 // Get property owner name if possible
                 if let holderId = Int(property.currentHolderId) {
@@ -529,11 +530,9 @@ extension QRScannerViewModel: AVCaptureMetadataOutputObjectsDelegate {
                             var updatedProperty = property
                             updatedProperty.currentHolderName = "\(holder.rank ?? "") \(holder.lastName ?? "")"
                             
-                            await MainActor.run {
-                                // Show confirmation sheet
-                                self.scannedProperty = updatedProperty
-                                self.showingTransferConfirmation = true
-                            }
+                            // Show confirmation sheet
+                            self.scannedProperty = updatedProperty
+                            self.showingTransferConfirmation = true
                             return
                         }
                     } catch {
@@ -541,11 +540,9 @@ extension QRScannerViewModel: AVCaptureMetadataOutputObjectsDelegate {
                     }
                 }
                 
-                await MainActor.run {
-                    // Show confirmation without holder name
-                    self.scannedProperty = property
-                    self.showingTransferConfirmation = true
-                }
+                // Show confirmation without holder name
+                self.scannedProperty = property
+                self.showingTransferConfirmation = true
             } else {
                 // Resume scanning if processing failed
                 startScanning()
@@ -564,24 +561,6 @@ struct ScannedPropertyInfo {
     let currentHolderId: String
     let qrData: [String: Any]
     var currentHolderName: String?
-}
-
-struct QRTransferRequest: Codable {
-    let qrData: [String: Any]
-    let scannedAt: String
-    
-    enum CodingKeys: String, CodingKey {
-        case qrData = "qr_data"
-        case scannedAt = "scanned_at"
-    }
-    
-    // Custom encoding for dictionary
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        let qrDataAsJSON = try JSONSerialization.data(withJSONObject: qrData)
-        try container.encode(qrDataAsJSON, forKey: .qrData)
-        try container.encode(scannedAt, forKey: .scannedAt)
-    }
 }
 
 enum QRError: Error {

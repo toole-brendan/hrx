@@ -8,6 +8,7 @@ struct Property: Identifiable, Decodable {
     let id: Int // Changed from UUID
     let serialNumber: String
     let nsn: String // National Stock Number (links to ReferenceItem potentially)
+    let lin: String? // Line Item Number
     let itemName: String // Often derived from Reference DB via NSN
     let description: String?
     let manufacturer: String?
@@ -27,6 +28,7 @@ struct Property: Identifiable, Decodable {
         case id
         case serialNumber = "serial_number"
         case nsn
+        case lin
         case itemName = "item_name"
         case description
         case manufacturer
@@ -45,6 +47,7 @@ struct Property: Identifiable, Decodable {
         id: 999, // Changed from UUID()
         serialNumber: "SN123456789",
         nsn: "1005-01-584-1079",
+        lin: "E03045",
         itemName: "M4A1 Carbine",
         description: "Standard issue carbine, 5.56mm.",
         manufacturer: "Colt",
