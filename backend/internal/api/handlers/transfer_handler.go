@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -301,4 +305,130 @@ func (h *TransferHandler) GetTransfersByUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"transfers": transfers})
+}
+
+// InitiateTransferByQR initiates a transfer by scanning a QR code
+func (h *TransferHandler) InitiateTransferByQR(c *gin.Context) {
+	var req domain.QRTransferRequest
+
+	// Validate request body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input format: " + err.Error()})
+		return
+	}
+
+	// Get scanner user ID from context
+	scannerUserIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	scannerUserID, ok := scannerUserIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format in context"})
+		return
+	}
+
+	// Verify QR code hash
+	qrDataWithoutHash := make(map[string]interface{})
+	for k, v := range req.QRData {
+		if k != "qrHash" {
+			qrDataWithoutHash[k] = v
+		}
+	}
+
+	// Marshal data for hashing
+	qrJSON, err := json.Marshal(qrDataWithoutHash)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid QR data format"})
+		return
+	}
+
+	// Compute hash
+	hash := sha256.Sum256(qrJSON)
+	computedHash := hex.EncodeToString(hash[:])
+
+	// Get expected hash from QR data
+	expectedHash, ok := req.QRData["qrHash"].(string)
+	if !ok || computedHash != expectedHash {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid QR code - hash verification failed"})
+		return
+	}
+
+	// Extract item ID from QR data
+	itemIDStr, ok := req.QRData["itemId"].(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid QR code - missing item ID"})
+		return
+	}
+
+	itemID, err := strconv.ParseUint(itemIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID in QR code"})
+		return
+	}
+
+	// Fetch property to verify current holder
+	property, err := h.Repo.GetPropertyByID(uint(itemID))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property"})
+		}
+		return
+	}
+
+	// Extract current holder ID from QR data
+	currentHolderIDStr, ok := req.QRData["currentHolderId"].(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid QR code - missing current holder ID"})
+		return
+	}
+
+	currentHolderID, err := strconv.ParseUint(currentHolderIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid current holder ID in QR code"})
+		return
+	}
+
+	// Verify current holder matches
+	if property.AssignedToUserID == nil || *property.AssignedToUserID != uint(currentHolderID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "QR code is outdated - property holder has changed"})
+		return
+	}
+
+	// Prevent self-transfer
+	if scannerUserID == *property.AssignedToUserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot transfer to yourself"})
+		return
+	}
+
+	// Create transfer request
+	transfer := &domain.Transfer{
+		PropertyID:  property.ID,
+		FromUserID:  *property.AssignedToUserID,
+		ToUserID:    scannerUserID,
+		Status:      "Requested",
+		Notes:       &[]string{fmt.Sprintf("Transfer initiated via QR scan at %s", req.ScannedAt)}[0],
+		RequestDate: time.Now(),
+	}
+
+	// Save transfer
+	if err := h.Repo.CreateTransfer(transfer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transfer"})
+		return
+	}
+
+	// Log to ledger
+	if err := h.Ledger.LogTransferEvent(*transfer, property.SerialNumber); err != nil {
+		log.Printf("WARNING: Failed to log QR transfer to ledger: %v", err)
+	}
+
+	// TODO: Send notification to current holder
+
+	c.JSON(http.StatusOK, gin.H{
+		"transferId": fmt.Sprintf("%d", transfer.ID),
+		"status":     transfer.Status,
+	})
 }

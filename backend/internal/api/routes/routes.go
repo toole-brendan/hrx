@@ -77,6 +77,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			inventory.GET("/history/:serialNumber", inventoryHandler.GetInventoryItemHistory)
 			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
 			inventory.GET("/serial/:serialNumber", inventoryHandler.GetPropertyBySerialNumber)
+			inventory.POST("/:propertyId/qrcode", inventoryHandler.GeneratePropertyQRCode) // New QR code generation endpoint
 		}
 
 		// Transfer routes
@@ -87,6 +88,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			transfer.GET("", transferHandler.GetAllTransfers)
 			transfer.GET("/:id", transferHandler.GetTransferByID)
 			transfer.GET("/user/:userId", transferHandler.GetTransfersByUser)
+			transfer.POST("/qr-initiate", transferHandler.InitiateTransferByQR) // New QR-based transfer endpoint
 		}
 
 		// Activity routes

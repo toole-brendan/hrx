@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"gorm.io/gorm"
@@ -185,4 +186,45 @@ func (r *PostgresRepository) ListTransfers(userID uint, status *string) ([]domai
 		return nil, err
 	}
 	return transfers, nil
+}
+
+// --- QR Code Operations ---
+
+func (r *PostgresRepository) CreateQRCode(qrCode *domain.QRCode) error {
+	return r.db.Create(qrCode).Error
+}
+
+func (r *PostgresRepository) GetQRCodeByHash(hash string) (*domain.QRCode, error) {
+	var qrCode domain.QRCode
+	if err := r.db.Where("qr_code_hash = ?", hash).First(&qrCode).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &qrCode, nil
+}
+
+func (r *PostgresRepository) DeactivateQRCodesForProperty(propertyID uint) error {
+	// Deactivate all active QR codes for this property
+	now := time.Now()
+	return r.db.Model(&domain.QRCode{}).
+		Where("inventory_item_id = ? AND is_active = ?", propertyID, true).
+		Updates(map[string]interface{}{
+			"is_active":      false,
+			"deactivated_at": now,
+		}).Error
+}
+
+func (r *PostgresRepository) GetActiveQRCodeForProperty(propertyID uint) (*domain.QRCode, error) {
+	var qrCode domain.QRCode
+	if err := r.db.Where("inventory_item_id = ? AND is_active = ?", propertyID, true).
+		Order("created_at DESC").
+		First(&qrCode).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &qrCode, nil
 }

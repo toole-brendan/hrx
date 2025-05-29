@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - HANDRECEIPT_DATABASE_HOST=postgres
+      - HANDRECEIPT_DATABASE_PORT=5432
+      - HANDRECEIPT_DATABASE_USER=handreceipt
+      - HANDRECEIPT_DATABASE_PASSWORD=cvOrf7fVpmyxvnkqeKOo5g==
+      - HANDRECEIPT_DATABASE_NAME=handreceipt
+      - HANDRECEIPT_IMMUDB_HOST=immudb
+      - HANDRECEIPT_IMMUDB_PORT=3322
+      - HANDRECEIPT_IMMUDB_USERNAME=immudb
+      - HANDRECEIPT_IMMUDB_PASSWORD=IoSzNPyRqFueVGhN/4rSgg==
+      - HANDRECEIPT_IMMUDB_DATABASE=defaultdb
+      - HANDRECEIPT_IMMUDB_ENABLED=true
+      - HANDRECEIPT_MINIO_ENDPOINT=minio:9000
+      - HANDRECEIPT_MINIO_ACCESS_KEY_ID=handreceipt-minio
+      - HANDRECEIPT_MINIO_SECRET_ACCESS_KEY=XQ/rycTvT6EbYfVLNQKEU1wk+GE=
+      - HANDRECEIPT_MINIO_USE_SSL=false
+      - HANDRECEIPT_MINIO_BUCKET_NAME=handreceipt
+      - HANDRECEIPT_MINIO_ENABLED=true
+      - HANDRECEIPT_JWT_SECRET_KEY=9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=
+      - HANDRECEIPT_SERVER_PORT=8080
+      - HANDRECEIPT_SERVER_ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - immudb
+      - minio
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: handreceipt
+      POSTGRES_USER: handreceipt
+      POSTGRES_PASSWORD: cvOrf7fVpmyxvnkqeKOo5g==
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U handreceipt -d handreceipt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  immudb:
+    image: codenotary/immudb:1.4.1
+    ports:
+      - "3322:3322"
+      - "9497:9497"
+    volumes:
+      - immudb_data:/var/lib/immudb
+    environment:
+      IMMUDB_ADDRESS: "0.0.0.0"
+      IMMUDB_PORT: "3322"
+      IMMUDB_ADMIN_PASSWORD: "IoSzNPyRqFueVGhN/4rSgg=="
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: handreceipt-minio
+      MINIO_ROOT_PASSWORD: "XQ/rycTvT6EbYfVLNQKEU1wk+GE="
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deployments/lightsail/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - HANDRECEIPT_DATABASE_HOST=postgres
+      - HANDRECEIPT_DATABASE_PORT=5432
+      - HANDRECEIPT_DATABASE_USER=handreceipt
+      - HANDRECEIPT_DATABASE_PASSWORD=cvOrf7fVpmyxvnkqeKOo5g==
+      - HANDRECEIPT_DATABASE_NAME=handreceipt
+      - HANDRECEIPT_IMMUDB_HOST=immudb
+      - HANDRECEIPT_IMMUDB_PORT=3322
+      - HANDRECEIPT_IMMUDB_USERNAME=immudb
+      - HANDRECEIPT_IMMUDB_PASSWORD=IoSzNPyRqFueVGhN/4rSgg==
+      - HANDRECEIPT_IMMUDB_DATABASE=defaultdb
+      - HANDRECEIPT_IMMUDB_ENABLED=true
+      - HANDRECEIPT_MINIO_ENDPOINT=minio:9000
+      - HANDRECEIPT_MINIO_ACCESS_KEY_ID=handreceipt-minio
+      - HANDRECEIPT_MINIO_SECRET_ACCESS_KEY=XQ/rycTvT6EbYfVLNQKEU1wk+GE=
+      - HANDRECEIPT_MINIO_USE_SSL=false
+      - HANDRECEIPT_MINIO_BUCKET_NAME=handreceipt
+      - HANDRECEIPT_MINIO_ENABLED=true
+      - HANDRECEIPT_JWT_SECRET_KEY=9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=
+      - HANDRECEIPT_SERVER_ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - immudb
+      - minio
+    restart: unless-stopped
+    networks:
+      - handreceipt-network
+
+volumes:
+  postgres_data:
+  immudb_data:
+  minio_data:
+  nginx_logs:
+
+networks:
+  handreceipt-network:
+    driver: bridge 
