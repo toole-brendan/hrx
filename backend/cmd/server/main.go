@@ -12,6 +12,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/platform/database"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
 func main() {
@@ -50,6 +51,35 @@ func main() {
 
 	// Initialize Repository
 	repo := repository.NewPostgresRepository(db)
+
+	// Initialize MinIO Storage Service
+	minioEndpoint := viper.GetString("minio.endpoint")
+	if minioEndpoint == "" {
+		minioEndpoint = "localhost:9000" // Default for development
+	}
+	minioAccessKey := viper.GetString("minio.access_key")
+	if minioAccessKey == "" {
+		minioAccessKey = os.Getenv("MINIO_ACCESS_KEY")
+	}
+	minioSecretKey := viper.GetString("minio.secret_key")
+	if minioSecretKey == "" {
+		minioSecretKey = os.Getenv("MINIO_SECRET_KEY")
+	}
+	minioBucket := viper.GetString("minio.bucket")
+	if minioBucket == "" {
+		minioBucket = "handreceipt-photos"
+	}
+	minioUseSSL := viper.GetBool("minio.use_ssl")
+
+	storageService, err := storage.NewMinIOService(minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, minioUseSSL)
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize MinIO storage service: %v", err)
+		// Storage is not critical for basic operations, so we'll continue
+		// but photo uploads won't work
+		storageService = nil
+	} else {
+		log.Printf("MinIO storage service initialized successfully")
+	}
 
 	// Initialize Ledger Service based on configuration
 	var ledgerService ledger.LedgerService
@@ -96,8 +126,8 @@ func main() {
 	// CORS middleware
 	router.Use(corsMiddleware())
 
-	// Setup routes, passing the LedgerService interface and Repository
-	routes.SetupRoutes(router, ledgerService, repo)
+	// Setup routes, passing the LedgerService interface, Repository, and Storage Service
+	routes.SetupRoutes(router, ledgerService, repo, storageService)
 
 	// Get server port, prioritizing environment variable, then config, then default
 	var port int

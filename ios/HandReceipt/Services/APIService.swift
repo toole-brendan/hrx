@@ -34,6 +34,11 @@ protocol APIServiceProtocol {
     // Function to logout the user.
     func logout() async throws
 
+    // --- Photo Functions ---
+    func uploadPropertyPhoto(propertyId: Int, imageData: Data) async throws -> PhotoUploadResponse
+    func verifyPhotoHash(propertyId: Int, filename: String, expectedHash: String) async throws -> PhotoVerificationResponse
+    func deletePropertyPhoto(propertyId: Int, filename: String) async throws
+
     // Add other API functions here as needed (e.g., fetch by NSN, etc.)
     // func fetchItemByNSN(nsn: String) async throws -> ReferenceItem
     
@@ -565,6 +570,70 @@ class APIService: APIServiceProtocol {
         // If using URLSession cookie storage, this might not be needed if cookies are sent automatically.
          debugPrint("Auth header addition skipped (relying on URLSession cookie storage)")
     }
+
+    // --- Photo Functions ---
+    
+    func uploadPropertyPhoto(propertyId: Int, imageData: Data) async throws -> PhotoUploadResponse {
+        debugPrint("Uploading photo for property: \(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/photos/property/\(propertyId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        
+        // Create multipart form data
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        
+        // Add image data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"photo.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        let response = try await performRequest(request: request) as PhotoUploadResponse
+        debugPrint("Photo uploaded successfully: \(response.hash)")
+        return response
+    }
+    
+    func verifyPhotoHash(propertyId: Int, filename: String, expectedHash: String) async throws -> PhotoVerificationResponse {
+        debugPrint("Verifying photo hash for property: \(propertyId)")
+        
+        var components = URLComponents(url: baseURL.appendingPathComponent("/photos/property/\(propertyId)/verify"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "filename", value: filename),
+            URLQueryItem(name: "hash", value: expectedHash)
+        ]
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as PhotoVerificationResponse
+        debugPrint("Photo verification result: \(response.valid)")
+        return response
+    }
+    
+    func deletePropertyPhoto(propertyId: Int, filename: String) async throws {
+        debugPrint("Deleting photo for property: \(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/photos/property/\(propertyId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let deleteRequest = DeletePhotoRequest(filename: filename)
+        request.httpBody = try encoder.encode(deleteRequest)
+        
+        let _: EmptyResponse = try await performRequest(request: request)
+        debugPrint("Photo deleted successfully")
+    }
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)
@@ -578,4 +647,22 @@ struct ErrorResponse: Decodable {
 struct UpdateTransferStatusBody: Encodable {
     let status: String
     // Add other fields like 'notes' if needed/allowed by the backend endpoint
+}
+
+// Add response models for photo operations
+struct PhotoUploadResponse: Codable {
+    let message: String
+    let photoUrl: String
+    let hash: String
+    let filename: String
+}
+
+struct PhotoVerificationResponse: Codable {
+    let valid: Bool
+    let expectedHash: String
+    let actualHash: String
+}
+
+struct DeletePhotoRequest: Codable {
+    let filename: String
 } 

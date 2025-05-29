@@ -8,10 +8,11 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
 // SetupRoutes configures all the API routes for the application
-func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository) {
+func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService *storage.MinIOService) {
 	// Health check endpoint (no authentication required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -31,9 +32,10 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	activityHandler := handlers.NewActivityHandler() // No ledger needed
 	verificationHandler := handlers.NewVerificationHandler(ledgerService)
 	correctionHandler := handlers.NewCorrectionHandler(ledgerService)
-	ledgerHandler := handlers.NewLedgerHandler(ledgerService)  // Create ledger handler
-	referenceDBHandler := handlers.NewReferenceDBHandler(repo) // Add ReferenceDB handler
-	userHandler := handlers.NewUserHandler(repo)               // Added User handler
+	ledgerHandler := handlers.NewLedgerHandler(ledgerService)                     // Create ledger handler
+	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
+	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
+	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
 	// ... more handlers will be added in the future
 
 	// TODO: Update other handlers to use repository when needed
@@ -127,6 +129,14 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			users.GET("", userHandler.GetAllUsers)
 			users.GET("/:id", userHandler.GetUserByID)
 			// POST /api/users from Node is handled by POST /api/auth/register
+		}
+
+		// Photo routes
+		photos := protected.Group("/photos")
+		{
+			photos.POST("/property/:propertyId", photoHandler.UploadPropertyPhoto)
+			photos.GET("/property/:propertyId/verify", photoHandler.VerifyPhotoHash)
+			photos.DELETE("/property/:propertyId", photoHandler.DeletePropertyPhoto)
 		}
 	}
 }
