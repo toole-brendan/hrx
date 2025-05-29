@@ -22,9 +22,6 @@ import UserManagement from "./pages/UserManagement";
 import CorrectionLogPage from './pages/CorrectionLogPage';
 import LedgerVerificationPage from './pages/LedgerVerificationPage';
 import { queryClient } from "./lib/queryClient";
-import { BASE_PATH } from "./lib/queryClient";
-import { saveInventoryItemsToDB, getInventoryItemsFromDB } from "./lib/idb";
-import { inventory as mockInventory } from "./lib/mockData";
 
 // Define interfaces for component props with ID parameters
 interface ItemPageProps {
@@ -46,81 +43,49 @@ interface TransfersProps {
 
 // Make all component props have any type to fix TypeScript errors with wouter
 function Router() {
-  // Base path for all routes
-  const basePath = BASE_PATH;
-  
   return (
     <AppShell>
       <Switch>
-        <Route path={`${basePath}`} component={() => <Dashboard />} />
-        <Route path={`${basePath}/`} component={() => <Dashboard />} />
-        <Route path={`${basePath}/dashboard`} component={() => <Dashboard />} />
-        <Route path={`${basePath}/transfers`} component={() => <Transfers />} />
-        <Route path={`${basePath}/transfers/:id`}>
+        <Route path="/" component={() => <Dashboard />} />
+        <Route path="/dashboard" component={() => <Dashboard />} />
+        <Route path="/transfers" component={() => <Transfers />} />
+        <Route path="/transfers/:id">
           {(params) => <Transfers id={params.id} />}
         </Route>
-        <Route path={`${basePath}/property-book`} component={() => <PropertyBook />} />
-        <Route path={`${basePath}/property-book/:id`}>
+        <Route path="/property-book" component={() => <PropertyBook />} />
+        <Route path="/property-book/:id">
           {(params) => <PropertyBook id={params.id} />}
         </Route>
-        <Route path={`${basePath}/sensitive-items`} component={() => <SensitiveItems />} />
-        <Route path={`${basePath}/sensitive-items/:id`}>
+        <Route path="/sensitive-items" component={() => <SensitiveItems />} />
+        <Route path="/sensitive-items/:id">
           {(params) => <SensitiveItems id={params.id} />}
         </Route>
-        <Route path={`${basePath}/maintenance`} component={() => <Maintenance />} />
-        <Route path={`${basePath}/maintenance/:id`}>
+        <Route path="/maintenance" component={() => <Maintenance />} />
+        <Route path="/maintenance/:id">
           {(params) => <Maintenance id={params.id} />}
         </Route>
-        <Route path={`${basePath}/qr-management`} component={() => <QRManagement />} />
-        <Route path={`${basePath}/qr-management/:code`}>
+        <Route path="/qr-management" component={() => <QRManagement />} />
+        <Route path="/qr-management/:code">
           {(params) => <QRManagement code={params.code} />}
         </Route>
-        <Route path={`${basePath}/reports`} component={() => <Reports />} />
-        <Route path={`${basePath}/reports/:type`}>
+        <Route path="/reports" component={() => <Reports />} />
+        <Route path="/reports/:type">
           {(params) => <Reports type={params.type} />}
         </Route>
-        <Route path={`${basePath}/audit-log`} component={() => <AuditLog />} />
-        <Route path={`${basePath}/correction-log`} component={() => <CorrectionLogPage />} />
-        <Route path={`${basePath}/ledger-verification`} component={() => <LedgerVerificationPage />} />
-        <Route path={`${basePath}/settings`} component={() => <Settings />} />
-        <Route path={`${basePath}/profile`} component={() => <Profile />} />
-        <Route path={`${basePath}/user-management`} component={() => <UserManagement />} />
-        <Route path={`${basePath}/login`} component={() => <Login />} />
-        <Route path={`${basePath}/*`} component={() => <NotFound />} />
+        <Route path="/audit-log" component={() => <AuditLog />} />
+        <Route path="/correction-log" component={() => <CorrectionLogPage />} />
+        <Route path="/ledger-verification" component={() => <LedgerVerificationPage />} />
+        <Route path="/settings" component={() => <Settings />} />
+        <Route path="/profile" component={() => <Profile />} />
+        <Route path="/user-management" component={() => <UserManagement />} />
+        <Route path="/login" component={() => <Login />} />
+        <Route component={() => <NotFound />} />
       </Switch>
     </AppShell>
   );
 }
 
 const App: React.FC = () => {
-  // Handle initial redirection if needed
-  useEffect(() => {
-    const path = window.location.pathname;
-    // If we're at the root path, redirect to the defense path
-    if (path === '/' || path === '') {
-      window.history.replaceState(null, "", `${BASE_PATH}`);
-    }
-  }, []);
-
-  // Create a redirection effect for the base path
-  useEffect(() => {
-    // Use a 'click' event listener to intercept link clicks and add the base path
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest('a');
-      if (link && link.href && link.href.startsWith(window.location.origin) && !link.href.includes(BASE_PATH)) {
-        e.preventDefault();
-        // Extract the path and add the base path
-        const url = new URL(link.href);
-        const path = url.pathname === '/' ? BASE_PATH : `${BASE_PATH}${url.pathname}`;
-        window.history.pushState(null, "", path + url.search + url.hash);
-      }
-    };
-
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

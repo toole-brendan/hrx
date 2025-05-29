@@ -26,7 +26,6 @@ import {
   User,
   Bell,
 } from "lucide-react";
-import { getNavigationPath } from "@/lib/navigation";
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -69,8 +68,7 @@ const Sidebar = ({
 
   const isActive = (path: string) => {
     const currentPath = location;
-    const navPath = getNavigationPath(path);
-    return currentPath === navPath || currentPath.startsWith(navPath + '/');
+    return currentPath === path || currentPath.startsWith(path + '/');
   };
 
   const handleLinkClick = (onClick?: () => void) => {
@@ -85,7 +83,7 @@ const Sidebar = ({
   
   const handleLogoClick = () => {
     // Navigate to the dashboard page
-    window.location.href = getNavigationPath('/dashboard');
+    window.location.href = '/dashboard';
   };
   
   const handleQRScanClick = () => {
@@ -214,7 +212,7 @@ const Sidebar = ({
                 )}
               </div>
             ) : (
-              <Link key={item.path} href={getNavigationPath(item.path)}>
+              <Link key={item.path} href={item.path}>
                 <div 
                   onClick={() => handleLinkClick()}
                   className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
@@ -262,10 +260,10 @@ const Sidebar = ({
           </div>
           
           {/* Settings link */}
-          <Link href={getNavigationPath(settingsAction.path)}>
+          <Link href="/settings">
             <div 
               onClick={() => handleLinkClick()}
-              className={`sidebar-item ${isActive(settingsAction.path) ? "active" : ""}`}
+              className={`sidebar-item ${isActive("/settings") ? "active" : ""}`}
             >
               {settingsAction.icon}
               <span>{settingsAction.label}</span>
@@ -273,7 +271,7 @@ const Sidebar = ({
           </Link>
           
           {/* Profile link */}
-          <Link href={getNavigationPath("/profile")}>
+          <Link href="/profile">
             <div
               className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
               onClick={() => handleLinkClick()}
@@ -374,7 +372,7 @@ const Sidebar = ({
                 )}
               </div>
             ) : (
-              <Link key={item.path} href={getNavigationPath(item.path)}>
+              <Link key={item.path} href={item.path}>
                 <div
                   className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
                   onClick={() => handleLinkClick()}
@@ -439,9 +437,9 @@ const Sidebar = ({
             </div>
             
             {/* Settings link */}
-            <Link href={getNavigationPath(settingsAction.path)}>
+            <Link href="/settings">
               <div
-                className={`sidebar-item ${isActive(settingsAction.path) ? "active" : ""}`}
+                className={`sidebar-item ${isActive("/settings") ? "active" : ""}`}
                 onClick={() => handleLinkClick()}
               >
                 {settingsAction.icon}
@@ -450,7 +448,7 @@ const Sidebar = ({
             </Link>
             
             {/* Profile link */}
-            <Link href={getNavigationPath("/profile")}>
+            <Link href="/profile">
               <div
                 className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
                 onClick={() => handleLinkClick()}

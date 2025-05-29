@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { User } from "../types";
-import { user as mockUser } from "../lib/mockData";
 
 // Define a type for the authedFetch function
 type AuthedFetch = <T = any>(input: RequestInfo | URL, init?: RequestInit) => Promise<{ data: T, response: Response }>;
@@ -11,8 +10,37 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  authedFetch: AuthedFetch; // Add the new function type
+  authedFetch: AuthedFetch;
 }
+
+// Development mode flag - set this to true for local development
+const IS_DEVELOPMENT = true; // Change to false for production
+
+// Mock user for development
+const DEV_USER: User = {
+  id: "RODMC01",
+  username: "michael.rodriguez",
+  name: "CPT Rodriguez, Michael",
+  rank: "Captain",
+  position: "Company Commander",
+  unit: "Bravo Company, 2-87 Infantry Battalion",
+  yearsOfService: 6,
+  commandTime: "3 months",
+  responsibility: "Primary Hand Receipt Holder for company-level property",
+  valueManaged: "$4.2M Equipment Value",
+  upcomingEvents: [
+    { title: "NTC Rotation Prep", date: "Ongoing" },
+    { title: "Equipment Reset", date: "In Progress" },
+    { title: "Command Maintenance", date: "Next Week" }
+  ],
+  equipmentSummary: {
+    vehicles: 72,
+    weapons: 143,
+    communications: 95,
+    opticalSystems: 63,
+    sensitiveItems: 210
+  }
+};
 
 // Provide a default stub that throws an error if used before initialization
 const defaultAuthedFetch: AuthedFetch = async () => {
@@ -35,38 +63,64 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // --- New authedFetch function --- (Defined before useEffect that might use it)
+  // --- New authedFetch function ---
   const authedFetch = useCallback(async <T = any>(
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<{ data: T, response: Response }> => {
-    // Basic wrapper - assumes cookies handle auth. Add headers/tokens if needed.
+    // In development mode, mock successful responses
+    if (IS_DEVELOPMENT) {
+      console.log(`[DEV MODE] Mocking fetch for: ${input}`);
+      
+      // Create a mock response based on the URL
+      let mockData: any = {};
+      const url = input.toString();
+      
+      // Mock different endpoints
+      if (url.includes('/api/auth/me')) {
+        mockData = { user: DEV_USER };
+      } else if (url.includes('/api/inventory')) {
+        mockData = { items: [] };
+      } else if (url.includes('/api/transfers')) {
+        mockData = { transfers: [] };
+      } else if (url.includes('/api/activities')) {
+        mockData = { activities: [] };
+      } else {
+        mockData = { success: true };
+      }
+      
+      // Create a mock Response object
+      const mockResponse = new Response(JSON.stringify(mockData), {
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      });
+      
+      return { data: mockData as T, response: mockResponse };
+    }
+    
+    // Production mode - use real fetch
     const response = await fetch(input, {
       ...init,
       headers: {
-        // Ensure Content-Type is only added if there's a body, or default GET
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
         ...(init?.headers),
       },
-      credentials: 'include', // Ensure cookies are sent with requests
+      credentials: 'include',
     });
 
     if (!response.ok) {
       let errorPayload: any = { message: `HTTP error! status: ${response.status}` };
       try {
-          // Try to parse JSON error body from backend
           errorPayload = await response.json();
       } catch (e) {
-          // Ignore if response is not JSON, use text as fallback
           try {
             errorPayload.message = await response.text();
-          } catch (textErr) {
-             // Ignore if reading text also fails
-          }
+          } catch (textErr) {}
       }
       
-      // Only log non-401 errors to reduce console noise
-      // 401 errors during auth checks are expected when not logged in
       if (response.status !== 401) {
         console.error('API Error Payload:', errorPayload);
       }
@@ -74,11 +128,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       throw new Error(errorPayload.message || `Request failed with status ${response.status}`);
     }
 
-    // Handle cases where response might be empty (e.g., 204 No Content)
     const text = await response.text();
     let data: T;
     try {
-      // Use null for empty responses, parse otherwise
       data = text ? JSON.parse(text) : null as T;
     } catch (e) {
        console.error("Failed to parse JSON response:", text);
@@ -86,41 +138,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     return { data, response };
-  }, []); // useCallback ensures function identity doesn't change unnecessarily
+  }, []);
 
-  // --- Existing useEffect for checkAuthStatus ---
+  // --- Check auth status on mount ---
   useEffect(() => {
     const checkAuthStatus = async () => {
       setIsLoading(true);
+      
+      // In development mode, automatically authenticate
+      if (IS_DEVELOPMENT) {
+        console.log("[DEV MODE] Auto-authenticating with mock user");
+        setUser(DEV_USER);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Production mode - check real auth
       try {
-        // Try real API first
         const { data } = await authedFetch<{ user: User }>('/api/auth/me');
         setUser(data.user);
         setIsAuthenticated(true);
       } catch (error: any) {
-        // If API fails, use mock authentication for development
-        console.log("API not available, using mock authentication for development");
-        setUser(mockUser);
-        setIsAuthenticated(true);
+        if (!error.message?.includes('401')) {
+          console.warn("Check auth status failed:", error);
+        }
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuthStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authedFetch]); // Include authedFetch in dependency array now
+  }, [authedFetch]);
 
-  // --- Modified login function to use mock for development ---
+  // --- Login function ---
   const login = async (username: string, password: string) => {
-    setIsLoading(true); // Indicate loading during login
+    setIsLoading(true);
+    
+    // In development mode, fake successful login
+    if (IS_DEVELOPMENT) {
+      console.log(`[DEV MODE] Mock login for user: ${username}`);
+      setUser(DEV_USER);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Production mode - real login
     try {
-      // Try real API first
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
-        credentials: 'include', // Ensure cookies are set
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -131,35 +203,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let errorData: any = { message: 'Login failed' };
         try {
           errorData = await response.json();
-        } catch (e) { /* Ignore if error response isn't JSON */ }
+        } catch (e) {}
         throw new Error(errorData.message || 'Login failed');
       }
     } catch (error) {
-      // If real API fails, use mock authentication for development
-      console.log("API not available, using mock login for development");
-      // Accept any username/password for mock authentication
-      setUser(mockUser);
-      setIsAuthenticated(true);
+      console.error("Login error:", error);
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- Existing logout function ---
+  // --- Logout function ---
   const logout = async () => {
     setIsLoading(true);
-    try {
-      // Use authedFetch for consistency, although it might just be POST without body/auth needed
-      await authedFetch('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Even if logout API fails, clear state locally
-    } finally {
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsLoading(false);
-      // Optionally redirect to login page here
+    
+    if (!IS_DEVELOPMENT) {
+      try {
+        await authedFetch('/api/auth/logout', { method: 'POST' });
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
     }
+    
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsLoading(false);
   };
 
   return (
