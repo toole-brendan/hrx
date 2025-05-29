@@ -70,14 +70,14 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 		inventory := protected.Group("/inventory")
 		{
 			inventory.GET("", inventoryHandler.GetAllInventoryItems)
-			inventory.GET("/:id", inventoryHandler.GetInventoryItem)
 			inventory.POST("", inventoryHandler.CreateInventoryItem)
-			inventory.PATCH("/:id/status", inventoryHandler.UpdateInventoryItemStatus)
 			inventory.GET("/user/:userId", inventoryHandler.GetInventoryItemsByUser)
 			inventory.GET("/history/:serialNumber", inventoryHandler.GetInventoryItemHistory)
-			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
 			inventory.GET("/serial/:serialNumber", inventoryHandler.GetPropertyBySerialNumber)
-			inventory.POST("/:propertyId/qrcode", inventoryHandler.GeneratePropertyQRCode) // New QR code generation endpoint
+			inventory.POST("/qrcode/:propertyId", inventoryHandler.GeneratePropertyQRCode) // Moved QR code generation before wildcard routes
+			inventory.GET("/:id", inventoryHandler.GetInventoryItem)
+			inventory.PATCH("/:id/status", inventoryHandler.UpdateInventoryItemStatus)
+			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
 		}
 
 		// Transfer routes
