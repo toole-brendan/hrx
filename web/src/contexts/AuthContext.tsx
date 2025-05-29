@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
-import { User } from "@shared/schema";
+import { User } from "../types";
 
 // Define a type for the authedFetch function
 type AuthedFetch = <T = any>(input: RequestInfo | URL, init?: RequestInit) => Promise<{ data: T, response: Response }>;
@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
         ...(init?.headers),
       },
-      // credentials: 'include', // Might be needed depending on CORS/cookie setup
+      credentials: 'include', // Ensure cookies are sent with requests
     });
 
     if (!response.ok) {
@@ -63,14 +63,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
              // Ignore if reading text also fails
           }
       }
-      // You might want more sophisticated error handling here
-      // e.g., check for 401/403 and trigger logout or refresh token flow
-      if (response.status === 401 || response.status === 403) {
-        // Example: Could trigger logout
-        // console.warn("Authentication error, logging out...");
-        // logout(); // Be careful of infinite loops if checkAuthStatus calls this
+      
+      // Only log non-401 errors to reduce console noise
+      // 401 errors during auth checks are expected when not logged in
+      if (response.status !== 401) {
+        console.error('API Error Payload:', errorPayload);
       }
-      console.error('API Error Payload:', errorPayload);
+      
       throw new Error(errorPayload.message || `Request failed with status ${response.status}`);
     }
 
@@ -97,9 +96,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data } = await authedFetch<{ user: User }>('/api/auth/me');
         setUser(data.user);
         setIsAuthenticated(true);
-      } catch (error) {
-        // Handle specific error cases if needed, e.g., 401 means not logged in
-        console.warn("Check auth status failed (likely not logged in):", error);
+      } catch (error: any) {
+        // Don't log 401 errors - they're expected when not logged in
+        // Only log unexpected errors
+        if (!error.message?.includes('401')) {
+          console.warn("Check auth status failed:", error);
+        }
         setUser(null);
         setIsAuthenticated(false);
       } finally {
@@ -115,12 +117,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (username: string, password: string) => {
     setIsLoading(true); // Indicate loading during login
     try {
-      // Use authedFetch for consistency (though login might not need auth itself)
-      // Or stick to raw fetch if login endpoint doesn't expect/use auth cookies initially
+      // Use raw fetch for login since it doesn't need auth
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
+        credentials: 'include', // Ensure cookies are set
       });
 
       if (response.ok) {

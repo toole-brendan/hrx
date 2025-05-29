@@ -22,6 +22,7 @@ func SetupSession(router *gin.Engine) {
 		MaxAge:   int(24 * time.Hour.Seconds()), // 1 day
 		HttpOnly: true,
 		Secure:   viper.GetString("server.environment") == "production",
+		SameSite: http.SameSiteNoneMode, // Important for cross-origin requests
 	})
 	router.Use(sessions.Sessions("handreceipt_session", store))
 }
