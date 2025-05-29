@@ -117,11 +117,13 @@ func main() {
 		}
 	}
 
-	if err := ledgerService.Initialize(); err != nil {
-		log.Fatalf("Failed to initialize Ledger service: %v", err)
+	if ledgerService != nil {
+		if err := ledgerService.Initialize(); err != nil {
+			log.Fatalf("Failed to initialize Ledger service: %v", err)
+		}
+		// Ensure Close is called on shutdown (using defer in main is tricky, consider signal handling)
+		// defer ledgerService.Close()
 	}
-	// Ensure Close is called on shutdown (using defer in main is tricky, consider signal handling)
-	// defer ledgerService.Close()
 
 	// Initialize NSN Service
 	logger := logrus.New()

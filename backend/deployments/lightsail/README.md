@@ -683,3 +683,6 @@ For issues specific to this deployment, check the logs first:
 ```bash
 sudo docker-compose logs app | grep ERROR
 ``` 
+
+
+ssh -i ~/.ssh/handreceipt-new ubuntu@44.193.254.155 "cd /opt/handreceipt && sudo docker stop handreceipt_app_1 && sudo docker rm handreceipt_app_1 && sudo docker build -t handreceipt_app:latest -f Dockerfile . && sudo docker run -d --name handreceipt_app_1 --network handreceipt_handreceipt-network -p 8080:8080 handreceipt_app:latest && echo 'Rebuilt and restarted app'"
