@@ -3,38 +3,54 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { scanQRCode, stopScanner } from "@/lib/qrScanner";
+import { parseQRCodeData, initiateTransferByQR, QRCodeData } from "@/services/qrCodeService";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 interface QRScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onTransferInitiated?: (transferId: string) => void;
 }
 
 const QRScannerModal: React.FC<QRScannerModalProps> = ({
   isOpen, 
-  onClose
+  onClose,
+  onTransferInitiated
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<"waiting" | "scanning" | "success" | "error">("waiting");
   const [scannedData, setScannedData] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<any>(null);
+  const [parsedData, setParsedData] = useState<QRCodeData | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleScanSuccess = useCallback((result: string) => {
+  const handleScanSuccess = useCallback(async (result: string) => {
     setStatus("success");
     setScannedData(result);
     
     try {
-      const data = JSON.parse(result);
-      setParsedData(data);
+      const data = await parseQRCodeData(result);
+      if (data) {
+        setParsedData(data);
+        toast({
+          title: "QR Code Scanned",
+          description: "Equipment information retrieved successfully.",
+        });
+      } else {
+        toast({
+          title: "Invalid QR Code",
+          description: "This QR code is not a valid HandReceipt property code.",
+          variant: "destructive"
+        });
+        setStatus("error");
+      }
     } catch (e) {
       console.error("Failed to parse QR code data:", e);
       setParsedData(null);
+      setStatus("error");
     }
-
-    toast({
-      title: "QR Code Scanned",
-      description: "Equipment information retrieved successfully.",
-    });
   }, [toast]);
 
   const handleScanError = useCallback((error: Error) => {
@@ -62,14 +78,36 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
     };
   }, [isOpen, handleScanSuccess, handleScanError]);
 
-  const handleProcessEquipment = () => {
-    if (parsedData) {
+  const handleInitiateTransfer = async () => {
+    if (!parsedData) return;
+    
+    setIsProcessing(true);
+    try {
+      const result = await initiateTransferByQR(parsedData);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      
       toast({
-        title: "Equipment Processed",
-        description: `${parsedData.name} has been processed successfully.`,
+        title: "Transfer Initiated",
+        description: `Transfer request for ${parsedData.itemName} has been sent to the current holder.`,
       });
+      
+      if (onTransferInitiated) {
+        onTransferInitiated(result.transferId);
+      }
+      
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "Transfer Failed",
+        description: error.message || "Failed to initiate transfer. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    onClose();
   };
 
   const handleReportIssue = () => {
@@ -101,7 +139,7 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
         <DialogHeader>
           <DialogTitle>Scan Equipment QR Code</DialogTitle>
           <DialogDescription>
-            Position the QR code in the center of the camera view.
+            Position the QR code in the center of the camera view to initiate a transfer request.
           </DialogDescription>
         </DialogHeader>
         
@@ -125,58 +163,70 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 {status === "waiting" ? "Initializing camera..." : "Scanning for QR code..."}
               </p>
             </>
-          ) : status === "success" ? (
+          ) : status === "success" && parsedData ? (
             <div className="border rounded-md p-4 w-full bg-gray-50">
               <h3 className="font-medium mb-2">Equipment Information</h3>
-              {parsedData ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Type:</span>
-                    <span className="font-medium">{parsedData.type || "Unknown"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Name:</span>
-                    <span className="font-medium">{parsedData.name || "Unknown"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Serial Number:</span>
-                    <span className="font-mono text-sm">{parsedData.serialNumber || "Unknown"}</span>
-                  </div>
-                  {parsedData.additionalInfo && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Notes:</span>
-                      <span>{parsedData.additionalInfo}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Timestamp:</span>
-                    <span className="text-xs">{new Date(parsedData.timestamp).toLocaleString()}</span>
-                  </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Item:</span>
+                  <span className="font-medium">{parsedData.itemName}</span>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500">
-                  Unable to parse equipment data from QR code.
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Serial Number:</span>
+                  <span className="font-mono text-sm">{parsedData.serialNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Category:</span>
+                  <span className="capitalize">{parsedData.category.replace(/-/g, ' ')}</span>
+                </div>
+                {parsedData.currentHolderId && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Current Holder:</span>
+                    <span className="text-xs">User #{parsedData.currentHolderId}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">QR Generated:</span>
+                  <span className="text-xs">{new Date(parsedData.timestamp).toLocaleString()}</span>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <p className="text-sm text-blue-800">
+                  <strong>Transfer Request:</strong> Scanning this code will send a transfer request to the current property holder.
                 </p>
-              )}
+              </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <i className="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-              <p className="text-gray-700">Failed to scan QR code. Please try again.</p>
+              <p className="text-gray-700">
+                {status === "error" ? "Failed to scan valid QR code. Please try again." : "Invalid or corrupted QR code."}
+              </p>
             </div>
           )}
           
           <div className="flex justify-center space-x-2 w-full">
-            {status === "success" ? (
+            {status === "success" && parsedData ? (
               <>
                 <Button variant="outline" onClick={handleRescan} className="flex-1">
-                  <i className="fas fa-redo-alt mr-2"></i> Scan Again
+                  <i className="fas fa-redo-alt mr-2"></i> Scan Another
                 </Button>
                 <Button 
-                  onClick={handleProcessEquipment}
+                  onClick={handleInitiateTransfer}
+                  disabled={isProcessing}
                   className="bg-[#4B5320] hover:bg-[#3a4019] flex-1"
                 >
-                  <i className="fas fa-check mr-2"></i> Process
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-exchange-alt mr-2"></i> Request Transfer
+                    </>
+                  )}
                 </Button>
               </>
             ) : status === "error" ? (

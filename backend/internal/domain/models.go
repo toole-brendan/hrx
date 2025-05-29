@@ -89,6 +89,18 @@ type Activity struct {
 	// Consider adding CreatedAt/UpdatedAt if this table remains
 }
 
+// QRCode represents a generated QR code for a property item
+type QRCode struct {
+	ID                uint       `json:"id" gorm:"primaryKey"`
+	InventoryItemID   uint       `json:"inventoryItemId" gorm:"column:inventory_item_id;not null"`
+	QRCodeData        string     `json:"qrCodeData" gorm:"column:qr_code_data;type:text;not null"`
+	QRCodeHash        string     `json:"qrCodeHash" gorm:"column:qr_code_hash;uniqueIndex;not null"`
+	GeneratedByUserID uint       `json:"generatedByUserId" gorm:"column:generated_by_user_id;not null"`
+	IsActive          bool       `json:"isActive" gorm:"column:is_active;default:true;not null"`
+	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	DeactivatedAt     *time.Time `json:"deactivatedAt" gorm:"column:deactivated_at"`
+}
+
 // CreateUserInput represents input for creating a user
 type CreateUserInput struct {
 	Username string `json:"username" binding:"required"`
@@ -134,6 +146,12 @@ type CreateActivityInput struct {
 type LoginInput struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+// QRTransferRequest represents input for initiating a transfer via QR code scan
+type QRTransferRequest struct {
+	QRData    map[string]interface{} `json:"qrData" binding:"required"`
+	ScannedAt string                 `json:"scannedAt" binding:"required"`
 }
 
 // CorrectionEvent represents a record from the CorrectionEvents ledger table.

@@ -207,3 +207,25 @@ export type NsnSynonym = typeof nsnSynonyms.$inferSelect;
 
 export type InsertCatalogUpdate = z.infer<typeof insertCatalogUpdateSchema>;
 export type CatalogUpdate = typeof catalogUpdates.$inferSelect;
+
+// QR Codes Table - tracks generated QR codes for items
+export const qrCodes = pgTable("qr_codes", {
+  id: serial("id").primaryKey(),
+  inventoryItemId: integer("inventory_item_id").references(() => inventoryItems.id).notNull(),
+  qrCodeData: text("qr_code_data").notNull(), // JSON string with item details
+  qrCodeHash: text("qr_code_hash").notNull().unique(), // SHA-256 hash for verification
+  generatedByUserId: integer("generated_by_user_id").references(() => users.id).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deactivatedAt: timestamp("deactivated_at"),
+});
+
+export const insertQrCodeSchema = createInsertSchema(qrCodes).omit({
+  id: true,
+  createdAt: true,
+  deactivatedAt: true,
+});
+
+// Add to exports
+export type InsertQrCode = z.infer<typeof insertQrCodeSchema>;
+export type QrCode = typeof qrCodes.$inferSelect;

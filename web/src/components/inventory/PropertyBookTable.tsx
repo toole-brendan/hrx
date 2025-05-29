@@ -343,10 +343,15 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
                 <TooltipContent>Initiate Recall</TooltipContent>
               </Tooltip>
             )}
-            <QRCodeGenerator 
-              itemName={item.name} 
-              serialNumber={item.serialNumber}
-            />
+            {tab === 'assigned' && (
+              <QRCodeGenerator 
+                itemId={item.id}
+                itemName={item.name} 
+                serialNumber={item.serialNumber}
+                category={itemCategory}
+                assignedUserId={item.assignedTo}
+              />
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 

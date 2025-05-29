@@ -36,5 +36,11 @@ type Repository interface {
 	UpdateTransfer(transfer *domain.Transfer) error
 	ListTransfers(userID uint, status *string) ([]domain.Transfer, error) // List transfers involving a user (from/to), optionally filter by status
 
+	// QR Code operations
+	CreateQRCode(qrCode *domain.QRCode) error
+	GetQRCodeByHash(hash string) (*domain.QRCode, error)
+	DeactivateQRCodesForProperty(propertyID uint) error
+	GetActiveQRCodeForProperty(propertyID uint) (*domain.QRCode, error)
+
 	// Add other data access methods as required
 }

@@ -450,16 +450,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         <FileText className="h-4 w-4" />
         <span className="text-xs uppercase tracking-wider">Export Report</span>
       </Button>
-      <QRCodeGenerator 
-        itemName={state.activeTab === 'assigned' ? "My Property" : "Signed Out Items"} 
-        serialNumber={`PROPERTY-BOOK-${state.activeTab.toUpperCase()}`}
-        onGenerate={(qrValue) => {
-          toast({
-            title: "QR Code Generated",
-            description: `Ready to scan ${state.activeTab === 'assigned' ? 'your' : 'signed out'} items`
-          });
-        }}
-      />
     </div>
   );
 

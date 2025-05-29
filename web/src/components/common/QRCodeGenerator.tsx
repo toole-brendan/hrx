@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Printer, AlertTriangle } from "lucide-react";
+import { QrCode, Printer, AlertTriangle, Loader2 } from "lucide-react";
+import { generateQRCodeData } from "@/services/qrCodeService";
+import QRCode from 'qrcode';
 
 interface QRCodeGeneratorProps {
+  itemId: string;
   itemName: string;
   serialNumber: string;
+  category: string;
+  assignedUserId?: string;
   onGenerate?: (qrValue: string) => void;
 }
 
@@ -17,61 +22,154 @@ interface QRCodeGeneratorProps {
  * Component for generating QR codes for equipment items
  */
 const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ 
+  itemId,
   itemName, 
   serialNumber,
+  category,
+  assignedUserId,
   onGenerate 
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [additionalInfo, setAdditionalInfo] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  // This would normally use a real QR code generation library
-  const generateQRCode = () => {
-    // Mock QR code generation - in a real app, we would use a library like qrcode.react
-    const qrValue = JSON.stringify({
-      type: "military_equipment",
-      name: itemName,
-      serialNumber: serialNumber,
-      additionalInfo: additionalInfo || undefined,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Mock SVG for QR code visualization
-    const mockQrSvg = `
-      <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="200" fill="white" />
-        <g fill="#1C2541">
-          ${Array.from({ length: 8 }).map((_, i) => 
-            Array.from({ length: 8 }).map((_, j) => 
-              Math.random() > 0.5 ? 
-              `<rect x="${i*20}" y="${j*20}" width="20" height="20" />` : ''
-            ).join('')
-          ).join('')}
-        </g>
-        <rect x="60" y="60" width="80" height="80" fill="white" />
-        <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="#6941C6">${serialNumber}</text>
-      </svg>
-    `;
-
-    setQrImage(`data:image/svg+xml;base64,${btoa(mockQrSvg)}`);
-    
-    if (onGenerate) {
-      onGenerate(qrValue);
+  const generateQRCode = async () => {
+    setIsGenerating(true);
+    try {
+      // Generate QR code data with hash
+      const qrData = await generateQRCodeData({
+        id: itemId,
+        serialNumber,
+        name: itemName,
+        category,
+        assignedUserId,
+      });
+      
+      // Add any additional info
+      const qrDataWithInfo = {
+        ...qrData,
+        additionalInfo: additionalInfo || undefined,
+      };
+      
+      const qrValue = JSON.stringify(qrDataWithInfo);
+      
+      // Generate QR code image using qrcode library
+      const qrImageUrl = await QRCode.toDataURL(qrValue, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#1C2541',
+          light: '#FFFFFF',
+        },
+      });
+      
+      setQrImage(qrImageUrl);
+      
+      if (onGenerate) {
+        onGenerate(qrValue);
+      }
+      
+      toast({
+        title: "QR Code Generated",
+        description: `QR code for ${itemName} has been generated successfully.`
+      });
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate QR code. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
     }
-    
-    toast({
-      title: "QR Code Generated",
-      description: `QR code for ${itemName} has been generated successfully.`
-    });
   };
 
   const handlePrint = () => {
+    if (!qrImage) return;
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Print Failed",
+        description: "Unable to open print window. Please check your popup settings.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create print content
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Print QR Code - ${itemName}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 20px;
+            }
+            .qr-container {
+              border: 2px solid #000;
+              padding: 20px;
+              display: inline-block;
+              margin: 20px auto;
+            }
+            .item-name { 
+              font-size: 18px; 
+              font-weight: bold; 
+              margin-bottom: 10px;
+            }
+            .serial-number { 
+              font-family: monospace; 
+              font-size: 14px; 
+              margin-bottom: 20px;
+            }
+            .qr-code img { 
+              max-width: 300px; 
+              height: auto; 
+            }
+            .instructions {
+              margin-top: 20px;
+              font-size: 12px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="item-name">${itemName}</div>
+            <div class="serial-number">SN: ${serialNumber}</div>
+            <div class="qr-code">
+              <img src="${qrImage}" alt="QR Code" />
+            </div>
+            <div class="instructions">
+              Affix this QR code to the equipment item.<br>
+              Only the current property holder can generate new codes.
+            </div>
+          </div>
+          <script>
+            window.onload = function() { 
+              window.print(); 
+              window.onafterprint = function() { window.close(); }
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    
     toast({
       title: "Printing QR Code",
       description: "The QR code has been sent to the printer."
     });
-    // In a real app, we would handle printing logic here
   };
 
   const handleReport = () => {
@@ -81,6 +179,14 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
     });
     setIsDialogOpen(false);
   };
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (isDialogOpen) {
+      setQrImage(null);
+      setAdditionalInfo("");
+    }
+  }, [isDialogOpen]);
 
   return (
     <>
@@ -129,7 +235,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
               <Label htmlFor="notes" className="text-xs uppercase tracking-wider text-muted-foreground text-right">Notes</Label>
               <Input 
                 id="notes" 
-                placeholder="Additional information" 
+                placeholder="Additional information (optional)" 
                 value={additionalInfo}
                 onChange={(e) => setAdditionalInfo(e.target.value)}
                 className="col-span-3 rounded-none bg-white dark:bg-black border-gray-200 dark:border-white/10" 
@@ -141,15 +247,23 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
             <div className="flex justify-center py-4">
               <Button 
                 onClick={generateQRCode}
+                disabled={isGenerating}
                 className="bg-primary hover:bg-primary-600 text-white rounded-none h-9 px-4 text-xs uppercase tracking-wider"
               >
-                Generate QR Code
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate QR Code'
+                )}
               </Button>
             </div>
           ) : (
             <Card className="rounded-none border border-gray-100 dark:border-white/5 bg-white dark:bg-black">
               <CardContent className="p-4 flex flex-col items-center">
-                <img src={qrImage} alt="QR Code for equipment" className="mb-4 max-w-[200px]" />
+                <img src={qrImage} alt="QR Code for equipment" className="mb-4 max-w-[300px]" />
                 <div className="text-xs text-center mb-4">
                   <p className="font-medium uppercase tracking-wider">{itemName}</p>
                   <p className="font-mono text-muted-foreground">{serialNumber}</p>
