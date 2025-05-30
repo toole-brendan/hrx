@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-enum ScanState: Equatable {
+public enum ScanState: Equatable {
     case scanning
     case loading
     case success(Property)
@@ -9,7 +9,7 @@ enum ScanState: Equatable {
     case error(String)
 
     // Implement == manually since Property might not be Equatable yet
-    static func == (lhs: ScanState, rhs: ScanState) -> Bool {
+    public static func == (lhs: ScanState, rhs: ScanState) -> Bool {
         switch (lhs, rhs) {
         case (.scanning, .scanning): return true
         case (.loading, .loading): return true
@@ -22,7 +22,7 @@ enum ScanState: Equatable {
 }
 
 @MainActor // Ensure UI updates happen on the main thread
-class ScanViewModel: ObservableObject {
+public class ScanViewModel: ObservableObject {
     @Published var scanState: ScanState = .scanning
     @Published var scannedCodeFromCamera: String? = nil // To receive code from CameraView
     
@@ -53,7 +53,7 @@ class ScanViewModel: ObservableObject {
         }
     }
 
-    init(apiService: APIServiceProtocol = APIService()) { // Inject or use default
+    public init(apiService: APIServiceProtocol = APIService()) { // Inject or use default
         self.apiService = apiService
         // Observe changes from the CameraView's binding
         $scannedCodeFromCamera

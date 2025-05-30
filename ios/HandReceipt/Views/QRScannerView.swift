@@ -396,10 +396,6 @@ class QRScannerViewModel: NSObject, ObservableObject {
         }
         
         // Start capture session on background queue
-        startCaptureSession()
-    }
-    
-    nonisolated private func startCaptureSession() {
         let session = captureSession
         DispatchQueue.global(qos: .userInitiated).async {
             session.startRunning()

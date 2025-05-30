@@ -9,7 +9,7 @@ enum HTTPMethod: String {
 }
 
 // Define a protocol for the API service to allow for mocking/testing
-protocol APIServiceProtocol {
+public protocol APIServiceProtocol {
     // Function to fetch reference items. Throws errors for network/parsing issues.
     func fetchReferenceItems() async throws -> [ReferenceItem]
 
@@ -82,17 +82,17 @@ func debugPrint(_ items: Any..., function: String = #function, file: String = #f
 }
 
 // Concrete implementation of the API service
-class APIService: APIServiceProtocol {
+public class APIService: APIServiceProtocol {
 
     // Replace with your actual backend base URL
     private let baseURL: URL
-    var baseURLString: String { baseURL.absoluteString } // Conform to protocol
+    public var baseURLString: String { baseURL.absoluteString } // Conform to protocol
 
     // Use URLSession.shared by default, which handles cookies automatically via HTTPCookieStorage
     private let urlSession: URLSession
 
     // Allow injecting a custom URLSession (e.g., for testing or specific configurations)
-    init(urlSession: URLSession = .shared, baseURLString: String = "https://api.handreceipt.com") {
+    public init(urlSession: URLSession = .shared, baseURLString: String = "https://api.handreceipt.com") {
         debugPrint("Initializing APIService with baseURL: \(baseURLString)")
         
         if let url = URL(string: baseURLString) {
@@ -317,7 +317,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Login function implementation
-    func login(credentials: LoginCredentials) async throws -> LoginResponse {
+    public func login(credentials: LoginCredentials) async throws -> LoginResponse {
         debugPrint("Attempting to login user: \(credentials.username)")
         let endpoint = baseURL.appendingPathComponent("/api/auth/login")
         var request = URLRequest(url: endpoint)
@@ -351,7 +351,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Register function implementation
-    func register(credentials: RegisterCredentials) async throws -> LoginResponse {
+    public func register(credentials: RegisterCredentials) async throws -> LoginResponse {
         debugPrint("Attempting to register user: \(credentials.username)")
         let endpoint = baseURL.appendingPathComponent("/api/auth/register")
         var request = URLRequest(url: endpoint)
@@ -393,7 +393,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Logout function implementation
-    func logout() async throws {
+    public func logout() async throws {
         debugPrint("Attempting to logout")
         let endpoint = baseURL.appendingPathComponent("/api/auth/logout")
         var request = URLRequest(url: endpoint)
@@ -412,7 +412,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Check session function implementation
-    func checkSession() async throws -> LoginResponse {
+    public func checkSession() async throws -> LoginResponse {
         debugPrint("Checking current session status")
         let endpoint = baseURL.appendingPathComponent("/api/auth/me")
         var request = URLRequest(url: endpoint)
@@ -426,7 +426,7 @@ class APIService: APIServiceProtocol {
         return response.toLoginResponse()
     }
 
-    func fetchReferenceItems() async throws -> [ReferenceItem] {
+    public func fetchReferenceItems() async throws -> [ReferenceItem] {
         debugPrint("Fetching all reference items")
         let endpoint = baseURL.appendingPathComponent("/api/reference/models")
         var request = URLRequest(url: endpoint)
@@ -439,7 +439,7 @@ class APIService: APIServiceProtocol {
         return response.models
     }
 
-    func fetchPropertyBySerialNumber(serialNumber: String) async throws -> Property {
+    public func fetchPropertyBySerialNumber(serialNumber: String) async throws -> Property {
         debugPrint("Fetching property with serial number: \(serialNumber)")
         guard let encodedSerialNumber = serialNumber.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
             debugPrint("ERROR: Failed to percent encode serial number: \(serialNumber)")
@@ -455,7 +455,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Function to fetch a specific reference item by ID
-    func fetchReferenceItemById(itemId: String) async throws -> ReferenceItem {
+    public func fetchReferenceItemById(itemId: String) async throws -> ReferenceItem {
         debugPrint("Fetching reference item with ID: \(itemId)")
         guard let encodedItemId = itemId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
             debugPrint("ERROR: Failed to percent encode item ID: \(itemId)")
@@ -466,12 +466,12 @@ class APIService: APIServiceProtocol {
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
         let item = try await performRequest(request: request) as ReferenceItem
-        debugPrint("Successfully fetched reference item: \(item.itemName)")
+        debugPrint("Successfully fetched reference item: \(item.name)")
         return item
     }
 
     // Function to fetch current user's properties
-    func getMyProperties() async throws -> [Property] {
+    public func getMyProperties() async throws -> [Property] {
         debugPrint("Fetching current user's properties")
         
         // First get the current user ID
@@ -490,7 +490,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Function to fetch specific property by ID
-    func getPropertyById(propertyId: Int) async throws -> Property {
+    public func getPropertyById(propertyId: Int) async throws -> Property {
         debugPrint("Fetching property with ID: \(propertyId)")
         // No need to encode Int for path component
         let endpoint = baseURL.appendingPathComponent("/api/inventory/property/\(propertyId)")
@@ -503,7 +503,7 @@ class APIService: APIServiceProtocol {
     }
 
     // Create Property Implementation
-    func createProperty(_ input: CreatePropertyInput) async throws -> Property {
+    public func createProperty(_ input: CreatePropertyInput) async throws -> Property {
         debugPrint("Creating property with serial number: \(input.serialNumber)")
         let endpoint = baseURL.appendingPathComponent("/api/inventory")
         var request = URLRequest(url: endpoint)
@@ -526,7 +526,7 @@ class APIService: APIServiceProtocol {
     // --- Transfer Functions (Async/Await) ---
     
     // Fetch Transfers (with optional filters)
-    func fetchTransfers(status: String? = nil, direction: String? = nil) async throws -> [Transfer] {
+    public func fetchTransfers(status: String? = nil, direction: String? = nil) async throws -> [Transfer] {
         // Removed fallback logic, directly call the correct implementation
         debugPrint("Fetching transfers with status: \(status ?? "any")")
 
@@ -569,7 +569,7 @@ class APIService: APIServiceProtocol {
     }
     
     // Request Transfer
-    func requestTransfer(propertyId: Int, targetUserId: Int) async throws -> Transfer {
+    public func requestTransfer(propertyId: Int, targetUserId: Int) async throws -> Transfer {
         debugPrint("Requesting transfer of property \(propertyId) to user \(targetUserId)")
         // Correct endpoint for creating a transfer is /transfers
         let endpoint = baseURL.appendingPathComponent("/api/transfers")
@@ -592,7 +592,7 @@ class APIService: APIServiceProtocol {
     }
     
     // Approve Transfer
-    func approveTransfer(transferId: Int) async throws -> Transfer {
+    public func approveTransfer(transferId: Int) async throws -> Transfer {
         debugPrint("Approving transfer: \(transferId)")
         // Correct endpoint for approving is /transfers/{id}/status
         guard let url = URL(string: "\(baseURLString)/api/transfers/\(transferId)/status") else {
@@ -620,7 +620,7 @@ class APIService: APIServiceProtocol {
     }
     
     // Reject Transfer
-    func rejectTransfer(transferId: Int) async throws -> Transfer {
+    public func rejectTransfer(transferId: Int) async throws -> Transfer {
         debugPrint("Rejecting transfer: \(transferId)")
         // Correct endpoint for rejecting is /transfers/{id}/status
         guard let url = URL(string: "\(baseURLString)/api/transfers/\(transferId)/status") else {
@@ -650,7 +650,7 @@ class APIService: APIServiceProtocol {
     // --- User Functions (Async/Await) ---
 
     // Fetch Users (with optional search)
-    func fetchUsers(searchQuery: String? = nil) async throws -> [UserSummary] {
+    public func fetchUsers(searchQuery: String? = nil) async throws -> [UserSummary] {
         debugPrint("Fetching users with search query: \(searchQuery ?? "none")")
         var components = URLComponents(url: baseURL.appendingPathComponent("/api/auth/users"), resolvingAgainstBaseURL: false)!
         if let query = searchQuery, !query.isEmpty {
@@ -681,7 +681,7 @@ class APIService: APIServiceProtocol {
 
     // --- Photo Functions ---
     
-    func uploadPropertyPhoto(propertyId: Int, imageData: Data) async throws -> PhotoUploadResponse {
+    public func uploadPropertyPhoto(propertyId: Int, imageData: Data) async throws -> PhotoUploadResponse {
         debugPrint("Uploading photo for property: \(propertyId)")
         let endpoint = baseURL.appendingPathComponent("/api/photos/property/\(propertyId)")
         var request = URLRequest(url: endpoint)
@@ -708,7 +708,7 @@ class APIService: APIServiceProtocol {
         return response
     }
     
-    func verifyPhotoHash(propertyId: Int, filename: String, expectedHash: String) async throws -> PhotoVerificationResponse {
+    public func verifyPhotoHash(propertyId: Int, filename: String, expectedHash: String) async throws -> PhotoVerificationResponse {
         debugPrint("Verifying photo hash for property: \(propertyId)")
         
         var components = URLComponents(url: baseURL.appendingPathComponent("/api/photos/property/\(propertyId)/verify"), resolvingAgainstBaseURL: false)!
@@ -729,7 +729,7 @@ class APIService: APIServiceProtocol {
         return response
     }
     
-    func deletePropertyPhoto(propertyId: Int, filename: String) async throws {
+    public func deletePropertyPhoto(propertyId: Int, filename: String) async throws {
         debugPrint("Deleting photo for property: \(propertyId)")
         let endpoint = baseURL.appendingPathComponent("/api/photos/property/\(propertyId)")
         var request = URLRequest(url: endpoint)
@@ -745,7 +745,7 @@ class APIService: APIServiceProtocol {
     
     // --- NSN/LIN Lookup Functions ---
     
-    func lookupNSN(nsn: String) async throws -> NSNLookupResponse {
+    public func lookupNSN(nsn: String) async throws -> NSNLookupResponse {
         debugPrint("Looking up NSN: \(nsn)")
         guard let encodedNSN = nsn.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
             throw APIError.invalidURL
@@ -760,7 +760,7 @@ class APIService: APIServiceProtocol {
         return response
     }
     
-    func lookupLIN(lin: String) async throws -> NSNLookupResponse {
+    public func lookupLIN(lin: String) async throws -> NSNLookupResponse {
         debugPrint("Looking up LIN: \(lin)")
         guard let encodedLIN = lin.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
             throw APIError.invalidURL
@@ -775,7 +775,7 @@ class APIService: APIServiceProtocol {
         return response
     }
     
-    func searchNSN(query: String, limit: Int? = 20) async throws -> NSNSearchResponse {
+    public func searchNSN(query: String, limit: Int? = 20) async throws -> NSNSearchResponse {
         debugPrint("Searching NSN with query: \(query)")
         
         var components = URLComponents(url: baseURL.appendingPathComponent("/api/nsn/search"), resolvingAgainstBaseURL: false)!
@@ -799,7 +799,7 @@ class APIService: APIServiceProtocol {
     }
 
     // --- QR Transfer Functions ---
-    func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse {
+    public func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse {
         debugPrint("Initiating QR transfer with data: \(qrData)")
         let endpoint = baseURL.appendingPathComponent("/api/transfers/qr-initiate")
         var request = URLRequest(url: endpoint)
@@ -841,17 +841,17 @@ struct UpdateTransferStatusBody: Encodable {
 }
 
 // Add response models for photo operations
-struct PhotoUploadResponse: Codable {
-    let message: String
-    let photoUrl: String
-    let hash: String
-    let filename: String
+public struct PhotoUploadResponse: Codable {
+    public let message: String
+    public let photoUrl: String
+    public let hash: String
+    public let filename: String
 }
 
-struct PhotoVerificationResponse: Codable {
-    let valid: Bool
-    let expectedHash: String
-    let actualHash: String
+public struct PhotoVerificationResponse: Codable {
+    public let valid: Bool
+    public let expectedHash: String
+    public let actualHash: String
 }
 
 struct DeletePhotoRequest: Codable {
@@ -859,22 +859,22 @@ struct DeletePhotoRequest: Codable {
 }
 
 // Add NSN response models
-struct NSNLookupResponse: Codable {
-    let success: Bool
-    let data: NSNDetails
+public struct NSNLookupResponse: Codable {
+    public let success: Bool
+    public let data: NSNDetails
 }
 
-struct NSNDetails: Codable {
-    let nsn: String
-    let lin: String?
-    let nomenclature: String
-    let fsc: String?
-    let niin: String?
-    let unitPrice: Double?
-    let manufacturer: String?
-    let partNumber: String?
-    let specifications: [String: String]?
-    let lastUpdated: Date
+public struct NSNDetails: Codable {
+    public let nsn: String
+    public let lin: String?
+    public let nomenclature: String
+    public let fsc: String?
+    public let niin: String?
+    public let unitPrice: Double?
+    public let manufacturer: String?
+    public let partNumber: String?
+    public let specifications: [String: String]?
+    public let lastUpdated: Date
     
     // Map server field names
     private enum CodingKeys: String, CodingKey {
@@ -886,27 +886,27 @@ struct NSNDetails: Codable {
         case lastUpdated = "last_updated"
     }
     
-    var itemName: String {
+    public var itemName: String {
         return nomenclature
     }
 }
 
-struct NSNSearchResponse: Codable {
-    let success: Bool
-    let data: [NSNDetails]
-    let count: Int
+public struct NSNSearchResponse: Codable {
+    public let success: Bool
+    public let data: [NSNDetails]
+    public let count: Int
 }
 
 // Add CreatePropertyInput model
-struct CreatePropertyInput: Codable {
-    let name: String
-    let serialNumber: String
-    let description: String?
-    let currentStatus: String
-    let propertyModelId: Int?
-    let assignedToUserId: Int?
-    let nsn: String?
-    let lin: String?
+public struct CreatePropertyInput: Codable {
+    public let name: String
+    public let serialNumber: String
+    public let description: String?
+    public let currentStatus: String
+    public let propertyModelId: Int?
+    public let assignedToUserId: Int?
+    public let nsn: String?
+    public let lin: String?
     
     private enum CodingKeys: String, CodingKey {
         case name
@@ -920,6 +920,6 @@ struct CreatePropertyInput: Codable {
     }
 }
 
-struct QRTransferResponse: Decodable {
-    let transferId: Int
+public struct QRTransferResponse: Decodable {
+    public let transferId: Int
 } 

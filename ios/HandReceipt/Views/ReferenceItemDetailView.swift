@@ -29,7 +29,7 @@ struct ReferenceItemDetailView: View {
         }
         .padding()
         // Use the item name from the ViewModel for the navigation title if available
-        .navigationTitle(viewModel.item?.itemName ?? "Item Detail")
+        .navigationTitle(viewModel.item?.name ?? "Item Detail")
         .navigationBarTitleDisplayMode(.inline) // Keep title concise
         // Optional: Add a refresh button if pull-to-refresh isn't suitable
         // .toolbar {
@@ -62,13 +62,13 @@ struct ItemDetailContent: View {
                     .cornerRadius(8)
                     .padding(.bottom, 8)
 
-                Text(item.itemName).font(.title2).fontWeight(.semibold)
+                Text(item.name).font(.title2).fontWeight(.semibold)
                 Text("NSN: \(item.nsn)").font(.subheadline).foregroundColor(.secondary)
                 Text("Manufacturer: \(item.manufacturer ?? "N/A")").font(.subheadline).foregroundColor(.secondary)
                 Text("Description:").font(.headline).padding(.top, 8)
                 Text(item.description ?? "No description available.").font(.body)
                 
-                // Add more fields as necessary (e.g., Category, LIN, Part Number)
+                // Add more fields as necessary (e.g., Category, Unit of Issue, Unit Price)
                  Divider().padding(.vertical, 8)
                  
                  HStack {
@@ -76,15 +76,21 @@ struct ItemDetailContent: View {
                      Spacer()
                      Text(item.category ?? "N/A")
                  }
-                 HStack {
-                     Text("LIN:").fontWeight(.medium)
-                     Spacer()
-                     Text(item.lin ?? "N/A")
+                 
+                 if let unitOfIssue = item.unitOfIssue {
+                     HStack {
+                         Text("Unit of Issue:").fontWeight(.medium)
+                         Spacer()
+                         Text(unitOfIssue)
+                     }
                  }
-                 HStack {
-                     Text("Part Number:").fontWeight(.medium)
-                     Spacer()
-                     Text(item.partNumber ?? "N/A")
+                 
+                 if let unitPrice = item.unitPrice {
+                     HStack {
+                         Text("Unit Price:").fontWeight(.medium)
+                         Spacer()
+                         Text("$\(unitPrice, specifier: "%.2f")")
+                     }
                  }
             }
         }

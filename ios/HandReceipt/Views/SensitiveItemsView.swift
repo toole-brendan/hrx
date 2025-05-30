@@ -85,7 +85,7 @@ struct SensitiveItemsView: View {
                 Spacer()
             } else if filteredItems.isEmpty {
                 Spacer()
-                EmptyStateView()
+                SensitiveItemsEmptyStateView()
                 Spacer()
             } else {
                 List {
@@ -196,6 +196,24 @@ struct SensitiveItemRow: View {
     }
 }
 
+// MARK: - DetailRow Component
+struct DetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+            Spacer()
+            Text(value)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+        }
+    }
+}
+
 struct VerificationSheet: View {
     let item: Property
     let onComplete: () -> Void
@@ -288,7 +306,7 @@ struct VerificationSheet: View {
     }
 }
 
-struct EmptyStateView: View {
+struct SensitiveItemsEmptyStateView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "shield.slash")

@@ -1,50 +1,64 @@
 import Foundation
 
-// Define the structure for an item in the Reference Database
-// Adjust properties based on your actual backend API response
-struct ReferenceItem: Identifiable, Decodable {
-    let id: UUID // Assuming UUID, adjust if it's Int or String
-    let nsn: String // National Stock Number
-    let itemName: String
-    let description: String?
-    let manufacturer: String?
-    let imageUrl: String? // Optional URL for an image
-    let category: String? // Added missing property
-    let lin: String? // Added missing property
-    let partNumber: String? // Added missing property
-
-    // Add other relevant fields like unit price, etc.
-
-    // Example mapping if your API uses different key names (e.g., "item_name")
-    /*
-    enum CodingKeys: String, CodingKey {
+// Represents an item from the reference database (models endpoint)
+public struct ReferenceItem: Identifiable, Decodable {
+    public let id: Int
+    public let name: String
+    public let nsn: String
+    public let description: String?
+    public let manufacturer: String?
+    public let category: String?
+    public let unitOfIssue: String?
+    public let unitPrice: Double?
+    public let imageUrl: String?
+    public let specifications: [String: String]?
+    
+    // Add custom decoder if API field names differ
+    private enum CodingKeys: String, CodingKey {
         case id
+        case name
         case nsn
-        case itemName = "item_name"
         case description
         case manufacturer
-        case imageUrl = "image_url"
         case category
-        case lin
-        case partNumber = "part_number"
+        case unitOfIssue = "unit_of_issue"
+        case unitPrice = "unit_price"
+        case imageUrl = "image_url"
+        case specifications
     }
-    */
 
     // Provide a default empty item for previews or placeholders
     static let example = ReferenceItem(
-        id: UUID(),
+        id: 0,
+        name: "Example Item",
         nsn: "1234-00-123-4567",
-        itemName: "Example Item",
         description: "This is a sample description for the example item.",
         manufacturer: "Example Corp",
-        imageUrl: nil,
         category: "Equipment",
-        lin: "A12345",
-        partNumber: "PART-123"
+        unitOfIssue: nil,
+        unitPrice: nil,
+        imageUrl: nil,
+        specifications: nil
     )
 }
 
-// Wrapper for the reference models endpoint response
-struct ReferenceItemsResponse: Decodable {
-    let models: [ReferenceItem]
+// Extension to provide computed properties
+extension ReferenceItem {
+    public var formattedNSN: String {
+        // Format NSN as XXXX-XX-XXX-XXXX
+        let digits = nsn.replacingOccurrences(of: "-", with: "")
+        guard digits.count == 13 else { return nsn }
+        
+        let part1 = String(digits.prefix(4))
+        let part2 = String(digits.dropFirst(4).prefix(2))
+        let part3 = String(digits.dropFirst(6).prefix(3))
+        let part4 = String(digits.dropFirst(9))
+        
+        return "\(part1)-\(part2)-\(part3)-\(part4)"
+    }
+}
+
+// Wrapper for API response that contains array of reference items
+public struct ReferenceItemsResponse: Decodable {
+    public let models: [ReferenceItem]
 } 

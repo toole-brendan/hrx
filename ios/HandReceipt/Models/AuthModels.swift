@@ -3,38 +3,43 @@ import Foundation
 // --- Authentication Models --- 
 
 // Struct for the login request body
-struct LoginCredentials: Encodable {
-    let username: String
-    let password: String // Sent plain text over HTTPS
+public struct LoginCredentials: Encodable {
+    public let username: String
+    public let password: String // Sent plain text over HTTPS
+    
+    public init(username: String, password: String) {
+        self.username = username
+        self.password = password
+    }
 }
 
 // Struct for the expected successful login response
 // Updated with JWT token support
-struct LoginResponse: Decodable {
-    let accessToken: String?
-    let refreshToken: String?
-    let expiresAt: Date?
-    let user: User
+public struct LoginResponse: Decodable {
+    public let accessToken: String?
+    public let refreshToken: String?
+    public let expiresAt: Date?
+    public let user: User
     
     // For backward compatibility with existing code
-    var token: String {
+    public var token: String {
         return accessToken ?? ""
     }
     
-    struct User: Decodable {
-        let id: Int
-        let uuid: String?
-        let username: String
-        let email: String?
-        let firstName: String?
-        let lastName: String?
-        let rank: String
-        let unit: String?
-        let role: String?
-        let status: String?
+    public struct User: Decodable {
+        public let id: Int
+        public let uuid: String?
+        public let username: String
+        public let email: String?
+        public let firstName: String?
+        public let lastName: String?
+        public let rank: String
+        public let unit: String?
+        public let role: String?
+        public let status: String?
         
         // Computed property for backward compatibility
-        var name: String {
+        public var name: String {
             if let firstName = firstName, let lastName = lastName {
                 return "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
             } else if let firstName = firstName {
@@ -60,7 +65,7 @@ struct LoginResponse: Decodable {
         }
         
         // Explicit memberwise initializer
-        init(id: Int, uuid: String? = nil, username: String, email: String? = nil, 
+        public init(id: Int, uuid: String? = nil, username: String, email: String? = nil, 
              firstName: String? = nil, lastName: String? = nil, rank: String, 
              unit: String? = nil, role: String? = nil, status: String? = nil) {
             self.id = id
@@ -76,7 +81,7 @@ struct LoginResponse: Decodable {
         }
         
         // Custom initializer for decoding
-        init(from decoder: Decoder) throws {
+        public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             
             id = try container.decode(Int.self, forKey: .id)
@@ -100,7 +105,7 @@ struct LoginResponse: Decodable {
     }
     
     // Explicit memberwise initializer
-    init(accessToken: String? = nil, refreshToken: String? = nil, expiresAt: Date? = nil, user: User) {
+    public init(accessToken: String? = nil, refreshToken: String? = nil, expiresAt: Date? = nil, user: User) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.expiresAt = expiresAt
@@ -108,7 +113,7 @@ struct LoginResponse: Decodable {
     }
     
     // Custom initializer for decoding
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken)
@@ -118,25 +123,25 @@ struct LoginResponse: Decodable {
     }
     
     // For compatibility with existing code
-    var userId: Int { user.id }
-    var message: String { "Login successful" }
+    public var userId: Int { user.id }
+    public var message: String { "Login successful" }
 }
 
 // New struct for /auth/me endpoint response which doesn't include token
-struct UserResponse: Decodable {
-    let user: LoginResponse.User
+public struct UserResponse: Decodable {
+    public let user: LoginResponse.User
     
     enum CodingKeys: String, CodingKey {
         case user
     }
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         user = try container.decode(LoginResponse.User.self, forKey: .user)
     }
     
     // Helper to convert to LoginResponse for code compatibility
-    func toLoginResponse(token: String = "") -> LoginResponse {
+    public func toLoginResponse(token: String = "") -> LoginResponse {
         return LoginResponse(accessToken: token, user: user)
     }
 }
@@ -144,15 +149,28 @@ struct UserResponse: Decodable {
 // Define other auth-related structs (e.g., for registration) if needed 
 
 // Add registration request model
-struct RegisterCredentials: Encodable {
-    let username: String
-    let email: String
-    let password: String
-    let first_name: String
-    let last_name: String
-    let rank: String
-    let unit: String
-    let role: String = "user"
+public struct RegisterCredentials: Encodable {
+    public let username: String
+    public let email: String
+    public let password: String
+    public let first_name: String
+    public let last_name: String
+    public let rank: String
+    public let unit: String
+    public let role: String
+    
+    public init(username: String, email: String, password: String, 
+                first_name: String, last_name: String, rank: String, 
+                unit: String, role: String = "user") {
+        self.username = username
+        self.email = email
+        self.password = password
+        self.first_name = first_name
+        self.last_name = last_name
+        self.rank = rank
+        self.unit = unit
+        self.role = role
+    }
     
     enum CodingKeys: String, CodingKey {
         case username, email, password

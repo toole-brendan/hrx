@@ -4,14 +4,21 @@ import Foundation
 
 // --- Transfer Models --- 
 
-struct UserSummary: Codable, Identifiable, Hashable {
-    let id: Int
-    let username: String
-    let rank: String?
-    let lastName: String?
+public struct UserSummary: Codable, Identifiable, Hashable {
+    public let id: Int
+    public let username: String
+    public let rank: String?
+    public let lastName: String?
+    
+    public init(id: Int, username: String, rank: String? = nil, lastName: String? = nil) {
+        self.id = id
+        self.username = username
+        self.rank = rank
+        self.lastName = lastName
+    }
 }
 
-enum TransferStatus: String, Codable, CaseIterable {
+public enum TransferStatus: String, Codable, CaseIterable {
     case PENDING
     case APPROVED
     case REJECTED
@@ -21,26 +28,30 @@ enum TransferStatus: String, Codable, CaseIterable {
 }
 
 // Response wrapper for the transfers endpoint
-struct TransfersResponse: Codable {
-    let transfers: [Transfer]
+public struct TransfersResponse: Codable {
+    public let transfers: [Transfer]
+    
+    public init(transfers: [Transfer]) {
+        self.transfers = transfers
+    }
 }
 
-struct Transfer: Codable, Identifiable, Hashable {
-    let id: Int
-    let propertyId: Int
-    let propertySerialNumber: String // Included for display
-    let propertyName: String? // Included for display
-    let fromUserId: Int
-    let toUserId: Int
-    let status: TransferStatus
-    let requestTimestamp: Date
-    let approvalTimestamp: Date?
-    let fromUser: UserSummary? // Optionally populated
-    let toUser: UserSummary? // Optionally populated
-    let notes: String? // Added notes property
+public struct Transfer: Codable, Identifiable, Hashable {
+    public let id: Int
+    public let propertyId: Int
+    public let propertySerialNumber: String // Included for display
+    public let propertyName: String? // Included for display
+    public let fromUserId: Int
+    public let toUserId: Int
+    public let status: TransferStatus
+    public let requestTimestamp: Date
+    public let approvalTimestamp: Date?
+    public let fromUser: UserSummary? // Optionally populated
+    public let toUser: UserSummary? // Optionally populated
+    public let notes: String? // Added notes property
     
     // Add memberwise initializer for direct creation (e.g., in mocks)
-    init(id: Int, propertyId: Int, propertySerialNumber: String, propertyName: String?, fromUserId: Int, toUserId: Int, status: TransferStatus, requestTimestamp: Date, approvalTimestamp: Date?, fromUser: UserSummary?, toUser: UserSummary?, notes: String?) {
+    public init(id: Int, propertyId: Int, propertySerialNumber: String, propertyName: String?, fromUserId: Int, toUserId: Int, status: TransferStatus, requestTimestamp: Date, approvalTimestamp: Date?, fromUser: UserSummary?, toUser: UserSummary?, notes: String?) {
         self.id = id
         self.propertyId = propertyId
         self.propertySerialNumber = propertySerialNumber
@@ -57,7 +68,7 @@ struct Transfer: Codable, Identifiable, Hashable {
     
     // Custom initializer if backend status string needs mapping
     // Or handle in JSONDecoder configuration
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         propertyId = try container.decode(Int.self, forKey: .propertyId)
@@ -81,9 +92,14 @@ struct Transfer: Codable, Identifiable, Hashable {
 }
 
 // Model for initiating a transfer request
-struct TransferRequest: Codable {
-    let propertyId: Int
-    let targetUserId: Int
+public struct TransferRequest: Codable {
+    public let propertyId: Int
+    public let targetUserId: Int
+    
+    public init(propertyId: Int, targetUserId: Int) {
+        self.propertyId = propertyId
+        self.targetUserId = targetUserId
+    }
 }
 
 // Model for approving/rejecting a transfer (if needed)

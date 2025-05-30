@@ -42,7 +42,7 @@ class ReferenceItemDetailViewModel: ObservableObject {
         Task {
             do {
                 let fetchedItem = try await apiService.fetchReferenceItemById(itemId: itemId)
-                print("ReferenceItemDetailViewModel: Successfully fetched \(fetchedItem.itemName)")
+                print("ReferenceItemDetailViewModel: Successfully fetched \(fetchedItem.name)")
                 DispatchQueue.main.async {
                     self.item = fetchedItem
                     self.loadingState = .success(fetchedItem) // Update state with fetched item

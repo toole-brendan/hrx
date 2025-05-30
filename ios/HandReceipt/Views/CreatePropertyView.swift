@@ -62,7 +62,9 @@ struct CreatePropertyView: View {
                     }
                     .padding()
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .if(#available(iOS 16.0, *)) { view in
+                    view.scrollDismissesKeyboard(.interactively)
+                }
             }
             .navigationTitle("Create Property")
             .navigationBarTitleDisplayMode(.inline)
@@ -172,7 +174,7 @@ struct CreatePropertyView: View {
     
     private var photoSection: some View {
         VStack(spacing: 12) {
-            SectionHeader(title: "Property Photo", isOptional: true)
+            FormSectionHeader(title: "Property Photo", isOptional: true)
             
             if let image = selectedImage {
                 ZStack(alignment: .topTrailing) {
@@ -212,7 +214,7 @@ struct CreatePropertyView: View {
     
     private var serialNumberSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Serial Number", isRequired: true)
+            FormSectionHeader(title: "Serial Number", isRequired: true)
             
             HStack(spacing: 12) {
                 TextField("Enter serial number", text: $viewModel.serialNumber)
@@ -257,7 +259,7 @@ struct CreatePropertyView: View {
     
     private var nsnLookupSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "NSN/LIN Lookup", isOptional: true)
+            FormSectionHeader(title: "NSN/LIN Lookup", isOptional: true)
             
             HStack(spacing: 12) {
                 TextField("NSN or LIN (optional)", text: $viewModel.nsnLinInput)
@@ -309,7 +311,7 @@ struct CreatePropertyView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Item Name
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "Item Name", isRequired: true)
+                FormSectionHeader(title: "Item Name", isRequired: true)
                 
                 TextField("Enter item name", text: $viewModel.itemName)
                     .textFieldStyle(CustomTextFieldStyle())
@@ -330,7 +332,7 @@ struct CreatePropertyView: View {
             
             // Description
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "Description", isOptional: true)
+                FormSectionHeader(title: "Description", isOptional: true)
                 
                 IndustrialTextEditor(
                     text: $viewModel.description,
@@ -347,7 +349,7 @@ struct CreatePropertyView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Status Selection
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "Status", isRequired: true)
+                FormSectionHeader(title: "Status", isRequired: true)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -367,7 +369,7 @@ struct CreatePropertyView: View {
             
             // Assign To
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "Assign To", isOptional: true)
+                FormSectionHeader(title: "Assign To", isOptional: true)
                 
                 if let assignedUser = viewModel.selectedUser {
                     AssignedUserCard(user: assignedUser) {
@@ -423,16 +425,18 @@ struct CreatePropertyView: View {
             }
             
             Button(action: createProperty) {
-                if viewModel.isCreating {
-                    HStack {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        Text("Creating...")
-                    }
-                } else {
-                    HStack {
-                        Image(systemName: viewModel.isOffline ? "square.and.arrow.down" : "plus.circle.fill")
-                        Text(viewModel.isOffline ? "Save Locally" : "Create Property")
+                Group {
+                    if viewModel.isCreating {
+                        HStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            Text("Creating...")
+                        }
+                    } else {
+                        HStack {
+                            Image(systemName: viewModel.isOffline ? "square.and.arrow.down" : "plus.circle.fill")
+                            Text(viewModel.isOffline ? "Save Locally" : "Create Property")
+                        }
                     }
                 }
                 .font(AppFonts.bodyBold)
@@ -516,7 +520,7 @@ struct ProgressIndicator: View {
     }
 }
 
-struct SectionHeader: View {
+struct FormSectionHeader: View {
     let title: String
     var isRequired: Bool = false
     var isOptional: Bool = false
@@ -864,5 +868,17 @@ extension CreatePropertyViewModel {
     var isOffline: Bool {
         // TODO: Implement actual offline detection
         false
+    }
+}
+
+// MARK: - View Extensions
+extension View {
+    /// Conditionally applies a modifier
+    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
     }
 } 

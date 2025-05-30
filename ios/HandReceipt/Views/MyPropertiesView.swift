@@ -142,7 +142,7 @@ struct MyPropertiesView: View {
                 let filteredProperties = filterAndSort(properties)
                 
                 if filteredProperties.isEmpty {
-                    EmptyStateView(
+                    PropertiesEmptyStateView(
                         filter: selectedFilter,
                         searchText: searchText,
                         onRefresh: viewModel.loadProperties
@@ -426,7 +426,7 @@ struct LoadingView: View {
     }
 }
 
-struct EmptyStateView: View {
+struct PropertiesEmptyStateView: View {
     let filter: MyPropertiesView.PropertyFilter
     let searchText: String
     let onRefresh: () -> Void
@@ -497,7 +497,7 @@ struct SyncStatusFooter: View {
     let lastSync: Date
     let isSyncing: Bool
     
-    private var timeFormatter: RelativeDateTimeFormatter = {
+    private static let timeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter
@@ -516,7 +516,7 @@ struct SyncStatusFooter: View {
                 Image(systemName: "checkmark.circle")
                     .foregroundColor(AppColors.success)
                     .font(.caption)
-                Text("Last synced \(lastSync, formatter: timeFormatter)")
+                Text("Last synced \(lastSync, formatter: Self.timeFormatter)")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
             }

@@ -4,24 +4,24 @@ import Foundation
 // likely fetched by serial number or ID.
 // Adjust properties based on your actual backend API response for the
 // /api/inventory/serial/:serialNumber endpoint.
-struct Property: Identifiable, Decodable {
-    let id: Int // Changed from UUID
-    let serialNumber: String
-    let nsn: String // National Stock Number (links to ReferenceItem potentially)
-    let lin: String? // Line Item Number
-    let itemName: String // Often derived from Reference DB via NSN
-    let description: String?
-    let manufacturer: String?
-    let imageUrl: String?
-    let status: String // e.g., "Operational", "Maintenance", "Assigned"
-    let currentStatus: String? // Additional status field for operational state
-    let assignedToUserId: Int? // Or String/UUID depending on user ID type
-    let location: String?
-    let lastInventoryDate: Date? // Requires Date decoding strategy
-    let acquisitionDate: Date?
-    let notes: String?
-    let maintenanceDueDate: Date?
-    let isSensitiveItem: Bool?
+public struct Property: Identifiable, Decodable {
+    public let id: Int // Changed from UUID
+    public let serialNumber: String
+    public let nsn: String // National Stock Number (links to ReferenceItem potentially)
+    public let lin: String? // Line Item Number
+    public let itemName: String // Often derived from Reference DB via NSN
+    public let description: String?
+    public let manufacturer: String?
+    public let imageUrl: String?
+    public let status: String // e.g., "Operational", "Maintenance", "Assigned"
+    public let currentStatus: String? // Additional status field for operational state
+    public let assignedToUserId: Int? // Or String/UUID depending on user ID type
+    public let location: String?
+    public let lastInventoryDate: Date? // Requires Date decoding strategy
+    public let acquisitionDate: Date?
+    public let notes: String?
+    public let maintenanceDueDate: Date?
+    public let isSensitiveItem: Bool?
 
     // Add other relevant fields: condition, value, calibration_due_date, etc.
 
