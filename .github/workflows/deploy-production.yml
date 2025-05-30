@@ -282,17 +282,18 @@ jobs:
         run: |
           echo "🚀 Deploying backend to Lightsail..."
           
-          # Create deployment package
-          tar czf deployment.tar.gz \
+          # Create deployment package in /tmp to avoid circular reference
+          tar czf /tmp/deployment.tar.gz \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='web/node_modules' \
             --exclude='web/dist' \
             --exclude='.github' \
+            --exclude='*.tar.gz' \
             .
           
           # Upload deployment package
-          scp -i ~/.ssh/lightsail_key deployment.tar.gz ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
+          scp -i ~/.ssh/lightsail_key /tmp/deployment.tar.gz ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
           
           # Deploy on remote server
           ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'EOF'
