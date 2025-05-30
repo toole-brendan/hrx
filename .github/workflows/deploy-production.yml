@@ -351,7 +351,34 @@ jobs:
             fi
             
             # Stop existing services
+            echo "🛑 Stopping existing services..."
+            
+            # Stop any existing docker-compose services in current directory
             sudo docker-compose down || true
+            
+            # Check if services are running from parent directory
+            if [ -f "../docker-compose.yml" ]; then
+              echo "Found docker-compose.yml in parent directory, stopping services there..."
+              (cd .. && sudo docker-compose down) || true
+            fi
+            
+            # Also check for services running from other directories
+            echo "Checking for containers using required ports..."
+            sudo docker ps --format "table {{.Names}}\t{{.Ports}}" | grep -E "(5432|9000|9001|9497|3322)" || true
+            
+            # Stop containers by name pattern if they exist
+            echo "Stopping HandReceipt related containers..."
+            sudo docker ps -a | grep handreceipt | awk '{print $1}' | xargs -r sudo docker stop || true
+            sudo docker ps -a | grep handreceipt | awk '{print $1}' | xargs -r sudo docker rm || true
+            
+            # Clean up any orphaned containers
+            sudo docker container prune -f || true
+            
+            # Remove the conflicting network if it exists
+            sudo docker network rm backend_handreceipt-network 2>/dev/null || true
+            sudo docker network rm handreceipt_handreceipt-network 2>/dev/null || true
+            
+            echo "✅ Cleanup complete"
             
             # Build and start services
             echo "Building services from directory: $(pwd)"
