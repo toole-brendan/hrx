@@ -1,32 +1,66 @@
 # HandReceipt Go Backend
 
-This is the Go backend for the HandReceipt application, providing API services for inventory and supply chain management with AWS QLDB integration for immutable record-keeping.
+This is the Go backend for the HandReceipt application, providing API services for military property accountability and supply chain management with ImmuDB integration for immutable record-keeping.
 
 ## Features
 
 - RESTful API for users, inventory items, transfers, and activities
-- Secure authentication with JWT
+- Secure authentication with JWT and session management
 - PostgreSQL database for storing relational data
-- AWS QLDB integration for immutable ledger records of critical operations
+- ImmuDB integration for immutable audit trail of all transactions
+- MinIO for S3-compatible document and photo storage
 - Docker and Docker Compose configuration for easy development and deployment
+- NSN (National Stock Number) lookup service integration
+
+## Architecture
+
+The backend uses a microservices architecture with the following components:
+
+- **Backend API** (Go/Gin) - Main application server on port 8080
+- **PostgreSQL** - Primary relational database for current state
+- **ImmuDB** - Immutable ledger for audit trail (replaces AWS QLDB)
+- **MinIO** - S3-compatible object storage for photos and documents
+- **Nginx** - Reverse proxy with SSL termination
 
 ## Prerequisites
 
 - Go 1.21 or later
-- PostgreSQL 14 or later
-- Docker and Docker Compose (optional, for containerized setup)
-- AWS Account with QLDB service access
-- AWS CLI configured with appropriate credentials
+- Docker and Docker Compose
+- PostgreSQL 14 or later (for local development without Docker)
 
 ## Local Development Setup
 
-### Option 1: Direct Setup
+### Option 1: Docker Setup (Recommended)
 
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/toole-brendan/handreceipt_def_functional.git
-   cd handreceipt_def_functional/server
+   git clone https://github.com/toole-brendan/handreceipt.git
+   cd handreceipt/backend
+   ```
+
+2. **Start with Docker Compose**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+   This will start:
+   - PostgreSQL database on port 5432
+   - ImmuDB on ports 3322 (gRPC) and 9497 (metrics)
+   - MinIO on ports 9000 (API) and 9001 (console)
+   - Go API server on port 8080
+   - Nginx proxy on ports 80/443
+
+   The API will be available at http://localhost:8080
+
+### Option 2: Direct Setup
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/toole-brendan/handreceipt.git
+   cd handreceipt/backend
    ```
 
 2. **Install dependencies**
@@ -35,30 +69,34 @@ This is the Go backend for the HandReceipt application, providing API services f
    go mod download
    ```
 
-3. **Create and configure the database**
+3. **Set up services**
 
-   ```bash
-   # Create a PostgreSQL database named 'handreceipt'
-   createdb handreceipt
-   ```
+   You'll need to run PostgreSQL, ImmuDB, and MinIO locally or update the config to point to external instances.
 
-4. **Configure environment variables**
+4. **Configure the application**
 
-   Create a `.env` file in the server directory with the following variables:
+   Copy `configs/config.yaml` to `configs/config.local.yaml` and update with your local settings:
 
-   ```
-   HANDRECEIPT_DATABASE_HOST=localhost
-   HANDRECEIPT_DATABASE_PORT=5432
-   HANDRECEIPT_DATABASE_USER=your_db_user
-   HANDRECEIPT_DATABASE_PASSWORD=your_db_password
-   HANDRECEIPT_DATABASE_NAME=handreceipt
-   HANDRECEIPT_SERVER_PORT=5000
-   HANDRECEIPT_AUTH_JWT_SECRET=your_jwt_secret_key
+   ```yaml
+   database:
+     host: "localhost"
+     port: 5432
+     user: "your_db_user"
+     password: "your_db_password"
+     name: "handreceipt"
    
-   # AWS credentials for QLDB
-   AWS_ACCESS_KEY_ID=your_aws_access_key
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-   AWS_REGION=your_aws_region
+   immudb:
+     host: "localhost"
+     port: 3322
+     username: "immudb"
+     password: "immudb"
+     enabled: true
+   
+   minio:
+     endpoint: "localhost:9000"
+     access_key_id: "minioadmin"
+     secret_access_key: "minioadmin"
+     enabled: true
    ```
 
 5. **Run the application**
@@ -67,92 +105,125 @@ This is the Go backend for the HandReceipt application, providing API services f
    go run cmd/server/main.go
    ```
 
-   The API should now be running at http://localhost:5000
+## Production Deployment
 
-### Option 2: Docker Setup
+The application is deployed on AWS Lightsail with the following configuration:
 
-1. **Clone the repository**
+- **Instance**: Ubuntu 20.04 LTS on Lightsail
+- **Domain**: api.handreceipt.com (with SSL via Let's Encrypt)
+- **Services**: All services run in Docker containers managed by docker-compose
 
-   ```bash
-   git clone https://github.com/toole-brendan/handreceipt_def_functional.git
-   cd handreceipt_def_functional/server
-   ```
+### Deployment URLs
 
-2. **Configure AWS credentials**
-
-   Ensure your AWS credentials are available as environment variables or in your AWS CLI configuration.
-
-3. **Start with Docker Compose**
-
-   ```bash
-   docker-compose up -d
-   ```
-
-   This will:
-   - Start a PostgreSQL database
-   - Build and start the Go API server
-   - Configure all necessary environment variables
-
-   The API should now be running at http://localhost:5000
+- **Production API**: https://api.handreceipt.com
+- **Health Check**: https://api.handreceipt.com/health
+- **Frontend**: https://handreceipt.com (S3 + CloudFront)
 
 ## API Endpoints
 
 ### Authentication
 
 - **POST /api/auth/login** - User login
-- **POST /api/auth/register** - User registration
-- **GET /api/me** - Get current authenticated user
+- **POST /api/auth/register** - User registration  
+- **POST /api/auth/logout** - User logout
+- **GET /api/auth/me** - Get current authenticated user
 
-### Inventory
+### Inventory Management
 
 - **GET /api/inventory** - Get all inventory items
 - **GET /api/inventory/:id** - Get a specific inventory item
 - **POST /api/inventory** - Create a new inventory item
-- **PATCH /api/inventory/:id/status** - Update an inventory item's status
-- **GET /api/inventory/user/:userId** - Get inventory items assigned to a specific user
-- **GET /api/inventory/history/:serialNumber** - Get the history of an inventory item from QLDB
+- **PATCH /api/inventory/:id/status** - Update inventory item status
+- **POST /api/inventory/:id/verify** - Verify inventory item
+- **POST /api/inventory/:id/qrcode** - Generate QR code for item
+- **GET /api/inventory/:id/qrcodes** - Get QR codes for item
+- **GET /api/inventory/user/:userId** - Get items by user
+- **GET /api/inventory/serial/:serialNumber** - Get item by serial number
+- **GET /api/inventory/history/:serialNumber** - Get item history from ImmuDB
 
-## Project Structure
+### Transfers
 
+- **GET /api/transfers** - Get all transfers
+- **POST /api/transfers** - Create transfer request
+- **GET /api/transfers/:id** - Get specific transfer
+- **PATCH /api/transfers/:id/status** - Update transfer status
+- **GET /api/transfers/user/:userId** - Get transfers by user
+- **POST /api/transfers/qr-initiate** - Initiate transfer via QR code
+
+### Reference Data
+
+- **GET /api/reference/types** - List property types
+- **GET /api/reference/models** - List property models
+- **GET /api/reference/models/nsn/:nsn** - Get model by NSN
+
+### NSN Integration
+
+- **GET /api/nsn/lookup/:nsn** - Look up item by NSN
+- **GET /api/nsn/search** - Search NSN database
+- **POST /api/nsn/bulk-lookup** - Bulk NSN lookup
+
+### Photos
+
+- **POST /api/photos/property/:propertyId** - Upload property photo
+- **GET /api/photos/property/:propertyId/verify** - Verify photo hash
+- **DELETE /api/photos/property/:propertyId** - Delete property photo
+
+## Environment Variables
+
+The application uses a hierarchical configuration system:
+
+1. Default values in code
+2. `configs/config.yaml` - Base configuration
+3. `configs/config.production.yaml` - Production overrides  
+4. Environment variables (highest priority)
+
+Key environment variables:
+
+```bash
+# Database
+HANDRECEIPT_DATABASE_HOST=postgres
+HANDRECEIPT_DATABASE_PORT=5432
+HANDRECEIPT_DATABASE_USER=handreceipt
+HANDRECEIPT_DATABASE_PASSWORD=your_password
+HANDRECEIPT_DATABASE_NAME=handreceipt
+
+# ImmuDB
+HANDRECEIPT_IMMUDB_HOST=immudb
+HANDRECEIPT_IMMUDB_PORT=3322
+HANDRECEIPT_IMMUDB_USERNAME=immudb
+HANDRECEIPT_IMMUDB_PASSWORD=your_password
+HANDRECEIPT_IMMUDB_ENABLED=true
+
+# MinIO
+HANDRECEIPT_MINIO_ENDPOINT=minio:9000
+HANDRECEIPT_MINIO_ACCESS_KEY_ID=your_access_key
+HANDRECEIPT_MINIO_SECRET_ACCESS_KEY=your_secret_key
+HANDRECEIPT_MINIO_ENABLED=true
+
+# JWT
+HANDRECEIPT_JWT_SECRET_KEY=your_jwt_secret
 ```
-server/
-├── cmd/
-│   └── server/          # Main entry point
-├── configs/             # Configuration files
-├── internal/
-│   ├── api/             # API handlers and middleware
-│   │   ├── handlers/    # Request handlers
-│   │   ├── middleware/  # Middleware functions
-│   │   └── routes/      # Route definitions
-│   ├── domain/          # Business domain models
-│   ├── ledger/          # AWS QLDB integration
-│   └── platform/        # Infrastructure components
-│       └── database/    # Database connection and models
-├── Dockerfile           # Docker configuration
-├── docker-compose.yml   # Docker Compose configuration
-└── go.mod               # Go module definition
+
+## Testing
+
+Run tests with:
+
+```bash
+go test ./...
 ```
 
-## Architecture Overview
+For integration tests that require services:
 
-1. **API Layer** - Handles HTTP requests using the Gin framework
-2. **Domain Layer** - Contains business logic and domain models
-3. **Platform Layer** - Handles infrastructure concerns like database access
-4. **Ledger Layer** - Interacts with AWS QLDB for immutable record-keeping
+```bash
+docker-compose -f docker-compose.test.yml up -d
+go test ./... -tags=integration
+```
 
-The application follows a clean architecture approach, separating concerns between layers.
+## Monitoring
 
-## AWS QLDB Integration
-
-The application uses AWS QLDB to store immutable records of critical operations:
-
-- Item creations
-- Transfer events
-- Status changes
-- Verification events
-- Correction events
-
-Each event is recorded with a timestamp, user information, and relevant details, creating an auditable trail of all important actions in the system.
+The application exposes metrics for Prometheus at:
+- ImmuDB metrics: http://localhost:9497/metrics
+- Application metrics: (coming soon)
 
 ## Contributing
 
@@ -164,4 +235,5 @@ Each event is recorded with a timestamp, user information, and relevant details,
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is proprietary and confidential.
+```
