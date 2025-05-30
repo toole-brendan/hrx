@@ -33,6 +33,8 @@
 		BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */; };
 		BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
+		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
+		BFA128092DEA22E700C12800 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */; };
 		BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */; };
 		BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */; };
 		BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */; };
@@ -77,8 +79,9 @@
 		BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSNSearchView.swift; sourceTree = "<group>"; };
 		BF2DF4402DE929E700E450D6 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = HandReceipt.xcdatamodel; sourceTree = "<group>"; };
-		BFA128002DEA076200C12800 /* hr_icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hr_icon.png; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
+		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = HandReceipt/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HandReceiptApp.swift; path = HandReceipt/HandReceiptApp.swift; sourceTree = "<group>"; };
 		BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStyles.swift; sourceTree = "<group>"; };
@@ -132,14 +135,6 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		BFA128012DEA076200C12800 /* Assets */ = {
-			isa = PBXGroup;
-			children = (
-				BFA128002DEA076200C12800 /* hr_icon.png */,
-			);
-			path = Assets;
-			sourceTree = "<group>";
-		};
 		BFC223CE2DAB3E1F00ACF884 /* Common */ = {
 			isa = PBXGroup;
 			children = (
@@ -154,6 +149,7 @@
 		D7EC13D32EB8262CFB36F9BF = {
 			isa = PBXGroup;
 			children = (
+				BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */,
 				BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */,
 				FDCDCC68F23010E36445F051 /* HandReceipt */,
 				F6880E8AF15CFD4D9E0CB031 /* Products */,
@@ -193,7 +189,7 @@
 		FDCDCC68F23010E36445F051 /* HandReceipt */ = {
 			isa = PBXGroup;
 			children = (
-				BFA128012DEA076200C12800 /* Assets */,
+				BFA128042DEA1E3300C12800 /* Assets.xcassets */,
 				BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */,
 				8AEE26AF958DBCB601C895CD /* ContentView.swift */,
 				D5ACDDBD58550DB16AF3B5B4 /* Info.plist */,
@@ -213,6 +209,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9BF2325F71698416116D93E8 /* Build configuration list for PBXNativeTarget "HandReceipt" */;
 			buildPhases = (
+				BFA128062DEA20FB00C12800 /* Resources */,
 				1EA78C9056E6ED307C5A9903 /* Sources */,
 			);
 			buildRules = (
@@ -249,6 +246,18 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BFA128062DEA20FB00C12800 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFA128092DEA22E700C12800 /* LaunchScreen.storyboard in Resources */,
+				BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		1EA78C9056E6ED307C5A9903 /* Sources */ = {

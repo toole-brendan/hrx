@@ -7,16 +7,14 @@ import Darwin
 
 struct ContentView: View {
     // Simple state to track authentication.
-    // In a real app, this would likely come from an ObservableObject (e.g., AuthManager)
-    // that checks stored session tokens or performs a session check API call.
-    @State private var isAuthenticated: Bool = false // Start as not authenticated
+    @State private var isAuthenticated: Bool = false
     @State private var loggedInUser: LoginResponse? = nil
-    @State private var isLoading: Bool = true // Added loading state
-    @State private var loadingError: Error? = nil // Track any errors for debugging
-    @State private var showDebugOverlay: Bool = false // Toggle for debug overlay
+    @State private var isLoading: Bool = true
+    @State private var loadingError: Error? = nil
+    @State private var showDebugOverlay: Bool = false
 
     // Inject the APIService
-    private let apiService: APIServiceProtocol // Use protocol for testability
+    private let apiService: APIServiceProtocol
 
     // Initializer to inject the service
     init(apiService: APIServiceProtocol = APIService()) {
@@ -36,9 +34,9 @@ struct ContentView: View {
             }
             #endif
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensure ZStack fills the screen
-        .background(AppColors.appBackground.ignoresSafeArea()) // Use dark theme background
-        .accentColor(AppColors.accent) // Use theme accent color
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .accentColor(AppColors.accent)
         // Detect shake gesture for debug overlay
         .onShake {
             #if DEBUG
@@ -68,58 +66,48 @@ struct ContentView: View {
                         VStack(spacing: 10) {
                             Text("Debug: Session check error")
                                 .font(AppFonts.headline)
-                                .foregroundColor(AppColors.destructive) // Use destructive color for errors
+                                .foregroundColor(AppColors.destructive)
                             
                             Text(error.localizedDescription)
                                 .font(AppFonts.caption)
-                                .foregroundColor(AppColors.destructive) // Use destructive color for errors
+                                .foregroundColor(AppColors.destructive)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
                             
-                            // Add button to retry session check
                             Button("Retry") {
                                 debugPrint("Manual retry of session check")
                                 checkSessionStatus()
                             }
-                            .buttonStyle(.primary) // Apply primary button style
+                            .buttonStyle(.primary)
                             .padding()
                             
-                            // Skip login button for debugging
                             Button("Debug: Skip to Login") {
                                 debugPrint("Debug: Manually forcing login screen")
                                 isLoading = false
                             }
-                            .buttonStyle(.primary) // Apply primary button style
+                            .buttonStyle(.primary)
                             .padding()
                         }
                         .padding()
                     }
                 }
-                .onAppear(perform: checkSessionStatus) // Check status when view appears
+                .onAppear(perform: checkSessionStatus)
             } else if !isAuthenticated {
-                LoginView {
-                     // This closure is called by LoginView on success
-                     loginResponse in
-                     debugPrint("ContentView: Login successful for user \(loginResponse.user.username)")
-                     // Update state to show the main app content
-                     // Use MainActor.run for state updates triggered from background tasks (like login)
-                     Task { @MainActor in
-                         self.loggedInUser = loginResponse
-                         self.isAuthenticated = true
-                         debugPrint("ContentView: Authentication state updated - user is now authenticated")
-                     }
+                LoginView { loginResponse in
+                    debugPrint("ContentView: Login successful for user \(loginResponse.user.username)")
+                    Task { @MainActor in
+                        self.loggedInUser = loginResponse
+                        self.isAuthenticated = true
+                        debugPrint("ContentView: Authentication state updated - user is now authenticated")
+                    }
                 }
-                // Pass the injected apiService if LoginView needs it
-                // .environmentObject(apiService) // Example if using EnvironmentObject
                 .onAppear {
                     debugPrint("LoginView appeared - user needs to authenticate")
                 }
             } else {
-                // Use TabView for the main authenticated view
                 AuthenticatedTabView(authViewModel: AuthViewModel(
                     currentUser: loggedInUser,
                     logoutCallback: {
-                        // Logout callback
                         debugPrint("ContentView: Received logout request")
                         Task { @MainActor in
                             self.isAuthenticated = false
@@ -131,8 +119,6 @@ struct ContentView: View {
                 .onAppear {
                     debugPrint("AuthenticatedTabView appeared - user is authenticated as \(loggedInUser?.user.username ?? "unknown")")
                 }
-                 // Pass API service via environment if needed by tabs
-                 // .environmentObject(APIService()) 
             }
         }
     }
