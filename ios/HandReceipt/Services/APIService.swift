@@ -250,7 +250,7 @@ class APIService: APIServiceProtocol {
                 debugPrint("Server error body: \(errorMessage ?? "nil")")
                 
                 if httpResponse.statusCode == 400 {
-                    throw APIError.badRequest(errorMessage)
+                    throw APIError.badRequest(message: errorMessage)
                 }
                 if httpResponse.statusCode == 404 {
                     throw APIError.itemNotFound
@@ -354,7 +354,7 @@ class APIService: APIServiceProtocol {
         } catch let error as APIError {
             // Re-throw with more specific message for badRequest
             if case .badRequest(let message) = error {
-                throw APIError.badRequest(message ?? "Username or email already exists")
+                throw APIError.badRequest(message: message ?? "Username or email already exists")
             }
             throw error
         }

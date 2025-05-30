@@ -64,7 +64,7 @@ jobs:
         if: steps.dns_test.outputs.dns_resolved == 'true'
         run: |
           echo "Testing SSL certificate for https://${{ env.API_DOMAIN }}..."
-          if curl -s -f --max-time 10 https://${{ env.API_DOMAIN }}/api/auth/me > /dev/null 2>&1; then
+          if curl -s -f --max-time 10 https://${{ env.API_DOMAIN }}/health > /dev/null 2>&1; then
             echo "ssl_working=true" >> $GITHUB_OUTPUT
             echo "✅ SSL is working"
           else
@@ -76,13 +76,17 @@ jobs:
         id: ip_test
         run: |
           echo "Testing direct IP connection..."
-          if curl -s -f --max-time 10 http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/api/auth/me > /dev/null 2>&1; then
+          # Try port 80 (nginx) first, then fall back to direct port 8080
+          if curl -s -f --max-time 10 http://${{ env.LIGHTSAIL_INSTANCE_IP }}/health > /dev/null 2>&1; then
             echo "ip_working=true" >> $GITHUB_OUTPUT
-            echo "✅ Direct IP connection working"
+            echo "✅ Direct IP connection working (via nginx on port 80)"
+          elif curl -s -f --max-time 10 http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/health > /dev/null 2>&1; then
+            echo "ip_working=true" >> $GITHUB_OUTPUT
+            echo "✅ Direct IP connection working (direct port 8080)"
           else
             echo "ip_working=false" >> $GITHUB_OUTPUT
-            echo "❌ Direct IP connection failed"
-            exit 1
+            echo "⚠️ Direct IP connection not available (this is normal for first deployment)"
+            # Don't exit with error - this might be the first deployment
           fi
 
       - name: Determine Best API URL
@@ -98,9 +102,11 @@ jobs:
           echo "IP_WORKING: $IP_WORKING"
           echo "FORCE_IP: $FORCE_IP"
           
+          # For first deployment or when backend is being deployed, use appropriate defaults
           if [ "$FORCE_IP" = "true" ] || [ "$DNS_RESOLVED" = "false" ]; then
-            API_URL="http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/api"
-            echo "🔗 Using direct IP: $API_URL"
+            # When using IP, go through nginx on port 80, not direct to app on 8080
+            API_URL="http://${{ env.LIGHTSAIL_INSTANCE_IP }}/api"
+            echo "🔗 Using direct IP via nginx: $API_URL"
             echo "dns_working=false" >> $GITHUB_OUTPUT
             echo "ssl_working=false" >> $GITHUB_OUTPUT
           elif [ "$DNS_RESOLVED" = "true" ] && [ "$SSL_WORKING" = "true" ]; then
@@ -109,13 +115,15 @@ jobs:
             echo "dns_working=true" >> $GITHUB_OUTPUT
             echo "ssl_working=true" >> $GITHUB_OUTPUT
           elif [ "$DNS_RESOLVED" = "true" ]; then
-            API_URL="http://${{ env.API_DOMAIN }}/api"
-            echo "🌐 Using HTTP with DNS: $API_URL"
+            # DNS works but SSL not yet - this is expected for first deployment
+            API_URL="https://${{ env.API_DOMAIN }}/api"
+            echo "🌐 Using HTTPS with DNS (SSL will be configured during deployment): $API_URL"
             echo "dns_working=true" >> $GITHUB_OUTPUT
             echo "ssl_working=false" >> $GITHUB_OUTPUT
           else
-            API_URL="http://${{ env.LIGHTSAIL_INSTANCE_IP }}:${{ env.API_PORT }}/api"
-            echo "⚡ Fallback to direct IP: $API_URL"
+            # Fallback to IP via nginx
+            API_URL="http://${{ env.LIGHTSAIL_INSTANCE_IP }}/api"
+            echo "⚡ Using direct IP via nginx (default for first deployment): $API_URL"
             echo "dns_working=false" >> $GITHUB_OUTPUT
             echo "ssl_working=false" >> $GITHUB_OUTPUT
           fi
@@ -391,14 +399,13 @@ jobs:
         if: ${{ github.event.inputs.deploy_backend == 'true' }}
         run: |
           API_URL="${{ needs.detect-api-endpoint.outputs.api_url }}"
-          echo "🔗 Testing backend at $API_URL/auth/me"
+          # Health endpoint is at /health, not under /api
+          HEALTH_URL=$(echo "$API_URL" | sed 's|/api$||')/health
+          echo "🔗 Testing backend at $HEALTH_URL"
           
           for i in {1..5}; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/auth/me")
-            if [ "$HTTP_CODE" = "401" ]; then
-              echo "✅ Backend health check passed (HTTP $HTTP_CODE - expected for unauthenticated request)"
-              break
-            elif [ "$HTTP_CODE" = "200" ]; then
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
+            if [ "$HTTP_CODE" = "200" ]; then
               echo "✅ Backend health check passed (HTTP $HTTP_CODE)"
               break
             else
