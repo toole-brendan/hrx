@@ -309,10 +309,17 @@ jobs:
             db_name: "handreceipt"
             ssl_mode: "disable"
           
+          # Auth configuration
+          auth:
+            session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+          
           jwt:
             secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
             access_expiry: "24h"
             refresh_expiry: "168h"
+            issuer: "handreceipt-go"
+            audience: "handreceipt-users"
+            refresh_enabled: true
           
           immudb:
             host: "immudb"
@@ -339,6 +346,13 @@ jobs:
           logging:
             level: "info"
             format: "json"
+            
+          security:
+            cors_allowed_origins:
+              - "https://handreceipt.com"
+              - "https://www.handreceipt.com"
+              - "capacitor://localhost"
+              - "http://localhost:8100"
           CONFIG_EOF
           echo "✅ Created config.yaml without QLDB"
           
