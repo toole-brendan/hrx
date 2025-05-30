@@ -305,13 +305,23 @@ jobs:
             
             echo "🔧 Updating configurations..."
             # Ensure configs directory exists
-            sudo mkdir -p configs
+            sudo mkdir -p backend/configs
             
             echo "🔄 Restarting services with Docker Compose..."
-            cd /opt/handreceipt/backend
-            
-            # Copy production compose file
-            sudo cp deployments/lightsail/docker-compose.production.yml docker-compose.yml
+            # Check if docker-compose file exists and locate it
+            if [ -f "backend/docker-compose.production.yml" ]; then
+              echo "✅ Found docker-compose.production.yml"
+              cd backend
+              sudo cp docker-compose.production.yml docker-compose.yml
+            elif [ -f "backend/docker-compose.yml" ]; then
+              echo "✅ Using existing docker-compose.yml"
+              cd backend
+            else
+              echo "❌ No docker-compose file found!"
+              echo "Looking for docker-compose files..."
+              find /opt/handreceipt -name "docker-compose*.yml" -type f
+              exit 1
+            fi
             
             # Stop existing services
             sudo docker-compose down || true
