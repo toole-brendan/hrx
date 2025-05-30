@@ -190,6 +190,23 @@ struct MaintenanceView: View {
 }
 
 // MARK: - Components
+struct MaintenanceDetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+            Spacer()
+            Text(value)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+        }
+    }
+}
+
 struct MaintenanceStatCard: View {
     let title: String
     let value: String
@@ -346,10 +363,10 @@ struct MaintenanceActionSheet: View {
                         .font(AppFonts.headline)
                         .foregroundColor(AppColors.primaryText)
                     
-                    DetailRow(label: "Item", value: item.itemName)
-                    DetailRow(label: "Serial Number", value: item.serialNumber)
+                    MaintenanceDetailRow(label: "Item", value: item.itemName)
+                    MaintenanceDetailRow(label: "Serial Number", value: item.serialNumber)
                     if let dueDate = item.maintenanceDueDate {
-                        DetailRow(label: "Due Date", value: DateFormatter.mediumDate.string(from: dueDate))
+                        MaintenanceDetailRow(label: "Due Date", value: DateFormatter.mediumDate.string(from: dueDate))
                     }
                 }
                 .padding()
