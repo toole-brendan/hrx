@@ -20,6 +20,7 @@ public struct AppColors {
     public static let destructive = Color(hex: "A02C2C") ?? Color.red // Darker desaturated red
     public static let warning = Color(hex: "9D6E21") ?? Color.orange // Desaturated orange/amber 
     public static let success = Color(hex: "29683F") ?? Color.green // Desaturated military green
+    public static let military = Color(hex: "4A7C59") ?? Color.green.opacity(0.8) // Military olive green
     
     // Military Category Colors (for different types of equipment)
     public static let weaponsCategory = Color(hex: "8B2E2E") ?? Color.red.opacity(0.7) // Dark red

@@ -32,6 +32,7 @@
 		BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */; };
 		BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */; };
 		BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */; };
+		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */; };
 		BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */; };
 		BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */; };
@@ -77,6 +78,7 @@
 		BF2DF4402DE929E700E450D6 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = HandReceipt.xcdatamodel; sourceTree = "<group>"; };
 		BFA128002DEA076200C12800 /* hr_icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hr_icon.png; sourceTree = "<group>"; };
+		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HandReceiptApp.swift; path = HandReceipt/HandReceiptApp.swift; sourceTree = "<group>"; };
 		BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStyles.swift; sourceTree = "<group>"; };
@@ -161,6 +163,7 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BFA128022DEA165E00C12800 /* RegisterView.swift */,
 				BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */,
 				BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */,
 				BF2DF4402DE929E700E450D6 /* QRScannerView.swift */,
@@ -267,6 +270,7 @@
 				1BFC98364CE8F60E5B9A4E34 /* MyPropertiesView.swift in Sources */,
 				E72C88303B7CA9353FCA5BC1 /* MyPropertiesViewModel.swift in Sources */,
 				C526252D6D118A5CBCF1BF28 /* Property.swift in Sources */,
+				BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */,
 				746506184194C32049616F45 /* PropertyDetailView.swift in Sources */,
 				649E4FB8CB9A2BAAA06A65F8 /* PropertyDetailViewModel.swift in Sources */,
 				FFA463230EB2A719A3E334F9 /* ReferenceDBViewModel.swift in Sources */,

@@ -20,7 +20,7 @@ struct RegisterView: View {
     ]
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
                     // Header
@@ -145,8 +145,12 @@ struct RegisterView: View {
             }
         }
         .sheet(isPresented: $showingLogin) {
-            LoginView()
+            LoginView { loginResponse in
+                // Dismiss the register view when login is successful
+                dismiss()
+            }
         }
+        .navigationViewStyle(.stack)
     }
     
     private var isFormValid: Bool {

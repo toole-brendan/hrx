@@ -23,4 +23,9 @@ public extension Color {
     }
 }
 
+// Color extension for common app colors
+public extension Color {
+    static let military = AppColors.military
+}
+
 // Additional utility extensions can be added here 

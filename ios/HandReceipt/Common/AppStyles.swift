@@ -30,6 +30,7 @@ public struct AppFonts {
     
     public static let caption = Font.system(size: captionSize, weight: .regular)
     public static let captionBold = Font.system(size: captionSize, weight: .semibold)
+    public static let caption2 = Font.system(size: smallSize, weight: .regular)
     
     public static let subheadline = Font.system(size: subheadlineSize, weight: .regular)
     public static let subheadlineBold = Font.system(size: subheadlineSize, weight: .semibold)
@@ -225,11 +226,23 @@ extension View {
         self.modifier(IndustrialSectionHeaderModifier())
     }
     
+    // Kerning compatibility - applies kerning on iOS 16+ or tracking on older versions
+    @ViewBuilder
+    public func compatibleKerning(_ value: CGFloat) -> some View {
+        if #available(iOS 16.0, *) {
+            self.kerning(value)
+        } else {
+            // On older iOS versions, we can't apply letter spacing
+            // Just return the view unchanged
+            self
+        }
+    }
+    
     // Extension for applying tracking (letter spacing)
     // For compatibility with different iOS versions
     public func tracking(_ value: CGFloat) -> some View {
-        // No letter spacing, just return the view unchanged
-        // This is backward compatible with all iOS versions
+        // For backward compatibility, just return the view unchanged
+        // Real tracking/kerning is handled by compatibleKerning
         return self
     }
 } 
