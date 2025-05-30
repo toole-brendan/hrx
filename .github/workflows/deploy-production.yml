@@ -340,6 +340,46 @@ jobs:
               
               echo "✅ All required Go files present"
               sudo cp docker-compose.production.yml docker-compose.yml
+              
+              # Check if configs directory exists and has the right files
+              echo "📋 Checking configuration files..."
+              if [ -f "configs/config.yaml" ]; then
+                echo "Found config.yaml in backend/configs/"
+                echo "Current database host in config:"
+                grep -A5 "database:" configs/config.yaml || true
+              fi
+              
+              # Ensure the config uses the correct database host for Docker
+              if [ -f "configs/config.yaml" ]; then
+                echo "Updating database host to use Docker service name..."
+                sudo sed -i 's/host: "localhost"/host: "postgres"/g' configs/config.yaml
+                sudo sed -i 's/host: localhost/host: postgres/g' configs/config.yaml
+                echo "Updated database configuration:"
+                grep -A5 "database:" configs/config.yaml || true
+              else
+                echo "⚠️ No config.yaml found, creating minimal config..."
+                sudo mkdir -p configs
+                echo '# HandReceipt Backend Configuration' | sudo tee configs/config.yaml > /dev/null
+                echo 'server:' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  port: "8080"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  host: "0.0.0.0"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  environment: "production"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '' | sudo tee -a configs/config.yaml > /dev/null
+                echo 'database:' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  host: "postgres"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  port: 5432' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  user: "handreceipt"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  password: "cvOrf7fVpmyxvnkqeKOo5g=="' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  name: "handreceipt"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  ssl_mode: "disable"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '' | sudo tee -a configs/config.yaml > /dev/null
+                echo 'jwt:' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  access_expiry: "24h"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '  refresh_expiry: "168h"' | sudo tee -a configs/config.yaml > /dev/null
+                sudo chown ubuntu:ubuntu configs/config.yaml
+                echo "✅ Created minimal config.yaml with Docker service names"
+              fi
             elif [ -f "backend/docker-compose.yml" ]; then
               echo "✅ Using existing docker-compose.yml"
               cd backend
