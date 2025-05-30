@@ -39,7 +39,7 @@ struct AuthenticatedTabView: View {
                 }
                 .tag(1)
                 .tabItem {
-                    Label("Property Book", systemImage: "book.closed.fill")
+                    Label("Property", systemImage: "book.closed.fill")
                 }
 
                 // Transfers Tab
@@ -48,7 +48,7 @@ struct AuthenticatedTabView: View {
                 }
                 .tag(2)
                 .tabItem {
-                    Label("Transfers", systemImage: "arrow.left.arrow.right.circle.fill")
+                    Label("Transfers", systemImage: "arrow.left.arrow.right")
                 }
 
                 // Scan Tab - Central action
@@ -131,15 +131,26 @@ struct AuthenticatedTabView: View {
         tabBarAppearance.configureWithOpaqueBackground()
         tabBarAppearance.backgroundColor = UIColor(AppColors.secondaryBackground)
 
-        // Configure item colors and fonts
+        // Configure item colors and fonts - use smaller caption font
         let itemAppearance = UITabBarItemAppearance()
-        let normalFont = AppFonts.uiFont(from: AppFonts.caption) ?? .systemFont(ofSize: 10)
-        let selectedFont = AppFonts.uiFont(from: AppFonts.captionBold) ?? .systemFont(ofSize: 10, weight: .medium)
+        let normalFont = UIFont.systemFont(ofSize: 10, weight: .regular)
+        let selectedFont = UIFont.systemFont(ofSize: 10, weight: .medium)
         
+        // Configure icon and title positioning for better spacing
         itemAppearance.selected.iconColor = UIColor(AppColors.accent)
-        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(AppColors.accent), .font: selectedFont]
+        itemAppearance.selected.titleTextAttributes = [
+            .foregroundColor: UIColor(AppColors.accent), 
+            .font: selectedFont
+        ]
         itemAppearance.normal.iconColor = UIColor(AppColors.secondaryText)
-        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(AppColors.secondaryText), .font: normalFont]
+        itemAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor(AppColors.secondaryText), 
+            .font: normalFont
+        ]
+        
+        // Adjust title position to reduce crowding
+        itemAppearance.selected.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: -2)
+        itemAppearance.normal.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: -2)
 
         tabBarAppearance.stackedLayoutAppearance = itemAppearance
         tabBarAppearance.inlineLayoutAppearance = itemAppearance

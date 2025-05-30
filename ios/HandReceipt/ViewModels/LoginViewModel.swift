@@ -136,6 +136,29 @@ class LoginViewModel: ObservableObject {
     
     // --- Debug/Testing methods ---
     
+    /// Performs login programmatically (for dev login)
+    func performLogin() async throws {
+        loginState = .loading
+        debugPrint("LoginViewModel: Performing programmatic login")
+        
+        let credentials = LoginCredentials(
+            username: username.trimmingCharacters(in: .whitespaces),
+            password: password
+        )
+        
+        debugPrint("LoginViewModel: Attempting login for user: \(credentials.username)")
+        
+        do {
+            let response = try await apiService.login(credentials: credentials)
+            debugPrint("LoginViewModel: Login Successful: User \(response.user.username) (ID: \(response.userId))")
+            self.loginState = .success(response)
+        } catch {
+            debugPrint("LoginViewModel: Login failed: \(error)")
+            self.loginState = .failed(error.localizedDescription)
+            throw error
+        }
+    }
+    
     #if DEBUG
     /// Simulates a successful login (for debugging/testing)
     func simulateLoginSuccess() {

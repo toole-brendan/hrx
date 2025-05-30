@@ -92,7 +92,7 @@ class APIService: APIServiceProtocol {
     private let urlSession: URLSession
 
     // Allow injecting a custom URLSession (e.g., for testing or specific configurations)
-    init(urlSession: URLSession = .shared, baseURLString: String = "https://api.handreceipt.com/api") {
+    init(urlSession: URLSession = .shared, baseURLString: String = "https://api.handreceipt.com") {
         debugPrint("Initializing APIService with baseURL: \(baseURLString)")
         
         if let url = URL(string: baseURLString) {
@@ -100,7 +100,7 @@ class APIService: APIServiceProtocol {
         } else {
             debugPrint("ERROR: Invalid base URL provided: \(baseURLString). Using fallback URL.")
             // Fallback URL in case of invalid string
-            self.baseURL = URL(string: "https://api.handreceipt.com/api")!
+            self.baseURL = URL(string: "https://api.handreceipt.com")!
         }
         
         self.urlSession = urlSession
@@ -311,7 +311,7 @@ class APIService: APIServiceProtocol {
     // Login function implementation
     func login(credentials: LoginCredentials) async throws -> LoginResponse {
         debugPrint("Attempting to login user: \(credentials.username)")
-        let endpoint = baseURL.appendingPathComponent("/auth/login")
+        let endpoint = baseURL.appendingPathComponent("/api/auth/login")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -333,7 +333,7 @@ class APIService: APIServiceProtocol {
     // Register function implementation
     func register(credentials: RegisterCredentials) async throws -> LoginResponse {
         debugPrint("Attempting to register user: \(credentials.username)")
-        let endpoint = baseURL.appendingPathComponent("/auth/register")
+        let endpoint = baseURL.appendingPathComponent("/api/auth/register")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -363,7 +363,7 @@ class APIService: APIServiceProtocol {
     // Logout function implementation
     func logout() async throws {
         debugPrint("Attempting to logout")
-        let endpoint = baseURL.appendingPathComponent("/auth/logout")
+        let endpoint = baseURL.appendingPathComponent("/api/auth/logout")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         // No body is typically needed for logout, the session cookie identifies the user
@@ -378,7 +378,7 @@ class APIService: APIServiceProtocol {
     // Check session function implementation
     func checkSession() async throws -> LoginResponse {
         debugPrint("Checking current session status")
-        let endpoint = baseURL.appendingPathComponent("/auth/me") // Changed from /users/me
+        let endpoint = baseURL.appendingPathComponent("/api/auth/me")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -392,7 +392,7 @@ class APIService: APIServiceProtocol {
 
     func fetchReferenceItems() async throws -> [ReferenceItem] {
         debugPrint("Fetching all reference items")
-        let endpoint = baseURL.appendingPathComponent("/reference/models") // Changed from /reference-db/items
+        let endpoint = baseURL.appendingPathComponent("/api/reference/models")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -409,7 +409,7 @@ class APIService: APIServiceProtocol {
             debugPrint("ERROR: Failed to percent encode serial number: \(serialNumber)")
             throw APIError.invalidURL
         }
-        let endpoint = baseURL.appendingPathComponent("/inventory/property/serial/\(encodedSerialNumber)") // Changed from /inventory/serial/
+        let endpoint = baseURL.appendingPathComponent("/api/inventory/property/serial/\(encodedSerialNumber)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -425,7 +425,7 @@ class APIService: APIServiceProtocol {
             debugPrint("ERROR: Failed to percent encode item ID: \(itemId)")
             throw APIError.invalidURL
         }
-        let endpoint = baseURL.appendingPathComponent("/reference/models/\(encodedItemId)") // Changed from /reference-db/items/
+        let endpoint = baseURL.appendingPathComponent("/api/reference/models/\(encodedItemId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -442,7 +442,7 @@ class APIService: APIServiceProtocol {
         let userResponse = try await checkSession()
         let userId = userResponse.user.id
         
-        let endpoint = baseURL.appendingPathComponent("/inventory/user/\(userId)") // Changed from /users/me/inventory
+        let endpoint = baseURL.appendingPathComponent("/api/inventory/user/\(userId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -457,7 +457,7 @@ class APIService: APIServiceProtocol {
     func getPropertyById(propertyId: Int) async throws -> Property {
         debugPrint("Fetching property with ID: \(propertyId)")
         // No need to encode Int for path component
-        let endpoint = baseURL.appendingPathComponent("/inventory/property/\(propertyId)") // Changed from /inventory/id/
+        let endpoint = baseURL.appendingPathComponent("/api/inventory/property/\(propertyId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies handled automatically
@@ -469,7 +469,7 @@ class APIService: APIServiceProtocol {
     // Create Property Implementation
     func createProperty(_ input: CreatePropertyInput) async throws -> Property {
         debugPrint("Creating property with serial number: \(input.serialNumber)")
-        let endpoint = baseURL.appendingPathComponent("/inventory")
+        let endpoint = baseURL.appendingPathComponent("/api/inventory")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -495,7 +495,7 @@ class APIService: APIServiceProtocol {
         debugPrint("Fetching transfers with status: \(status ?? "any")")
 
         // Base endpoint is /transfers
-        let endpoint = "/transfers"
+        let endpoint = "/api/transfers"
         var components = URLComponents(url: baseURL.appendingPathComponent(endpoint), resolvingAgainstBaseURL: false)!
         var queryItems = [URLQueryItem]()
 
@@ -536,7 +536,7 @@ class APIService: APIServiceProtocol {
     func requestTransfer(propertyId: Int, targetUserId: Int) async throws -> Transfer {
         debugPrint("Requesting transfer of property \(propertyId) to user \(targetUserId)")
         // Correct endpoint for creating a transfer is /transfers
-        let endpoint = baseURL.appendingPathComponent("/transfers")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -559,7 +559,7 @@ class APIService: APIServiceProtocol {
     func approveTransfer(transferId: Int) async throws -> Transfer {
         debugPrint("Approving transfer: \(transferId)")
         // Correct endpoint for approving is /transfers/{id}/status
-        guard let url = URL(string: "\(baseURLString)/transfers/\(transferId)/status") else {
+        guard let url = URL(string: "\(baseURLString)/api/transfers/\(transferId)/status") else {
             throw APIError.invalidURL
         }
         var request = URLRequest(url: url)
@@ -587,7 +587,7 @@ class APIService: APIServiceProtocol {
     func rejectTransfer(transferId: Int) async throws -> Transfer {
         debugPrint("Rejecting transfer: \(transferId)")
         // Correct endpoint for rejecting is /transfers/{id}/status
-        guard let url = URL(string: "\(baseURLString)/transfers/\(transferId)/status") else {
+        guard let url = URL(string: "\(baseURLString)/api/transfers/\(transferId)/status") else {
             throw APIError.invalidURL
         }
         var request = URLRequest(url: url)
@@ -616,7 +616,7 @@ class APIService: APIServiceProtocol {
     // Fetch Users (with optional search)
     func fetchUsers(searchQuery: String? = nil) async throws -> [UserSummary] {
         debugPrint("Fetching users with search query: \(searchQuery ?? "none")")
-        var components = URLComponents(url: baseURL.appendingPathComponent("/auth/users"), resolvingAgainstBaseURL: false)! // Changed from /users
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/auth/users"), resolvingAgainstBaseURL: false)!
         if let query = searchQuery, !query.isEmpty {
             components.queryItems = [URLQueryItem(name: "search", value: query)]
         }
@@ -643,7 +643,7 @@ class APIService: APIServiceProtocol {
     
     func uploadPropertyPhoto(propertyId: Int, imageData: Data) async throws -> PhotoUploadResponse {
         debugPrint("Uploading photo for property: \(propertyId)")
-        let endpoint = baseURL.appendingPathComponent("/photos/property/\(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/api/photos/property/\(propertyId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         
@@ -671,7 +671,7 @@ class APIService: APIServiceProtocol {
     func verifyPhotoHash(propertyId: Int, filename: String, expectedHash: String) async throws -> PhotoVerificationResponse {
         debugPrint("Verifying photo hash for property: \(propertyId)")
         
-        var components = URLComponents(url: baseURL.appendingPathComponent("/photos/property/\(propertyId)/verify"), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/photos/property/\(propertyId)/verify"), resolvingAgainstBaseURL: false)!
         components.queryItems = [
             URLQueryItem(name: "filename", value: filename),
             URLQueryItem(name: "hash", value: expectedHash)
@@ -691,7 +691,7 @@ class APIService: APIServiceProtocol {
     
     func deletePropertyPhoto(propertyId: Int, filename: String) async throws {
         debugPrint("Deleting photo for property: \(propertyId)")
-        let endpoint = baseURL.appendingPathComponent("/photos/property/\(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/api/photos/property/\(propertyId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -711,7 +711,7 @@ class APIService: APIServiceProtocol {
             throw APIError.invalidURL
         }
         
-        let endpoint = baseURL.appendingPathComponent("/nsn/\(encodedNSN)")
+        let endpoint = baseURL.appendingPathComponent("/api/nsn/\(encodedNSN)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         
@@ -726,7 +726,7 @@ class APIService: APIServiceProtocol {
             throw APIError.invalidURL
         }
         
-        let endpoint = baseURL.appendingPathComponent("/lin/\(encodedLIN)")
+        let endpoint = baseURL.appendingPathComponent("/api/lin/\(encodedLIN)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         
@@ -738,7 +738,7 @@ class APIService: APIServiceProtocol {
     func searchNSN(query: String, limit: Int? = 20) async throws -> NSNSearchResponse {
         debugPrint("Searching NSN with query: \(query)")
         
-        var components = URLComponents(url: baseURL.appendingPathComponent("/nsn/search"), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/nsn/search"), resolvingAgainstBaseURL: false)!
         components.queryItems = [
             URLQueryItem(name: "q", value: query)
         ]
@@ -761,7 +761,7 @@ class APIService: APIServiceProtocol {
     // --- QR Transfer Functions ---
     func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse {
         debugPrint("Initiating QR transfer with data: \(qrData)")
-        let endpoint = baseURL.appendingPathComponent("/transfers/qr-initiate")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers/qr-initiate")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

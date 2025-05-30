@@ -14,7 +14,6 @@ struct DashboardView: View {
     
     // Loading states
     @State private var isLoading = true
-    @State private var isRefreshing = false
     @State private var loadingError: String?
     
     // Services
@@ -26,11 +25,6 @@ struct DashboardView: View {
     
     var body: some View {
         ScrollView {
-            // Pull to refresh
-            RefreshControl(isRefreshing: $isRefreshing) {
-                await refreshData()
-            }
-            
             VStack(spacing: 0) {
                 // Welcome Header
                 VStack(alignment: .leading, spacing: 8) {
@@ -48,7 +42,7 @@ struct DashboardView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 24)
                 
-                if isLoading && !isRefreshing {
+                if isLoading {
                     ProgressView("Loading dashboard...")
                         .padding(.vertical, 50)
                 } else if let error = loadingError {
@@ -218,6 +212,9 @@ struct DashboardView: View {
         .background(AppColors.appBackground.ignoresSafeArea())
         .navigationTitle("")
         .navigationBarHidden(true)
+        .refreshable {
+            await refreshData()
+        }
         .sheet(isPresented: $showQRScanner) {
             QRScannerView()
         }
@@ -257,9 +254,7 @@ struct DashboardView: View {
     }
     
     private func refreshData() async {
-        isRefreshing = true
         await loadData()
-        isRefreshing = false
     }
     
     // MARK: - Calculations
@@ -278,44 +273,6 @@ struct DashboardView: View {
         guard totalInventory > 0 else { return 0 }
         let nonOperational = properties.filter { $0.currentStatus == "non-operational" || $0.currentStatus == "damaged" }.count
         return Int((Double(nonOperational) / Double(totalInventory)) * 100)
-    }
-}
-
-// MARK: - RefreshControl
-struct RefreshControl: UIViewRepresentable {
-    @Binding var isRefreshing: Bool
-    let onRefresh: () async -> Void
-    
-    func makeUIView(context: Context) -> UIRefreshControl {
-        let refreshControl = UIRefreshControl()
-        refreshControl.addTarget(context.coordinator, action: #selector(Coordinator.handleRefresh), for: .valueChanged)
-        return refreshControl
-    }
-    
-    func updateUIView(_ uiView: UIRefreshControl, context: Context) {
-        if isRefreshing {
-            uiView.beginRefreshing()
-        } else {
-            uiView.endRefreshing()
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject {
-        let parent: RefreshControl
-        
-        init(_ parent: RefreshControl) {
-            self.parent = parent
-        }
-        
-        @objc func handleRefresh() {
-            Task {
-                await parent.onRefresh()
-            }
-        }
     }
 }
 

@@ -324,36 +324,42 @@ struct LoginView: View {
     
     // Perform development login bypass
     private func performDevLogin() {
-        debugPrint("🔧 DEV LOGIN ACTIVATED! Bypassing authentication...")
+        debugPrint("🔧 DEV LOGIN ACTIVATED! Using test credentials...")
         
-        // Create a mock user using the nested User type from LoginResponse
-        let mockUser = LoginResponse.User(
-            id: 999,
-            username: "dev_user",
-            name: "Developer",
-            rank: "DEV",
-            lastName: "User"
-        )
-        
-        let mockResponse = LoginResponse(
-            token: "dev-token-\(UUID().uuidString)",
-            user: mockUser
-        )
+        // Use test credentials to actually authenticate with the backend
+        viewModel.username = "michael.rodriguez"
+        viewModel.password = "password123"
         
         // Show a brief visual confirmation
         withAnimation(.easeInOut(duration: 0.3)) {
-            viewModel.loginState = .success(mockResponse)
+            viewModel.loginState = .loading
         }
         
-        // Trigger the success callback after a short delay for visual feedback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            onLoginSuccess(mockResponse)
+        // Perform actual login with test credentials
+        Task {
+            do {
+                try await viewModel.performLogin()
+                debugPrint("✅ Dev login successful via API!")
+            } catch {
+                debugPrint("❌ Dev login failed: \(error)")
+                // Fallback to local mock if API fails
+                let mockUser = LoginResponse.User(
+                    id: 999,
+                    username: "dev_user",
+                    name: "Developer",
+                    rank: "DEV",
+                    lastName: "User"
+                )
+                
+                let mockResponse = LoginResponse(
+                    token: "dev-token-\(UUID().uuidString)",
+                    user: mockUser
+                )
+                
+                viewModel.loginState = .success(mockResponse)
+                onLoginSuccess(mockResponse)
+            }
         }
-        
-        #if DEBUG
-        // In debug builds, also show an alert or some visual feedback
-        debugPrint("✅ Dev login successful! User: \(mockUser.username)")
-        #endif
     }
 }
 
