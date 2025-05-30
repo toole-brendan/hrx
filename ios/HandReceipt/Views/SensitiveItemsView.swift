@@ -160,11 +160,9 @@ struct SensitiveItemRow: View {
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
                         
-                        if let nsn = item.nsn {
-                            Label(nsn, systemImage: "tag")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                        }
+                        Label(item.nsn, systemImage: "tag")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
                     }
                 }
                 

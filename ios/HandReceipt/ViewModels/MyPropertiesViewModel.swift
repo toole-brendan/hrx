@@ -174,11 +174,14 @@ class MyPropertiesViewModel: ObservableObject {
             manufacturer: nil,
             imageUrl: nil,
             status: "Operational",
+            currentStatus: "operational",
             assignedToUserId: nil,
             location: nil,
             lastInventoryDate: nil,
             acquisitionDate: Date(),
-            notes: nil
+            notes: nil,
+            maintenanceDueDate: nil,
+            isSensitiveItem: false
         )
         
         // Queue for sync

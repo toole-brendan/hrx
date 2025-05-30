@@ -245,8 +245,8 @@ struct DashboardView: View {
             
             // Fetch transfers
             let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
-            pendingTransfers = transfers.filter { $0.status == "pending" }.count
-            recentTransfers = transfers.sorted { $0.createdAt > $1.createdAt }
+            pendingTransfers = transfers.filter { $0.status == .PENDING }.count
+            recentTransfers = transfers.sorted { $0.requestTimestamp > $1.requestTimestamp }
             
             isLoading = false
         } catch {
@@ -359,14 +359,14 @@ extension ActivityRow {
         let subtitle: String
         
         switch transfer.status {
-        case "pending":
+        case .PENDING:
             title = "Transfer Requested"
-        case "approved":
+        case .APPROVED:
             title = "Transfer Completed"
-        case "rejected":
+        case .REJECTED:
             title = "Transfer Rejected"
         default:
-            title = "Transfer \(transfer.status.capitalized)"
+            title = "Transfer \(transfer.status.rawValue.capitalized)"
         }
         
         if let property = property {
@@ -379,7 +379,7 @@ extension ActivityRow {
             type: .transfer,
             title: title,
             subtitle: subtitle,
-            time: RelativeDateFormatter.shared.string(from: transfer.createdAt)
+            time: RelativeDateFormatter.shared.string(from: transfer.requestTimestamp)
         )
     }
 }

@@ -21,7 +21,7 @@ struct ReferenceItemDetailView: View {
             case .success(let item):
                 ItemDetailContent(item: item)
             case .error(let message):
-                 ErrorView(message: message) {
+                 ErrorStateView(message: message) {
                      // Provide a retry action
                     viewModel.fetchDetails()
                  }
@@ -88,38 +88,6 @@ struct ItemDetailContent: View {
                  }
             }
         }
-    }
-}
-
-// Reusable Error View Component
-struct ErrorView: View {
-    let message: String
-    let retryAction: () -> Void
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            Image(systemName: "exclamationmark.triangle.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 60, height: 60)
-                .foregroundColor(.red)
-            Text("Error Loading Data")
-                .font(.title2)
-                .fontWeight(.semibold)
-            Text(message)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            Button("Retry") {
-                retryAction()
-            }
-            .buttonStyle(.borderedProminent)
-            .padding(.top)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 }
 
