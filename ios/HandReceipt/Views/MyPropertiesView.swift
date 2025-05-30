@@ -42,26 +42,9 @@ struct MyPropertiesView: View {
             AppColors.appBackground.ignoresSafeArea()
             
             content
-                .navigationTitle("Property Book")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        HStack(spacing: 16) {
-                            // Sort button
-                            Button(action: { showingSortOptions = true }) {
-                                Image(systemName: "arrow.up.arrow.down")
-                                    .foregroundColor(AppColors.accent)
-                            }
-                            
-                            // Add button
-                            Button(action: { showingCreateProperty = true }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(AppColors.accent)
-                                    .font(.title3)
-                            }
-                        }
-                    }
-                }
+                .navigationTitle("")
+                .navigationBarHidden(true)
+                .ignoresSafeArea(.container, edges: .top)
                 .sheet(isPresented: $showingCreateProperty) {
                     CreatePropertyView()
                         .onDisappear {
@@ -84,6 +67,9 @@ struct MyPropertiesView: View {
     @ViewBuilder
     private var content: some View {
         VStack(spacing: 0) {
+            // Custom header section like Dashboard
+            headerSection
+            
             // Offline indicator
             if viewModel.isOffline {
                 OfflineIndicator()
@@ -166,6 +152,44 @@ struct MyPropertiesView: View {
                 SyncStatusFooter(lastSync: lastSync, isSyncing: viewModel.isSyncing)
             }
         }
+    }
+    
+    // MARK: - Header Section
+    
+    private var headerSection: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("PROPERTY BOOK")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                    .tracking(1.2)
+                
+                Text("Manage Your Equipment")
+                    .font(AppFonts.largeTitle)
+                    .foregroundColor(AppColors.primaryText)
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 16) {
+                // Sort button
+                Button(action: { showingSortOptions = true }) {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .foregroundColor(AppColors.accent)
+                        .font(.title3)
+                }
+                
+                // Add button
+                Button(action: { showingCreateProperty = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(AppColors.accent)
+                        .font(.title2)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+        .padding(.top, 75) // Match Dashboard's status bar clearance
     }
     
     // Filter and sort logic
@@ -422,7 +446,7 @@ struct LoadingView: View {
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.secondaryText)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 50)
     }
 }
 
@@ -433,6 +457,8 @@ struct PropertiesEmptyStateView: View {
     
     var body: some View {
         VStack(spacing: 24) {
+            Spacer()
+            
             Image(systemName: emptyStateIcon)
                 .font(.system(size: 64))
                 .foregroundColor(AppColors.secondaryText)
@@ -451,8 +477,10 @@ struct PropertiesEmptyStateView: View {
             
             Button("Refresh", action: onRefresh)
                 .buttonStyle(.primary)
+            
+            Spacer()
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
     
