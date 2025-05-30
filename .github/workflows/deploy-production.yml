@@ -303,6 +303,11 @@ jobs:
             cd /opt/handreceipt
             sudo tar xzf /tmp/deployment.tar.gz --strip-components=1
             
+            echo "📂 Current directory structure:"
+            ls -la
+            echo "📂 Backend directory structure:"
+            ls -la backend/ || echo "Backend directory not found"
+            
             echo "🔧 Updating configurations..."
             # Ensure configs directory exists
             sudo mkdir -p backend/configs
@@ -312,6 +317,19 @@ jobs:
             if [ -f "backend/docker-compose.production.yml" ]; then
               echo "✅ Found docker-compose.production.yml"
               cd backend
+              
+              echo "📂 Files in backend directory:"
+              ls -la
+              
+              # Check if Go files exist in current directory
+              if [ ! -f "go.mod" ] || [ ! -f "go.sum" ]; then
+                echo "❌ Go module files not found in backend directory"
+                echo "Looking for Go files..."
+                find /opt/handreceipt -name "go.mod" -type f
+                find /opt/handreceipt -name "go.sum" -type f
+                exit 1
+              fi
+              
               sudo cp docker-compose.production.yml docker-compose.yml
             elif [ -f "backend/docker-compose.yml" ]; then
               echo "✅ Using existing docker-compose.yml"
@@ -327,7 +345,13 @@ jobs:
             sudo docker-compose down || true
             
             # Build and start services
+            echo "Building services from directory: $(pwd)"
+            echo "Docker build context contents:"
+            ls -la
+            
             sudo docker-compose build --no-cache app worker
+            
+            echo "Starting services..."
             sudo docker-compose up -d
             
             echo "⏳ Waiting for services to start..."
