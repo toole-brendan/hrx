@@ -65,7 +65,7 @@ struct ReferenceDatabaseBrowserView: View {
                         } else {
                             ForEach(viewModel.referenceItems) { item in
                                 NavigationLink {
-                                     ReferenceItemDetailView(itemId: item.id.uuidString)
+                                     ReferenceItemDetailView(itemId: String(item.id))
                                 } label: {
                                      ReferenceItemRow(item: item)
                                 }
@@ -149,7 +149,7 @@ struct ReferenceItemRow: View {
              }
 
             VStack(alignment: .leading) {
-                Text(item.itemName)
+                Text(item.name)
                     .font(AppFonts.bodyBold) // Use bold body font
                     .foregroundColor(AppColors.primaryText)
                 Text("NSN: \(item.nsn)")

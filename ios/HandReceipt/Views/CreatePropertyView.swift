@@ -33,37 +33,67 @@ struct CreatePropertyView: View {
             ZStack {
                 AppColors.appBackground.ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Progress indicator
-                        ProgressIndicator(currentStep: currentStep, totalSteps: 3)
-                            .padding(.horizontal)
-                        
-                        // Photo Section
-                        photoSection
-                        
-                        // Form Fields
-                        VStack(spacing: 20) {
-                            // Serial Number Section
-                            serialNumberSection
+                if #available(iOS 16.0, *) {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Progress indicator
+                            ProgressIndicator(currentStep: currentStep, totalSteps: 3)
+                                .padding(.horizontal)
                             
-                            // NSN/LIN Lookup Section
-                            nsnLookupSection
+                            // Photo Section
+                            photoSection
                             
-                            // Item Details Section
-                            itemDetailsSection
+                            // Form Fields
+                            VStack(spacing: 20) {
+                                // Serial Number Section
+                                serialNumberSection
+                                
+                                // NSN/LIN Lookup Section
+                                nsnLookupSection
+                                
+                                // Item Details Section
+                                itemDetailsSection
+                                
+                                // Status and Assignment Section
+                                statusAssignmentSection
+                            }
                             
-                            // Status and Assignment Section
-                            statusAssignmentSection
+                            // Action Buttons
+                            actionButtons
                         }
-                        
-                        // Action Buttons
-                        actionButtons
+                        .padding()
                     }
-                    .padding()
-                }
-                .if(#available(iOS 16.0, *)) { view in
-                    view.scrollDismissesKeyboard(.interactively)
+                    .scrollDismissesKeyboard(.interactively)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Progress indicator
+                            ProgressIndicator(currentStep: currentStep, totalSteps: 3)
+                                .padding(.horizontal)
+                            
+                            // Photo Section
+                            photoSection
+                            
+                            // Form Fields
+                            VStack(spacing: 20) {
+                                // Serial Number Section
+                                serialNumberSection
+                                
+                                // NSN/LIN Lookup Section
+                                nsnLookupSection
+                                
+                                // Item Details Section
+                                itemDetailsSection
+                                
+                                // Status and Assignment Section
+                                statusAssignmentSection
+                            }
+                            
+                            // Action Buttons
+                            actionButtons
+                        }
+                        .padding()
+                    }
                 }
             }
             .navigationTitle("Create Property")
@@ -868,17 +898,5 @@ extension CreatePropertyViewModel {
     var isOffline: Bool {
         // TODO: Implement actual offline detection
         false
-    }
-}
-
-// MARK: - View Extensions
-extension View {
-    /// Conditionally applies a modifier
-    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
     }
 } 
