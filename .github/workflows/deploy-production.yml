@@ -322,14 +322,23 @@ jobs:
               ls -la
               
               # Check if Go files exist in current directory
-              if [ ! -f "go.mod" ] || [ ! -f "go.sum" ]; then
-                echo "❌ Go module files not found in backend directory"
-                echo "Looking for Go files..."
-                find /opt/handreceipt -name "go.mod" -type f
-                find /opt/handreceipt -name "go.sum" -type f
+              if [ ! -f "go.mod" ]; then
+                echo "❌ go.mod not found in backend directory"
                 exit 1
               fi
               
+              if [ ! -f "go.sum" ]; then
+                echo "⚠️ go.sum not found in backend directory, checking parent directory..."
+                if [ -f "../go.sum" ]; then
+                  echo "✅ Found go.sum in parent directory, copying..."
+                  sudo cp ../go.sum .
+                else
+                  echo "❌ go.sum not found anywhere!"
+                  exit 1
+                fi
+              fi
+              
+              echo "✅ All required Go files present"
               sudo cp docker-compose.production.yml docker-compose.yml
             elif [ -f "backend/docker-compose.yml" ]; then
               echo "✅ Using existing docker-compose.yml"
