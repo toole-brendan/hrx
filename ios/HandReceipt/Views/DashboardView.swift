@@ -77,7 +77,7 @@ struct DashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
-        .padding(.top, 45) // Increased padding to clear status bar without overlapping
+        .padding(.top, 75) // Set to 75pt for optimal status bar clearance
     }
     
     private var loadingSection: some View {
