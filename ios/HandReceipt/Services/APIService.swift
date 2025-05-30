@@ -92,7 +92,7 @@ class APIService: APIServiceProtocol {
     private let urlSession: URLSession
 
     // Allow injecting a custom URLSession (e.g., for testing or specific configurations)
-    init(urlSession: URLSession = .shared, baseURLString: String = "http://44.193.254.155:8080/api") {
+    init(urlSession: URLSession = .shared, baseURLString: String = "https://api.handreceipt.com/api") {
         debugPrint("Initializing APIService with baseURL: \(baseURLString)")
         
         if let url = URL(string: baseURLString) {
@@ -100,7 +100,7 @@ class APIService: APIServiceProtocol {
         } else {
             debugPrint("ERROR: Invalid base URL provided: \(baseURLString). Using fallback URL.")
             // Fallback URL in case of invalid string
-            self.baseURL = URL(string: "http://44.193.254.155:8080/api")!
+            self.baseURL = URL(string: "https://api.handreceipt.com/api")!
         }
         
         self.urlSession = urlSession

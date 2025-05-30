@@ -31,7 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 // Import API_BASE_URL from a shared location or define it here
-const API_BASE_URL = 'https://your-lightsail-instance.amazonaws.com'; // Replace with your actual URL
+const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),

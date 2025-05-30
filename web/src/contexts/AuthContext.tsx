@@ -17,7 +17,7 @@ interface AuthContextType {
 const IS_DEVELOPMENT = false; // Change to false for production
 
 // API Base URL - Replace with your actual Lightsail instance URL
-const API_BASE_URL = 'https://your-lightsail-instance.amazonaws.com'; // Replace with your actual URL
+const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
 
 // Mock user for development
 const DEV_USER: User = {

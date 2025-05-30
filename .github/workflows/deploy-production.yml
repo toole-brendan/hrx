@@ -294,35 +294,59 @@ jobs:
             cd /opt/handreceipt
             sudo tar xzf /tmp/deployment.tar.gz --strip-components=1
             
-            echo "🔧 Building backend..."
-            sudo chown -R ubuntu:ubuntu /opt/handreceipt
-            cd /opt/handreceipt/backend
-            sudo go build -o main ./cmd/api
+            echo "🔧 Updating configurations..."
+            # Ensure configs directory exists
+            sudo mkdir -p configs
             
-            echo "🔄 Restarting services..."
-            cd /opt/handreceipt/backend/deployments/lightsail
+            echo "🔄 Restarting services with Docker Compose..."
+            cd /opt/handreceipt/backend
+            
+            # Copy production compose file
+            sudo cp deployments/lightsail/docker-compose.production.yml docker-compose.yml
+            
+            # Stop existing services
             sudo docker-compose down || true
+            
+            # Build and start services
+            sudo docker-compose build --no-cache app worker
             sudo docker-compose up -d
             
             echo "⏳ Waiting for services to start..."
             sleep 30
             
+            # Check health endpoint
+            if curl -s -f http://localhost:8080/health > /dev/null 2>&1; then
+              echo "✅ Backend is healthy"
+            else
+              echo "❌ Backend health check failed"
+              sudo docker-compose logs app
+              exit 1
+            fi
+            
             echo "✅ Backend deployment complete"
           EOF
 
       - name: Setup SSL Certificate
-        if: ${{ needs.detect-api-endpoint.outputs.dns_working == 'true' && needs.detect-api-endpoint.outputs.ssl_working == 'false' && !inputs.skip_ssl_setup }}
+        if: ${{ needs.detect-api-endpoint.outputs.dns_working == 'true' && needs.detect-api-endpoint.outputs.ssl_working == 'false' && !github.event.inputs.skip_ssl_setup }}
         run: |
           echo "🔒 Setting up SSL certificate..."
           ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'EOF'
             set -e
             
-            echo "Installing certbot..."
-            sudo apt update
-            sudo apt install -y certbot python3-certbot-nginx
+            # Check if certbot is installed
+            if ! command -v certbot &> /dev/null; then
+              echo "Installing certbot..."
+              sudo apt update
+              sudo apt install -y certbot python3-certbot-nginx
+            fi
             
-            echo "Generating SSL certificate for ${{ env.API_DOMAIN }}..."
-            sudo certbot --nginx -d ${{ env.API_DOMAIN }} --non-interactive --agree-tos --email ${{ secrets.ADMIN_EMAIL }} --redirect
+            # Check if certificate already exists
+            if sudo test -f "/etc/letsencrypt/live/${{ env.API_DOMAIN }}/fullchain.pem"; then
+              echo "Certificate already exists for ${{ env.API_DOMAIN }}"
+            else
+              echo "Generating SSL certificate for ${{ env.API_DOMAIN }}..."
+              sudo certbot --nginx -d ${{ env.API_DOMAIN }} --non-interactive --agree-tos --email noreply@handreceipt.com --redirect
+            fi
             
             echo "Setting up auto-renewal..."
             sudo systemctl enable certbot.timer
@@ -343,7 +367,7 @@ jobs:
           sleep 60
 
       - name: Test Frontend Health
-        if: ${{ inputs.deploy_frontend }}
+        if: ${{ github.event.inputs.deploy_frontend == 'true' }}
         run: |
           echo "🌐 Testing frontend at https://${{ env.FRONTEND_DOMAIN }}"
           
@@ -364,7 +388,7 @@ jobs:
           done
 
       - name: Test Backend Health
-        if: ${{ inputs.deploy_backend }}
+        if: ${{ github.event.inputs.deploy_backend == 'true' }}
         run: |
           API_URL="${{ needs.detect-api-endpoint.outputs.api_url }}"
           echo "🔗 Testing backend at $API_URL/auth/me"
@@ -389,13 +413,17 @@ jobs:
           done
 
       - name: Test Frontend-Backend Integration
-        if: ${{ inputs.deploy_frontend && inputs.deploy_backend }}
+        if: ${{ github.event.inputs.deploy_frontend == 'true' && github.event.inputs.deploy_backend == 'true' }}
         run: |
           echo "🔄 Testing frontend-backend integration..."
           
           # Check if frontend can reach the configured API
-          FRONTEND_API_CALLS=$(curl -s https://${{ env.FRONTEND_DOMAIN }} | grep -o "fetch.*api" | head -5 || echo "No API calls found in initial page")
-          echo "Frontend API configuration: $FRONTEND_API_CALLS"
+          FRONTEND_CONTENT=$(curl -s https://${{ env.FRONTEND_DOMAIN }} || echo "Failed to fetch frontend")
+          if echo "$FRONTEND_CONTENT" | grep -q "api.handreceipt.com"; then
+            echo "✅ Frontend is configured with correct API URL"
+          else
+            echo "⚠️ Frontend may not be configured with the correct API URL"
+          fi
           
           echo "✅ Integration test complete"
 
