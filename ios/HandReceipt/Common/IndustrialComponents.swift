@@ -179,6 +179,169 @@ public struct IndustrialTextEditor: View {
     }
 }
 
+// MARK: - Image Picker Component
+
+public struct ImagePicker: UIViewControllerRepresentable {
+    @Binding public var image: UIImage?
+    public let sourceType: UIImagePickerController.SourceType
+    @Environment(\.dismiss) private var dismiss
+    
+    public init(image: Binding<UIImage?>, sourceType: UIImagePickerController.SourceType) {
+        self._image = image
+        self.sourceType = sourceType
+    }
+    
+    public func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    public func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    public func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    public class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+        
+        public init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.image = image
+            }
+            parent.dismiss()
+        }
+        
+        public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Transfer Status Message Component
+
+public struct TransferStatusMessage: View {
+    let state: ScanViewModel.TransferRequestState
+    
+    public init(state: ScanViewModel.TransferRequestState) {
+        self.state = state
+    }
+    
+    public var body: some View {
+        VStack {
+            Spacer() // Push to bottom
+             if state != .idle { // Only show if not idle
+                 HStack(spacing: 10) {
+                     if state == .loading {
+                         ProgressView()
+                             .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                     } else {
+                         Image(systemName: state.iconName)
+                             .foregroundColor(state.iconColor) // Use themed color from extension
+                     }
+                     Text(state.message)
+                         .font(AppFonts.caption) // Use theme font
+                         .foregroundColor(AppColors.primaryText)
+                         .lineLimit(2)
+                 }
+                 .padding()
+                 .background(state.backgroundColor) // Use themed background from extension
+                 .cornerRadius(10)
+                 .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                 .padding(.bottom, 80) // Position above ScanStatusOverlay
+             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .animation(.spring(), value: state)
+    }
+}
+
+// MARK: - Transfer Request State Extensions
+
+extension ScanViewModel.TransferRequestState {
+    public var message: String {
+        switch self {
+            case .idle: return ""
+            case .loading: return "Requesting Transfer..."
+            case .success(let transfer): return "Transfer #\(transfer.id) Requested!"
+            case .error(let msg): return "Transfer Error: \(msg)"
+        }
+    }
+
+    public var iconName: String {
+        switch self {
+            case .success: return "checkmark.circle.fill"
+            case .error: return "exclamationmark.triangle.fill"
+            default: return ""
+        }
+    }
+
+    public var iconColor: Color {
+        switch self {
+            case .success: return AppColors.accent // Use theme accent for success
+            case .error: return AppColors.destructive
+            default: return .clear
+        }
+    }
+    
+    public var backgroundColor: Color {
+         switch self {
+            case .loading:
+                return AppColors.secondaryBackground.opacity(0.9)
+            case .success:
+                return AppColors.accent.opacity(0.8) // Use theme accent background
+            case .error:
+                 return AppColors.destructive.opacity(0.8)
+             case .idle:
+                 return Color.clear
+         }
+     }
+}
+
+// Error State View Component
+public struct ErrorStateView: View {
+    let message: String
+    let onRetry: () -> Void
+    
+    public init(message: String, onRetry: @escaping () -> Void) {
+        self.message = message
+        self.onRetry = onRetry
+    }
+    
+    public var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundColor(AppColors.destructive)
+            
+            VStack(spacing: 8) {
+                Text("Error Loading Data")
+                    .font(AppFonts.headline)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text(message)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            
+            Button("Retry", action: onRetry)
+                .buttonStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+}
+
 // Industrial ListItem component
 public struct IndustrialListItem<Trailing: View>: View {
     let title: String

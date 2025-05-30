@@ -10,11 +10,18 @@ struct CreatePropertyView: View {
     @State private var showingNSNSearch = false
     @State private var selectedImage: UIImage?
     @State private var showingSuccessAlert = false
+    @State private var showingDuplicateAlert = false
+    @State private var showingCancelConfirmation = false
+    @State private var isShowingBarcodeScannerCreate = false
     
     // NSN Search states
     @State private var nsnSearchQuery = ""
     @State private var nsnSearchResults: [NSNDetails] = []
     @State private var isSearchingNSN = false
+    
+    // Form validation states
+    @State private var serialNumberError: String?
+    @State private var itemNameError: String?
     
     init(apiService: APIServiceProtocol? = nil) {
         let service = apiService ?? APIService()
@@ -27,27 +34,59 @@ struct CreatePropertyView: View {
                 AppColors.appBackground.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 24) {
+                        // Progress indicator
+                        ProgressIndicator(currentStep: currentStep, totalSteps: 3)
+                            .padding(.horizontal)
+                        
                         // Photo Section
                         photoSection
                         
                         // Form Fields
-                        formFields
+                        VStack(spacing: 20) {
+                            // Serial Number Section
+                            serialNumberSection
+                            
+                            // NSN/LIN Lookup Section
+                            nsnLookupSection
+                            
+                            // Item Details Section
+                            itemDetailsSection
+                            
+                            // Status and Assignment Section
+                            statusAssignmentSection
+                        }
                         
-                        // Submit Button
-                        submitButton
+                        // Action Buttons
+                        actionButtons
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Create Property")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        dismiss()
+                        if hasUnsavedChanges {
+                            showingCancelConfirmation = true
+                        } else {
+                            dismiss()
+                        }
                     }
                     .foregroundColor(AppColors.accent)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if viewModel.isOffline {
+                        HStack(spacing: 4) {
+                            Image(systemName: "wifi.slash")
+                            Text("Offline")
+                        }
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.warning)
+                    }
                 }
             }
             .sheet(isPresented: $showingImagePicker) {
@@ -67,12 +106,37 @@ struct CreatePropertyView: View {
                     }
                 )
             }
+            .sheet(isPresented: $isShowingBarcodeScannerCreate) {
+                BarcodeScannerView { barcode in
+                    viewModel.serialNumber = barcode
+                    isShowingBarcodeScannerCreate = false
+                    validateSerialNumber()
+                }
+            }
             .alert("Success", isPresented: $showingSuccessAlert) {
-                Button("OK") {
+                Button("Create Another") {
+                    resetForm()
+                }
+                Button("Done", role: .cancel) {
                     dismiss()
                 }
             } message: {
                 Text("Property created successfully!")
+            }
+            .alert("Duplicate Serial Number", isPresented: $showingDuplicateAlert) {
+                Button("OK") {
+                    serialNumberError = "This serial number already exists"
+                }
+            } message: {
+                Text("A property with this serial number already exists in the system.")
+            }
+            .alert("Unsaved Changes", isPresented: $showingCancelConfirmation) {
+                Button("Discard Changes", role: .destructive) {
+                    dismiss()
+                }
+                Button("Keep Editing", role: .cancel) {}
+            } message: {
+                Text("You have unsaved changes. Are you sure you want to discard them?")
             }
             .alert("Error", isPresented: $viewModel.showingError) {
                 Button("OK") {
@@ -84,104 +148,140 @@ struct CreatePropertyView: View {
         }
     }
     
+    // MARK: - Computed Properties
+    
+    private var currentStep: Int {
+        if !viewModel.serialNumber.isEmpty && !viewModel.itemName.isEmpty {
+            return 3
+        } else if !viewModel.serialNumber.isEmpty {
+            return 2
+        } else {
+            return 1
+        }
+    }
+    
+    private var hasUnsavedChanges: Bool {
+        !viewModel.serialNumber.isEmpty ||
+        !viewModel.itemName.isEmpty ||
+        !viewModel.description.isEmpty ||
+        selectedImage != nil ||
+        viewModel.selectedUser != nil
+    }
+    
     // MARK: - Photo Section
+    
     private var photoSection: some View {
         VStack(spacing: 12) {
-            Text("Property Photo")
-                .font(AppFonts.bodyBold)
-                .foregroundColor(AppColors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            SectionHeader(title: "Property Photo", isOptional: true)
             
             if let image = selectedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 200)
-                    .cornerRadius(12)
-                    .overlay(
-                        Button(action: { selectedImage = nil }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.white)
-                                .background(Color.black.opacity(0.6))
-                                .clipShape(Circle())
-                        }
-                        .padding(8),
-                        alignment: .topTrailing
-                    )
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 200)
+                        .cornerRadius(12)
+                    
+                    Button(action: { selectedImage = nil }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .background(Circle().fill(Color.black.opacity(0.6)))
+                    }
+                    .padding(8)
+                }
             } else {
                 HStack(spacing: 16) {
-                    photoButton(icon: "camera.fill", title: "Camera") {
-                        showingCamera = true
-                    }
+                    PhotoOptionButton(
+                        icon: "camera.fill",
+                        title: "Camera",
+                        action: { showingCamera = true }
+                    )
                     
-                    photoButton(icon: "photo.fill", title: "Library") {
-                        showingImagePicker = true
-                    }
+                    PhotoOptionButton(
+                        icon: "photo.fill",
+                        title: "Library",
+                        action: { showingImagePicker = true }
+                    )
                 }
             }
         }
     }
     
-    private func photoButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 24))
-                Text(title)
-                    .font(AppFonts.caption)
+    // MARK: - Serial Number Section
+    
+    private var serialNumberSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Serial Number", isRequired: true)
+            
+            HStack(spacing: 12) {
+                TextField("Enter serial number", text: $viewModel.serialNumber)
+                    .textFieldStyle(CustomTextFieldStyle())
+                    .autocapitalization(.allCharacters)
+                    .disableAutocorrection(true)
+                    .onChange(of: viewModel.serialNumber) { _ in
+                        validateSerialNumber()
+                    }
+                
+                Button(action: { isShowingBarcodeScannerCreate = true }) {
+                    Image(systemName: "barcode.viewfinder")
+                        .font(.title2)
+                        .frame(width: 44, height: 44)
+                        .background(AppColors.secondaryBackground)
+                        .foregroundColor(AppColors.accent)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(AppColors.accent, lineWidth: 1)
+                        )
+                }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 80)
-            .foregroundColor(AppColors.accent)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(12)
+            
+            if let error = serialNumberError {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                    Text(error)
+                        .font(AppFonts.caption)
+                }
+                .foregroundColor(AppColors.destructive)
+            }
+            
+            Text("Unique identifier for this specific item")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
         }
     }
     
-    // MARK: - Form Fields
-    private var formFields: some View {
-        VStack(spacing: 16) {
-            // Serial Number (Required)
-            FormField(
-                label: "Serial Number *",
-                text: $viewModel.serialNumber,
-                placeholder: "Enter serial number",
-                isRequired: true
-            )
+    // MARK: - NSN Lookup Section
+    
+    private var nsnLookupSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "NSN/LIN Lookup", isOptional: true)
             
-            // Item Name (Required)
-            FormField(
-                label: "Item Name *",
-                text: $viewModel.itemName,
-                placeholder: "Enter item name",
-                isRequired: true
-            )
-            
-            // NSN/LIN Lookup
-            VStack(alignment: .leading, spacing: 8) {
-                Text("NSN/LIN Lookup")
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.primaryText)
+            HStack(spacing: 12) {
+                TextField("NSN or LIN (optional)", text: $viewModel.nsnLinInput)
+                    .textFieldStyle(CustomTextFieldStyle())
+                    .autocapitalization(.allCharacters)
+                    .disableAutocorrection(true)
                 
-                HStack(spacing: 12) {
-                    TextField("NSN or LIN", text: $viewModel.nsnLinInput)
-                        .textFieldStyle(CustomTextFieldStyle())
-                    
-                    Button(action: {
-                        if viewModel.nsnLinInput.isEmpty {
-                            showingNSNSearch = true
-                        } else {
-                            Task {
-                                await viewModel.lookupNSNorLIN()
-                            }
+                Button(action: {
+                    if viewModel.nsnLinInput.isEmpty {
+                        showingNSNSearch = true
+                    } else {
+                        Task {
+                            await viewModel.lookupNSNorLIN()
                         }
-                    }) {
+                    }
+                }) {
+                    Group {
                         if viewModel.isLookingUp {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .frame(width: 16, height: 16)
+                                .frame(width: 20, height: 20)
                         } else {
                             Image(systemName: viewModel.nsnLinInput.isEmpty ? "magnifyingglass" : "arrow.right.circle.fill")
+                                .font(.title2)
                         }
                     }
                     .frame(width: 44, height: 44)
@@ -189,137 +289,405 @@ struct CreatePropertyView: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
                 }
+                .disabled(viewModel.isLookingUp)
+            }
+            
+            if let nsnDetails = viewModel.nsnDetails {
+                NSNDetailsCard(details: nsnDetails)
+                    .transition(.opacity.combined(with: .scale))
+            }
+            
+            Text("Search or enter NSN/LIN to auto-populate item details")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
+        }
+    }
+    
+    // MARK: - Item Details Section
+    
+    private var itemDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Item Name
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Item Name", isRequired: true)
                 
-                if let nsnDetails = viewModel.nsnDetails {
-                    NSNDetailsView(details: nsnDetails)
-                        .transition(.opacity)
+                TextField("Enter item name", text: $viewModel.itemName)
+                    .textFieldStyle(CustomTextFieldStyle())
+                    .onChange(of: viewModel.itemName) { _ in
+                        validateItemName()
+                    }
+                
+                if let error = itemNameError {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                        Text(error)
+                            .font(AppFonts.caption)
+                    }
+                    .foregroundColor(AppColors.destructive)
                 }
             }
             
-            // Description (Optional)
-            FormField(
-                label: "Description",
-                text: $viewModel.description,
-                placeholder: "Enter description (optional)",
-                isRequired: false,
-                isMultiline: true
-            )
-            
-            // Status (Required)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Status *")
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.primaryText)
+            // Description
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Description", isOptional: true)
                 
-                Picker("Status", selection: $viewModel.currentStatus) {
-                    ForEach(PropertyStatus.allCases, id: \.self) { status in
-                        Text(status.displayName)
-                            .tag(status)
+                IndustrialTextEditor(
+                    text: $viewModel.description,
+                    placeholder: "Add additional details about this item..."
+                )
+                .frame(height: 100)
+            }
+        }
+    }
+    
+    // MARK: - Status and Assignment Section
+    
+    private var statusAssignmentSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Status Selection
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Status", isRequired: true)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(PropertyStatus.allCases, id: \.self) { status in
+                            StatusSelectionPill(
+                                status: status,
+                                isSelected: viewModel.currentStatus == status
+                            ) {
+                                withAnimation {
+                                    viewModel.currentStatus = status
+                                }
+                            }
+                        }
                     }
                 }
-                .pickerStyle(SegmentedPickerStyle())
             }
             
-            // Assign To (Optional)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Assign To")
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.primaryText)
+            // Assign To
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Assign To", isOptional: true)
                 
                 if let assignedUser = viewModel.selectedUser {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("\(assignedUser.rank ?? "") \(assignedUser.lastName ?? "")")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.primaryText)
-                            Text(assignedUser.username)
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: { viewModel.selectedUser = nil }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(AppColors.secondaryText)
-                        }
+                    AssignedUserCard(user: assignedUser) {
+                        viewModel.selectedUser = nil
                     }
-                    .padding()
-                    .background(AppColors.secondaryBackground)
-                    .cornerRadius(8)
                 } else {
-                    Button(action: { /* TODO: Show user selection */ }) {
+                    Button(action: {
+                        // TODO: Show user selection
+                    }) {
                         HStack {
+                            Image(systemName: "person.badge.plus")
+                                .foregroundColor(AppColors.accent)
                             Text("Select user (optional)")
                                 .foregroundColor(AppColors.secondaryText)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .foregroundColor(AppColors.secondaryText)
+                                .foregroundColor(AppColors.tertiaryText)
                         }
                         .padding()
                         .background(AppColors.secondaryBackground)
                         .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
                     }
+                }
+                
+                if viewModel.selectedUser == nil {
+                    Text("Leave empty to assign to yourself")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText)
                 }
             }
         }
     }
     
-    // MARK: - Submit Button
-    private var submitButton: some View {
-        Button(action: {
-            Task {
-                if await viewModel.createProperty(photo: selectedImage) {
-                    showingSuccessAlert = true
+    // MARK: - Action Buttons
+    
+    private var actionButtons: some View {
+        VStack(spacing: 16) {
+            if viewModel.isOffline {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                    Text("This property will be created locally and synced when online")
                 }
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.warning)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(AppColors.warning.opacity(0.1))
+                .cornerRadius(8)
             }
-        }) {
-            if viewModel.isCreating {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .frame(maxWidth: .infinity)
-            } else {
-                Text("Create Property")
-                    .font(AppFonts.bodyBold)
-                    .frame(maxWidth: .infinity)
+            
+            Button(action: createProperty) {
+                if viewModel.isCreating {
+                    HStack {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        Text("Creating...")
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: viewModel.isOffline ? "square.and.arrow.down" : "plus.circle.fill")
+                        Text(viewModel.isOffline ? "Save Locally" : "Create Property")
+                    }
+                }
+                .font(AppFonts.bodyBold)
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.primary)
+            .disabled(viewModel.isCreating || !viewModel.isValid || serialNumberError != nil || itemNameError != nil)
+        }
+        .padding(.top)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func validateSerialNumber() {
+        serialNumberError = nil
+        
+        guard !viewModel.serialNumber.isEmpty else { return }
+        
+        if viewModel.serialNumber.count < 3 {
+            serialNumberError = "Serial number must be at least 3 characters"
+        } else if !viewModel.serialNumber.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" }) {
+            serialNumberError = "Only letters, numbers, and hyphens allowed"
+        }
+        
+        // TODO: Check for duplicates via API
+    }
+    
+    private func validateItemName() {
+        itemNameError = nil
+        
+        guard !viewModel.itemName.isEmpty else { return }
+        
+        if viewModel.itemName.count < 2 {
+            itemNameError = "Item name must be at least 2 characters"
+        }
+    }
+    
+    private func createProperty() {
+        Task {
+            if await viewModel.createProperty(photo: selectedImage) {
+                showingSuccessAlert = true
             }
         }
-        .buttonStyle(.primary)
-        .disabled(viewModel.isCreating || !viewModel.isValid)
-        .padding(.top)
+    }
+    
+    private func resetForm() {
+        viewModel.serialNumber = ""
+        viewModel.itemName = ""
+        viewModel.description = ""
+        viewModel.nsnLinInput = ""
+        viewModel.nsnDetails = nil
+        viewModel.selectedUser = nil
+        viewModel.currentStatus = .operational
+        selectedImage = nil
+        serialNumberError = nil
+        itemNameError = nil
     }
 }
 
 // MARK: - Supporting Views
 
-struct FormField: View {
-    let label: String
-    @Binding var text: String
-    let placeholder: String
-    let isRequired: Bool
-    var isMultiline: Bool = false
+struct ProgressIndicator: View {
+    let currentStep: Int
+    let totalSteps: Int
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(AppFonts.bodyBold)
-                .foregroundColor(AppColors.primaryText)
-            
-            if isMultiline {
-                TextEditor(text: $text)
-                    .frame(minHeight: 80)
-                    .padding(8)
-                    .background(AppColors.secondaryBackground)
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(AppColors.secondaryText.opacity(0.2), lineWidth: 1)
-                    )
-            } else {
-                TextField(placeholder, text: $text)
-                    .textFieldStyle(CustomTextFieldStyle())
+        HStack(spacing: 8) {
+            ForEach(1...totalSteps, id: \.self) { step in
+                Circle()
+                    .fill(step <= currentStep ? AppColors.accent : AppColors.tertiaryBackground)
+                    .frame(width: 8, height: 8)
+                
+                if step < totalSteps {
+                    Rectangle()
+                        .fill(step < currentStep ? AppColors.accent : AppColors.tertiaryBackground)
+                        .frame(height: 2)
+                }
             }
         }
+        .frame(height: 20)
+    }
+}
+
+struct SectionHeader: View {
+    let title: String
+    var isRequired: Bool = false
+    var isOptional: Bool = false
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(title.uppercased())
+                .font(AppFonts.captionBold)
+                .foregroundColor(AppColors.secondaryText)
+                .tracking(1.2)
+            
+            if isRequired {
+                Text("*")
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.destructive)
+            } else if isOptional {
+                Text("(OPTIONAL)")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+        }
+    }
+}
+
+struct PhotoOptionButton: View {
+    let icon: String
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                Text(title)
+                    .font(AppFonts.captionBold)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 100)
+            .foregroundColor(AppColors.accent)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                    .foregroundColor(AppColors.accent.opacity(0.5))
+            )
+        }
+    }
+}
+
+struct NSNDetailsCard: View {
+    let details: NSNDetails
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(AppColors.success)
+                Text("NSN FOUND")
+                    .font(AppFonts.captionBold)
+                    .foregroundColor(AppColors.success)
+                    .tracking(1.2)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(details.nomenclature)
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.primaryText)
+                
+                if let manufacturer = details.manufacturer {
+                    HStack {
+                        Text("Manufacturer:")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                        Text(manufacturer)
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                }
+                
+                if let unitPrice = details.unitPrice {
+                    HStack {
+                        Text("Unit Price:")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                        Text("$\(String(format: "%.2f", unitPrice))")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.success.opacity(0.1))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppColors.success.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+struct StatusSelectionPill: View {
+    let status: PropertyStatus
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: status.icon)
+                    .font(.title3)
+                Text(status.displayName)
+                    .font(AppFonts.captionBold)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .foregroundColor(isSelected ? .white : statusColor)
+            .background(isSelected ? statusColor : statusColor.opacity(0.1))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(statusColor, lineWidth: isSelected ? 0 : 1)
+            )
+        }
+    }
+    
+    private var statusColor: Color {
+        switch status {
+        case .operational: return AppColors.success
+        case .nonOperational, .maintenance: return AppColors.warning
+        case .missing, .damaged: return AppColors.destructive
+        }
+    }
+}
+
+struct AssignedUserCard: View {
+    let user: UserSummary
+    let onRemove: () -> Void
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "person.circle.fill")
+                .font(.title2)
+                .foregroundColor(AppColors.accent)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(user.rank ?? "") \(user.lastName ?? "")")
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.primaryText)
+                Text("@\(user.username)")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+            }
+            
+            Spacer()
+            
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+        }
+        .padding()
+        .background(AppColors.secondaryBackground)
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
@@ -336,40 +704,33 @@ struct CustomTextFieldStyle: TextFieldStyle {
     }
 }
 
-struct NSNDetailsView: View {
-    let details: NSNDetails
+// Barcode Scanner placeholder
+struct BarcodeScannerView: View {
+    let onScan: (String) -> Void
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                Text("NSN Found")
-                    .font(AppFonts.captionBold)
-                    .foregroundColor(.green)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(details.nomenclature)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.primaryText)
+        NavigationView {
+            VStack {
+                Text("Camera view for barcode scanning")
+                    .foregroundColor(AppColors.secondaryText)
                 
-                if let manufacturer = details.manufacturer {
-                    Text("Manufacturer: \(manufacturer)")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
+                // Placeholder - implement actual barcode scanning
+                Button("Simulate Scan") {
+                    onScan("SN\(Int.random(in: 100000...999999))")
                 }
-                
-                if let unitPrice = details.unitPrice {
-                    Text("Unit Price: $\(String(format: "%.2f", unitPrice))")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
+                .buttonStyle(.primary)
+            }
+            .navigationTitle("Scan Barcode")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.accent)
                 }
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.secondaryBackground.opacity(0.5))
-            .cornerRadius(8)
         }
     }
 }
@@ -485,42 +846,23 @@ enum PropertyStatus: String, CaseIterable {
     }
 }
 
-// MARK: - Image Picker
+// MARK: - Enhanced PropertyStatus
+extension PropertyStatus {
+    var icon: String {
+        switch self {
+        case .operational: return "checkmark.circle"
+        case .nonOperational: return "xmark.circle"
+        case .maintenance: return "wrench.and.screwdriver"
+        case .missing: return "questionmark.circle"
+        case .damaged: return "exclamationmark.triangle"
+        }
+    }
+}
 
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    let sourceType: UIImagePickerController.SourceType
-    @Environment(\.dismiss) private var dismiss
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = sourceType
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ImagePicker
-        
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.image = image
-            }
-            parent.dismiss()
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
-        }
+// MARK: - Enhanced CreatePropertyViewModel
+extension CreatePropertyViewModel {
+    var isOffline: Bool {
+        // TODO: Implement actual offline detection
+        false
     }
 } 

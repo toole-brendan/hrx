@@ -1,279 +1,543 @@
 import SwiftUI
+import Combine
 
 struct MyPropertiesView: View {
     @StateObject private var viewModel: MyPropertiesViewModel
+    @State private var searchText = ""
+    @State private var selectedFilter: PropertyFilter = .all
+    @State private var showingCreateProperty = false
+    @State private var showingSortOptions = false
+    @State private var selectedSortOption: SortOption = .name
     
-    // TODO: Define navigation action for property detail
-     // var navigateToPropertyDetail: (String) -> Void
-
+    enum PropertyFilter: String, CaseIterable {
+        case all = "All"
+        case operational = "Operational"
+        case maintenance = "Maintenance"
+        case sensitive = "Sensitive"
+        
+        var icon: String {
+            switch self {
+            case .all: return "list.bullet"
+            case .operational: return "checkmark.circle"
+            case .maintenance: return "wrench.and.screwdriver"
+            case .sensitive: return "lock.shield"
+            }
+        }
+    }
+    
+    enum SortOption: String, CaseIterable {
+        case name = "Name"
+        case serialNumber = "Serial Number"
+        case lastInventory = "Last Inventory"
+        case status = "Status"
+    }
+    
     init(viewModel: MyPropertiesViewModel? = nil) {
         let vm = viewModel ?? MyPropertiesViewModel(apiService: APIService())
         self._viewModel = StateObject(wrappedValue: vm)
-        // Configure list appearance if needed (might be handled globally or per-list)
-        // configureListAppearance()
-    }
-
-    var body: some View {
-        // Remove the redundant NavigationView wrapper
-        // The NavigationView is provided by AuthenticatedTabView
-        content
-             // Apply navigation title directly to the content
-            .navigationTitle("My Properties")
-            // Background is handled within content's ZStack
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        ZStack { 
-            AppColors.appBackground.ignoresSafeArea() // Apply background to ZStack, ignore safe area
-
-            switch viewModel.loadingState {
-            case .idle, .loading:
-                VStack {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent)) // Use accent color
-                    Text("Loading Properties...")
-                        .font(AppFonts.body) // Use theme font
-                        .foregroundColor(AppColors.secondaryText)
-                        .padding(.top, 8)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            case .success(let properties):
-                if properties.isEmpty {
-                    // Pass themed colors/fonts into EmptyStateView if needed, or apply inside
-                    EmptyPropertiesStateView { viewModel.loadProperties() }
-                } else {
-                    // Pass themed colors/fonts into PropertyList if needed, or apply inside
-                    PropertyList(properties: properties, viewModel: viewModel)
-                }
-
-            case .error(let message):
-                 // Pass themed colors/fonts into ErrorStateView if needed, or apply inside
-                ErrorStateView(message: message) { viewModel.loadProperties() }
-            }
-        }
-        // Ignore safe area on the ZStack level
-        // .ignoresSafeArea() - Applied above
     }
     
-    // Optional: Helper for specific list config if needed
-    // private func configureListAppearance() {
-    //     List {}.listStyle(.plain) // example
-    // }
+    var body: some View {
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            content
+                .navigationTitle("Property Book")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        HStack(spacing: 16) {
+                            // Sort button
+                            Button(action: { showingSortOptions = true }) {
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .foregroundColor(AppColors.accent)
+                            }
+                            
+                            // Add button
+                            Button(action: { showingCreateProperty = true }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(AppColors.accent)
+                                    .font(.title3)
+                            }
+                        }
+                    }
+                }
+                .sheet(isPresented: $showingCreateProperty) {
+                    CreatePropertyView()
+                        .onDisappear {
+                            viewModel.loadProperties()
+                        }
+                }
+                .actionSheet(isPresented: $showingSortOptions) {
+                    ActionSheet(
+                        title: Text("Sort Properties"),
+                        buttons: SortOption.allCases.map { option in
+                            .default(Text(option.rawValue)) {
+                                selectedSortOption = option
+                            }
+                        } + [.cancel()]
+                    )
+                }
+        }
+    }
+    
+    @ViewBuilder
+    private var content: some View {
+        VStack(spacing: 0) {
+            // Offline indicator
+            if viewModel.isOffline {
+                OfflineIndicator()
+            }
+            
+            // Search and filters
+            VStack(spacing: 12) {
+                // Search bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.secondaryText)
+                    
+                    TextField("Search properties...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(AppColors.primaryText)
+                        .font(AppFonts.body)
+                    
+                    if !searchText.isEmpty {
+                        Button(action: { searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(AppColors.secondaryText)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AppColors.secondaryBackground)
+                .cornerRadius(8)
+                .padding(.horizontal)
+                
+                // Filter pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(PropertyFilter.allCases, id: \.self) { filter in
+                            FilterPill(
+                                title: filter.rawValue,
+                                icon: filter.icon,
+                                isSelected: selectedFilter == filter
+                            ) {
+                                selectedFilter = filter
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            .padding(.vertical, 12)
+            .background(AppColors.appBackground)
+            
+            // Properties list
+            switch viewModel.loadingState {
+            case .idle, .loading:
+                LoadingView()
+                
+            case .success(let properties):
+                let filteredProperties = filterAndSort(properties)
+                
+                if filteredProperties.isEmpty {
+                    EmptyStateView(
+                        filter: selectedFilter,
+                        searchText: searchText,
+                        onRefresh: viewModel.loadProperties
+                    )
+                } else {
+                    PropertyListView(
+                        properties: filteredProperties,
+                        viewModel: viewModel,
+                        onRefresh: viewModel.loadProperties
+                    )
+                }
+                
+            case .error(let message):
+                ErrorStateView(message: message) {
+                    viewModel.loadProperties()
+                }
+            }
+            
+            // Sync status footer
+            if let lastSync = viewModel.lastSyncDate {
+                SyncStatusFooter(lastSync: lastSync, isSyncing: viewModel.isSyncing)
+            }
+        }
+    }
+    
+    // Filter and sort logic
+    private func filterAndSort(_ properties: [Property]) -> [Property] {
+        var filtered = properties
+        
+        // Apply search filter
+        if !searchText.isEmpty {
+            filtered = filtered.filter { property in
+                property.itemName.localizedCaseInsensitiveContains(searchText) ||
+                property.serialNumber.localizedCaseInsensitiveContains(searchText) ||
+                property.nsn.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        
+        // Apply status filter
+        switch selectedFilter {
+        case .all:
+            break
+        case .operational:
+            filtered = filtered.filter { $0.status.lowercased() == "operational" }
+        case .maintenance:
+            filtered = filtered.filter { $0.needsMaintenance }
+        case .sensitive:
+            filtered = filtered.filter { $0.isSensitive }
+        }
+        
+        // Apply sorting
+        switch selectedSortOption {
+        case .name:
+            filtered.sort { $0.itemName < $1.itemName }
+        case .serialNumber:
+            filtered.sort { $0.serialNumber < $1.serialNumber }
+        case .lastInventory:
+            filtered.sort { ($0.lastInventoryDate ?? Date.distantPast) > ($1.lastInventoryDate ?? Date.distantPast) }
+        case .status:
+            filtered.sort { $0.status < $1.status }
+        }
+        
+        return filtered
+    }
 }
 
 // MARK: - Subviews
 
-struct PropertyList: View {
-    let properties: [Property]
-    @ObservedObject var viewModel: MyPropertiesViewModel
-
-    init(properties: [Property], viewModel: MyPropertiesViewModel) {
-        self.properties = properties
-        self.viewModel = viewModel
-        // REMOVED: UITableView.appearance() modifications
-    }
-
+struct OfflineIndicator: View {
     var body: some View {
-        List {
-            ForEach(properties) { property in
-                ZStack {
-                    NavigationLink {
-                        PropertyDetailView(propertyId: property.id)
-                            .navigationBarTitleDisplayMode(.inline)
-                    } label: {
-                        EmptyView()
-                    }
-                    .opacity(0)
-
-                    PropertyRow(property: property)
-                }
-                .listRowInsets(EdgeInsets()) 
-                .padding(.horizontal) 
-                .padding(.vertical, 8) 
-                .listRowBackground(AppColors.secondaryBackground) // Use secondary background for rows
-                .listRowSeparator(.hidden) // Hide default separators, rely on spacing/background
-            }
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+                .font(.caption)
+            Text("OFFLINE MODE")
+                .font(AppFonts.captionBold)
+            Text("• Changes will sync when connected")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
         }
-        .listStyle(.plain)
-        // .scrollContentBackground(.hidden) // Make list background transparent - Removed for iOS < 16 compatibility
-        // .background(AppColors.appBackground) // Background provided by parent ZStack
-        .refreshable { 
-            viewModel.loadProperties()
+        .foregroundColor(AppColors.warning)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(AppColors.warning.opacity(0.1))
+    }
+}
+
+struct FilterPill: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption)
+                Text(title)
+                    .font(AppFonts.captionBold)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .foregroundColor(isSelected ? .white : AppColors.secondaryText)
+            .background(isSelected ? AppColors.accent : AppColors.secondaryBackground)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: 1)
+            )
         }
     }
 }
 
-struct PropertyRow: View {
+struct PropertyListView: View {
+    let properties: [Property]
+    @ObservedObject var viewModel: MyPropertiesViewModel
+    let onRefresh: () -> Void
+    
+    var body: some View {
+        List {
+            ForEach(properties) { property in
+                NavigationLink(destination: PropertyDetailView(propertyId: property.id)) {
+                    PropertyRowEnhanced(property: property)
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            onRefresh()
+        }
+    }
+}
+
+struct PropertyRowEnhanced: View {
     let property: Property
     
-    // Shared Date Formatter
     private static var dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateStyle = .short
+        formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter
     }()
     
     var body: some View {
-        HStack(alignment: .center, spacing: 12) { // Added spacing
-            VStack(alignment: .leading, spacing: 4) {
-                Text(property.itemName)
-                    .font(AppFonts.bodyBold) // Use themed font
-                    .foregroundColor(AppColors.primaryText)
-                Text("SN: \(property.serialNumber)")
-                    .font(AppFonts.caption) // Use themed font
-                    .foregroundColor(AppColors.secondaryText)
-                 if let lastInv = property.lastInventoryDate {
-                     Text("Last Inv: \(lastInv, formatter: Self.dateFormatter)")
-                        .font(AppFonts.caption) // Use themed font
-                        .foregroundColor(AppColors.secondaryText.opacity(0.8))
-                 }
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                // Status indicator
+                VStack {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .stroke(statusColor.opacity(0.3), lineWidth: 2)
+                        )
+                    
+                    if property.isSensitive {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.warning)
+                            .padding(.top, 4)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.top, 4)
+                
+                // Main content
+                VStack(alignment: .leading, spacing: 6) {
+                    // Item name and NSN
+                    Text(property.itemName)
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .lineLimit(2)
+                    
+                    HStack(spacing: 12) {
+                        Label(property.nsn, systemImage: "number")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                        
+                        if let lin = property.lin {
+                            Text("LIN: \(lin)")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
+                    }
+                    
+                    // Serial number
+                    HStack {
+                        Text("S/N:")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.tertiaryText)
+                        Text(property.serialNumber)
+                            .font(AppFonts.mono)
+                            .foregroundColor(AppColors.primaryText)
+                    }
+                    
+                    // Bottom row: status and last inventory
+                    HStack {
+                        StatusBadge(status: property.status, type: statusBadgeType)
+                        
+                        Spacer()
+                        
+                        if let lastInv = property.lastInventoryDate {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("Last Inventory")
+                                    .font(AppFonts.caption2)
+                                    .foregroundColor(AppColors.tertiaryText)
+                                Text(lastInv, formatter: Self.dateFormatter)
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(inventoryDateColor(lastInv))
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(AppColors.tertiaryText)
+                    .padding(.top, 4)
             }
-            
-            Spacer()
-            
-            // Status Badge
-            Text(property.status.capitalized)
-                .font(AppFonts.captionBold) // Use themed font
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .foregroundColor(statusTextColor(property.status)) // Use helper for text color
-                .background(statusBackgroundColor(property.status)) // Use helper for background
-                .clipShape(Capsule())
-        }
-        // No need for background here, handled by listRowBackground
-        // .background(AppColors.appBackground)
-    }
-
-    // Helper to determine status BACKGROUND color (themed)
-    private func statusBackgroundColor(_ status: String) -> Color {
-        switch status.lowercased() {
-        case "operational", "available":
-            return AppColors.accent.opacity(0.2) // Muted accent
-        case "maintenance", "repair", "non-operational":
-            return Color.orange.opacity(0.2) // Muted orange
-        case "transfer pending", "pending":
-            return Color.blue.opacity(0.2) // Muted blue (or another distinct color)
-        default:
-            return AppColors.secondaryText.opacity(0.2) // Muted gray
+            .padding()
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
         }
     }
     
-    // Helper to determine status TEXT color (themed)
-    private func statusTextColor(_ status: String) -> Color {
-         switch status.lowercased() {
-        case "operational", "available":
-            return AppColors.accent
-        case "maintenance", "repair", "non-operational":
-            return Color.orange
-        case "transfer pending", "pending":
-            return Color.blue
-        default:
+    private var statusColor: Color {
+        switch property.status.lowercased() {
+        case "operational": return AppColors.success
+        case "maintenance", "non-operational": return AppColors.warning
+        case "missing": return AppColors.destructive
+        default: return AppColors.secondaryText
+        }
+    }
+    
+    private var statusBadgeType: StatusBadge.StatusType {
+        switch property.status.lowercased() {
+        case "operational": return .success
+        case "maintenance", "non-operational": return .warning
+        case "missing": return .error
+        default: return .neutral
+        }
+    }
+    
+    private func inventoryDateColor(_ date: Date) -> Color {
+        let daysSince = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if daysSince > 90 {
+            return AppColors.destructive
+        } else if daysSince > 30 {
+            return AppColors.warning
+        } else {
             return AppColors.secondaryText
         }
     }
 }
 
-struct EmptyPropertiesStateView: View {
-    let onRefresh: () -> Void
-    
+struct LoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "archivebox.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 40, height: 40) // Slightly smaller
-                .foregroundColor(AppColors.secondaryText)
-            Text("No Properties Assigned")
-                .font(AppFonts.headline) // Use themed font
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.primaryText)
-            Text("Your assigned property list is currently empty.")
-                .font(AppFonts.body) // Use themed font
-                .foregroundColor(AppColors.secondaryText)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal) // Add horizontal padding for text
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+                .scaleEffect(1.5)
             
-            Button("Refresh", action: onRefresh)
-                .buttonStyle(.primary) // Use primary button style
-                .padding(.top)
+            Text("Loading property book...")
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.secondaryText)
         }
-        .padding() 
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Background is handled by parent ZStack
-        // .background(AppColors.appBackground.ignoresSafeArea())
     }
 }
 
-struct ErrorStateView: View {
-    let message: String
-    let onRetry: () -> Void
+struct EmptyStateView: View {
+    let filter: MyPropertiesView.PropertyFilter
+    let searchText: String
+    let onRefresh: () -> Void
     
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "wifi.exclamationmark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 40, height: 40) // Slightly smaller
-                .foregroundColor(AppColors.destructive)
-            Text("Error Loading Data")
-                .font(AppFonts.headline) // Use themed font
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.primaryText)
-            Text(message)
-                .font(AppFonts.body) // Use themed font
+        VStack(spacing: 24) {
+            Image(systemName: emptyStateIcon)
+                .font(.system(size: 64))
                 .foregroundColor(AppColors.secondaryText)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal) // Add horizontal padding for text
             
-            Button("Retry", action: onRetry)
-                .buttonStyle(.primary) // Use primary button style
-                .padding(.top)
+            VStack(spacing: 8) {
+                Text(emptyStateTitle)
+                    .font(AppFonts.headline)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text(emptyStateMessage)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            
+            Button("Refresh", action: onRefresh)
+                .buttonStyle(.primary)
         }
-        .padding(.horizontal) 
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Background handled by parent ZStack
+        .padding()
+    }
+    
+    private var emptyStateIcon: String {
+        if !searchText.isEmpty {
+            return "magnifyingglass"
+        }
+        switch filter {
+        case .all: return "archivebox"
+        case .operational: return "checkmark.circle"
+        case .maintenance: return "wrench.and.screwdriver"
+        case .sensitive: return "lock.shield"
+        }
+    }
+    
+    private var emptyStateTitle: String {
+        if !searchText.isEmpty {
+            return "No Results Found"
+        }
+        switch filter {
+        case .all: return "No Properties Assigned"
+        case .operational: return "No Operational Items"
+        case .maintenance: return "No Maintenance Required"
+        case .sensitive: return "No Sensitive Items"
+        }
+    }
+    
+    private var emptyStateMessage: String {
+        if !searchText.isEmpty {
+            return "Try adjusting your search terms or filters."
+        }
+        switch filter {
+        case .all: return "Properties assigned to you will appear here."
+        case .operational: return "You have no operational items in your inventory."
+        case .maintenance: return "Good news! No items require maintenance."
+        case .sensitive: return "You have no sensitive items assigned."
+        }
+    }
+}
+
+struct SyncStatusFooter: View {
+    let lastSync: Date
+    let isSyncing: Bool
+    
+    private var timeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+    
+    var body: some View {
+        HStack {
+            if isSyncing {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+                    .scaleEffect(0.8)
+                Text("Syncing...")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.accent)
+            } else {
+                Image(systemName: "checkmark.circle")
+                    .foregroundColor(AppColors.success)
+                    .font(.caption)
+                Text("Last synced \(lastSync, formatter: timeFormatter)")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+            }
+        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(AppColors.secondaryBackground)
     }
 }
 
 // MARK: - Preview
-
 struct MyPropertiesView_Previews: PreviewProvider {
     static var previews: some View {
-        // Example with success state
-        Group {
-            NavigationView { // Wrap preview in NavigationView for realistic context
-                MyPropertiesView(viewModel: {
-                    let vm = MyPropertiesViewModel(apiService: MockAPIService())
-                    vm.loadingState = .success(Property.mockList)
-                    return vm
-                }())
-            }
-            .preferredColorScheme(.dark) // Apply dark mode
-            .previewDisplayName("Success State - Dark")
-
-            NavigationView {
-                MyPropertiesView(viewModel: {
-                    let vm = MyPropertiesViewModel(apiService: MockAPIService())
-                    vm.loadingState = .success([])
-                    return vm
-                }())
-            }
-            .preferredColorScheme(.dark)
-            .previewDisplayName("Empty State - Dark")
-
-            NavigationView {
-                MyPropertiesView(viewModel: {
-                    let vm = MyPropertiesViewModel(apiService: MockAPIService())
-                    vm.loadingState = .error("Network connection lost. Please try again.")
-                    return vm
-                }())
-            }
-            .preferredColorScheme(.dark)
-            .previewDisplayName("Error State - Dark")
+        NavigationView {
+            MyPropertiesView(viewModel: {
+                let vm = MyPropertiesViewModel(apiService: MockAPIService())
+                vm.loadingState = .success(Property.mockList)
+                return vm
+            }())
         }
+        .preferredColorScheme(.dark)
     }
 }
 

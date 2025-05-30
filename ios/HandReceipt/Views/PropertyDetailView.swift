@@ -1,52 +1,93 @@
 import SwiftUI
+import PhotosUI
 
 struct PropertyDetailView: View {
     @StateObject private var viewModel: PropertyDetailViewModel
-    
     @Environment(\.dismiss) var dismiss
-
-    // Shared Date Formatter (Consider moving to a Utils file)
+    
+    @State private var showingEditNotes = false
+    @State private var editedNotes = ""
+    @State private var showingPhotoOptions = false
+    @State private var showingImagePicker = false
+    @State private var showingCamera = false
+    @State private var selectedImage: UIImage?
+    @State private var showingQRCode = false
+    @State private var showingHistory = false
+    @State private var showingMaintenanceSchedule = false
+    
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter
     }
-
-    // Initialize the view with a propertyId that will be used to fetch details
+    
     init(propertyId: Int, apiService: APIServiceProtocol = APIService()) {
-        // Create the ViewModel with the provided ID
         let vm = PropertyDetailViewModel(propertyId: propertyId, apiService: apiService)
         self._viewModel = StateObject(wrappedValue: vm)
     }
-
+    
     var body: some View {
         ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
             content
-        }
-        .navigationTitle("Property Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { // Add actions to toolbar
-            ToolbarItem(placement: .navigationBarTrailing) {
-                // Only show button if property is loaded and not currently trying to transfer
-                if viewModel.property != nil && viewModel.transferRequestState != .loading {
-                    Button("Request Transfer") {
-                        viewModel.requestTransferClicked()
+                .navigationTitle("Property Details")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(content: {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        if viewModel.property != nil {
+                            Menu {
+                                Button(action: { showingQRCode = true }) {
+                                    Label("Show QR Code", systemImage: "qrcode")
+                                }
+                                
+                                Button(action: { showingHistory = true }) {
+                                    Label("View History", systemImage: "clock.arrow.circlepath")
+                                }
+                                
+                                if viewModel.property?.needsMaintenance == true {
+                                    Button(action: { showingMaintenanceSchedule = true }) {
+                                        Label("Schedule Maintenance", systemImage: "wrench.and.screwdriver")
+                                    }
+                                }
+                                
+                                Divider()
+                                
+                                Button(action: { viewModel.requestTransferClicked() }) {
+                                    Label("Request Transfer", systemImage: "arrow.left.arrow.right")
+                                }
+                                .disabled(viewModel.transferRequestState == .loading)
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .foregroundColor(AppColors.accent)
+                            }
+                        }
+                    }
+                })
+                .sheet(isPresented: $viewModel.showingUserSelection) {
+                    UserSelectionView(onUserSelected: { selectedUser in
+                        viewModel.initiateTransfer(targetUser: selectedUser)
+                    })
+                }
+                .sheet(isPresented: $showingQRCode) {
+                    if let property = viewModel.property {
+                        PropertyQRCodeView(property: property)
                     }
                 }
-            }
+                .sheet(isPresented: $showingHistory) {
+                    if let property = viewModel.property {
+                        PropertyHistoryView(propertyId: property.id)
+                    }
+                }
+                .sheet(isPresented: $showingMaintenanceSchedule) {
+                    if let property = viewModel.property {
+                        MaintenanceScheduleView(property: property)
+                    }
+                }
+                .overlay(TransferStatusMessage(state: viewModel.transferRequestState))
         }
-        // Present User Selection Sheet
-        .sheet(isPresented: $viewModel.showingUserSelection) {
-            // Pass the callback to the ViewModel's initiateTransfer function
-            UserSelectionView(onUserSelected: { selectedUser in
-                viewModel.initiateTransfer(targetUser: selectedUser)
-            })
-        }
-        // Use TransferStatusMessage from ScanView instead
-        .overlay(TransferStatusMessage(state: viewModel.transferRequestState))
         .onAppear {
-            // Load property on view appearance
             viewModel.loadProperty()
         }
     }
@@ -59,101 +100,631 @@ struct PropertyDetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
         case .success(let property):
-            detailsContent(property: property)
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Photo section
+                    propertyPhotoSection(property)
+                    
+                    // Primary info card
+                    primaryInfoCard(property)
+                    
+                    // Technical details
+                    technicalDetailsCard(property)
+                    
+                    // Status and location
+                    statusLocationCard(property)
+                    
+                    // Maintenance info (if applicable)
+                    if property.needsMaintenance || property.maintenanceDueDate != nil {
+                        maintenanceCard(property)
+                    }
+                    
+                    // Notes section
+                    notesCard(property)
+                    
+                    // Audit trail preview
+                    auditTrailCard(property)
+                }
+                .padding()
+            }
             
         case .error(let message):
             ErrorStateView(message: message) {
-                viewModel.loadProperty() // Retry loading
+                viewModel.loadProperty()
             }
         }
     }
     
-    private func detailsContent(property: Property) -> some View {
-        ScrollView { // Make content scrollable if it gets long
-            VStack(alignment: .leading, spacing: 12) {
-                DetailRow(label: "Item Name", value: property.itemName)
-                DetailRow(label: "NSN", value: property.nsn)
-                DetailRow(label: "Serial Number", value: property.serialNumber)
-                Divider()
-                DetailRow(label: "Status", value: property.status)
-                DetailRow(label: "Location", value: property.location ?? "N/A")
-                DetailRow(label: "Assigned To ID", value: property.assignedToUserId != nil ? "\(property.assignedToUserId!)" : "None")
-                
-                if let lastInvDate = property.lastInventoryDate {
-                    DetailRow(label: "Last Inventory", value: lastInvDate, formatter: DateFormatter.Style.short)
+    // MARK: - Section Views
+    
+    private func propertyPhotoSection(_ property: Property) -> some View {
+        VStack(spacing: 12) {
+            if let imageUrl = property.imageUrl, !imageUrl.isEmpty {
+                // TODO: Implement AsyncImage for loading property photos
+                Rectangle()
+                    .fill(AppColors.secondaryBackground)
+                    .frame(height: 200)
+                    .cornerRadius(12)
+                    .overlay(
+                        VStack {
+                            Image(systemName: "photo")
+                                .font(.system(size: 48))
+                                .foregroundColor(AppColors.tertiaryText)
+                            Text("Property Photo")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
+                    )
+            } else {
+                Button(action: { showingPhotoOptions = true }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 32))
+                        Text("Add Photo")
+                            .font(AppFonts.bodyBold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 120)
+                    .foregroundColor(AppColors.accent)
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                            .foregroundColor(AppColors.accent.opacity(0.5))
+                    )
                 }
-                
-                if let acquisitionDate = property.acquisitionDate {
-                    DetailRow(label: "Acquisition Date", value: acquisitionDate, formatter: DateFormatter.Style.short)
-                }
-                
-                if let notes = property.notes, !notes.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Notes:").bold()
-                        Text(notes)
-                            .padding(10)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
+            }
+        }
+        .actionSheet(isPresented: $showingPhotoOptions) {
+            ActionSheet(
+                title: Text("Add Property Photo"),
+                buttons: [
+                    .default(Text("Take Photo")) { showingCamera = true },
+                    .default(Text("Choose from Library")) { showingImagePicker = true },
+                    .cancel()
+                ]
+            )
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: $selectedImage, sourceType: .photoLibrary)
+        }
+        .sheet(isPresented: $showingCamera) {
+            ImagePicker(image: $selectedImage, sourceType: .camera)
+        }
+    }
+    
+    private func primaryInfoCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with sensitive indicator
+                HStack {
+                    Text(property.itemName)
+                        .font(AppFonts.title)
+                        .foregroundColor(AppColors.primaryText)
+                    
+                    Spacer()
+                    
+                    if property.isSensitive {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.shield.fill")
+                            Text("SENSITIVE")
+                                .font(AppFonts.captionBold)
+                        }
+                        .foregroundColor(AppColors.warning)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AppColors.warning.opacity(0.1))
+                        .cornerRadius(4)
                     }
                 }
                 
-                Spacer(minLength: 30)
+                // Category indicator
+                if let category = determineCategory(property) {
+                    CategoryIndicator(category: category.name, iconName: category.icon)
+                }
+                
+                // Description
+                if let description = property.description, !description.isEmpty {
+                    Text(description)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                // Manufacturer
+                if let manufacturer = property.manufacturer {
+                    HStack {
+                        Text("Manufacturer:")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.tertiaryText)
+                        Text(manufacturer)
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.primaryText)
+                    }
+                }
             }
             .padding()
         }
     }
-}
-
-// Helper view for consistent detail rows - make it public so other views can use it
-public struct DetailRow: View {
-    let label: String
-    let value: String
-
-    // Explicit initializer for String values
-    public init(label: String, value: String) {
-        self.label = label
-        self.value = value
-    }
-
-    public var body: some View {
-        HStack {
-            Text(label + ":")
-                .bold()
-                .frame(width: 120, alignment: .leading)
-            Text(value)
-            Spacer() // Pushes content to the left
+    
+    private func technicalDetailsCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("TECHNICAL DETAILS")
+                    .font(AppFonts.captionBold)
+                    .foregroundColor(AppColors.secondaryText)
+                    .tracking(1.2)
+                
+                VStack(spacing: 12) {
+                    TechnicalDataField(label: "NSN", value: property.nsn)
+                    
+                    if let lin = property.lin {
+                        TechnicalDataField(label: "LIN", value: lin)
+                    }
+                    
+                    TechnicalDataField(label: "Serial Number", value: property.serialNumber)
+                    
+                    if let acquisitionDate = property.acquisitionDate {
+                        TechnicalDataField(
+                            label: "Acquisition Date",
+                            value: dateFormatter.string(from: acquisitionDate)
+                        )
+                    }
+                }
+            }
+            .padding()
         }
     }
     
-    // Overload for date values
-    public init(label: String, value: Date, formatter: DateFormatter) {
-        self.label = label
-        self.value = formatter.string(from: value)
+    private func statusLocationCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("STATUS & LOCATION")
+                    .font(AppFonts.captionBold)
+                    .foregroundColor(AppColors.secondaryText)
+                    .tracking(1.2)
+                
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Current Status")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                        
+                        StatusBadge(
+                            status: property.status,
+                            type: statusBadgeType(for: property.status)
+                        )
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Location")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                        
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .font(.caption)
+                                .foregroundColor(AppColors.accent)
+                            Text(property.location ?? "Not specified")
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.primaryText)
+                        }
+                    }
+                }
+                
+                if let lastInvDate = property.lastInventoryDate {
+                    IndustrialDivider()
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Last Inventory")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
+                            Text(lastInvDate, formatter: dateFormatter)
+                                .font(AppFonts.body)
+                                .foregroundColor(inventoryDateColor(lastInvDate))
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: { /* Mark as inventoried */ }) {
+                            HStack {
+                                Image(systemName: "checkmark.circle")
+                                Text("Mark Inventoried")
+                            }
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.accent)
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
     }
     
-    // Convenience initializer for common date formats
-    public init(label: String, value: Date, formatter style: DateFormatter.Style) {
-        let formatter = DateFormatter()
-        formatter.dateStyle = style // Correctly assign the style
-        self.init(label: label, value: value, formatter: formatter)
+    private func maintenanceCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wrench.and.screwdriver.fill")
+                            .foregroundColor(AppColors.warning)
+                        Text("MAINTENANCE REQUIRED")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.warning)
+                            .tracking(1.2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { showingMaintenanceSchedule = true }) {
+                        Text("Schedule")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.accent)
+                    }
+                }
+                
+                if let dueDate = property.maintenanceDueDate {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Due Date")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                        Text(dueDate, formatter: dateFormatter)
+                            .font(AppFonts.body)
+                            .foregroundColor(maintenanceDateColor(dueDate))
+                    }
+                }
+            }
+            .padding()
+            .overlay(
+                Rectangle()
+                    .stroke(AppColors.warning.opacity(0.5), lineWidth: 2)
+            )
+        }
+    }
+    
+    private func notesCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("NOTES")
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.secondaryText)
+                        .tracking(1.2)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        editedNotes = property.notes ?? ""
+                        showingEditNotes = true
+                    }) {
+                        Image(systemName: "pencil")
+                            .foregroundColor(AppColors.accent)
+                    }
+                }
+                
+                if let notes = property.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("No notes added")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .italic()
+                }
+            }
+            .padding()
+        }
+        .sheet(isPresented: $showingEditNotes) {
+            EditNotesView(notes: $editedNotes, onSave: {
+                // TODO: Save notes via API
+            })
+        }
+    }
+    
+    private func auditTrailCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("AUDIT TRAIL")
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.secondaryText)
+                        .tracking(1.2)
+                    
+                    Spacer()
+                    
+                    Button(action: { showingHistory = true }) {
+                        HStack(spacing: 4) {
+                            Text("View All")
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.accent)
+                    }
+                }
+                
+                // Show last 3 events preview
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(0..<3) { _ in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(AppColors.accent)
+                                .frame(width: 6, height: 6)
+                            
+                            Text("Property created")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Spacer()
+                            
+                            Text("2 hours ago")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func determineCategory(_ property: Property) -> (name: String, icon: String)? {
+        let name = property.itemName.lowercased()
+        
+        if name.contains("weapon") || name.contains("rifle") || name.contains("pistol") {
+            return ("Weapons", "shield.lefthalf.filled")
+        } else if name.contains("radio") || name.contains("comm") {
+            return ("Communications", "antenna.radiowaves.left.and.right")
+        } else if name.contains("optic") || name.contains("nvg") || name.contains("scope") {
+            return ("Optics", "eye")
+        } else if name.contains("vehicle") || name.contains("truck") {
+            return ("Vehicles", "car.fill")
+        } else if name.contains("computer") || name.contains("electronic") {
+            return ("Electronics", "desktopcomputer")
+        }
+        
+        return nil
+    }
+    
+    private func statusBadgeType(for status: String) -> StatusBadge.StatusType {
+        switch status.lowercased() {
+        case "operational": return .success
+        case "maintenance", "non-operational": return .warning
+        case "missing": return .error
+        default: return .neutral
+        }
+    }
+    
+    private func inventoryDateColor(_ date: Date) -> Color {
+        let daysSince = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if daysSince > 90 {
+            return AppColors.destructive
+        } else if daysSince > 30 {
+            return AppColors.warning
+        } else {
+            return AppColors.success
+        }
+    }
+    
+    private func maintenanceDateColor(_ date: Date) -> Color {
+        if date < Date() {
+            return AppColors.destructive
+        } else if date < Date().addingTimeInterval(7 * 24 * 60 * 60) {
+            return AppColors.warning
+        } else {
+            return AppColors.secondaryText
+        }
     }
 }
 
-// Ensure ActionStatusOverlay is accessible or defined here
-// If it's in TransfersView.swift, it might need to be moved to its own file
-// or defined again here (less ideal).
+// MARK: - Supporting Views
 
-// Assuming ActionStatusOverlay is accessible:
+struct PropertyQRCodeView: View {
+    let property: Property
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                Text("Scan this code to initiate transfer")
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
+                
+                // QR Code placeholder
+                Rectangle()
+                    .fill(Color.white)
+                    .frame(width: 250, height: 250)
+                    .cornerRadius(12)
+                    .overlay(
+                        Text("QR Code")
+                            .foregroundColor(.black)
+                    )
+                
+                VStack(spacing: 8) {
+                    Text(property.itemName)
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.primaryText)
+                    
+                    Text("S/N: \(property.serialNumber)")
+                        .font(AppFonts.mono)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                Button("Done") {
+                    dismiss()
+                }
+                .buttonStyle(.primary)
+            }
+            .padding()
+            .navigationTitle("Property QR Code")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(content: {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Share") {
+                        // TODO: Implement share functionality
+                    }
+                    .foregroundColor(AppColors.accent)
+                }
+            })
+        }
+    }
+}
+
+struct PropertyHistoryView: View {
+    let propertyId: Int
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                // Placeholder for history items
+                ForEach(0..<10) { index in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Transfer Completed")
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Spacer()
+                            
+                            Text("\(index + 1) days ago")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
+                        }
+                        
+                        Text("From: SPC Smith → To: SGT Johnson")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("Property History")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(content: {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.accent)
+                }
+            })
+        }
+    }
+}
+
+struct MaintenanceScheduleView: View {
+    let property: Property
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var selectedDate = Date()
+    @State private var maintenanceNotes = ""
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Schedule maintenance for:")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.primaryText)
+                    
+                    Text(property.itemName)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                    
+                    DatePicker(
+                        "Maintenance Date",
+                        selection: $selectedDate,
+                        in: Date()...,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(GraphicalDatePickerStyle())
+                    .accentColor(AppColors.accent)
+                    
+                    IndustrialTextEditor(
+                        text: $maintenanceNotes,
+                        placeholder: "Add maintenance notes (optional)"
+                    )
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 16) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .buttonStyle(.secondary)
+                    
+                    Button("Schedule") {
+                        // TODO: Schedule maintenance via API
+                        dismiss()
+                    }
+                    .buttonStyle(.primary)
+                }
+            }
+            .padding()
+            .navigationTitle("Schedule Maintenance")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+struct EditNotesView: View {
+    @Binding var notes: String
+    let onSave: () -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                IndustrialTextEditor(
+                    text: $notes,
+                    placeholder: "Enter notes about this property..."
+                )
+                .padding()
+                
+                Spacer()
+            }
+            .navigationTitle("Edit Notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(content: {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.accent)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        onSave()
+                        dismiss()
+                    }
+                    .foregroundColor(AppColors.accent)
+                    .font(AppFonts.bodyBold)
+                }
+            })
+        }
+    }
+}
 
 // MARK: - Preview
 struct PropertyDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        // Preview needs adjustment to work with new VM states and potentially MockAPIService
-        NavigationView { // Wrap in NavigationView for Title
-            // Use Int ID for preview
-            PropertyDetailView(propertyId: Property.mockList[0].id,
-                               apiService: MockAPIService())
-            .previewDisplayName("Property Details")
+        NavigationView {
+            PropertyDetailView(propertyId: 1, apiService: MockAPIService())
         }
+        .preferredColorScheme(.dark)
     }
 }

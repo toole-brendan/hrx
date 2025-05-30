@@ -35,14 +35,14 @@ class ScanViewModel: ObservableObject {
     private var clearStateTimer: AnyCancellable? // Timer to clear success/error message
 
     // Nested enum for transfer request status
-    enum TransferRequestState: Equatable {
+    public enum TransferRequestState: Equatable {
         case idle
         case loading
         case success(Transfer) // Return the created transfer record
         case error(String)
         
         // Implement Equatable manually
-        static func == (lhs: TransferRequestState, rhs: TransferRequestState) -> Bool {
+        public static func == (lhs: TransferRequestState, rhs: TransferRequestState) -> Bool {
             switch (lhs, rhs) {
             case (.idle, .idle): return true
             case (.loading, .loading): return true
