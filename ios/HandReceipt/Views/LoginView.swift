@@ -345,14 +345,21 @@ struct LoginView: View {
                 // Fallback to local mock if API fails
                 let mockUser = LoginResponse.User(
                     id: 999,
+                    uuid: "dev-uuid",
                     username: "dev_user",
-                    name: "Developer",
+                    email: "dev@example.com",
+                    firstName: "Developer",
+                    lastName: "User",
                     rank: "DEV",
-                    lastName: "User"
+                    unit: "Dev Unit",
+                    role: "user",
+                    status: "active"
                 )
                 
                 let mockResponse = LoginResponse(
-                    token: "dev-token-\(UUID().uuidString)",
+                    accessToken: "dev-token-\(UUID().uuidString)",
+                    refreshToken: "dev-refresh-token-\(UUID().uuidString)",
+                    expiresAt: Date().addingTimeInterval(86400), // 24 hours from now
                     user: mockUser
                 )
                 

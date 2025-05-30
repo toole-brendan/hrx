@@ -13,40 +13,61 @@ class MockAPIService: APIServiceProtocol {
     
     func login(credentials: LoginCredentials) async throws -> LoginResponse {
         return LoginResponse(
-            user: User(
+            accessToken: "mock_access_token",
+            refreshToken: "mock_refresh_token",
+            expiresAt: Date().addingTimeInterval(86400), // 24 hours from now
+            user: LoginResponse.User(
                 id: 1,
+                uuid: "mock-uuid",
                 username: "mock_user",
-                name: "Mock User",
+                email: "mock@example.com",
+                firstName: "Mock",
+                lastName: "User",
                 rank: "SGT",
-                lastName: "User"
-            ),
-            token: "mock_token"
+                unit: "Mock Unit",
+                role: "user",
+                status: "active"
+            )
         )
     }
     
     func register(credentials: RegisterCredentials) async throws -> LoginResponse {
         return LoginResponse(
-            user: User(
+            accessToken: "mock_access_token_register",
+            refreshToken: "mock_refresh_token_register",
+            expiresAt: Date().addingTimeInterval(86400),
+            user: LoginResponse.User(
                 id: 1,
+                uuid: "mock-uuid",
                 username: credentials.username,
-                name: "\(credentials.firstName) \(credentials.lastName)",
+                email: credentials.email,
+                firstName: credentials.first_name,
+                lastName: credentials.last_name,
                 rank: credentials.rank,
-                lastName: credentials.lastName
-            ),
-            token: "mock_token_register"
+                unit: credentials.unit,
+                role: credentials.role,
+                status: "active"
+            )
         )
     }
     
     func checkSession() async throws -> LoginResponse {
         return LoginResponse(
-            user: User(
+            accessToken: nil, // No token for session check
+            refreshToken: nil,
+            expiresAt: nil,
+            user: LoginResponse.User(
                 id: 1,
-                username: "mock_user", 
-                name: "Mock User",
+                uuid: "mock-uuid",
+                username: "mock_user",
+                email: "mock@example.com",
+                firstName: "Mock",
+                lastName: "User",
                 rank: "SGT",
-                lastName: "User"
-            ),
-            token: "mock_token"
+                unit: "Mock Unit",
+                role: "user",
+                status: "active"
+            )
         )
     }
     
@@ -225,11 +246,14 @@ class MockAPIService: APIServiceProtocol {
             manufacturer: nil,
             imageUrl: nil,
             status: property.currentStatus,
+            currentStatus: property.currentStatus,
             assignedToUserId: property.assignedToUserId,
             location: nil,
             lastInventoryDate: nil,
             acquisitionDate: Date(),
-            notes: nil
+            notes: nil,
+            maintenanceDueDate: nil,
+            isSensitiveItem: false
         )
     }
 } 
