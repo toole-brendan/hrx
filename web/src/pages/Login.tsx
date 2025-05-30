@@ -160,7 +160,7 @@ const Login: React.FC = () => {
           <p className="text-gray-400 font-light italic mb-6">Military Supply Chain Management</p>
         </div>
         
-        <Card className="bg-card border-gray-800" style={{ fontFamily: "'D-Din', sans-serif" }}>
+        <Card className="bg-card border-gray-800" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
           <CardHeader>
             <CardTitle className="text-white font-light tracking-wide">Sign In</CardTitle>
             <CardDescription className="text-gray-400 font-light">

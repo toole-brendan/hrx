@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import logoImage from "@/assets/hr_logo1.png";
+import logoImage from "@/assets/hr_logo5.png";
 
 // Import API_BASE_URL from a shared location or define it here
 const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
@@ -115,20 +115,19 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 pb-4 pt-2">
       <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
+        <div className="text-center mb-0">
+          <div className="flex justify-center mb-4">
             <img 
               src={logoImage} 
               alt="HandReceipt Logo" 
-              className="h-32 w-auto"
+              className="h-96 w-auto select-none"
             />
           </div>
-          <p className="text-gray-400 font-light">Create your account</p>
         </div>
         
-        <Card className="bg-card border-gray-800" style={{ fontFamily: "'D-Din', sans-serif" }}>
+        <Card className="bg-card border-gray-800" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
           <CardHeader>
             <CardTitle className="text-white font-light tracking-wide">Register</CardTitle>
             <CardDescription className="text-gray-400 font-light">
@@ -305,7 +304,7 @@ const Register: React.FC = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light"
+                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light border-0"
                   disabled={isLoading}
                 >
                   {isLoading ? (
