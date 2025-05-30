@@ -24,6 +24,19 @@ class MockAPIService: APIServiceProtocol {
         )
     }
     
+    func register(credentials: RegisterCredentials) async throws -> LoginResponse {
+        return LoginResponse(
+            user: User(
+                id: 1,
+                username: credentials.username,
+                name: "\(credentials.firstName) \(credentials.lastName)",
+                rank: credentials.rank,
+                lastName: credentials.lastName
+            ),
+            token: "mock_token_register"
+        )
+    }
+    
     func checkSession() async throws -> LoginResponse {
         return LoginResponse(
             user: User(

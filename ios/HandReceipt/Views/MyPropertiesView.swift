@@ -339,6 +339,11 @@ class MockAPIService: APIServiceProtocol {
         if shouldThrowError { throw APIService.APIError.unauthorized }
          return mockLoginResponse ?? createMockLoginResponse(userId: 123, username: credentials.username, message: "Mock login successful")
     }
+    func register(credentials: RegisterCredentials) async throws -> LoginResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+        if shouldThrowError { throw APIService.APIError.badRequest(message: "Mock registration failed") }
+         return mockLoginResponse ?? createMockLoginResponse(userId: 789, username: credentials.username, message: "Mock registration successful")
+    }
     func checkSession() async throws -> LoginResponse { 
          try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
          if shouldThrowError { throw APIService.APIError.unauthorized }
