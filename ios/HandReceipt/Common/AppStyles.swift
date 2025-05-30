@@ -200,6 +200,287 @@ public struct IndustrialSectionHeaderModifier: ViewModifier {
 
 // MARK: - View Modifiers and Extensions
 
+// MARK: - Web-Aligned Components for Dashboard
+
+// Web-aligned card component with square corners and consistent borders
+public struct WebAlignedCard<Content: View>: View {
+    let content: Content
+    
+    public init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content
+        }
+        .background(AppColors.secondaryBackground)
+        .cornerRadius(0) // Match web's square corners
+        .overlay(
+            Rectangle()
+                .stroke(AppColors.border, lineWidth: 1)
+        )
+    }
+}
+
+// Section header matching web styling
+public struct SectionHeader: View {
+    let title: String
+    let action: (() -> Void)?
+    let actionLabel: String?
+    
+    public init(title: String, action: (() -> Void)? = nil, actionLabel: String? = nil) {
+        self.title = title
+        self.action = action
+        self.actionLabel = actionLabel
+    }
+    
+    public var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title.uppercased())
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                    .tracking(1.2)
+            }
+            
+            Spacer()
+            
+            if let action = action, let label = actionLabel {
+                Button(action: action) {
+                    HStack(spacing: 4) {
+                        Text(label.uppercased())
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.accent)
+                            .tracking(0.8)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundColor(AppColors.accent)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 12)
+    }
+}
+
+// Web-aligned stat card with consistent styling
+public struct WebAlignedStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    let onTap: (() -> Void)?
+    
+    public init(title: String, value: String, icon: String, color: Color, onTap: (() -> Void)? = nil) {
+        self.title = title
+        self.value = value
+        self.icon = icon
+        self.color = color
+        self.onTap = onTap
+    }
+    
+    public var body: some View {
+        Button(action: { onTap?() }) {
+            WebAlignedCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header with icon
+                    HStack {
+                        Image(systemName: icon)
+                            .font(.title3)
+                            .foregroundColor(color)
+                            .frame(width: 20, height: 20)
+                        Spacer()
+                    }
+                    .padding(.bottom, 12)
+                    
+                    // Value
+                    Text(value)
+                        .font(AppFonts.largeTitle)
+                        .foregroundColor(AppColors.primaryText)
+                        .padding(.bottom, 4)
+                    
+                    // Title
+                    Text(title.uppercased())
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                        .tracking(0.8)
+                }
+                .padding()
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
+    }
+}
+
+// Web-aligned quick action card
+public struct WebAlignedQuickActionCard: View {
+    let action: QuickAction
+    let onTap: () -> Void
+    
+    public init(action: QuickAction, onTap: @escaping () -> Void) {
+        self.action = action
+        self.onTap = onTap
+    }
+    
+    public var body: some View {
+        Button(action: onTap) {
+            WebAlignedCard {
+                VStack(spacing: 12) {
+                    ZStack {
+                        Rectangle()
+                            .fill(action.color.opacity(0.15))
+                            .frame(width: 48, height: 48)
+                        
+                        Image(systemName: action.icon)
+                            .font(.title3)
+                            .foregroundColor(action.color)
+                    }
+                    
+                    Text(action.title.uppercased())
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.primaryText)
+                        .tracking(0.8)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+            }
+        }
+        .buttonStyle(PlainButtonStyle()) // Remove default button styling
+    }
+}
+
+// Enhanced activity row with web styling
+public struct WebAlignedActivityRow: View {
+    let title: String
+    let subtitle: String
+    let time: String
+    let icon: String
+    let iconColor: Color
+    let onTap: (() -> Void)?
+    
+    public init(title: String, subtitle: String, time: String, icon: String, iconColor: Color, onTap: (() -> Void)? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+        self.time = time
+        self.icon = icon
+        self.iconColor = iconColor
+        self.onTap = onTap
+    }
+    
+    public var body: some View {
+        Button(action: { onTap?() }) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(iconColor)
+                    .frame(width: 40, height: 40)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Text(subtitle)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+                Spacer()
+                
+                Text(time)
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+            .padding()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
+    }
+}
+
+// Web-aligned status progress row with square corners
+public struct WebAlignedStatusProgressRow: View {
+    let label: String
+    let value: Int
+    let color: Color
+    
+    public init(label: String, value: Int, color: Color) {
+        self.label = label
+        self.value = value
+        self.color = color
+    }
+    
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(label)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Spacer()
+                
+                Text("\(value)%")
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(color)
+            }
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(AppColors.tertiaryBackground)
+                        .frame(height: 6)
+                        .cornerRadius(0) // Square corners for web alignment
+                    
+                    Rectangle()
+                        .fill(color)
+                        .frame(width: geometry.size.width * CGFloat(value) / 100, height: 6)
+                        .cornerRadius(0) // Square corners for web alignment
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+}
+
+// Supporting QuickAction enum for web-aligned components
+public enum QuickAction {
+    case scanQR, requestTransfer, findItem, exportReport
+    
+    public var title: String {
+        switch self {
+        case .scanQR: return "Scan QR"
+        case .requestTransfer: return "Request Transfer"
+        case .findItem: return "Find Item"
+        case .exportReport: return "Export Report"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .scanQR: return "qrcode.viewfinder"
+        case .requestTransfer: return "arrow.left.arrow.right"
+        case .findItem: return "magnifyingglass"
+        case .exportReport: return "doc.text"
+        }
+    }
+    
+    public var color: Color {
+        switch self {
+        case .scanQR: return .blue
+        case .requestTransfer: return .orange
+        case .findItem: return .green
+        case .exportReport: return .red
+        }
+    }
+}
+
 public struct StandardContainerPadding: ViewModifier {
     public init() {} // Public initializer
 
