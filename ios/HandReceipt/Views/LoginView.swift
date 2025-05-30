@@ -26,117 +26,92 @@ struct LoginView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background
-                AppColors.appBackground
+                // Black background to match web
+                Color.black
                     .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 0) {
                         // Logo and Header Section
-                        VStack(spacing: 24) {
-                            // Military Icon
+                        VStack(spacing: 0) {
+                            // Logo with tap gesture for dev login
                             ZStack {
-                                Circle()
-                                    .fill(AppColors.military)
-                                    .frame(width: 80, height: 80)
-                                    .shadow(color: AppColors.military.opacity(0.3), radius: 10, x: 0, y: 4)
-                                
-                                Image(systemName: "doc.text.fill")
-                                    .font(.system(size: 36, weight: .medium))
-                                    .foregroundColor(AppColors.primaryText)
+                                Image("hr_logo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 350) // Approximate h-96 from web
+                                    .onTapGesture {
+                                        handleLogoTap()
+                                    }
                                 
                                 // Dev login progress indicator
                                 if logoTapCount > 0 && logoTapCount < 5 {
                                     Circle()
-                                        .strokeBorder(AppColors.primaryText.opacity(0.3), lineWidth: 2)
-                                        .frame(width: 90, height: 90)
-                                        .overlay(
-                                            Text("\(logoTapCount)")
-                                                .font(.system(size: 10, weight: .bold))
-                                                .foregroundColor(AppColors.primaryText.opacity(0.5))
-                                                .offset(x: 35, y: -35)
-                                        )
-                                        .animation(.easeInOut(duration: 0.2), value: logoTapCount)
+                                        .strokeBorder(Color.gray.opacity(0.2), lineWidth: 2)
+                                        .frame(width: 200, height: 200)
+                                        .scaleEffect(1 + (CGFloat(logoTapCount) * 0.05))
+                                        .animation(.easeOut(duration: 0.2), value: logoTapCount)
+                                    
+                                    Text("\(logoTapCount)")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(Color.gray.opacity(0.5))
+                                        .offset(y: -120)
                                 }
                             }
-                            .onTapGesture {
-                                handleLogoTap()
-                            }
+                            .padding(.bottom, 16)
                             
-                            VStack(spacing: 8) {
-                                Text("HandReceipt")
-                                    .font(.custom("Georgia", size: 32))
-                                    .fontWeight(.light)
-                                    .compatibleKerning(3.0)
-                                    .foregroundColor(AppColors.primaryText)
-                                
-                                Text("Military Supply Chain Management")
-                                    .font(AppFonts.caption)
-                                    .foregroundColor(AppColors.secondaryText)
-                                    .compatibleKerning(1.0)
-                                    .textCase(.uppercase)
-                            }
+                            Text("Military Supply Chain Management")
+                                .font(.custom("DIN Alternate", size: 16))
+                                .italic()
+                                .foregroundColor(Color.gray)
+                                .padding(.bottom, 24)
                         }
-                        .padding(.top, 60)
-                        .padding(.bottom, 48)
+                        .padding(.top, 8)
                         
                         // Login Card
                         VStack(spacing: 0) {
                             // Card Header
-                            VStack(spacing: 4) {
-                                Text("SIGN IN")
-                                    .font(AppFonts.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(AppColors.primaryText)
-                                    .compatibleKerning(1.5)
+                            VStack(spacing: 8) {
+                                Text("Sign In")
+                                    .font(.custom("DIN Alternate", size: 24))
+                                    .foregroundColor(.white)
+                                    .compatibleKerning(1.0)
                                 
                                 Text("Enter your credentials to access your account")
-                                    .font(AppFonts.caption)
-                                    .foregroundColor(AppColors.secondaryText)
-                                    .multilineTextAlignment(.center)
+                                    .font(.custom("DIN Alternate", size: 14))
+                                    .foregroundColor(Color.gray)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 24)
+                            .padding(.vertical, 20)
                             .padding(.horizontal, 24)
-                            .background(AppColors.secondaryBackground)
-                            
-                            // Divider
-                            Rectangle()
-                                .fill(AppColors.border)
-                                .frame(height: 1)
                             
                             // Card Content
-                            VStack(spacing: 20) {
-                                // Input Fields
-                                VStack(spacing: 16) {
-                                    // Username Field
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("USERNAME")
-                                            .font(AppFonts.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(AppColors.secondaryText)
-                                            .compatibleKerning(0.5)
-                                        
-                                        TextField("john.doe", text: $viewModel.username)
-                                            .textFieldStyle(MaterialTextFieldStyle())
-                                            .textContentType(.username)
-                                            .keyboardType(.asciiCapable)
-                                            .autocapitalization(.none)
-                                            .disableAutocorrection(true)
-                                    }
+                            VStack(spacing: 16) {
+                                // Username Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("USERNAME")
+                                        .font(.custom("DIN Alternate", size: 11))
+                                        .foregroundColor(Color(white: 0.8))
+                                        .compatibleKerning(1.5)
                                     
-                                    // Password Field
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("PASSWORD")
-                                            .font(AppFonts.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(AppColors.secondaryText)
-                                            .compatibleKerning(0.5)
-                                        
-                                        SecureField("••••••••", text: $viewModel.password)
-                                            .textFieldStyle(MaterialTextFieldStyle())
-                                            .textContentType(.password)
-                                    }
+                                    TextField("", text: $viewModel.username)
+                                        .textFieldStyle(WebStyleTextField())
+                                        .textContentType(.username)
+                                        .keyboardType(.asciiCapable)
+                                        .autocapitalization(.none)
+                                        .disableAutocorrection(true)
+                                }
+                                
+                                // Password Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("PASSWORD")
+                                        .font(.custom("DIN Alternate", size: 11))
+                                        .foregroundColor(Color(white: 0.8))
+                                        .compatibleKerning(1.5)
+                                    
+                                    SecureField("", text: $viewModel.password)
+                                        .textFieldStyle(WebStyleTextField())
+                                        .textContentType(.password)
                                 }
                                 
                                 // Error Message
@@ -144,19 +119,19 @@ struct LoginView: View {
                                     HStack(spacing: 8) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .font(.system(size: 14))
-                                            .foregroundColor(AppColors.destructive)
+                                            .foregroundColor(.red)
                                         
                                         Text(errorMessage)
-                                            .font(AppFonts.caption)
-                                            .foregroundColor(AppColors.destructive)
+                                            .font(.custom("DIN Alternate", size: 13))
+                                            .foregroundColor(.red)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
-                                    .background(AppColors.destructive.opacity(0.1))
+                                    .background(Color.red.opacity(0.1))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 4)
-                                            .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
                                     )
                                 }
                                 
@@ -167,103 +142,46 @@ struct LoginView: View {
                                     HStack(spacing: 8) {
                                         if case .loading = viewModel.loginState {
                                             ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                                 .scaleEffect(0.8)
                                         } else {
                                             Image(systemName: "arrow.right.circle.fill")
-                                                .font(.system(size: 18))
+                                                .font(.system(size: 16))
                                         }
                                         
                                         Text("SIGN IN")
-                                            .font(AppFonts.subheadline)
-                                            .fontWeight(.medium)
-                                            .compatibleKerning(1.0)
+                                            .font(.custom("DIN Alternate", size: 11))
+                                            .compatibleKerning(1.5)
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .foregroundColor(AppColors.primaryText)
-                                    .background(AppColors.military)
+                                    .frame(height: 44)
+                                    .foregroundColor(.white)
+                                    .background(Color(red: 59/255, green: 130/255, blue: 246/255).opacity(0.7))
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .stroke(AppColors.military, lineWidth: 1)
+                                        RoundedRectangle(cornerRadius: 0)
+                                            .stroke(Color.clear, lineWidth: 0)
                                     )
                                 }
                                 .disabled(!viewModel.canAttemptLogin || viewModel.loginState == .loading)
                                 .opacity((!viewModel.canAttemptLogin || viewModel.loginState == .loading) ? 0.6 : 1.0)
-                                
-                                #if DEBUG
-                                // Debug Controls
-                                VStack(spacing: 12) {
-                                    Divider()
-                                        .background(AppColors.border)
-                                    
-                                    Text("DEBUG CONTROLS")
-                                        .font(AppFonts.caption2)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(AppColors.accent)
-                                        .compatibleKerning(0.5)
-                                    
-                                    HStack(spacing: 8) {
-                                        Button("Quick Fill") {
-                                            viewModel.username = "testuser"
-                                            viewModel.password = "password"
-                                        }
-                                        .buttonStyle(DebugButtonStyle())
-                                        
-                                        Button("Success") {
-                                            viewModel.simulateLoginSuccess()
-                                        }
-                                        .buttonStyle(DebugButtonStyle(color: .green))
-                                        
-                                        Button("Error") {
-                                            viewModel.simulateLoginError("Debug error")
-                                        }
-                                        .buttonStyle(DebugButtonStyle(color: AppColors.destructive))
-                                    }
+                                .onHover { isHovered in
+                                    // This will only work on macOS/iPad with mouse
                                 }
-                                .padding(.top, 8)
-                                #endif
                             }
                             .padding(24)
-                            .background(AppColors.tertiaryBackground)
                             
                             // Card Footer
-                            VStack(spacing: 16) {
-                                Button {
-                                    showingRegistration = true
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Text("Don't have an account?")
-                                            .foregroundColor(AppColors.secondaryText)
-                                        
-                                        Text("Create Account")
-                                            .foregroundColor(AppColors.military)
-                                            .fontWeight(.medium)
-                                    }
-                                    .font(AppFonts.caption)
-                                }
-                                
-                                Text("This is a secure Department of Defense system.\nUnauthorized access is prohibited.")
-                                    .font(AppFonts.caption2)
-                                    .foregroundColor(AppColors.tertiaryText)
-                                    .multilineTextAlignment(.center)
-                                    .compatibleKerning(0.3)
+                            VStack(spacing: 8) {
+                                // Empty footer to match web design
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(20)
-                            .background(AppColors.secondaryBackground)
-                            
-                            // Bottom border
-                            Rectangle()
-                                .fill(AppColors.border)
-                                .frame(height: 1)
+                            .padding(.vertical, 8)
                         }
-                        .background(AppColors.tertiaryBackground)
+                        .background(Color(white: 0.1))
                         .overlay(
                             RoundedRectangle(cornerRadius: 0)
-                                .stroke(AppColors.border, lineWidth: 1)
+                                .stroke(Color(white: 0.2), lineWidth: 1)
                         )
-                        .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
                         .padding(.horizontal, 24)
                         .padding(.bottom, 40)
                     }
@@ -287,7 +205,7 @@ struct LoginView: View {
         if case .failed(let message) = viewModel.loginState {
             return message
         } else {
-            return "" // Return empty string when no error
+            return ""
         }
     }
     
@@ -342,16 +260,17 @@ struct LoginView: View {
                 debugPrint("✅ Dev login successful via API!")
             } catch {
                 debugPrint("❌ Dev login failed: \(error)")
-                // Fallback to local mock if API fails
+                // Fallback to local mock if API fails in development
+                #if DEBUG
                 let mockUser = LoginResponse.User(
                     id: 999,
                     uuid: "dev-uuid",
-                    username: "dev_user",
-                    email: "dev@example.com",
-                    firstName: "Developer",
-                    lastName: "User",
-                    rank: "DEV",
-                    unit: "Dev Unit",
+                    username: "michael.rodriguez",
+                    email: "michael.rodriguez@example.com",
+                    firstName: "Michael",
+                    lastName: "Rodriguez",
+                    rank: "SSG",
+                    unit: "Test Unit",
                     role: "user",
                     status: "active"
                 )
@@ -365,47 +284,25 @@ struct LoginView: View {
                 
                 viewModel.loginState = .success(mockResponse)
                 onLoginSuccess(mockResponse)
+                #endif
             }
         }
     }
 }
 
-// Material-style text field
-struct MaterialTextFieldStyle: TextFieldStyle {
+// Web-style text field matching the web module's input styling
+struct WebStyleTextField: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .font(AppFonts.body)
-            .foregroundColor(AppColors.primaryText)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(AppColors.secondaryBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
-    }
-}
-
-// Debug button style
-struct DebugButtonStyle: ButtonStyle {
-    let color: Color
-    
-    init(color: Color = AppColors.accent) {
-        self.color = color
-    }
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(AppFonts.caption2.weight(.medium))
-            .foregroundColor(AppColors.primaryText)
+            .font(.custom("DIN Alternate", size: 15))
+            .foregroundColor(Color(white: 0.1))
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(color.opacity(configuration.isPressed ? 0.3 : 0.2))
+            .padding(.vertical, 10)
+            .background(Color(white: 0.9))
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(color.opacity(0.5), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(Color(white: 0.6), lineWidth: 1)
             )
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
     }
 }
 
