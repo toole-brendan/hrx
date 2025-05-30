@@ -18,6 +18,7 @@ import Maintenance from "./pages/Maintenance";
 import QRManagement from "./pages/QRManagement";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import UserManagement from "./pages/UserManagement";
 import CorrectionLogPage from './pages/CorrectionLogPage';
 import LedgerVerificationPage from './pages/LedgerVerificationPage';
@@ -79,6 +80,7 @@ function Router() {
         <Route path="/profile" component={() => <Profile />} />
         <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/login" component={() => <Login />} />
+        <Route path="/register" component={() => <Register />} />
         <Route component={() => <NotFound />} />
       </Switch>
     </AppShell>

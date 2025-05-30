@@ -94,3 +94,22 @@ struct UserResponse: Decodable {
 }
 
 // Define other auth-related structs (e.g., for registration) if needed 
+
+// Add registration request model
+struct RegisterCredentials: Encodable {
+    let username: String
+    let email: String
+    let password: String
+    let first_name: String
+    let last_name: String
+    let rank: String
+    let unit: String
+    let role: String = "user"
+    
+    enum CodingKeys: String, CodingKey {
+        case username, email, password
+        case first_name = "first_name"
+        case last_name = "last_name"
+        case rank, unit, role
+    }
+} 

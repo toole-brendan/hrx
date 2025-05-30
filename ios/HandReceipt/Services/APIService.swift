@@ -19,6 +19,9 @@ protocol APIServiceProtocol {
     // Function to login a user.
     func login(credentials: LoginCredentials) async throws -> LoginResponse
 
+    // Function to register a new user.
+    func register(credentials: RegisterCredentials) async throws -> LoginResponse
+
     // Function to check the current session status by fetching user profile.
     func checkSession() async throws -> LoginResponse
 
@@ -246,6 +249,9 @@ class APIService: APIServiceProtocol {
                 let errorMessage = String(data: data, encoding: .utf8)
                 debugPrint("Server error body: \(errorMessage ?? "nil")")
                 
+                if httpResponse.statusCode == 400 {
+                    throw APIError.badRequest(errorMessage)
+                }
                 if httpResponse.statusCode == 404 {
                     throw APIError.itemNotFound
                 }
@@ -322,6 +328,36 @@ class APIService: APIServiceProtocol {
         let response = try await performRequest(request: request) as LoginResponse
         debugPrint("Login successful for user: \(response.user.username)")
         return response
+    }
+
+    // Register function implementation
+    func register(credentials: RegisterCredentials) async throws -> LoginResponse {
+        debugPrint("Attempting to register user: \(credentials.username)")
+        let endpoint = baseURL.appendingPathComponent("/auth/register")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try encoder.encode(credentials)
+            debugPrint("Successfully encoded registration credentials")
+        } catch {
+            debugPrint("ERROR: Failed to encode registration credentials: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        do {
+            // Expect LoginResponse object upon success
+            let response = try await performRequest(request: request) as LoginResponse
+            debugPrint("Registration successful for user: \(response.user.username)")
+            return response
+        } catch let error as APIError {
+            // Re-throw with more specific message for badRequest
+            if case .badRequest(let message) = error {
+                throw APIError.badRequest(message ?? "Username or email already exists")
+            }
+            throw error
+        }
     }
 
     // Logout function implementation

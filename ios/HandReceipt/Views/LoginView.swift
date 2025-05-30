@@ -6,6 +6,7 @@ import Foundation
 
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
+    @State private var showingRegistration = false
     
     // Callback invoked on successful login, passing the response
     // Used by the containing view/coordinator to navigate away.
@@ -31,6 +32,8 @@ struct LoginView: View {
                 
                 loginButtonView
                 
+                createAccountButtonView
+                
                 Spacer()
             }
             .standardContainerPadding()
@@ -50,6 +53,9 @@ struct LoginView: View {
             }
             .onDisappear {
                 debugPrint("LoginView disappeared")
+            }
+            .sheet(isPresented: $showingRegistration) {
+                RegisterView()
             }
         }
         .navigationViewStyle(.stack)
@@ -192,6 +198,16 @@ struct LoginView: View {
         .buttonStyle(.primary)
         .disabled(!viewModel.canAttemptLogin || viewModel.loginState == .loading)
         .padding(.top, 10)
+    }
+    
+    private var createAccountButtonView: some View {
+        Button {
+            showingRegistration = true
+        } label: {
+            Text("Create Account")
+                .foregroundColor(.military)
+        }
+        .padding(.top)
     }
     
     // Helper to get the error message text from the state

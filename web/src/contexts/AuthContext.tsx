@@ -14,7 +14,10 @@ interface AuthContextType {
 }
 
 // Development mode flag - set this to true for local development
-const IS_DEVELOPMENT = true; // Change to false for production
+const IS_DEVELOPMENT = false; // Change to false for production
+
+// API Base URL - Replace with your actual Lightsail instance URL
+const API_BASE_URL = 'https://your-lightsail-instance.amazonaws.com'; // Replace with your actual URL
 
 // Mock user for development
 const DEV_USER: User = {
@@ -102,7 +105,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     // Production mode - use real fetch
-    const response = await fetch(input, {
+    // Convert relative URLs to absolute URLs using API_BASE_URL
+    const url = input.toString().startsWith('/') 
+      ? `${API_BASE_URL}${input}` 
+      : input.toString();
+      
+    const response = await fetch(url, {
       ...init,
       headers: {
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
@@ -188,7 +196,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Production mode - real login
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
