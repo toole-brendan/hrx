@@ -1,5 +1,5 @@
 import SwiftUI
-import AVFoundation
+@preconcurrency import AVFoundation
 import CoreImage
 
 struct QRScannerView: View {
@@ -395,7 +395,11 @@ class QRScannerViewModel: NSObject, ObservableObject {
             lastScannedCode = nil
         }
         
-        // Create a local reference to captureSession to avoid actor isolation issues
+        // Start capture session on background queue
+        startCaptureSession()
+    }
+    
+    nonisolated private func startCaptureSession() {
         let session = captureSession
         DispatchQueue.global(qos: .userInitiated).async {
             session.startRunning()

@@ -41,11 +41,11 @@ struct TransfersView: View {
             }
             .onAppear {
                 Task {
-                    await viewModel.loadTransfers()
+                    await viewModel.fetchTransfers()
                 }
             }
             .refreshable {
-                await viewModel.loadTransfers()
+                await viewModel.fetchTransfers()
             }
         }
     }
@@ -80,9 +80,15 @@ struct TransfersView: View {
     // MARK: - Transfer List
     @ViewBuilder
     private var transferList: some View {
-        let transfers = selectedTab == .incoming ? viewModel.incomingTransfers : viewModel.outgoingTransfers
+        let transfers = viewModel.filteredTransfers.filter { transfer in
+            if selectedTab == .incoming {
+                return viewModel.currentUserId != nil && transfer.toUserId == viewModel.currentUserId
+            } else {
+                return viewModel.currentUserId != nil && transfer.fromUserId == viewModel.currentUserId
+            }
+        }
         
-        if viewModel.isLoading {
+        if case .loading = viewModel.loadingState {
             loadingView
         } else if transfers.isEmpty {
             emptyStateView
@@ -151,9 +157,14 @@ struct TransferCard: View {
     let transfer: Transfer
     let isIncoming: Bool
     
+    init(transfer: Transfer, isIncoming: Bool) {
+        self.transfer = transfer
+        self.isIncoming = isIncoming
+    }
+    
     private var statusColor: Color {
         switch transfer.status {
-        case .PENDING, .REQUESTED:
+        case .PENDING:
             return .orange
         case .APPROVED:
             return AppColors.accent
@@ -176,7 +187,7 @@ struct TransferCard: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(transfer.propertyName)
+                    Text(transfer.propertyName ?? "Unknown Item")
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.primaryText)
                     
@@ -200,39 +211,7 @@ struct TransferCard: View {
             Divider()
             
             // Transfer Info
-            HStack(spacing: 16) {
-                // From User
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("From")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    if let fromUser = transfer.fromUser {
-                        Text("\(fromUser.rank ?? "") \(fromUser.lastName ?? "")")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.primaryText)
-                    }
-                }
-                
-                // Arrow
-                Image(systemName: "arrow.right")
-                    .foregroundColor(AppColors.secondaryText)
-                
-                // To User
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("To")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    if let toUser = transfer.toUser {
-                        Text("\(toUser.rank ?? "") \(toUser.lastName ?? "")")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.primaryText)
-                    }
-                }
-                
-                Spacer()
-            }
+            transferInfoSection
             
             // Timestamp
             Text("Requested: \(transfer.requestTimestamp, formatter: dateFormatter)")
@@ -240,7 +219,7 @@ struct TransferCard: View {
                 .foregroundColor(AppColors.secondaryText)
             
             // Quick Actions for Pending Incoming Transfers
-            if isIncoming && (transfer.status == .PENDING || transfer.status == .REQUESTED) {
+            if isIncoming && transfer.status == .PENDING {
                 HStack(spacing: 12) {
                     Button(action: {}) {
                         Text("Reject")
@@ -271,6 +250,42 @@ struct TransferCard: View {
         .background(AppColors.secondaryBackground)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+    
+    private var transferInfoSection: some View {
+        HStack(spacing: 16) {
+            // From User
+            VStack(alignment: .leading, spacing: 4) {
+                Text("From")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                
+                if let fromUser = transfer.fromUser {
+                    Text("\(fromUser.rank ?? "") \(fromUser.lastName ?? "")")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.primaryText)
+                }
+            }
+            
+            // Arrow
+            Image(systemName: "arrow.right")
+                .foregroundColor(AppColors.secondaryText)
+            
+            // To User
+            VStack(alignment: .leading, spacing: 4) {
+                Text("To")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                
+                if let toUser = transfer.toUser {
+                    Text("\(toUser.rank ?? "") \(toUser.lastName ?? "")")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.primaryText)
+                }
+            }
+            
+            Spacer()
+        }
     }
 }
 
@@ -303,8 +318,7 @@ struct TransferDetailView: View {
                         }
                         
                         // Actions (for pending incoming transfers)
-                        if viewModel.currentUserId == transfer.toUserId && 
-                           (transfer.status == .PENDING || transfer.status == .REQUESTED) {
+                        if viewModel.currentUserId == transfer.toUserId && transfer.status == .PENDING {
                             actionSection
                         }
                     }
@@ -351,7 +365,7 @@ struct TransferDetailView: View {
                 .foregroundColor(AppColors.primaryText)
             
             VStack(alignment: .leading, spacing: 12) {
-                InfoRow(label: "Item Name", value: transfer.propertyName)
+                InfoRow(label: "Item Name", value: transfer.propertyName ?? "Unknown Item")
                 InfoRow(label: "Serial Number", value: transfer.propertySerialNumber)
                 InfoRow(label: "Property ID", value: "#\(transfer.propertyId)")
             }
@@ -375,7 +389,10 @@ struct TransferDetailView: View {
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.secondaryText)
                     Spacer()
-                    StatusBadge(status: transfer.status)
+                    StatusBadge(
+                        status: transfer.status.rawValue.capitalized,
+                        type: statusBadgeType(for: transfer.status)
+                    )
                 }
                 
                 Divider()
@@ -402,6 +419,22 @@ struct TransferDetailView: View {
             .padding()
             .background(AppColors.secondaryBackground)
             .cornerRadius(12)
+        }
+    }
+    
+    // Helper to determine StatusBadge type
+    private func statusBadgeType(for status: TransferStatus) -> StatusBadge.StatusType {
+        switch status {
+        case .PENDING:
+            return .warning
+        case .APPROVED:
+            return .success
+        case .REJECTED:
+            return .error
+        case .CANCELLED:
+            return .neutral
+        case .UNKNOWN:
+            return .neutral
         }
     }
     
@@ -464,9 +497,9 @@ struct TransferDetailView: View {
         do {
             switch action {
             case .approve:
-                _ = try await viewModel.approveTransfer(transfer.id)
+                _ = try await viewModel.approveTransfer(transferId: transfer.id)
             case .reject:
-                _ = try await viewModel.rejectTransfer(transfer.id, notes: rejectionNotes.isEmpty ? nil : rejectionNotes)
+                _ = try await viewModel.rejectTransfer(transferId: transfer.id)
             }
             
             await MainActor.run {
@@ -474,7 +507,7 @@ struct TransferDetailView: View {
             }
             
             // Refresh transfers
-            await viewModel.loadTransfers()
+            await viewModel.fetchTransfers()
         } catch {
             // Handle error
             print("Transfer action failed: \(error)")

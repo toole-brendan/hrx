@@ -28,180 +28,13 @@ struct ManualSNEntryView: View {
     @State private var isSearchingNSN = false
 
     var body: some View {
-        NavigationView { // Added for Title and potentially other navigation
-            VStack(spacing: 16) {
-
-                // --- Input Field --- 
-                HStack {
-                    let textField = TextField(
-                        "Enter Serial Number",
-                        text: $viewModel.serialNumberInput
-                    )
-                    
-                    textField
-                        .textFieldStyle(.roundedBorder)
-                        .textInputAutocapitalization(.characters) // Changed to .characters for SNs
-                        .disableAutocorrection(true)
-                        .submitLabel(.search)
-                        .disabled(viewModel.lookupState == PropertyLookupState.loading) // Use specific enum case
-                        // Trigger search on submit (hitting return key)
-                        .onSubmit { 
-                            viewModel.findProperty() 
-                        }
-
-                     // Clear button
-                     if !viewModel.serialNumberInput.isEmpty {
-                        Button {
-                            viewModel.clearAndReset()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.leading, -30) // Adjust to overlay nicely
-                    }
-                }
-                .padding(.horizontal)
-
-                // NSN/LIN Fields with lookup
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("NSN (Optional)")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                            
-                            HStack {
-                                TextField("13-digit NSN", text: $nsn)
-                                    .textFieldStyle(IndustrialTextFieldStyle())
-                                    .autocapitalization(.none)
-                                    .onChange(of: nsn) { newValue in
-                                        // Format NSN as user types (####-##-###-####)
-                                        if newValue.count == 13 && !newValue.contains("-") {
-                                            let formatted = formatNSN(newValue)
-                                            nsn = formatted
-                                        }
-                                    }
-                                
-                                Button(action: lookupNSN) {
-                                    Image(systemName: "magnifyingglass")
-                                        .foregroundColor(AppColors.primary)
-                                }
-                                .disabled(nsn.replacingOccurrences(of: "-", with: "").count != 13)
-                            }
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("LIN (Optional)")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                            
-                            HStack {
-                                TextField("6-character LIN", text: $lin)
-                                    .textFieldStyle(IndustrialTextFieldStyle())
-                                    .autocapitalization(.allCharacters)
-                                    .onChange(of: lin) { newValue in
-                                        lin = String(newValue.prefix(6)).uppercased()
-                                    }
-                                
-                                Button(action: lookupLIN) {
-                                    Image(systemName: "magnifyingglass")
-                                        .foregroundColor(AppColors.primary)
-                                }
-                                .disabled(lin.count != 6)
-                            }
-                        }
-                    }
-                    
-                    Button(action: { showingNSNSearch = true }) {
-                        HStack {
-                            Image(systemName: "text.magnifyingglass")
-                            Text("Search NSN Database")
-                        }
-                        .font(.caption)
-                        .foregroundColor(AppColors.primary)
-                    }
-                }
-                .padding(.bottom)
-
-                // --- Status/Result Area --- 
-                VStack {
-                    switch viewModel.lookupState {
-                    case .idle:
-                        // Optionally show a prompt or leave empty
-                         Text("Enter a serial number above to look up an item.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.top)
-
-                    case .loading:
-                        ProgressView("Looking up...")
-                            .padding()
-
-                    case .success(let property):
-                        PropertyFoundView(
-                            property: property,
-                            onConfirm: {
-                                // Trigger confirmation flow if callback exists
-                                if onItemConfirmed != nil {
-                                    itemToConfirm = property
-                                    showingConfirmationAlert = true
-                                } else {
-                                    // Handle case where no confirmation action is provided
-                                     print("Item found, but no confirmation action provided.")
-                                }
-                            },
-                            // Only show confirm button if handler is provided
-                            showConfirmButton: onItemConfirmed != nil 
-                        )
-                        .padding(.horizontal)
-
-                    case .notFound:
-                        Text("Serial number \"\(viewModel.serialNumberInput)\" not found.")
-                            .foregroundColor(.orange)
-                            .multilineTextAlignment(.center)
-                            .padding()
-
-                    case .error(let message):
-                        Text(message)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                            // Add a retry button for errors?
-                            Button("Retry") {
-                                viewModel.findProperty()
-                            }
-                            .buttonStyle(.bordered)
-                            .padding(.top, 5)
-
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 150) // Give result area some space
-                .background(Color(uiColor: .secondarySystemBackground)) // Subtle background
-                .cornerRadius(10)
-                .padding(.horizontal)
-
-                Spacer() // Pushes content up
-            }
-            .padding(.top) // Add padding at the top of the VStack
-             // Alert for confirming the action
-            .alert("Confirm Action", isPresented: $showingConfirmationAlert, presenting: itemToConfirm) { property in
-                 // Provide context in the alert message if needed
-                Button("Confirm") {
-                    onItemConfirmed?(property)
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: { property in
-                // Customize alert message based on the intended action
-                Text("Do you want to proceed with the action for \"\(property.itemName)\" (SN: \(property.serialNumber))?")
-            }
-            .navigationTitle("Manual Serial Number Entry")
-            .navigationBarTitleDisplayMode(.inline)
+        NavigationView {
+            mainContent
         }
         .onAppear {
              // Optionally clear state when view appears if needed
             // viewModel.clearAndReset()
         }
-
         .sheet(isPresented: $showingNSNSearch) {
             NSNSearchView(
                 searchQuery: $nsnSearchQuery,
@@ -212,6 +45,188 @@ struct ManualSNEntryView: View {
                     showingNSNSearch = false
                 }
             )
+        }
+    }
+    
+    @ViewBuilder
+    private var mainContent: some View {
+        VStack(spacing: 16) {
+            // --- Input Field --- 
+            serialNumberInputField
+                .padding(.horizontal)
+
+            // NSN/LIN Fields with lookup
+            nsnLinSection
+                .padding(.bottom)
+
+            // --- Status/Result Area --- 
+            statusResultArea
+                .frame(maxWidth: .infinity, minHeight: 150) // Give result area some space
+                .background(Color(uiColor: .secondarySystemBackground)) // Subtle background
+                .cornerRadius(10)
+                .padding(.horizontal)
+
+            Spacer() // Pushes content up
+        }
+        .padding(.top) // Add padding at the top of the VStack
+        .alert("Confirm Action", isPresented: $showingConfirmationAlert, presenting: itemToConfirm) { property in
+             // Provide context in the alert message if needed
+            Button("Confirm") {
+                onItemConfirmed?(property)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { property in
+            // Customize alert message based on the intended action
+            Text("Do you want to proceed with the action for \"\(property.itemName)\" (SN: \(property.serialNumber))?")
+        }
+        .navigationTitle("Manual Serial Number Entry")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private var serialNumberInputField: some View {
+        HStack {
+            let textField = TextField(
+                "Enter Serial Number",
+                text: $viewModel.serialNumberInput
+            )
+            
+            textField
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.characters) // Changed to .characters for SNs
+                .disableAutocorrection(true)
+                .submitLabel(.search)
+                .disabled(viewModel.lookupState == PropertyLookupState.loading) // Use specific enum case
+                // Trigger search on submit (hitting return key)
+                .onSubmit { 
+                    viewModel.findProperty() 
+                }
+
+             // Clear button
+             if !viewModel.serialNumberInput.isEmpty {
+                Button {
+                    viewModel.clearAndReset()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+                .padding(.leading, -30) // Adjust to overlay nicely
+            }
+        }
+    }
+    
+    private var nsnLinSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("NSN (Optional)")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                    
+                    HStack {
+                        TextField("13-digit NSN", text: $nsn)
+                            .textFieldStyle(IndustrialTextFieldStyle())
+                            .autocapitalization(.none)
+                            .onChange(of: nsn) { newValue in
+                                // Format NSN as user types (####-##-###-####)
+                                if newValue.count == 13 && !newValue.contains("-") {
+                                    let formatted = formatNSN(newValue)
+                                    nsn = formatted
+                                }
+                            }
+                        
+                        Button(action: lookupNSN) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(AppColors.accent)
+                        }
+                        .disabled(nsn.replacingOccurrences(of: "-", with: "").count != 13)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("LIN (Optional)")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                    
+                    HStack {
+                        TextField("6-character LIN", text: $lin)
+                            .textFieldStyle(IndustrialTextFieldStyle())
+                            .autocapitalization(.allCharacters)
+                            .onChange(of: lin) { newValue in
+                                lin = String(newValue.prefix(6)).uppercased()
+                            }
+                        
+                        Button(action: lookupLIN) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(AppColors.accent)
+                        }
+                        .disabled(lin.count != 6)
+                    }
+                }
+            }
+            
+            Button(action: { showingNSNSearch = true }) {
+                HStack {
+                    Image(systemName: "text.magnifyingglass")
+                    Text("Search NSN Database")
+                }
+                .font(.caption)
+                .foregroundColor(AppColors.accent)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var statusResultArea: some View {
+        VStack {
+            switch viewModel.lookupState {
+            case .idle:
+                // Optionally show a prompt or leave empty
+                 Text("Enter a serial number above to look up an item.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top)
+
+            case .loading:
+                ProgressView("Looking up...")
+                    .padding()
+
+            case .success(let property):
+                PropertyFoundView(
+                    property: property,
+                    onConfirm: {
+                        // Trigger confirmation flow if callback exists
+                        if onItemConfirmed != nil {
+                            itemToConfirm = property
+                            showingConfirmationAlert = true
+                        } else {
+                            // Handle case where no confirmation action is provided
+                             print("Item found, but no confirmation action provided.")
+                        }
+                    },
+                    // Only show confirm button if handler is provided
+                    showConfirmButton: onItemConfirmed != nil 
+                )
+                .padding(.horizontal)
+
+            case .notFound:
+                Text("Serial number \"\(viewModel.serialNumberInput)\" not found.")
+                    .foregroundColor(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding()
+
+            case .error(let message):
+                Text(message)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding()
+                    // Add a retry button for errors?
+                    Button("Retry") {
+                        viewModel.findProperty()
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.top, 5)
+
+            }
         }
     }
 
