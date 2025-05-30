@@ -364,7 +364,7 @@ class MockAPIService: APIServiceProtocol {
          // No return value needed
      }
      // Add baseURLString requirement
-     var baseURLString: String { "http://mock.api" }
+     var baseURLString: String { "http://44.193.254.155:8080/api" }
 
      // Add missing stubs for protocol conformance
      func fetchTransfers(status: String?, direction: String?) async throws -> [Transfer] {

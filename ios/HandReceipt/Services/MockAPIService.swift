@@ -1,7 +1,7 @@
 import Foundation
 
 class MockAPIService: APIServiceProtocol {
-    var baseURLString: String = "http://mock.example.com"
+    var baseURLString: String = "http://44.193.254.155:8080/api"
     
     func fetchReferenceItems() async throws -> [ReferenceItem] {
         return [ReferenceItem.example]
