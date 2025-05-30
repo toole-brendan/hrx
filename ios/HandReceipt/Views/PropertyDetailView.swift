@@ -104,18 +104,18 @@ struct PropertyDetailView: View {
     }
 }
 
-// Helper view for consistent detail rows
-struct DetailRow: View {
+// Helper view for consistent detail rows - make it public so other views can use it
+public struct DetailRow: View {
     let label: String
     let value: String
 
     // Explicit initializer for String values
-    init(label: String, value: String) {
+    public init(label: String, value: String) {
         self.label = label
         self.value = value
     }
 
-    var body: some View {
+    public var body: some View {
         HStack {
             Text(label + ":")
                 .bold()
@@ -126,13 +126,13 @@ struct DetailRow: View {
     }
     
     // Overload for date values
-    init(label: String, value: Date, formatter: DateFormatter) {
+    public init(label: String, value: Date, formatter: DateFormatter) {
         self.label = label
         self.value = formatter.string(from: value)
     }
     
     // Convenience initializer for common date formats
-    init(label: String, value: Date, formatter style: DateFormatter.Style) {
+    public init(label: String, value: Date, formatter style: DateFormatter.Style) {
         let formatter = DateFormatter()
         formatter.dateStyle = style // Correctly assign the style
         self.init(label: label, value: value, formatter: formatter)

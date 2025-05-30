@@ -433,11 +433,14 @@ class MockAPIService: APIServiceProtocol {
              manufacturer: nil,
              imageUrl: nil,
              status: property.currentStatus,
+             currentStatus: property.currentStatus,
              assignedToUserId: property.assignedToUserId,
              location: nil,
              lastInventoryDate: nil,
              acquisitionDate: Date(),
-             notes: nil
+             notes: nil,
+             maintenanceDueDate: nil,
+             isSensitiveItem: false
          )
      }
      
@@ -547,9 +550,63 @@ class MockAPIService: APIServiceProtocol {
 
 extension Property {
     static let mockList = [
-        Property(id: 1, serialNumber: "SN123", nsn: "1111-11-111-1111", lin: "E03045", itemName: "Test Prop 1", description: "Mock Description 1", manufacturer: "Mock Manu", imageUrl: nil, status: "Operational", assignedToUserId: nil, location: "Bldg 1", lastInventoryDate: Date(), acquisitionDate: nil, notes: nil),
-        Property(id: 2, serialNumber: "SN456", nsn: "2222-22-222-2222", lin: "E03046", itemName: "Test Prop 2", description: "Mock Description 2", manufacturer: "Mock Manu", imageUrl: nil, status: "Maintenance", assignedToUserId: nil, location: "Bldg 2", lastInventoryDate: Calendar.current.date(byAdding: .day, value: -10, to: Date()), acquisitionDate: nil, notes: nil),
-        Property(id: 3, serialNumber: "SN789", nsn: "3333-33-333-3333", lin: "E03047", itemName: "Test Prop 3", description: "Mock Description 3", manufacturer: "Mock Manu", imageUrl: nil, status: "Operational", assignedToUserId: nil, location: "Bldg 1", lastInventoryDate: Calendar.current.date(byAdding: .month, value: -1, to: Date()), acquisitionDate: nil, notes: nil)
+        Property(
+            id: 1, 
+            serialNumber: "SN123", 
+            nsn: "1111-11-111-1111", 
+            lin: "E03045", 
+            itemName: "Test Prop 1", 
+            description: "Mock Description 1", 
+            manufacturer: "Mock Manu", 
+            imageUrl: nil, 
+            status: "Operational", 
+            currentStatus: "operational",
+            assignedToUserId: nil, 
+            location: "Bldg 1", 
+            lastInventoryDate: Date(), 
+            acquisitionDate: nil, 
+            notes: nil,
+            maintenanceDueDate: nil,
+            isSensitiveItem: false
+        ),
+        Property(
+            id: 2, 
+            serialNumber: "SN456", 
+            nsn: "2222-22-222-2222", 
+            lin: "E03046", 
+            itemName: "Test Prop 2", 
+            description: "Mock Description 2", 
+            manufacturer: "Mock Manu", 
+            imageUrl: nil, 
+            status: "Maintenance", 
+            currentStatus: "maintenance",
+            assignedToUserId: nil, 
+            location: "Bldg 2", 
+            lastInventoryDate: Calendar.current.date(byAdding: .day, value: -10, to: Date()), 
+            acquisitionDate: nil, 
+            notes: nil,
+            maintenanceDueDate: Calendar.current.date(byAdding: .day, value: 5, to: Date()),
+            isSensitiveItem: false
+        ),
+        Property(
+            id: 3, 
+            serialNumber: "SN789", 
+            nsn: "3333-33-333-3333", 
+            lin: "E03047", 
+            itemName: "Test Prop 3", 
+            description: "Mock Description 3", 
+            manufacturer: "Mock Manu", 
+            imageUrl: nil, 
+            status: "Operational", 
+            currentStatus: "operational",
+            assignedToUserId: nil, 
+            location: "Bldg 1", 
+            lastInventoryDate: Calendar.current.date(byAdding: .month, value: -1, to: Date()), 
+            acquisitionDate: nil, 
+            notes: nil,
+            maintenanceDueDate: nil,
+            isSensitiveItem: true
+        )
     ]
 }
 #endif 

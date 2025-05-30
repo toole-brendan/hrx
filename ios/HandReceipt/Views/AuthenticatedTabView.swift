@@ -4,7 +4,7 @@ struct AuthenticatedTabView: View {
     @StateObject var authViewModel: AuthViewModel
     @State private var showingScanView = false
     @State private var showingCreateProperty = false
-    @State private var selectedTab = 1 // Default to Properties tab
+    @State private var selectedTab = 0 // Default to Dashboard tab
 
     init(authViewModel: AuthViewModel) {
         _authViewModel = StateObject(wrappedValue: authViewModel)
@@ -14,18 +14,19 @@ struct AuthenticatedTabView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                // Reference DB Tab
+                // Dashboard Tab - NEW LANDING PAGE
                 NavigationView {
-                    ReferenceDatabaseBrowserView()
+                    DashboardView()
                 }
                 .tag(0)
                 .tabItem {
-                    Label("Ref DB", systemImage: "book.closed")
+                    Label("Dashboard", systemImage: "house.fill")
                 }
 
-                // My Properties Tab with Create Button
+                // Property Book Tab (renamed from "Properties")
                 NavigationView {
                     MyPropertiesView()
+                        .navigationTitle("Property Book")
                         .toolbar {
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 Button(action: { showingCreateProperty = true }) {
@@ -38,10 +39,19 @@ struct AuthenticatedTabView: View {
                 }
                 .tag(1)
                 .tabItem {
-                    Label("Properties", systemImage: "list.bullet.rectangle.portrait")
+                    Label("Property Book", systemImage: "book.closed.fill")
                 }
 
-                // Scan Tab - Now functional
+                // Transfers Tab
+                NavigationView {
+                    TransfersView()
+                }
+                .tag(2)
+                .tabItem {
+                    Label("Transfers", systemImage: "arrow.left.arrow.right.circle.fill")
+                }
+
+                // Scan Tab - Central action
                 VStack {
                     Spacer()
                     
@@ -73,33 +83,24 @@ struct AuthenticatedTabView: View {
                 .background(AppColors.appBackground.ignoresSafeArea())
                 .contentShape(Rectangle())
                 .onTapGesture { showingScanView = true }
-                .tag(2)
+                .tag(3)
                 .tabItem {
                     Label("Scan", systemImage: "qrcode.viewfinder")
                 }
-                
-                // Transfers Tab
-                NavigationView {
-                    TransfersView()
-                }
-                .tag(3)
-                .tabItem {
-                    Label("Transfers", systemImage: "arrow.right.arrow.left.circle")
-                }
 
-                // Settings/Profile Tab
+                // More Tab - Contains additional pages
                 NavigationView {
-                    SettingsView(authViewModel: authViewModel)
+                    MoreView(authViewModel: authViewModel)
                 }
                 .tag(4)
                 .tabItem {
-                    Label("Settings", systemImage: "gear")
+                    Label("More", systemImage: "ellipsis.circle.fill")
                 }
             }
             .accentColor(AppColors.accent)
             
-            // Floating Action Button for Quick Actions (optional enhancement)
-            if selectedTab == 1 { // Show only on Properties tab
+            // Floating Action Button for Quick Actions (only on Property Book tab)
+            if selectedTab == 1 { // Show only on Property Book tab
                 VStack {
                     Spacer()
                     HStack {
@@ -175,8 +176,205 @@ struct AuthenticatedTabView: View {
     }
 }
 
-// MARK: - Floating Action Button
+// MARK: - More View (New)
+struct MoreView: View {
+    @ObservedObject var authViewModel: AuthViewModel
+    @State private var showingReferenceDB = false
+    
+    var body: some View {
+        List {
+            // Additional Features Section
+            Section("Equipment Management") {
+                NavigationLink(destination: ReferenceDatabaseBrowserView()) {
+                    HStack {
+                        Image(systemName: "book.closed.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 30)
+                        Text("Reference Database")
+                        Spacer()
+                    }
+                }
+                
+                NavigationLink(destination: SensitiveItemsView()) {
+                    HStack {
+                        Image(systemName: "shield.fill")
+                            .foregroundColor(.green)
+                            .frame(width: 30)
+                        Text("Sensitive Items")
+                        Spacer()
+                    }
+                }
+                
+                NavigationLink(destination: MaintenanceView()) {
+                    HStack {
+                        Image(systemName: "wrench.and.screwdriver.fill")
+                            .foregroundColor(.orange)
+                            .frame(width: 30)
+                        Text("Maintenance")
+                        Spacer()
+                    }
+                }
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+            
+            // Reports Section
+            Section("Reports & Analytics") {
+                NavigationLink(destination: ReportsView()) {
+                    HStack {
+                        Image(systemName: "chart.bar.doc.horizontal.fill")
+                            .foregroundColor(.purple)
+                            .frame(width: 30)
+                        Text("Reports")
+                        Spacer()
+                    }
+                }
+                
+                NavigationLink(destination: Text("Audit Log View - Coming Soon")) {
+                    HStack {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .foregroundColor(.indigo)
+                            .frame(width: 30)
+                        Text("Audit Log")
+                        Spacer()
+                    }
+                }
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+            
+            // Settings Section
+            Section("Settings") {
+                NavigationLink(destination: Text("QR Management View - Coming Soon")) {
+                    HStack {
+                        Image(systemName: "qrcode")
+                            .foregroundColor(.cyan)
+                            .frame(width: 30)
+                        Text("QR Management")
+                        Spacer()
+                    }
+                }
+                
+                NavigationLink(destination: SettingsView(authViewModel: authViewModel)) {
+                    HStack {
+                        Image(systemName: "gear")
+                            .foregroundColor(.gray)
+                            .frame(width: 30)
+                        Text("Settings")
+                        Spacer()
+                    }
+                }
+                
+                NavigationLink(destination: ProfileView(authViewModel: authViewModel)) {
+                    HStack {
+                        Image(systemName: "person.circle.fill")
+                            .foregroundColor(AppColors.accent)
+                            .frame(width: 30)
+                        Text("Profile")
+                        Spacer()
+                    }
+                }
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+        }
+        .listStyle(.insetGrouped)
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .navigationTitle("More")
+    }
+}
 
+// MARK: - Profile View (New)
+struct ProfileView: View {
+    @ObservedObject var authViewModel: AuthViewModel
+    
+    var body: some View {
+        List {
+            // User Profile Section
+            Section {
+                if let user = authViewModel.currentUser?.user {
+                    HStack {
+                        // Profile Picture Placeholder
+                        ZStack {
+                            Circle()
+                                .fill(AppColors.accent)
+                                .frame(width: 80, height: 80)
+                            
+                            Text(user.name.prefix(1).uppercased())
+                                .font(.largeTitle)
+                                .foregroundColor(.white)
+                        }
+                        .padding(.trailing)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(user.rank) \(user.name)")
+                                .font(AppFonts.headline)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Text("@\(user.username)")
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.secondaryText)
+                            
+                            Text("ID: #\(user.id)")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical)
+                }
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+            
+            // Account Details Section
+            Section("Account Details") {
+                ProfileDetailRow(label: "Role", value: "Company Commander")
+                ProfileDetailRow(label: "Unit", value: "A Company, 1-502 INF")
+                ProfileDetailRow(label: "Member Since", value: "Jan 2023")
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+            
+            // Statistics Section
+            Section("Activity Statistics") {
+                ProfileDetailRow(label: "Total Items", value: "156")
+                ProfileDetailRow(label: "Transfers Completed", value: "47")
+                ProfileDetailRow(label: "Items Verified", value: "312")
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+            
+            // Actions Section
+            Section {
+                Button("Sign Out", role: .destructive) {
+                    authViewModel.logout()
+                }
+                .font(AppFonts.bodyBold)
+            }
+            .listRowBackground(AppColors.secondaryBackground)
+        }
+        .listStyle(.insetGrouped)
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .navigationTitle("Profile")
+    }
+}
+
+// MARK: - Profile Detail Row Component
+struct ProfileDetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.secondaryText)
+            Spacer()
+            Text(value)
+                .font(AppFonts.bodyBold)
+                .foregroundColor(AppColors.primaryText)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Floating Action Button
 struct FloatingActionButton: View {
     let icon: String
     let action: () -> Void
@@ -200,44 +398,6 @@ struct FloatingActionButton: View {
                 isPressed = pressing
             }
         }, perform: {})
-    }
-}
-
-// MARK: - Helper Extension for UIFont conversion
-extension AppFonts {
-    static func uiFont(from font: Font, size: CGFloat? = nil) -> UIFont? {
-        let fontDescription = String(describing: font)
-        
-        if fontDescription.contains("CustomFontProvider") {
-            var fontName = "HelveticaNeue"
-            var finalSize: CGFloat
-            
-            switch font {
-                case AppFonts.body: fontName = "HelveticaNeue"; finalSize = AppFonts.bodySize
-                case AppFonts.bodyBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.bodySize
-                case AppFonts.headline: fontName = "HelveticaNeue-Medium"; finalSize = AppFonts.headlineSize
-                case AppFonts.subheadline: fontName = "HelveticaNeue"; finalSize = AppFonts.subheadlineSize
-                case AppFonts.subheadlineBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.subheadlineSize
-                case AppFonts.caption: fontName = "HelveticaNeue"; finalSize = AppFonts.captionSize
-                case AppFonts.captionBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.captionSize
-                default:
-                    if fontDescription.contains("weight=bold") { fontName = "HelveticaNeue-Bold" }
-                    else if fontDescription.contains("weight=medium") { fontName = "HelveticaNeue-Medium" }
-                    finalSize = AppFonts.bodySize
-            }
-            
-            if let explicitSize = size {
-                finalSize = explicitSize
-            }
-            
-            return UIFont(name: fontName, size: finalSize)
-        } else {
-            print("Warning: Attempting UIFont conversion for non-custom font: \(fontDescription)")
-            if font == .headline { return UIFont.preferredFont(forTextStyle: .headline) }
-            if font == .body { return UIFont.preferredFont(forTextStyle: .body) }
-            if font == .caption { return UIFont.preferredFont(forTextStyle: .caption1) }
-            return UIFont.preferredFont(forTextStyle: .body)
-        }
     }
 }
 
@@ -341,6 +501,44 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .background(AppColors.appBackground.ignoresSafeArea())
         .navigationTitle("Settings")
+    }
+}
+
+// MARK: - Helper Extension for UIFont conversion
+extension AppFonts {
+    static func uiFont(from font: Font, size: CGFloat? = nil) -> UIFont? {
+        let fontDescription = String(describing: font)
+        
+        if fontDescription.contains("CustomFontProvider") {
+            var fontName = "HelveticaNeue"
+            var finalSize: CGFloat
+            
+            switch font {
+                case AppFonts.body: fontName = "HelveticaNeue"; finalSize = AppFonts.bodySize
+                case AppFonts.bodyBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.bodySize
+                case AppFonts.headline: fontName = "HelveticaNeue-Medium"; finalSize = AppFonts.headlineSize
+                case AppFonts.subheadline: fontName = "HelveticaNeue"; finalSize = AppFonts.subheadlineSize
+                case AppFonts.subheadlineBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.subheadlineSize
+                case AppFonts.caption: fontName = "HelveticaNeue"; finalSize = AppFonts.captionSize
+                case AppFonts.captionBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.captionSize
+                default:
+                    if fontDescription.contains("weight=bold") { fontName = "HelveticaNeue-Bold" }
+                    else if fontDescription.contains("weight=medium") { fontName = "HelveticaNeue-Medium" }
+                    finalSize = AppFonts.bodySize
+            }
+            
+            if let explicitSize = size {
+                finalSize = explicitSize
+            }
+            
+            return UIFont(name: fontName, size: finalSize)
+        } else {
+            print("Warning: Attempting UIFont conversion for non-custom font: \(fontDescription)")
+            if font == .headline { return UIFont.preferredFont(forTextStyle: .headline) }
+            if font == .body { return UIFont.preferredFont(forTextStyle: .body) }
+            if font == .caption { return UIFont.preferredFont(forTextStyle: .caption1) }
+            return UIFont.preferredFont(forTextStyle: .body)
+        }
     }
 }
 

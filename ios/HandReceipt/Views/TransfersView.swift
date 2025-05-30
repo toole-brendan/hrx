@@ -502,9 +502,7 @@ struct TransferDetailView: View {
                 _ = try await viewModel.rejectTransfer(transferId: transfer.id)
             }
             
-            await MainActor.run {
-                dismiss()
-            }
+            dismiss()
             
             // Refresh transfers
             await viewModel.fetchTransfers()
