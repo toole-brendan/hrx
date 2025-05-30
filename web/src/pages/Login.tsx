@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,6 +35,11 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [, navigate] = useLocation();
+  
+  // Logo tap feature state
+  const [logoTapCount, setLogoTapCount] = useState(0);
+  const lastTapTimeRef = useRef<Date>(new Date());
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -51,6 +57,8 @@ const Login: React.FC = () => {
         title: "Login Successful",
         description: "Welcome to HandReceipt",
       });
+      // Navigate to dashboard after successful login
+      navigate("/dashboard");
     } catch (error) {
       toast({
         title: "Login Failed",
@@ -62,23 +70,100 @@ const Login: React.FC = () => {
     }
   };
 
+  // Handle logo tap for hidden dev login
+  const handleLogoTap = () => {
+    const now = new Date();
+    const timeSinceLastTap = now.getTime() - lastTapTimeRef.current.getTime();
+    
+    // Reset counter if more than 2 seconds since last tap
+    if (timeSinceLastTap > 2000) {
+      setLogoTapCount(1);
+      console.log("Dev login: Starting new tap sequence");
+    } else {
+      setLogoTapCount(prev => prev + 1);
+      console.log(`Dev login: Tap ${logoTapCount + 1} of 5`);
+    }
+    
+    lastTapTimeRef.current = now;
+    
+    // Trigger dev login after 5 taps
+    if (logoTapCount + 1 >= 5) {
+      performDevLogin();
+      setLogoTapCount(0);
+    }
+  };
+
+  // Perform development login bypass
+  const performDevLogin = async () => {
+    console.log("🔧 DEV LOGIN ACTIVATED! Using test credentials...");
+    
+    // Use test credentials to actually authenticate with the backend
+    form.setValue("username", "michael.rodriguez");
+    form.setValue("password", "password123");
+    
+    // Show loading state
+    setIsLoading(true);
+    
+    try {
+      // Perform actual login with test credentials
+      await login("michael.rodriguez", "password123");
+      console.log("✅ Dev login successful via API!");
+      toast({
+        title: "Dev Login Successful",
+        description: "Welcome, Michael Rodriguez",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("❌ Dev login failed:", error);
+      toast({
+        title: "Dev Login Failed",
+        description: "Could not authenticate with dev credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 pb-4 pt-2">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 pb-4 pt-2">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-2">
-            <div className="h-16 w-16 bg-[#4B5320] rounded-full flex items-center justify-center text-white">
-              <i className="fas fa-file-invoice text-2xl"></i>
+          <div className="flex justify-center mb-6">
+            <div 
+              className="border-2 border-gray-100/70 px-8 py-8 cursor-pointer relative"
+              onClick={handleLogoTap}
+            >
+              <h1 
+                className="text-[67.5px] font-normal tracking-wide text-gray-100 m-0 select-none" 
+                style={{ 
+                  fontFamily: "Didot, 'Hoefler Text', 'Baskerville Old Face', Baskerville, 'Goudy Old Style', Garamond, 'Times New Roman', serif",
+                  letterSpacing: '0.04em',
+                  fontWeight: 400,
+                  fontStyle: 'normal',
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale',
+                  textRendering: 'optimizeLegibility',
+                  fontFeatureSettings: '"kern" 1, "liga" 1',
+                }}
+              >
+                HandReceipt
+              </h1>
+              {/* Dev login progress indicator */}
+              {logoTapCount > 0 && logoTapCount < 5 && (
+                <div className="absolute top-2 right-2 text-gray-100/30 text-xs font-mono">
+                  {logoTapCount}/5
+                </div>
+              )}
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-[#1C2541]">HandReceipt</h1>
-          <p className="text-gray-600">Military Supply Chain Management</p>
+          <p className="text-gray-400 font-light">Military Supply Chain Management</p>
         </div>
         
-        <Card>
+        <Card className="bg-card border-gray-800" style={{ fontFamily: "'D-Din', sans-serif" }}>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white font-light tracking-wide">Sign In</CardTitle>
+            <CardDescription className="text-gray-400 font-light">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
@@ -90,9 +175,14 @@ const Login: React.FC = () => {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Username</FormLabel>
                       <FormControl>
-                        <Input placeholder="john.doe" {...field} />
+                        <Input 
+                          placeholder="" 
+                          {...field} 
+                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -104,9 +194,15 @@ const Login: React.FC = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="" 
+                          {...field} 
+                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -115,7 +211,7 @@ const Login: React.FC = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-[#4B5320] hover:bg-[#3a4019]"
+                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -129,12 +225,6 @@ const Login: React.FC = () => {
             </Form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
-            <p className="text-xs text-center text-gray-500">
-              For demo purposes, use: username: john.doe, password: password
-            </p>
-            <p className="text-xs text-center text-gray-500">
-              This is a secure Department of Defense system. Unauthorized access is prohibited.
-            </p>
           </CardFooter>
         </Card>
       </div>
