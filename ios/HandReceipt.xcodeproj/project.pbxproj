@@ -41,6 +41,7 @@
 		BFA128112DEA2F4300C12800 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280D2DEA2F4300C12800 /* ReportsView.swift */; };
 		BFA128142DEA3D3200C12800 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128122DEA3D3200C12800 /* AuthManager.swift */; };
 		BFA128152DEA3D3200C12800 /* MockAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128132DEA3D3200C12800 /* MockAPIService.swift */; };
+		BFA1281B2DEA435900C12800 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = BFA1281A2DEA435900C12800 /* KeychainSwift */; };
 		BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */; };
 		BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */; };
 		BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */; };
@@ -108,6 +109,17 @@
 		FE7F100BCA494CB1B40A0EA9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		BFA128182DEA435000C12800 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFA1281B2DEA435900C12800 /* KeychainSwift in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
 		09A6D80FC831C5B5CC6707D9 /* ViewModels */ = {
 			isa = PBXGroup;
@@ -149,6 +161,13 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		BFA128192DEA435900C12800 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		BFC223CE2DAB3E1F00ACF884 /* Common */ = {
 			isa = PBXGroup;
 			children = (
@@ -167,6 +186,7 @@
 				BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */,
 				FDCDCC68F23010E36445F051 /* HandReceipt */,
 				F6880E8AF15CFD4D9E0CB031 /* Products */,
+				BFA128192DEA435900C12800 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -229,6 +249,7 @@
 			buildPhases = (
 				BFA128062DEA20FB00C12800 /* Resources */,
 				1EA78C9056E6ED307C5A9903 /* Sources */,
+				BFA128182DEA435000C12800 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -257,6 +278,9 @@
 				en,
 			);
 			mainGroup = D7EC13D32EB8262CFB36F9BF;
+			packageReferences = (
+				BFA128162DEA407300C12800 /* XCRemoteSwiftPackageReference "keychain-swift" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -510,6 +534,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BFA128162DEA407300C12800 /* XCRemoteSwiftPackageReference "keychain-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/evgenyneu/keychain-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 24.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BFA1281A2DEA435900C12800 /* KeychainSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFA128162DEA407300C12800 /* XCRemoteSwiftPackageReference "keychain-swift" */;
+			productName = KeychainSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */ = {
