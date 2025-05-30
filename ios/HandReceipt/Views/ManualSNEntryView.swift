@@ -20,6 +20,7 @@ struct ManualSNEntryView: View {
     @State private var nsn: String = ""
     @State private var lin: String = ""
     @State private var description: String = ""
+    @State private var itemName: String = ""
     
     @State private var showingNSNSearch = false
     @State private var nsnSearchQuery = ""
@@ -32,19 +33,21 @@ struct ManualSNEntryView: View {
 
                 // --- Input Field --- 
                 HStack {
-                     TextField(
+                    let textField = TextField(
                         "Enter Serial Number",
                         text: $viewModel.serialNumberInput
-                     )
-                    .textFieldStyle(.roundedBorder)
-                    .textInputAutocapitalization(.characters) // Changed to .characters for SNs
-                    .disableAutocorrection(true)
-                    .submitLabel(.search)
-                    .disabled(viewModel.lookupState == PropertyLookupState.loading) // Use specific enum case
-                     // Trigger search on submit (hitting return key)
-                    .onSubmit { 
-                        viewModel.findProperty() 
-                    }
+                    )
+                    
+                    textField
+                        .textFieldStyle(.roundedBorder)
+                        .textInputAutocapitalization(.characters) // Changed to .characters for SNs
+                        .disableAutocorrection(true)
+                        .submitLabel(.search)
+                        .disabled(viewModel.lookupState == PropertyLookupState.loading) // Use specific enum case
+                        // Trigger search on submit (hitting return key)
+                        .onSubmit { 
+                            viewModel.findProperty() 
+                        }
 
                      // Clear button
                      if !viewModel.serialNumberInput.isEmpty {
@@ -220,7 +223,7 @@ struct ManualSNEntryView: View {
         
         Task {
             do {
-                let response = try await apiService.lookupNSN(nsn: cleanNSN)
+                let response = try await viewModel.lookupNSN(nsn: cleanNSN)
                 await MainActor.run {
                     applyNSNDetails(response.data)
                 }
@@ -236,7 +239,7 @@ struct ManualSNEntryView: View {
         
         Task {
             do {
-                let response = try await apiService.lookupLIN(lin: lin)
+                let response = try await viewModel.lookupLIN(lin: lin)
                 await MainActor.run {
                     applyNSNDetails(response.data)
                 }
@@ -256,9 +259,8 @@ struct ManualSNEntryView: View {
             itemName = details.itemName
         }
         
-        if let detailsNSN = details.nsn {
-            nsn = formatNSN(detailsNSN)
-        }
+        // NSN is not optional based on the model
+        nsn = formatNSN(details.nsn)
         
         if let detailsLIN = details.lin {
             lin = detailsLIN

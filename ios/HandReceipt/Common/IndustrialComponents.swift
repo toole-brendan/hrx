@@ -239,20 +239,22 @@ public struct IndustrialListItem<Trailing: View>: View {
 }
 
 // Convenience extension for standard list item with chevron
-extension IndustrialListItem where Trailing == Image {
+extension IndustrialListItem where Trailing == AnyView {
     public static func standard(
         title: String,
         subtitle: String? = nil,
         iconName: String? = nil
-    ) -> IndustrialListItem {
+    ) -> IndustrialListItem<AnyView> {
         IndustrialListItem(
             title: title,
             subtitle: subtitle,
             iconName: iconName
         ) {
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(AppColors.tertiaryText)
+            AnyView(
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.tertiaryText)
+            )
         }
     }
 } 

@@ -296,7 +296,8 @@ class MockAPIService: APIServiceProtocol {
                 "id": \(userId),
                 "username": "\(username)",
                 "name": "Mock Name",
-                "rank": "MCK"
+                "rank": "MCK",
+                "lastName": "User"
             }
         }
         """.data(using: .utf8)!
@@ -309,9 +310,8 @@ class MockAPIService: APIServiceProtocol {
             // For preview purposes, creating a default might be okay,
             // but it hides potential decoding issues in the main struct.
             print("Error creating mock LoginResponse: \(error)")
-            // Fallback - This will likely fail if LoginResponse can't be initialized this way
-            // Try creating a very basic default if decoding fails, though this might not be ideal
-            let defaultUser = LoginResponse.User(id: 0, username: "error_user", name: "Error", rank: "ERR")
+            // Fallback - Create a default User instance
+            let defaultUser = LoginResponse.User(id: 0, username: "error_user", name: "Error", rank: "ERR", lastName: "User")
             return LoginResponse(token: "error_token", user: defaultUser)
         }
     }
@@ -410,6 +410,132 @@ class MockAPIService: APIServiceProtocol {
              UserSummary(id: 101, username: "user1", rank: "SGT", lastName: "One"),
              UserSummary(id: 102, username: "user2", rank: "CPL", lastName: "Two")
          ]
+     }
+     
+     // Add missing protocol methods
+     func createProperty(_ property: CreatePropertyInput) async throws -> Property {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         // Create a mock property based on the input
+         return Property(
+             id: Int.random(in: 1000...9999),
+             serialNumber: property.serialNumber,
+             nsn: property.nsn ?? "",
+             lin: property.lin,
+             itemName: property.name,
+             description: property.description,
+             manufacturer: nil,
+             imageUrl: nil,
+             status: property.currentStatus,
+             assignedToUserId: property.assignedToUserId,
+             location: nil,
+             lastInventoryDate: nil,
+             acquisitionDate: Date(),
+             notes: nil
+         )
+     }
+     
+     func uploadPropertyPhoto(propertyId: Int, imageData: Data) async throws -> PhotoUploadResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         return PhotoUploadResponse(
+             message: "Photo uploaded successfully",
+             photoUrl: "https://mock.example.com/photo.jpg",
+             hash: "mock_hash_123",
+             filename: "photo_\(propertyId).jpg"
+         )
+     }
+     
+     func verifyPhotoHash(propertyId: Int, filename: String, expectedHash: String) async throws -> PhotoVerificationResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         return PhotoVerificationResponse(
+             valid: true,
+             expectedHash: expectedHash,
+             actualHash: expectedHash
+         )
+     }
+     
+     func deletePropertyPhoto(propertyId: Int, filename: String) async throws {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         // Mock delete - no return value
+     }
+     
+     func lookupNSN(nsn: String) async throws -> NSNLookupResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         return NSNLookupResponse(
+             success: true,
+             data: NSNDetails(
+                 nsn: nsn,
+                 lin: "E03045",
+                 nomenclature: "Mock Item - \(nsn)",
+                 fsc: "1005",
+                 niin: "015841079",
+                 unitPrice: 100.0,
+                 manufacturer: "Mock Manufacturer",
+                 partNumber: "MOCK123",
+                 specifications: nil,
+                 lastUpdated: Date()
+             )
+         )
+     }
+     
+     func lookupLIN(lin: String) async throws -> NSNLookupResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         return NSNLookupResponse(
+             success: true,
+             data: NSNDetails(
+                 nsn: "1005-01-584-1079",
+                 lin: lin,
+                 nomenclature: "Mock Item - \(lin)",
+                 fsc: "1005",
+                 niin: "015841079",
+                 unitPrice: 100.0,
+                 manufacturer: "Mock Manufacturer",
+                 partNumber: "MOCK123",
+                 specifications: nil,
+                 lastUpdated: Date()
+             )
+         )
+     }
+     
+     func searchNSN(query: String, limit: Int?) async throws -> NSNSearchResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         return NSNSearchResponse(
+             success: true,
+             data: [
+                 NSNDetails(
+                     nsn: "1005-01-584-1079",
+                     lin: "E03045",
+                     nomenclature: "Mock Item matching \(query)",
+                     fsc: "1005",
+                     niin: "015841079",
+                     unitPrice: 100.0,
+                     manufacturer: "Mock Manufacturer",
+                     partNumber: "MOCK123",
+                     specifications: nil,
+                     lastUpdated: Date()
+                 )
+             ],
+             count: 1
+         )
+     }
+     
+     func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse {
+         try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+         if shouldThrowError { throw APIService.APIError.serverError(statusCode: 500) }
+         
+         return QRTransferResponse(transferId: Int.random(in: 1000...9999))
      }
 
 }

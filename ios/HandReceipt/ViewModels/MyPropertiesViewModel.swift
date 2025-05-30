@@ -72,24 +72,30 @@ class MyPropertiesViewModel: ObservableObject {
     }
     
     private func loadFromCache() {
+        // TODO: Uncomment when Core Data entities are implemented
+        /*
         let cachedProperties = coreDataStack.getCachedProperties()
         
         // Convert CachedProperty to Property
         let properties = cachedProperties.compactMap { cached -> Property? in
-            guard let createdAt = cached.createdAt,
-                  let updatedAt = cached.updatedAt else { return nil }
+            guard let itemName = cached.itemName,
+                  let serialNumber = cached.serialNumber else { return nil }
             
             return Property(
                 id: Int(cached.id),
-                itemName: cached.itemName ?? "",
-                serialNumber: cached.serialNumber ?? "",
-                description: cached.itemDescription,
-                nsn: cached.nsn,
+                serialNumber: serialNumber,
+                nsn: cached.nsn ?? "",
                 lin: cached.lin,
-                currentHolderId: Int(cached.currentHolderId),
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                photoUrl: cached.photoUrl
+                itemName: itemName,
+                description: cached.itemDescription,
+                manufacturer: nil,
+                imageUrl: cached.photoUrl,
+                status: "Operational", // Default status
+                assignedToUserId: Int(cached.currentHolderId),
+                location: nil,
+                lastInventoryDate: cached.updatedAt,
+                acquisitionDate: cached.createdAt,
+                notes: nil
             )
         }
         
@@ -97,6 +103,8 @@ class MyPropertiesViewModel: ObservableObject {
             loadingState = .success(properties)
             print("MyPropertiesViewModel: Loaded \(properties.count) properties from cache")
         }
+        */
+        print("MyPropertiesViewModel: Cache loading not yet implemented - Core Data entities pending")
     }
     
     private func syncWithServer() {
@@ -108,10 +116,11 @@ class MyPropertiesViewModel: ObservableObject {
             do {
                 let properties = try await apiService.getMyProperties()
                 
+                // TODO: Uncomment when Core Data entities are implemented
                 // Cache all properties
-                for property in properties {
-                    coreDataStack.cacheProperty(property)
-                }
+                // for property in properties {
+                //     coreDataStack.cacheProperty(property)
+                // }
                 
                 loadingState = .success(properties)
                 lastSyncDate = Date()
@@ -154,18 +163,22 @@ class MyPropertiesViewModel: ObservableObject {
     
     // Support offline property creation
     func createPropertyOffline(itemName: String, serialNumber: String, description: String?, nsn: String?, lin: String?, photoData: Data?) {
-        // Create a temporary property object
+        // Create a temporary property object with all required fields
         let tempProperty = Property(
             id: -Int.random(in: 1...999999), // Negative ID for offline items
-            itemName: itemName,
             serialNumber: serialNumber,
-            description: description,
-            nsn: nsn,
+            nsn: nsn ?? "",
             lin: lin,
-            currentHolderId: 0, // Will be set properly when synced
-            createdAt: Date(),
-            updatedAt: Date(),
-            photoUrl: nil
+            itemName: itemName,
+            description: description,
+            manufacturer: nil,
+            imageUrl: nil,
+            status: "Operational",
+            assignedToUserId: nil,
+            location: nil,
+            lastInventoryDate: nil,
+            acquisitionDate: Date(),
+            notes: nil
         )
         
         // Queue for sync

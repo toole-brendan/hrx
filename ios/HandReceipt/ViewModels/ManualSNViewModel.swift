@@ -127,4 +127,14 @@ class ManualSNViewModel: ObservableObject {
         lookupState = .idle
         print("State reset to idle")
     }
+    
+    // MARK: - NSN/LIN Lookup Methods
+    
+    func lookupNSN(nsn: String) async throws -> NSNLookupResponse {
+        return try await apiService.lookupNSN(nsn: nsn)
+    }
+    
+    func lookupLIN(lin: String) async throws -> NSNLookupResponse {
+        return try await apiService.lookupLIN(lin: lin)
+    }
 } 

@@ -188,7 +188,7 @@ struct QRScannerView: View {
         viewModel.showingTransferConfirmation = false
         
         do {
-            let transfer = try await viewModel.initiateTransfer(for: property)
+            let _ = try await viewModel.initiateTransfer(for: property)
             // Show success and dismiss
             await MainActor.run {
                 dismiss()
@@ -395,8 +395,10 @@ class QRScannerViewModel: NSObject, ObservableObject {
             lastScannedCode = nil
         }
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.captureSession.startRunning()
+        // Create a local reference to captureSession to avoid actor isolation issues
+        let session = captureSession
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
         }
     }
     
@@ -446,8 +448,8 @@ class QRScannerViewModel: NSObject, ObservableObject {
                 throw QRError.invalidFormat
             }
             
-            // Verify QR hash
-            guard let qrHash = qrData["qrHash"] as? String else {
+            // Verify QR hash exists
+            guard qrData["qrHash"] != nil else {
                 throw QRError.missingHash
             }
             
@@ -509,8 +511,10 @@ extension QRScannerViewModel: AVCaptureMetadataOutputObjectsDelegate {
             
             // Debounce rapid scans
             scanDebounceTimer?.invalidate()
-            scanDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
-                self.lastScannedCode = nil
+            scanDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+                Task { @MainActor in
+                    self?.lastScannedCode = nil
+                }
             }
             
             // Stop scanning temporarily

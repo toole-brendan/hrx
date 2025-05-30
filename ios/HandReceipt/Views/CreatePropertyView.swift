@@ -11,6 +11,11 @@ struct CreatePropertyView: View {
     @State private var selectedImage: UIImage?
     @State private var showingSuccessAlert = false
     
+    // NSN Search states
+    @State private var nsnSearchQuery = ""
+    @State private var nsnSearchResults: [NSNDetails] = []
+    @State private var isSearchingNSN = false
+    
     init(apiService: APIServiceProtocol? = nil) {
         let service = apiService ?? APIService()
         self._viewModel = StateObject(wrappedValue: CreatePropertyViewModel(apiService: service))
@@ -52,7 +57,15 @@ struct CreatePropertyView: View {
                 ImagePicker(image: $selectedImage, sourceType: .camera)
             }
             .sheet(isPresented: $showingNSNSearch) {
-                NSNSearchView(viewModel: viewModel)
+                NSNSearchView(
+                    searchQuery: $nsnSearchQuery,
+                    searchResults: $nsnSearchResults,
+                    isSearching: $isSearchingNSN,
+                    onSelect: { details in
+                        viewModel.applyNSNDetails(details)
+                        showingNSNSearch = false
+                    }
+                )
             }
             .alert("Success", isPresented: $showingSuccessAlert) {
                 Button("OK") {

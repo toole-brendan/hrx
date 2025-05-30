@@ -19,20 +19,23 @@ struct LoginResponse: Decodable {
         let username: String
         let name: String
         let rank: String
+        let lastName: String?
         
         enum CodingKeys: String, CodingKey {
             case id
             case username
             case name
             case rank
+            case lastName
         }
         
         // Explicit memberwise initializer (needed when custom init(from:) is present)
-        init(id: Int, username: String, name: String, rank: String) {
+        init(id: Int, username: String, name: String, rank: String, lastName: String? = nil) {
             self.id = id
             self.username = username
             self.name = name
             self.rank = rank
+            self.lastName = lastName
         }
         
         // Custom initializer for more debugging information
@@ -43,6 +46,7 @@ struct LoginResponse: Decodable {
             username = try container.decode(String.self, forKey: .username)
             name = try container.decode(String.self, forKey: .name)
             rank = try container.decode(String.self, forKey: .rank)
+            lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
         }
     }
     
