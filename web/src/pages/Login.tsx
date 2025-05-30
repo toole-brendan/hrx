@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import logoImage from "@/assets/hr_logo5.png";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -128,36 +129,35 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-4 pb-4 pt-2">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
+        <div className="text-center mb-0">
+          <div className="flex justify-center mb-4">
             <div 
-              className="border-2 border-gray-100/70 px-8 py-8 cursor-pointer relative"
+              className="relative cursor-pointer transition-all duration-200"
               onClick={handleLogoTap}
             >
-              <h1 
-                className="text-[67.5px] font-normal tracking-wide text-gray-100 m-0 select-none" 
-                style={{ 
-                  fontFamily: "Didot, 'Hoefler Text', 'Baskerville Old Face', Baskerville, 'Goudy Old Style', Garamond, 'Times New Roman', serif",
-                  letterSpacing: '0.04em',
-                  fontWeight: 400,
-                  fontStyle: 'normal',
-                  WebkitFontSmoothing: 'antialiased',
-                  MozOsxFontSmoothing: 'grayscale',
-                  textRendering: 'optimizeLegibility',
-                  fontFeatureSettings: '"kern" 1, "liga" 1',
-                }}
-              >
-                HandReceipt
-              </h1>
-              {/* Dev login progress indicator */}
+              <img 
+                src={logoImage} 
+                alt="HandReceipt Logo" 
+                className="h-96 w-auto select-none"
+              />
+              {/* Dev login progress indicator - circle around logo like iOS */}
               {logoTapCount > 0 && logoTapCount < 5 && (
-                <div className="absolute top-2 right-2 text-gray-100/30 text-xs font-mono">
-                  {logoTapCount}/5
-                </div>
+                <>
+                  <div 
+                    className="absolute inset-0 border-2 border-gray-100/20 rounded-full animate-pulse"
+                    style={{
+                      transform: `scale(${1 + (logoTapCount * 0.05)})`,
+                      transition: 'transform 0.2s ease-out'
+                    }}
+                  />
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-gray-100/50 text-sm font-bold">
+                    {logoTapCount}
+                  </div>
+                </>
               )}
             </div>
           </div>
-          <p className="text-gray-400 font-light">Military Supply Chain Management</p>
+          <p className="text-gray-400 font-light italic mb-6">Military Supply Chain Management</p>
         </div>
         
         <Card className="bg-card border-gray-800" style={{ fontFamily: "'D-Din', sans-serif" }}>
@@ -211,7 +211,7 @@ const Login: React.FC = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light"
+                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light border-0"
                   disabled={isLoading}
                 >
                   {isLoading ? (

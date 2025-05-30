@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import logoImage from "@/assets/hr_logo1.png";
 
 // Import API_BASE_URL from a shared location or define it here
 const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
@@ -114,22 +115,23 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 py-8">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-2">
-            <div className="h-16 w-16 bg-[#4B5320] rounded-full flex items-center justify-center text-white">
-              <i className="fas fa-file-invoice text-2xl"></i>
-            </div>
+          <div className="flex justify-center mb-6">
+            <img 
+              src={logoImage} 
+              alt="HandReceipt Logo" 
+              className="h-32 w-auto"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-[#1C2541]">HandReceipt</h1>
-          <p className="text-gray-600">Create your account</p>
+          <p className="text-gray-400 font-light">Create your account</p>
         </div>
         
-        <Card>
+        <Card className="bg-card border-gray-800" style={{ fontFamily: "'D-Din', sans-serif" }}>
           <CardHeader>
-            <CardTitle>Register</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white font-light tracking-wide">Register</CardTitle>
+            <CardDescription className="text-gray-400 font-light">
               Create a new account to access the system
             </CardDescription>
           </CardHeader>
@@ -142,9 +144,14 @@ const Register: React.FC = () => {
                     name="first_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">First Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John" {...field} />
+                          <Input 
+                            placeholder="" 
+                            {...field} 
+                            className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            style={{ boxShadow: 'none' }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -156,9 +163,14 @@ const Register: React.FC = () => {
                     name="last_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Last Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Doe" {...field} />
+                          <Input 
+                            placeholder="" 
+                            {...field} 
+                            className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            style={{ boxShadow: 'none' }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -171,9 +183,14 @@ const Register: React.FC = () => {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Username</FormLabel>
                       <FormControl>
-                        <Input placeholder="john.doe" {...field} />
+                        <Input 
+                          placeholder="" 
+                          {...field} 
+                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -185,9 +202,15 @@ const Register: React.FC = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john.doe@handreceipt.mil" {...field} />
+                        <Input 
+                          type="email" 
+                          placeholder="" 
+                          {...field} 
+                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -200,10 +223,10 @@ const Register: React.FC = () => {
                     name="rank"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Rank</FormLabel>
+                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Rank</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="bg-gray-100 border-gray-400 text-gray-900 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500">
                               <SelectValue placeholder="Select rank" />
                             </SelectTrigger>
                           </FormControl>
@@ -225,9 +248,14 @@ const Register: React.FC = () => {
                     name="unit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Unit</FormLabel>
+                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Unit</FormLabel>
                         <FormControl>
-                          <Input placeholder="Alpha Company" {...field} />
+                          <Input 
+                            placeholder="" 
+                            {...field} 
+                            className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            style={{ boxShadow: 'none' }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -240,9 +268,15 @@ const Register: React.FC = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="" 
+                          {...field} 
+                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -254,9 +288,15 @@ const Register: React.FC = () => {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Confirm Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="" 
+                          {...field} 
+                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -265,7 +305,7 @@ const Register: React.FC = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-[#4B5320] hover:bg-[#3a4019]"
+                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -279,14 +319,11 @@ const Register: React.FC = () => {
             </Form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
-            <p className="text-sm text-center">
+            <p className="text-sm text-center text-gray-400">
               Already have an account?{" "}
-              <Link to="/login" className="text-[#4B5320] hover:underline">
+              <Link to="/login" className="text-blue-500/70 hover:text-blue-500/90 hover:underline">
                 Sign in
               </Link>
-            </p>
-            <p className="text-xs text-center text-gray-500">
-              This is a secure Department of Defense system. Unauthorized access is prohibited.
             </p>
           </CardFooter>
         </Card>

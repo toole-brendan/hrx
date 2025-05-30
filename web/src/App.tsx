@@ -47,7 +47,7 @@ function Router() {
   return (
     <AppShell>
       <Switch>
-        <Route path="/" component={() => <Dashboard />} />
+        <Route path="/" component={() => <Login />} />
         <Route path="/dashboard" component={() => <Dashboard />} />
         <Route path="/transfers" component={() => <Transfers />} />
         <Route path="/transfers/:id">

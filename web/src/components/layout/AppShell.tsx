@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
 import MobileMenu from "./MobileMenu";
 import MobileNav from "./MobileNav";
@@ -18,6 +19,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const { sidebarCollapsed, toggleSidebar, toggleTheme, theme } = useApp();
   const isMobile = useIsMobile();
+  const [location, navigate] = useLocation();
   
   // State for mobile menu, scanner, and notifications
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,6 +35,19 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
     // Navigate to the dashboard page
     window.location.href = '/';
   };
+  
+  // Handle authentication redirects
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated && location !== "/login" && location !== "/register") {
+        // Redirect to login if not authenticated and not already on login/register page
+        navigate("/login");
+      } else if (isAuthenticated && (location === "/" || location === "/login")) {
+        // Redirect to dashboard if authenticated and on root or login page
+        navigate("/dashboard");
+      }
+    }
+  }, [isAuthenticated, isLoading, location, navigate]);
   
   // Show loading state while checking authentication
   if (isLoading) {
