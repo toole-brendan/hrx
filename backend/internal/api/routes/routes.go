@@ -75,9 +75,9 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			inventory.GET("/user/:userId", inventoryHandler.GetInventoryItemsByUser)
 			inventory.GET("/history/:serialNumber", inventoryHandler.GetInventoryItemHistory)
 			inventory.GET("/serial/:serialNumber", inventoryHandler.GetPropertyBySerialNumber)
-			inventory.POST("/qrcode/:propertyId", inventoryHandler.GeneratePropertyQRCode)
 			// Move specific routes BEFORE wildcard routes to prevent conflicts
-			inventory.GET("/:propertyId/qrcodes", qrCodeHandler.GetPropertyQRCodes) // This must come before /:id
+			inventory.GET("/:id/qrcodes", qrCodeHandler.GetPropertyQRCodes)        // This must come before bare /:id
+			inventory.POST("/:id/qrcode", inventoryHandler.GeneratePropertyQRCode) // Changed to use :id for consistency
 			inventory.GET("/:id", inventoryHandler.GetInventoryItem)
 			inventory.PATCH("/:id/status", inventoryHandler.UpdateInventoryItemStatus)
 			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
