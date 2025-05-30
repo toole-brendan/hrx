@@ -292,11 +292,62 @@ jobs:
             --exclude='*.tar.gz' \
             .
           
-          # Upload deployment package
+          # Create a minimal config.yaml without QLDB
+          cat > /tmp/config.yaml << 'CONFIG_EOF'
+          # HandReceipt Backend Configuration
+          server:
+            port: "8080"
+            host: "0.0.0.0"
+            environment: "production"
+          
+          database:
+            host: "postgres"
+            port: 5432
+            user: "handreceipt"
+            password: "cvOrf7fVpmyxvnkqeKOo5g=="
+            name: "handreceipt"
+            db_name: "handreceipt"
+            ssl_mode: "disable"
+          
+          jwt:
+            secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+            access_expiry: "24h"
+            refresh_expiry: "168h"
+          
+          immudb:
+            host: "immudb"
+            port: 3322
+            username: "immudb"
+            password: "IoSzNPyRqFueVGhN/4rSgg=="
+            database: "defaultdb"
+            enabled: true
+          
+          minio:
+            endpoint: "minio:9000"
+            access_key_id: "handreceipt-minio"
+            secret_access_key: "XQ/rycTvT6EbYfVLNQKEU1wk+GE="
+            use_ssl: false
+            bucket_name: "handreceipt"
+            enabled: true
+          
+          redis:
+            enabled: false
+          
+          nsn:
+            enabled: true
+          
+          logging:
+            level: "info"
+            format: "json"
+          CONFIG_EOF
+          echo "✅ Created config.yaml without QLDB"
+          
+          # Upload deployment package and config
           scp -i ~/.ssh/lightsail_key /tmp/deployment.tar.gz ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
+          scp -i ~/.ssh/lightsail_key /tmp/config.yaml ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
           
           # Deploy on remote server
-          ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'EOF'
+          ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'DEPLOY_EOF'
             set -e
             
             echo "📦 Extracting deployment package..."
@@ -359,30 +410,18 @@ jobs:
               else
                 echo "⚠️ No config.yaml found, creating minimal config..."
                 sudo mkdir -p configs
-                echo '# HandReceipt Backend Configuration' | sudo tee configs/config.yaml > /dev/null
-                echo 'server:' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  port: "8080"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  host: "0.0.0.0"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  environment: "production"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '' | sudo tee -a configs/config.yaml > /dev/null
-                echo 'database:' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  host: "postgres"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  port: 5432' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  user: "handreceipt"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  password: "cvOrf7fVpmyxvnkqeKOo5g=="' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  name: "handreceipt"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  ssl_mode: "disable"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '' | sudo tee -a configs/config.yaml > /dev/null
-                echo 'jwt:' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  access_expiry: "24h"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '  refresh_expiry: "168h"' | sudo tee -a configs/config.yaml > /dev/null
-                echo '' | sudo tee -a configs/config.yaml > /dev/null
-                echo '# Environment variables will override these values' | sudo tee -a configs/config.yaml > /dev/null
-                sudo chown ubuntu:ubuntu configs/config.yaml
-                echo "✅ Created minimal config.yaml with Docker service names"
+                
+                # Use the uploaded config file
+                if [ -f "/tmp/config.yaml" ]; then
+                  sudo cp /tmp/config.yaml configs/config.yaml
+                  sudo chown ubuntu:ubuntu configs/config.yaml
+                  echo "✅ Copied config.yaml from upload"
+                else
+                  echo "❌ No config file found in /tmp, deployment may fail"
+                fi
+                
                 echo "📋 Config file contents:"
-                cat configs/config.yaml
+                cat configs/config.yaml || echo "No config file"
               fi
             elif [ -f "backend/docker-compose.yml" ]; then
               echo "✅ Using existing docker-compose.yml"
@@ -491,7 +530,7 @@ jobs:
             fi
             
             echo "✅ Backend deployment complete"
-          EOF
+          DEPLOY_EOF
 
       - name: Setup SSL Certificate
         if: ${{ needs.detect-api-endpoint.outputs.dns_working == 'true' && needs.detect-api-endpoint.outputs.ssl_working == 'false' && !github.event.inputs.skip_ssl_setup }}

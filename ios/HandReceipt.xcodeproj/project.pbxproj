@@ -76,6 +76,7 @@
 		BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSNSearchView.swift; sourceTree = "<group>"; };
 		BF2DF4402DE929E700E450D6 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = HandReceipt.xcdatamodel; sourceTree = "<group>"; };
+		BFA128002DEA076200C12800 /* hr_icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hr_icon.png; sourceTree = "<group>"; };
 		BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HandReceiptApp.swift; path = HandReceipt/HandReceiptApp.swift; sourceTree = "<group>"; };
 		BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStyles.swift; sourceTree = "<group>"; };
@@ -127,6 +128,14 @@
 				B32078152333561CB10233BA /* APIService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		BFA128012DEA076200C12800 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				BFA128002DEA076200C12800 /* hr_icon.png */,
+			);
+			path = Assets;
 			sourceTree = "<group>";
 		};
 		BFC223CE2DAB3E1F00ACF884 /* Common */ = {
@@ -181,6 +190,7 @@
 		FDCDCC68F23010E36445F051 /* HandReceipt */ = {
 			isa = PBXGroup;
 			children = (
+				BFA128012DEA076200C12800 /* Assets */,
 				BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */,
 				8AEE26AF958DBCB601C895CD /* ContentView.swift */,
 				D5ACDDBD58550DB16AF3B5B4 /* Info.plist */,

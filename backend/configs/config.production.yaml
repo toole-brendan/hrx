@@ -1,4 +1,4 @@
-# HandReceipt Backend Configuration
+# HandReceipt Backend Production Configuration
 
 # Server configuration
 server:
@@ -14,10 +14,11 @@ server:
 
 # Database configuration
 database:
-  host: "postgres"  # Using Docker service name
+  host: "postgres"  # Docker service name
   port: 5432
   user: "handreceipt"
   password: "cvOrf7fVpmyxvnkqeKOo5g=="
+  name: "handreceipt"
   db_name: "handreceipt"
   ssl_mode: "disable"
   max_open_conns: 25
@@ -29,24 +30,24 @@ database:
 jwt:
   secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
   access_expiry: "24h"
-  refresh_expiry: "168h" # 7 days
+  refresh_expiry: "168h"
   issuer: "handreceipt-go"
   audience: "handreceipt-users"
   algorithm: "HS256"
   refresh_enabled: true
 
-# ImmuDB configuration - Using as immutable ledger instead of QLDB
+# ImmuDB configuration - Using as immutable ledger instead of AWS QLDB
 immudb:
-  host: "immudb"  # Using Docker service name
+  host: "immudb"  # Docker service name
   port: 3322
   username: "immudb"
   password: "IoSzNPyRqFueVGhN/4rSgg=="
   database: "defaultdb"
   enabled: true
 
-# MinIO configuration for document storage
+# MinIO configuration for document/photo storage
 minio:
-  endpoint: "minio:9000"  # Using Docker service name
+  endpoint: "minio:9000"  # Docker service name
   access_key_id: "handreceipt-minio"
   secret_access_key: "XQ/rycTvT6EbYfVLNQKEU1wk+GE="
   use_ssl: false
@@ -54,6 +55,7 @@ minio:
   region: "us-east-1"
   enabled: true
 
+# NSN service configuration
 nsn:
   api_endpoint: ""
   api_key: ""
@@ -63,14 +65,17 @@ nsn:
   timeout_seconds: 30
   retry_attempts: 3
   bulk_batch_size: 50
+  enabled: true
 
+# Redis configuration (disabled for now)
 redis:
-  host: "redis"  # Using Docker service name
+  host: "redis"
   port: 6379
   password: ""
   db: 0
   enabled: false
 
+# Logging configuration
 logging:
   level: "info"
   format: "json"
@@ -81,6 +86,7 @@ logging:
   max_age: 28
   compress: true
 
+# Security configuration
 security:
   password_min_length: 8
   password_require_upper: true
@@ -91,6 +97,8 @@ security:
   max_login_attempts: 5
   lockout_duration: "15m"
   cors_allowed_origins:
-    - "*"
+    - "https://handreceipt.com"
+    - "https://www.handreceipt.com"
+    - "capacitor://localhost"  # For iOS app
   rate_limit_enabled: true
   rate_limit_rps: 100 
