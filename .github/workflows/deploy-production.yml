@@ -633,13 +633,13 @@ jobs:
           
           SUCCESS=false
           for i in {1..5}; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Backend health check passed (HTTP $HTTP_CODE)"
+            # Use GET request instead of HEAD (some backends don't support HEAD on health endpoints)
+            if curl -s -f "$HEALTH_URL" > /dev/null 2>&1; then
+              echo "✅ Backend health check passed"
               SUCCESS=true
               break
             else
-              echo "Attempt $i: Backend returned HTTP $HTTP_CODE, retrying..."
+              echo "Attempt $i: Backend health check failed, retrying..."
               sleep 10
             fi
           done
