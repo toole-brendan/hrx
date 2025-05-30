@@ -377,8 +377,12 @@ jobs:
                 echo '  secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="' | sudo tee -a configs/config.yaml > /dev/null
                 echo '  access_expiry: "24h"' | sudo tee -a configs/config.yaml > /dev/null
                 echo '  refresh_expiry: "168h"' | sudo tee -a configs/config.yaml > /dev/null
+                echo '' | sudo tee -a configs/config.yaml > /dev/null
+                echo '# Environment variables will override these values' | sudo tee -a configs/config.yaml > /dev/null
                 sudo chown ubuntu:ubuntu configs/config.yaml
                 echo "✅ Created minimal config.yaml with Docker service names"
+                echo "📋 Config file contents:"
+                cat configs/config.yaml
               fi
             elif [ -f "backend/docker-compose.yml" ]; then
               echo "✅ Using existing docker-compose.yml"
@@ -425,19 +429,63 @@ jobs:
             echo "Docker build context contents:"
             ls -la
             
+            # Create a docker-compose override to add DATABASE_URL
+            echo "Creating docker-compose override..."
+            echo 'version: "3.8"' | sudo tee docker-compose.override.yml > /dev/null
+            echo 'services:' | sudo tee -a docker-compose.override.yml > /dev/null
+            echo '  app:' | sudo tee -a docker-compose.override.yml > /dev/null
+            echo '    environment:' | sudo tee -a docker-compose.override.yml > /dev/null
+            echo '      - HANDRECEIPT_DATABASE_URL=postgresql://handreceipt:cvOrf7fVpmyxvnkqeKOo5g==@postgres:5432/handreceipt?sslmode=disable' | sudo tee -a docker-compose.override.yml > /dev/null
+            echo '  worker:' | sudo tee -a docker-compose.override.yml > /dev/null
+            echo '    environment:' | sudo tee -a docker-compose.override.yml > /dev/null
+            echo '      - HANDRECEIPT_DATABASE_URL=postgresql://handreceipt:cvOrf7fVpmyxvnkqeKOo5g==@postgres:5432/handreceipt?sslmode=disable' | sudo tee -a docker-compose.override.yml > /dev/null
+            
+            echo "📋 Docker compose override contents:"
+            cat docker-compose.override.yml
+            
             sudo docker-compose build --no-cache app worker
             
             echo "Starting services..."
             sudo docker-compose up -d
             
-            echo "⏳ Waiting for services to start..."
-            sleep 30
+            echo "⏳ Waiting for PostgreSQL to be ready..."
+            for i in {1..30}; do
+              if sudo docker exec backend_postgres_1 pg_isready -U handreceipt -d handreceipt > /dev/null 2>&1; then
+                echo "✅ PostgreSQL is ready"
+                break
+              else
+                echo "Waiting for PostgreSQL... ($i/30)"
+                sleep 2
+              fi
+              
+              if [ $i -eq 30 ]; then
+                echo "❌ PostgreSQL failed to start"
+                sudo docker-compose logs postgres
+                exit 1
+              fi
+            done
+            
+            echo "⏳ Waiting for all services to stabilize..."
+            sleep 10
+            
+            # Debug: Check what's in the config file
+            echo "📋 Current config.yaml contents:"
+            cat configs/config.yaml || echo "No config file found"
+            
+            # Debug: Check if postgres is running
+            echo "🐘 Checking PostgreSQL status:"
+            sudo docker ps | grep postgres || echo "PostgreSQL container not found"
+            
+            # Debug: Check app logs more thoroughly
+            echo "📝 App container logs:"
+            sudo docker-compose logs --tail=20 app
             
             # Check health endpoint
             if curl -s -f http://localhost:8080/health > /dev/null 2>&1; then
               echo "✅ Backend is healthy"
             else
               echo "❌ Backend health check failed"
+              echo "📝 Full app logs:"
               sudo docker-compose logs app
               exit 1
             fi
