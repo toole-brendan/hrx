@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -15,15 +16,43 @@ import (
 
 // SetupSession configures session middleware
 func SetupSession(router *gin.Engine) {
+	// Get session secret from config or environment
+	sessionSecret := viper.GetString("auth.session_secret")
+	if sessionSecret == "" {
+		sessionSecret = os.Getenv("HANDRECEIPT_AUTH_SESSION_SECRET")
+	}
+	if sessionSecret == "" {
+		// Fallback to a default (NOT RECOMMENDED for production)
+		sessionSecret = "default-session-secret-change-this"
+		fmt.Println("WARNING: Using default session secret. Set auth.session_secret in config or HANDRECEIPT_AUTH_SESSION_SECRET env var")
+	}
+
 	// Use cookie store for sessions
-	store := cookie.NewStore([]byte(viper.GetString("auth.session_secret")))
-	store.Options(sessions.Options{
+	store := cookie.NewStore([]byte(sessionSecret))
+
+	// Configure cookie options based on environment
+	isProduction := viper.GetString("server.environment") == "production"
+
+	// For iOS Capacitor apps, we need special handling
+	options := sessions.Options{
 		Path:     "/",
 		MaxAge:   int(24 * time.Hour.Seconds()), // 1 day
 		HttpOnly: true,
-		Secure:   viper.GetString("server.environment") == "production",
-		SameSite: http.SameSiteNoneMode, // Important for cross-origin requests
-	})
+		Domain:   "", // Leave empty to use the request domain
+	}
+
+	// Handle SameSite and Secure settings carefully
+	if isProduction {
+		options.Secure = true
+		// For production with iOS apps, use SameSite=None
+		options.SameSite = http.SameSiteNoneMode
+	} else {
+		// For development, use Lax to avoid cookie issues
+		options.Secure = false
+		options.SameSite = http.SameSiteLaxMode
+	}
+
+	store.Options(options)
 	router.Use(sessions.Sessions("handreceipt_session", store))
 }
 

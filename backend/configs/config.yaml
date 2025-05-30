@@ -35,6 +35,10 @@ jwt:
   algorithm: "HS256"
   refresh_enabled: true
 
+# Auth session configuration
+auth:
+  session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+
 # ImmuDB configuration - Using as immutable ledger instead of QLDB
 immudb:
   host: "immudb"  # Using Docker service name
@@ -91,6 +95,11 @@ security:
   max_login_attempts: 5
   lockout_duration: "15m"
   cors_allowed_origins:
-    - "*"
+    - "capacitor://localhost"       # For iOS app
+    - "http://localhost:3000"       # For local development
+    - "http://localhost:5173"       # For Vite development server
+    - "http://localhost:8100"       # For Ionic serve
+    - "https://handreceipt.com"     # Production web
+    - "https://www.handreceipt.com" # Production web with www
   rate_limit_enabled: true
   rate_limit_rps: 100 

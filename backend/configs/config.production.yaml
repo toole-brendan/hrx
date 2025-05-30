@@ -36,6 +36,10 @@ jwt:
   algorithm: "HS256"
   refresh_enabled: true
 
+# Auth session configuration
+auth:
+  session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+
 # ImmuDB configuration - Using as immutable ledger instead of AWS QLDB
 immudb:
   host: "immudb"  # Docker service name
