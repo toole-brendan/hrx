@@ -192,20 +192,28 @@ class APIService: APIServiceProtocol {
 
     // Helper function to handle common request logic
     private func performRequest<T: Decodable>(request: URLRequest) async throws -> T {
-        debugPrint(">>> REQUEST (\(request.httpMethod ?? "?")): \(request.url?.absoluteString ?? "invalid URL")")
+        var modifiedRequest = request
+        
+        // Add JWT token to header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            modifiedRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            debugPrint("Added JWT token to request headers")
+        }
+        
+        debugPrint(">>> REQUEST (\(modifiedRequest.httpMethod ?? "?")): \(modifiedRequest.url?.absoluteString ?? "invalid URL")")
         
         // Log request headers
-        if let headers = request.allHTTPHeaderFields {
+        if let headers = modifiedRequest.allHTTPHeaderFields {
             debugPrint("Request headers: \(headers)")
         }
         
         // Log request body if present
-        if let httpBody = request.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
+        if let httpBody = modifiedRequest.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
             debugPrint("Request body: \(bodyString)")
         }
         
         // Log cookies being sent
-        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: request.url!) {
+        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: modifiedRequest.url!) {
             let cookieStrings = cookies.map { "\($0.name)=\($0.value)" }
             debugPrint("Sending cookies: \(cookieStrings.joined(separator: "; "))")
         }
@@ -215,7 +223,7 @@ class APIService: APIServiceProtocol {
             let startTime = Date()
             
             // Use the instance's urlSession
-            let (data, response) = try await urlSession.data(for: request)
+            let (data, response) = try await urlSession.data(for: modifiedRequest)
             
             // Calculate request duration
             let duration = Date().timeIntervalSince(startTime)
@@ -226,13 +234,13 @@ class APIService: APIServiceProtocol {
                 throw APIError.unknownError
             }
 
-            debugPrint("<<< RESPONSE: Status \(httpResponse.statusCode) from \(request.url?.path ?? "?")")
+            debugPrint("<<< RESPONSE: Status \(httpResponse.statusCode) from \(modifiedRequest.url?.path ?? "?")")
             
             // Log response headers
             debugPrint("Response headers: \(httpResponse.allHeaderFields)")
             
             // Log cookies received
-            if let headers = httpResponse.allHeaderFields as? [String: String], let url = request.url {
+            if let headers = httpResponse.allHeaderFields as? [String: String], let url = modifiedRequest.url {
                 let cookies = HTTPCookie.cookies(withResponseHeaderFields: headers, for: url)
                 if !cookies.isEmpty {
                     let cookieStrings = cookies.map { "\($0.name)=\($0.value)" }
@@ -326,6 +334,18 @@ class APIService: APIServiceProtocol {
 
         // Expect LoginResponse object upon success
         let response = try await performRequest(request: request) as LoginResponse
+        
+        // Store tokens if available
+        if let accessToken = response.accessToken,
+           let refreshToken = response.refreshToken {
+            AuthManager.shared.storeTokens(
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                userId: response.user.id
+            )
+            debugPrint("Stored JWT tokens for user: \(response.user.username)")
+        }
+        
         debugPrint("Login successful for user: \(response.user.username)")
         return response
     }
@@ -349,6 +369,18 @@ class APIService: APIServiceProtocol {
         do {
             // Expect LoginResponse object upon success
             let response = try await performRequest(request: request) as LoginResponse
+            
+            // Store tokens if available
+            if let accessToken = response.accessToken,
+               let refreshToken = response.refreshToken {
+                AuthManager.shared.storeTokens(
+                    accessToken: accessToken,
+                    refreshToken: refreshToken,
+                    userId: response.user.id
+                )
+                debugPrint("Stored JWT tokens for new user: \(response.user.username)")
+            }
+            
             debugPrint("Registration successful for user: \(response.user.username)")
             return response
         } catch let error as APIError {
@@ -372,7 +404,11 @@ class APIService: APIServiceProtocol {
         // performRequest handles status code checks and throws errors.
         // Since logout doesn't usually return data, we can expect EmptyResponse.
         let _: EmptyResponse = try await performRequest(request: request)
-        debugPrint("Logout successful on server")
+        
+        // Clear stored JWT tokens
+        AuthManager.shared.clearTokens()
+        
+        debugPrint("Logout successful on server and tokens cleared")
     }
 
     // Check session function implementation
@@ -634,9 +670,13 @@ class APIService: APIServiceProtocol {
 
     // Helper function to add authentication header (adjust if needed)
     private func addAuthHeader(to request: inout URLRequest) {
-        // Implementation depends on your auth mechanism (e.g., Bearer token, session cookie)
-        // If using URLSession cookie storage, this might not be needed if cookies are sent automatically.
-         debugPrint("Auth header addition skipped (relying on URLSession cookie storage)")
+        // Add JWT token to header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            debugPrint("Added JWT token to request headers via addAuthHeader")
+        } else {
+            debugPrint("No JWT token available, relying on session cookies")
+        }
     }
 
     // --- Photo Functions ---

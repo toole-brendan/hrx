@@ -55,6 +55,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/register", authHandler.Register)
+			auth.POST("/refresh", authHandler.RefreshToken)                                 // Added refresh token route
 			auth.POST("/logout", authHandler.Logout)                                        // Added logout route
 			auth.GET("/me", middleware.SessionAuthMiddleware(), authHandler.GetCurrentUser) // Use SessionAuthMiddleware
 		}

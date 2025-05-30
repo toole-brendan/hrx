@@ -1,82 +1,191 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
+	"github.com/google/uuid"
+	"github.com/spf13/viper"
+	"github.com/toole-brendan/handreceipt-go/internal/config"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
+	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthHandler handles authentication operations
 type AuthHandler struct {
-	repo repository.Repository
+	repo       repository.Repository
+	jwtService *auth.JWTService
 }
 
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(repo repository.Repository) *AuthHandler {
+	// Initialize JWT service
+	jwtService := auth.NewJWTService(&config.JWTConfig{
+		SecretKey:      viper.GetString("jwt.secret_key"),
+		AccessExpiry:   viper.GetDuration("jwt.access_expiry"),
+		RefreshExpiry:  viper.GetDuration("jwt.refresh_expiry"),
+		RefreshEnabled: viper.GetBool("jwt.refresh_enabled"),
+		Issuer:         viper.GetString("jwt.issuer"),
+		Audience:       viper.GetString("jwt.audience"),
+	})
+
 	return &AuthHandler{
-		repo: repo,
+		repo:       repo,
+		jwtService: jwtService,
 	}
 }
 
 // Login handles user login
 func (h *AuthHandler) Login(c *gin.Context) {
-	var loginInput domain.LoginInput
+	var credentials models.LoginRequest
 
 	// Validate request body
-	if err := c.ShouldBindJSON(&loginInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input format"})
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	// Find user by username
-	user, err := h.repo.GetUserByUsername(loginInput.Username)
+	// Authenticate user - repository returns domain.User
+	domainUser, err := h.repo.GetUserByUsername(credentials.Username)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
 	// Compare passwords
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginInput.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(domainUser.Password), []byte(credentials.Password))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Generate JWT token
-	token, err := middleware.GenerateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return
-	}
-
-	// Store user ID in session for session-based auth (for frontend compatibility)
+	// Create session
 	session := sessions.Default(c)
-	session.Set("userID", user.ID)
+	sessionID := uuid.New().String()
+	session.Set("userID", domainUser.ID)
+	session.Set("sessionID", sessionID)
+
+	// Save session with error handling
 	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		log.Printf("Failed to save session: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
 		return
 	}
 
-	// Return user data and token matching the frontend expected format
-	c.JSON(http.StatusOK, gin.H{
-		"token": token,
-		"user": gin.H{
-			"id":       user.ID,
-			"username": user.Username,
-			"name":     user.Name,
-			"rank":     user.Rank,
+	// Convert domain.User to models.User for JWT service
+	// Since domain.User is incomplete, we'll create a minimal models.User
+	modelUser := models.User{
+		ID:           domainUser.ID,
+		UUID:         uuid.New(), // Generate new UUID since domain.User doesn't have it
+		Username:     domainUser.Username,
+		Email:        domainUser.Username + "@handreceipt.mil", // Default email since domain.User doesn't have it
+		PasswordHash: domainUser.Password,
+		FirstName:    domainUser.Name, // Use Name as FirstName
+		LastName:     "",              // Empty since we don't have separate last name
+		Rank:         domainUser.Rank,
+		Unit:         "",                      // Empty since domain.User doesn't have it
+		Role:         models.UserRole("user"), // Default role
+		Status:       models.StatusActive,     // Default status
+		CreatedAt:    domainUser.CreatedAt,
+		UpdatedAt:    domainUser.UpdatedAt,
+	}
+
+	// Generate JWT tokens
+	tokenPair, err := h.jwtService.GenerateTokenPair(modelUser, sessionID)
+	if err != nil {
+		log.Printf("Failed to generate JWT tokens: %v", err)
+		// Continue without tokens - session auth will still work
+		tokenPair = nil
+	}
+
+	// Prepare response
+	response := models.LoginResponse{
+		User: models.UserDTO{
+			ID:        domainUser.ID,
+			UUID:      modelUser.UUID,
+			Username:  domainUser.Username,
+			Email:     modelUser.Email,
+			FirstName: domainUser.Name,
+			LastName:  "",
+			Rank:      domainUser.Rank,
+			Unit:      "",
+			Role:      modelUser.Role,
+			Status:    modelUser.Status,
 		},
+	}
+
+	// Include tokens in response if available
+	if tokenPair != nil {
+		response.AccessToken = tokenPair.AccessToken
+		response.RefreshToken = tokenPair.RefreshToken
+		response.ExpiresAt = tokenPair.ExpiresAt
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// RefreshToken handles token refresh
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req models.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Validate refresh token
+	claims, err := h.jwtService.ValidateToken(req.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	// Get user from database
+	domainUser, err := h.repo.GetUserByID(claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Convert domain.User to models.User
+	modelUser := models.User{
+		ID:           domainUser.ID,
+		UUID:         uuid.New(),
+		Username:     domainUser.Username,
+		Email:        domainUser.Username + "@handreceipt.mil",
+		PasswordHash: domainUser.Password,
+		FirstName:    domainUser.Name,
+		LastName:     "",
+		Rank:         domainUser.Rank,
+		Unit:         "",
+		Role:         models.UserRole("user"),
+		Status:       models.StatusActive,
+		CreatedAt:    domainUser.CreatedAt,
+		UpdatedAt:    domainUser.UpdatedAt,
+	}
+
+	// Generate new token pair
+	tokenPair, err := h.jwtService.RefreshAccessToken(req.RefreshToken, modelUser)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to refresh token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
+		"expires_at":    tokenPair.ExpiresAt,
+		"token_type":    tokenPair.TokenType,
 	})
 }
 
 // Register handles user registration
 func (h *AuthHandler) Register(c *gin.Context) {
-	var createUserInput domain.CreateUserInput
+	var createUserInput models.CreateUserRequest
 
 	// Validate request body
 	if err := c.ShouldBindJSON(&createUserInput); err != nil {
@@ -98,36 +207,79 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Create user
-	user := &domain.User{
+	// Create domain.User for repository (since repository expects domain.User)
+	domainUser := &domain.User{
 		Username: createUserInput.Username,
 		Password: string(hashedPassword),
-		Name:     createUserInput.Name,
+		Name:     createUserInput.FirstName + " " + createUserInput.LastName,
 		Rank:     createUserInput.Rank,
 	}
 
-	if err := h.repo.CreateUser(user); err != nil {
+	if err := h.repo.CreateUser(domainUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
-	// Generate token
-	token, err := middleware.GenerateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return
+	// Create session
+	session := sessions.Default(c)
+	sessionID := uuid.New().String()
+	session.Set("userID", domainUser.ID)
+	session.Set("sessionID", sessionID)
+
+	if err := session.Save(); err != nil {
+		log.Printf("Failed to save session for new user: %v", err)
 	}
 
-	// Return user data and token
-	c.JSON(http.StatusCreated, gin.H{
-		"token": token,
-		"user": gin.H{
-			"id":       user.ID,
-			"username": user.Username,
-			"name":     user.Name,
-			"rank":     user.Rank,
+	// Create models.User for JWT generation
+	modelUser := models.User{
+		ID:           domainUser.ID,
+		UUID:         uuid.New(),
+		Username:     domainUser.Username,
+		Email:        createUserInput.Email,
+		PasswordHash: domainUser.Password,
+		FirstName:    createUserInput.FirstName,
+		LastName:     createUserInput.LastName,
+		Rank:         createUserInput.Rank,
+		Unit:         createUserInput.Unit,
+		Role:         createUserInput.Role,
+		Status:       models.StatusActive,
+		CreatedAt:    domainUser.CreatedAt,
+		UpdatedAt:    domainUser.UpdatedAt,
+	}
+
+	// Generate token pair
+	tokenPair, err := h.jwtService.GenerateTokenPair(modelUser, sessionID)
+	if err != nil {
+		log.Printf("Failed to generate tokens for new user: %v", err)
+		tokenPair = nil
+	}
+
+	// Prepare response
+	response := models.LoginResponse{
+		User: models.UserDTO{
+			ID:        domainUser.ID,
+			UUID:      modelUser.UUID,
+			Username:  domainUser.Username,
+			Email:     modelUser.Email,
+			FirstName: createUserInput.FirstName,
+			LastName:  createUserInput.LastName,
+			Rank:      createUserInput.Rank,
+			Unit:      "",
+			Role:      models.UserRole("user"),
+			Status:    models.StatusActive,
+			CreatedAt: domainUser.CreatedAt,
+			UpdatedAt: domainUser.UpdatedAt,
 		},
-	})
+	}
+
+	// Include tokens if available
+	if tokenPair != nil {
+		response.AccessToken = tokenPair.AccessToken
+		response.RefreshToken = tokenPair.RefreshToken
+		response.ExpiresAt = tokenPair.ExpiresAt
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetCurrentUser returns the currently authenticated user
@@ -140,19 +292,27 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	}
 
 	// Retrieve user from database
-	user, err := h.repo.GetUserByID(userID.(uint))
+	domainUser, err := h.repo.GetUserByID(userID.(uint))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
 		return
 	}
 
-	// Return user data in the format expected by the frontend
+	// Return user data - convert domain.User to UserDTO
 	c.JSON(http.StatusOK, gin.H{
-		"user": gin.H{
-			"id":       user.ID,
-			"username": user.Username,
-			"name":     user.Name,
-			"rank":     user.Rank,
+		"user": models.UserDTO{
+			ID:        domainUser.ID,
+			UUID:      uuid.New(), // Generate since domain.User doesn't have it
+			Username:  domainUser.Username,
+			Email:     domainUser.Username + "@handreceipt.mil",
+			FirstName: domainUser.Name,
+			LastName:  "",
+			Rank:      domainUser.Rank,
+			Unit:      "",
+			Role:      models.UserRole("user"),
+			Status:    models.StatusActive,
+			CreatedAt: domainUser.CreatedAt,
+			UpdatedAt: domainUser.UpdatedAt,
 		},
 	})
 }

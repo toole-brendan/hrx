@@ -39,6 +39,8 @@
 		BFA1280F2DEA2F4300C12800 /* MaintenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280C2DEA2F4300C12800 /* MaintenanceView.swift */; };
 		BFA128102DEA2F4300C12800 /* SensitiveItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280E2DEA2F4300C12800 /* SensitiveItemsView.swift */; };
 		BFA128112DEA2F4300C12800 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280D2DEA2F4300C12800 /* ReportsView.swift */; };
+		BFA128142DEA3D3200C12800 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128122DEA3D3200C12800 /* AuthManager.swift */; };
+		BFA128152DEA3D3200C12800 /* MockAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128132DEA3D3200C12800 /* MockAPIService.swift */; };
 		BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */; };
 		BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */; };
 		BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */; };
@@ -90,6 +92,8 @@
 		BFA1280C2DEA2F4300C12800 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
 		BFA1280D2DEA2F4300C12800 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
 		BFA1280E2DEA2F4300C12800 /* SensitiveItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveItemsView.swift; sourceTree = "<group>"; };
+		BFA128122DEA3D3200C12800 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		BFA128132DEA3D3200C12800 /* MockAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAPIService.swift; sourceTree = "<group>"; };
 		BFC223C92DAABB1800ACF884 /* HandReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HandReceiptApp.swift; path = HandReceipt/HandReceiptApp.swift; sourceTree = "<group>"; };
 		BFC223CB2DAB3E1F00ACF884 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		BFC223CC2DAB3E1F00ACF884 /* AppStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStyles.swift; sourceTree = "<group>"; };
@@ -136,6 +140,8 @@
 		9AD52AE44496465F5F0F3B16 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BFA128122DEA3D3200C12800 /* AuthManager.swift */,
+				BFA128132DEA3D3200C12800 /* MockAPIService.swift */,
 				BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */,
 				BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */,
 				B32078152333561CB10233BA /* APIService.swift */,
@@ -309,6 +315,8 @@
 				BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */,
 				BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */,
 				BFC223D12DAB3E1F00ACF884 /* CommonImports.swift in Sources */,
+				BFA128142DEA3D3200C12800 /* AuthManager.swift in Sources */,
+				BFA128152DEA3D3200C12800 /* MockAPIService.swift in Sources */,
 				4263559251C2849EDF4EC0F6 /* ReferenceItemDetailView.swift in Sources */,
 				0E15AB56596FFD79CE89E2D4 /* ReferenceItemDetailViewModel.swift in Sources */,
 				35EF675708F8DDFCA2E0CD06 /* ScanView.swift in Sources */,
