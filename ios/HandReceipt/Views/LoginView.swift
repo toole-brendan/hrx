@@ -326,24 +326,18 @@ struct LoginView: View {
     private func performDevLogin() {
         debugPrint("🔧 DEV LOGIN ACTIVATED! Bypassing authentication...")
         
-        // Create a mock login response
-        let mockUser = User(
-            id: "dev-user-001",
+        // Create a mock user using the nested User type from LoginResponse
+        let mockUser = LoginResponse.User(
+            id: 999,
             username: "dev_user",
-            email: "dev@handreceipt.mil",
-            first_name: "Developer",
-            last_name: "User",
+            name: "Developer",
             rank: "DEV",
-            unit: "Development Team",
-            role: "admin",
-            created_at: Date(),
-            updated_at: Date()
+            lastName: "User"
         )
         
         let mockResponse = LoginResponse(
-            user: mockUser,
             token: "dev-token-\(UUID().uuidString)",
-            message: "Development login successful"
+            user: mockUser
         )
         
         // Show a brief visual confirmation
