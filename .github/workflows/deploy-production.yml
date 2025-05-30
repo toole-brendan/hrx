@@ -631,21 +631,23 @@ jobs:
           HEALTH_URL=$(echo "$API_URL" | sed 's|/api$||')/health
           echo "🔗 Testing backend at $HEALTH_URL"
           
+          SUCCESS=false
           for i in {1..5}; do
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✅ Backend health check passed (HTTP $HTTP_CODE)"
+              SUCCESS=true
               break
             else
               echo "Attempt $i: Backend returned HTTP $HTTP_CODE, retrying..."
               sleep 10
             fi
-            
-            if [ $i -eq 5 ]; then
-              echo "❌ Backend health check failed after 5 attempts"
-              exit 1
-            fi
           done
+          
+          if [ "$SUCCESS" = "false" ]; then
+            echo "❌ Backend health check failed after 5 attempts"
+            exit 1
+          fi
 
       - name: Test Frontend-Backend Integration
         if: ${{ github.event.inputs.deploy_frontend == 'true' && github.event.inputs.deploy_backend == 'true' }}
