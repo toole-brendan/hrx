@@ -2,9 +2,8 @@ import SwiftUI
 
 struct AuthenticatedTabView: View {
     @StateObject var authViewModel: AuthViewModel
-    @State private var showingScanView = false
+    @State private var selectedTab = 0
     @State private var showingCreateProperty = false
-    @State private var selectedTab = 0 // Default to Dashboard tab
 
     init(authViewModel: AuthViewModel) {
         _authViewModel = StateObject(wrappedValue: authViewModel)
@@ -51,38 +50,10 @@ struct AuthenticatedTabView: View {
                     Label("Transfers", systemImage: "arrow.left.arrow.right")
                 }
 
-                // Scan Tab - Central action
-                VStack {
-                    Spacer()
-                    
-                    VStack(spacing: 20) {
-                        Image(systemName: "qrcode.viewfinder")
-                            .font(.system(size: 60))
-                            .foregroundColor(AppColors.accent)
-                        
-                        Text("Scan QR Code")
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.primaryText)
-                        
-                        Text("Tap to scan property QR codes for transfers")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Button(action: { showingScanView = true }) {
-                            Text("Open Scanner")
-                                .font(AppFonts.bodyBold)
-                        }
-                        .buttonStyle(.primary)
-                    }
-                    
-                    Spacer()
+                // Scan Tab
+                NavigationView {
+                    ScanTabPlaceholderView()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.appBackground.ignoresSafeArea())
-                .contentShape(Rectangle())
-                .onTapGesture { showingScanView = true }
                 .tag(3)
                 .tabItem {
                     Label("Scan", systemImage: "qrcode.viewfinder")
@@ -115,9 +86,6 @@ struct AuthenticatedTabView: View {
                     }
                 }
             }
-        }
-        .sheet(isPresented: $showingScanView) {
-            QRScannerView()
         }
         .sheet(isPresented: $showingCreateProperty) {
             CreatePropertyView()

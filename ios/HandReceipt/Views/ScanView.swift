@@ -1,18 +1,131 @@
 import SwiftUI
 
-struct ScanView: View {
-    // Use @StateObject because this View owns the ViewModel
-    @StateObject private var viewModel = ScanViewModel()
+// This is the view shown when tapping the "Scan" tab in the tab bar
+struct ScanTabPlaceholderView: View {
+    @State private var showingQRScanner = false
+    @State private var animationAmount: CGFloat = 1.0
     
-    // Keep isScanning state local to control the CameraView representation
-    // This is needed because the CameraView itself needs a binding to control start/stop
-    @State private var isScanningActive: Bool = true 
-    @State private var showingUserSelection = false // State for sheet presentation
+    var body: some View {
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 32) {
+                Spacer()
+                
+                // Animated QR icon
+                ZStack {
+                    // Background rings
+                    ForEach(0..<3) { index in
+                        Circle()
+                            .stroke(AppColors.accent.opacity(0.3 - Double(index) * 0.1), lineWidth: 2)
+                            .frame(width: CGFloat(120 + index * 40), height: CGFloat(120 + index * 40))
+                            .scaleEffect(animationAmount)
+                            .opacity(2 - animationAmount)
+                            .animation(
+                                Animation.easeOut(duration: 2)
+                                    .repeatForever(autoreverses: false)
+                                    .delay(Double(index) * 0.4),
+                                value: animationAmount
+                            )
+                    }
+                    
+                    // Main icon container
+                    ZStack {
+                        Rectangle()
+                            .fill(AppColors.secondaryBackground)
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Rectangle()
+                                    .stroke(AppColors.accent, lineWidth: 2)
+                            )
+                        
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 60))
+                            .foregroundColor(AppColors.accent)
+                    }
+                }
+                .onAppear {
+                    animationAmount = 2.0
+                }
+                
+                // Instructions
+                VStack(spacing: 16) {
+                    Text("SCAN QR CODE")
+                        .font(AppFonts.title)
+                        .foregroundColor(AppColors.primaryText)
+                        .tracking(AppFonts.militaryTracking)
+                    
+                    Text("Scan property QR codes to initiate transfers")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+                
+                Spacer()
+                
+                // Action button
+                Button(action: { showingQRScanner = true }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "camera.fill")
+                        Text("OPEN SCANNER")
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .font(AppFonts.bodyBold)
+                    .frame(width: 200)
+                }
+                .buttonStyle(.primary)
+                
+                // Alternative actions
+                HStack(spacing: 32) {
+                    Button(action: {
+                        // TODO: Navigate to manual entry
+                    }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "keyboard")
+                                .font(.title2)
+                                .foregroundColor(AppColors.accent)
+                            Text("MANUAL ENTRY")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .tracking(AppFonts.normalTracking)
+                        }
+                    }
+                    
+                    Button(action: {
+                        // TODO: Show recent scans
+                    }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.title2)
+                                .foregroundColor(AppColors.accent)
+                            Text("RECENT SCANS")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .tracking(AppFonts.normalTracking)
+                        }
+                    }
+                }
+                .padding(.top, 20)
+                
+                Spacer()
+            }
+        }
+        .sheet(isPresented: $showingQRScanner) {
+            QRScannerView()
+        }
+    }
+}
 
+// MARK: - Original ScanView for direct camera scanning (kept for compatibility)
+struct ScanView: View {
+    @StateObject private var viewModel = ScanViewModel()
+    @State private var isScanningActive: Bool = true
+    @State private var showingUserSelection = false
+    @State private var selectedProperty: Property?
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
-        // NavigationView styling is handled globally
         ZStack {
             // Camera View background
             CameraView(scannedCode: $viewModel.scannedCodeFromCamera, isScanning: $isScanningActive)
@@ -21,204 +134,327 @@ struct ScanView: View {
                     isScanningActive = (newState == .scanning)
                 }
 
-            // Dimming overlay when not actively scanning (optional, for visual focus)
+            // Dimming overlay when not actively scanning
             if !isScanningActive {
-                 Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
+                Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
             }
 
             // UI Overlays
             ScanStatusOverlay(
-                scanState: viewModel.scanState, 
+                scanState: viewModel.scanState,
                 onScanAgain: { viewModel.scanAgain() },
                 onConfirm: { property in
+                    selectedProperty = property
                     showingUserSelection = true
                 }
             )
             
             TransferStatusMessage(state: viewModel.transferRequestState)
         }
-        // Removed redundant NavigationView wrapper here, assuming presented modally
-        // or within an existing NavigationView from AuthenticatedTabView
-        .navigationTitle("Scan Item")
+        .navigationTitle("SCAN ITEM")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { // Use .toolbar modifier
+        .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button("Cancel") { 
+                Button("CANCEL") {
                     viewModel.scanAgain()
                     isScanningActive = false
                     presentationMode.wrappedValue.dismiss()
                 }
-                // Font/Color applied globally by AuthenticatedTabView's appearance setup
+                .font(AppFonts.bodyBold)
+                .foregroundColor(AppColors.accent)
             }
         }
-        .background(Color.black.ignoresSafeArea()) // Ensure background is black behind camera
-        .onAppear { 
+        .background(Color.black.ignoresSafeArea())
+        .onAppear {
             isScanningActive = true
-            if viewModel.scanState != .scanning { 
-                 viewModel.scanAgain()
+            if viewModel.scanState != .scanning {
+                viewModel.scanAgain()
             }
         }
-        .onDisappear { 
+        .onDisappear {
             isScanningActive = false
         }
         .sheet(isPresented: $showingUserSelection) {
-            NavigationView { 
+            NavigationView {
                 UserSelectionView(onUserSelected: { selectedUser in
-                    viewModel.initiateTransfer(targetUser: selectedUser)
-                    showingUserSelection = false 
+                    if let property = selectedProperty {
+                        viewModel.initiateTransfer(targetUser: selectedUser)
+                    }
+                    showingUserSelection = false
                 })
-                // Appearance should be inherited from global settings
-                // .navigationTitle("Select User for Transfer")
-                // .navigationBarTitleDisplayMode(.inline)
-                // .toolbar { 
-                //     ToolbarItem(placement: .navigationBarLeading) {
-                //         Button("Cancel") { showingUserSelection = false }
-                //             .font(AppFonts.body) // Apply font
-                //             .foregroundColor(AppColors.accent) // Apply color
-                //     }
-                // }
             }
-            .accentColor(AppColors.accent) 
+            .accentColor(AppColors.accent)
         }
     }
 }
 
-// Separate Overlay View for clarity
+// MARK: - Scan Status Overlay with Industrial Design
 struct ScanStatusOverlay: View {
     let scanState: ScanState
     let onScanAgain: () -> Void
-    let onConfirm: (Property) -> Void // Add confirmation callback
+    let onConfirm: (Property) -> Void
 
     var body: some View {
         VStack {
-            Spacer() // Push to bottom
+            Spacer()
 
-            Group { // Group helps apply modifiers commonly
+            Group {
                 switch scanState {
                 case .scanning:
-                    statusMessage(text: "Point camera at barcode or serial number", icon: "viewfinder", color: AppColors.secondaryText)
+                    statusCard(
+                        icon: "viewfinder",
+                        text: "POSITION CAMERA AT SERIAL NUMBER",
+                        subtext: "Align barcode or text within frame",
+                        color: AppColors.accent
+                    )
 
                 case .loading:
-                     ProgressView {
-                         Text("Looking up item...")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.primaryText)
-                     }
-                     .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
-                     .padding()
-                     .background(AppColors.secondaryBackground.opacity(0.8))
-                     .cornerRadius(10)
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("SEARCHING DATABASE...")
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(AppColors.primaryText)
+                                .tracking(AppFonts.militaryTracking)
+                            Text("Verifying serial number")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.secondaryBackground)
+                    .overlay(
+                        Rectangle()
+                            .stroke(AppColors.accent, lineWidth: 1)
+                    )
 
                 case .success(let property):
-                    PropertyDetailsCard(property: property) // Already themed
-                    
-                    HStack(spacing: 15) { 
-                        Button("Scan Again", role: .cancel) {
-                            onScanAgain()
-                        }
-                        .buttonStyle(.bordered) // Use bordered for secondary action
-                        .tint(AppColors.secondaryText) // Themed tint for border/text
-                        .font(AppFonts.body) // Apply theme font
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 16) {
+                        PropertyDetailsCard(property: property)
+                        
+                        HStack(spacing: 16) {
+                            Button("SCAN AGAIN", role: .cancel) {
+                                onScanAgain()
+                            }
+                            .buttonStyle(.secondary)
+                            .frame(maxWidth: .infinity)
 
-                        Button("Confirm & Transfer") { 
-                            onConfirm(property)
+                            Button("REQUEST TRANSFER") {
+                                onConfirm(property)
+                            }
+                            .buttonStyle(.primary)
+                            .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.primary) // Use primary for main action
-                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.top, 10)
 
                 case .notFound:
-                    statusMessage(text: "Item not found in database.", icon: "questionmark.circle", color: .orange) // Keep orange distinct?
-                    Spacer().frame(height: 10)
-                    Button("Scan Again", action: onScanAgain)
-                        .buttonStyle(.bordered)
-                        .tint(AppColors.secondaryText)
-                        .font(AppFonts.body)
+                    VStack(spacing: 16) {
+                        statusCard(
+                            icon: "questionmark.circle",
+                            text: "ITEM NOT FOUND",
+                            subtext: "Serial number not in database",
+                            color: AppColors.warning
+                        )
+                        
+                        Button("SCAN AGAIN", action: onScanAgain)
+                            .buttonStyle(.secondary)
+                    }
 
                 case .error(let message):
-                    statusMessage(text: "Error: \(message)", icon: "exclamationmark.triangle.fill", color: AppColors.destructive)
-                    Spacer().frame(height: 10)
-                    Button("Try Again", action: onScanAgain)
-                        .buttonStyle(.bordered)
-                        .tint(AppColors.secondaryText)
-                        .font(AppFonts.body)
+                    VStack(spacing: 16) {
+                        statusCard(
+                            icon: "exclamationmark.triangle.fill",
+                            text: "SCAN ERROR",
+                            subtext: message,
+                            color: AppColors.destructive
+                        )
+                        
+                        Button("TRY AGAIN", action: onScanAgain)
+                            .buttonStyle(.secondary)
+                    }
                 }
             }
-            .padding(.bottom)
+            .padding()
+            .animation(.spring(), value: scanState)
         }
-        .padding()
-        .animation(.spring(), value: scanState) // Animate state changes
     }
     
-    // Helper for consistent status message display
     @ViewBuilder
-    private func statusMessage(text: String, icon: String?, color: Color) -> some View {
-        HStack(spacing: 8) {
-            if let icon = icon {
+    private func statusCard(icon: String, text: String, subtext: String, color: Color) -> some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
                 Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(text)
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .tracking(AppFonts.militaryTracking)
+                    
+                    Text(subtext)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                
+                Spacer()
             }
-            Text(text)
-                .font(AppFonts.caption) // Use caption font
-                .multilineTextAlignment(.center)
         }
         .padding()
-        .foregroundColor(AppColors.primaryText) // Consistent text color
-        .background(AppColors.secondaryBackground.opacity(0.9)) // Dark background
-        .cornerRadius(10)
-        // Use a neutral shadow or remove if too noisy
-        .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
+        .frame(maxWidth: .infinity)
+        .background(AppColors.secondaryBackground)
+        .overlay(
+            Rectangle()
+                .stroke(color.opacity(0.5), lineWidth: 1)
+        )
     }
 }
 
-// Simple Card View
+// MARK: - Property Details Card with Industrial Design
 struct PropertyDetailsCard: View {
     let property: Property
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text("Item Found")
-                .font(AppFonts.headline) // Use theme font
-                .foregroundColor(AppColors.primaryText)
-                .padding(.bottom, 4)
-            Divider().background(AppColors.secondaryText.opacity(0.5))
-            detailRow(label: "NSN", value: property.nsn)
-            detailRow(label: "Name", value: property.itemName)
-            detailRow(label: "Serial Nr", value: property.serialNumber)
-            detailRow(label: "Status", value: property.status.capitalized)
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(AppColors.success)
+                Text("ITEM VERIFIED")
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.success)
+                    .tracking(AppFonts.militaryTracking)
+                Spacer()
+            }
+            .padding()
+            .background(AppColors.success.opacity(0.1))
+            .overlay(
+                Rectangle()
+                    .stroke(AppColors.success.opacity(0.3), lineWidth: 1),
+                alignment: .bottom
+            )
+            
+            // Property details
+            VStack(spacing: 12) {
+                DetailRow(label: "NSN", value: property.nsn ?? "N/A", isMonospaced: true)
+                Rectangle().fill(AppColors.border).frame(height: 1)
+                DetailRow(label: "NAME", value: property.itemName.uppercased())
+                Rectangle().fill(AppColors.border).frame(height: 1)
+                DetailRow(label: "SERIAL", value: property.serialNumber, isMonospaced: true)
+                Rectangle().fill(AppColors.border).frame(height: 1)
+                DetailRow(label: "STATUS", value: property.status.uppercased())
+            }
+            .padding()
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.secondaryBackground.opacity(0.8))
-        .cornerRadius(10)
+        .background(AppColors.secondaryBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(AppColors.secondaryText.opacity(0.3), lineWidth: 1)
+            Rectangle()
+                .stroke(AppColors.border, lineWidth: 1)
         )
     }
+}
+
+// MARK: - Transfer Status Message
+struct TransferStatusMessage: View {
+    let state: TransferRequestState
     
-    @ViewBuilder
-    private func detailRow(label: String, value: String) -> some View {
+    var body: some View {
+        VStack {
+            if state != .idle {
+                VStack(spacing: 12) {
+                    switch state {
+                    case .idle:
+                        EmptyView()
+                        
+                    case .loading:
+                        HStack(spacing: 12) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            Text("INITIATING TRANSFER...")
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(.white)
+                                .tracking(AppFonts.militaryTracking)
+                        }
+                        
+                    case .success:
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.white)
+                            Text("TRANSFER REQUEST SENT")
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(.white)
+                                .tracking(AppFonts.militaryTracking)
+                        }
+                        
+                    case .error(let message):
+                        HStack(spacing: 12) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white)
+                            Text(message.uppercased())
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(.white)
+                                .tracking(AppFonts.militaryTracking)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    state == .error("") ? AppColors.destructive : AppColors.accent
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            Spacer()
+        }
+        .animation(.spring(), value: state)
+    }
+}
+
+// MARK: - Detail Row Component
+struct DetailRow: View {
+    let label: String
+    let value: String
+    var isMonospaced: Bool = false
+    
+    var body: some View {
         HStack {
-            Text(label + ":")
-                .font(AppFonts.captionBold) // Use theme font
-                .foregroundColor(AppColors.secondaryText)
-                .frame(width: 70, alignment: .leading) // Align labels
+            Text("\(label):")
+                .font(AppFonts.captionBold)
+                .foregroundColor(AppColors.tertiaryText)
+                .tracking(AppFonts.militaryTracking)
+                .frame(width: 80, alignment: .leading)
+            
             Text(value)
-                .font(AppFonts.caption) // Use theme font
+                .font(isMonospaced ? AppFonts.mono : AppFonts.body)
                 .foregroundColor(AppColors.primaryText)
-                .lineLimit(1) // Prevent long values wrapping poorly
+                .lineLimit(1)
+            
+            Spacer()
         }
     }
 }
 
+// MARK: - Previews
+
 struct ScanView_Previews: PreviewProvider {
     static var previews: some View {
-        // Wrap in NavView for preview context
-        NavigationView {
-            ScanView()
+        Group {
+            // Scan tab placeholder
+            NavigationView {
+                ScanTabPlaceholderView()
+            }
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Scan Tab")
+            
+            // Direct scan view
+            NavigationView {
+                ScanView()
+            }
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Direct Scan")
         }
-        .preferredColorScheme(.dark) // Preview in dark mode
     }
 } 

@@ -1,10 +1,11 @@
 import SwiftUI
-@preconcurrency import AVFoundation
 import CoreImage
 
 struct QRScannerView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: QRScannerViewModel
+    @State private var scannedCode: String?
+    @State private var isScanningActive = true
     
     init(apiService: APIServiceProtocol? = nil) {
         let service = apiService ?? APIService()
@@ -14,47 +15,43 @@ struct QRScannerView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Camera View
-                CameraPreview(session: viewModel.captureSession)
-                    .ignoresSafeArea()
-                    .onAppear {
-                        viewModel.startScanning()
+                // Use shared CameraView component
+                CameraView(
+                    scannedCode: $scannedCode,
+                    isScanning: $isScanningActive
+                )
+                .ignoresSafeArea()
+                .onChange(of: scannedCode) { newCode in
+                    if let code = newCode {
+                        handleScannedCode(code)
                     }
-                    .onDisappear {
-                        viewModel.stopScanning()
-                    }
+                }
                 
-                // Scanning Overlay
+                // Scanning Overlay with industrial design
                 scanningOverlay
                 
-                // Bottom Info Panel
+                // Bottom Control Panel
                 VStack {
                     Spacer()
-                    infoPanel
-                }
-            }
-            .navigationTitle("Scan QR Code")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { viewModel.toggleFlash() }) {
-                        Image(systemName: viewModel.isFlashOn ? "flashlight.on.fill" : "flashlight.off.fill")
-                            .foregroundColor(.white)
-                    }
+                    controlPanel
                 }
             }
             .preferredColorScheme(.dark)
+            .navigationBarHidden(true)
+            .overlay(customNavigationBar, alignment: .top)
+            .onAppear {
+                isScanningActive = true
+                viewModel.isScanning = true
+            }
+            .onDisappear {
+                isScanningActive = false
+                viewModel.isScanning = false
+            }
             .alert("Error", isPresented: $viewModel.showingError) {
                 Button("OK") {
                     viewModel.showingError = false
-                    viewModel.startScanning() // Resume scanning
+                    scannedCode = nil
+                    isScanningActive = true
                 }
             } message: {
                 Text(viewModel.errorMessage)
@@ -71,7 +68,8 @@ struct QRScannerView: View {
                         },
                         onCancel: {
                             viewModel.showingTransferConfirmation = false
-                            viewModel.startScanning() // Resume scanning
+                            scannedCode = nil
+                            isScanningActive = true
                         }
                     )
                 }
@@ -79,11 +77,59 @@ struct QRScannerView: View {
         }
     }
     
+    // MARK: - Handle Scanned Code
+    private func handleScannedCode(_ code: String) {
+        // Stop scanning while processing
+        isScanningActive = false
+        
+        Task {
+            await viewModel.processQRCode(code)
+        }
+    }
+    
+    // MARK: - Custom Navigation Bar
+    private var customNavigationBar: some View {
+        HStack {
+            Button("CANCEL") {
+                dismiss()
+            }
+            .font(AppFonts.bodyBold)
+            .foregroundColor(.white)
+            .tracking(AppFonts.militaryTracking)
+            
+            Spacer()
+            
+            Text("SCAN QR CODE")
+                .font(AppFonts.headline)
+                .foregroundColor(.white)
+                .tracking(AppFonts.militaryTracking)
+            
+            Spacer()
+            
+            // Space for symmetry (flash control removed as CameraView doesn't support it)
+            Color.clear
+                .frame(width: 60)
+        }
+        .padding(.horizontal)
+        .padding(.top, 50) // Account for status bar
+        .padding(.bottom, 16)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.black.opacity(0.8),
+                    Color.black.opacity(0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
+    
     // MARK: - Scanning Overlay
     private var scanningOverlay: some View {
         GeometryReader { geometry in
-            let size = min(geometry.size.width * 0.7, 280)
-            let offsetY = -50 // Move scanning area up slightly
+            let size = min(geometry.size.width * 0.75, 300)
+            let centerY = geometry.size.height / 2 - 40
             
             ZStack {
                 // Dark overlay with cutout
@@ -93,50 +139,57 @@ struct QRScannerView: View {
                         ZStack {
                             Rectangle()
                             
-                            RoundedRectangle(cornerRadius: 20)
+                            // Square cutout with industrial corners
+                            Rectangle()
                                 .frame(width: size, height: size)
-                                .position(x: geometry.size.width / 2, y: geometry.size.height / 2 + CGFloat(offsetY))
+                                .position(x: geometry.size.width / 2, y: centerY)
                                 .blendMode(.destinationOut)
                         }
                     )
                 
-                // Scanning frame
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(AppColors.accent, lineWidth: 3)
+                // Scanning frame with industrial styling
+                Rectangle()
+                    .stroke(AppColors.accent, lineWidth: 2)
                     .frame(width: size, height: size)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2 + CGFloat(offsetY))
+                    .position(x: geometry.size.width / 2, y: centerY)
                 
-                // Corner markers
+                // Corner brackets
                 ForEach(0..<4) { index in
-                    CornerMarker()
+                    IndustrialCornerBracket(cornerIndex: index)
                         .stroke(AppColors.accent, lineWidth: 4)
-                        .frame(width: 40, height: 40)
-                        .rotationEffect(.degrees(Double(index) * 90))
+                        .frame(width: 60, height: 60)
                         .position(
                             x: geometry.size.width / 2 + (index % 2 == 0 ? -size/2 : size/2),
-                            y: geometry.size.height / 2 + CGFloat(offsetY) + (index < 2 ? -size/2 : size/2)
+                            y: centerY + (index < 2 ? -size/2 : size/2)
                         )
                 }
                 
+                // Grid overlay for industrial feel
+                if viewModel.isScanning && isScanningActive {
+                    GridOverlay(size: size)
+                        .position(x: geometry.size.width / 2, y: centerY)
+                        .opacity(0.3)
+                }
+                
                 // Scanning animation
-                if viewModel.isScanning {
+                if viewModel.isScanning && !viewModel.isProcessing && isScanningActive {
                     Rectangle()
                         .fill(
                             LinearGradient(
                                 gradient: Gradient(colors: [
                                     AppColors.accent.opacity(0),
-                                    AppColors.accent.opacity(0.5),
+                                    AppColors.accent.opacity(0.6),
                                     AppColors.accent.opacity(0)
                                 ]),
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
-                        .frame(width: size - 40, height: 2)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2 + CGFloat(offsetY))
+                        .frame(width: size - 40, height: 4)
+                        .position(x: geometry.size.width / 2, y: centerY)
                         .offset(y: viewModel.scanLineOffset)
                         .animation(
-                            Animation.easeInOut(duration: 2)
+                            Animation.linear(duration: 2)
                                 .repeatForever(autoreverses: true),
                             value: viewModel.scanLineOffset
                         )
@@ -144,43 +197,95 @@ struct QRScannerView: View {
                             viewModel.scanLineOffset = size / 2 - 20
                         }
                 }
+                
+                // Center crosshair
+                Image(systemName: "plus")
+                    .font(.system(size: 30, weight: .thin))
+                    .foregroundColor(AppColors.accent.opacity(0.5))
+                    .position(x: geometry.size.width / 2, y: centerY)
             }
         }
     }
     
-    // MARK: - Info Panel
-    private var infoPanel: some View {
-        VStack(spacing: 16) {
-            if viewModel.isProcessing {
-                HStack(spacing: 12) {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    Text("Processing QR Code...")
-                        .font(AppFonts.body)
-                        .foregroundColor(.white)
+    // MARK: - Control Panel
+    private var controlPanel: some View {
+        VStack(spacing: 0) {
+            // Status indicator
+            statusIndicator
+            
+            // Info panel
+            VStack(spacing: 16) {
+                if viewModel.isProcessing {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+                        Text("VERIFYING QR CODE...")
+                            .font(AppFonts.bodyBold)
+                            .foregroundColor(AppColors.primaryText)
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 8) {
+                        Text("POSITION QR CODE WITHIN FRAME")
+                            .font(AppFonts.bodyBold)
+                            .foregroundColor(AppColors.primaryText)
+                            .tracking(AppFonts.militaryTracking)
+                        
+                        Text("Scan property QR code to request transfer")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                    .padding()
                 }
-            } else {
-                Text("Scan property QR code to request transfer")
-                    .font(AppFonts.body)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
                 
-                Text("Position QR code within the frame")
-                    .font(AppFonts.caption)
-                    .foregroundColor(.white.opacity(0.7))
+                // Manual entry option
+                Button(action: {
+                    // TODO: Implement manual serial number entry
+                }) {
+                    HStack {
+                        Image(systemName: "keyboard")
+                        Text("ENTER MANUALLY")
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .font(AppFonts.captionBold)
+                    .foregroundColor(AppColors.accent)
+                }
+                .padding(.bottom, 8)
             }
+            .frame(maxWidth: .infinity)
+            .background(AppColors.secondaryBackground)
+            .overlay(
+                Rectangle()
+                    .stroke(AppColors.border, lineWidth: 1),
+                alignment: .top
+            )
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.black.opacity(0.8))
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
+    }
+    
+    // MARK: - Status Indicator
+    private var statusIndicator: some View {
+        HStack(spacing: 12) {
+            // Scanner status LED
+            Circle()
+                .fill(isScanningActive ? AppColors.success : AppColors.destructive)
+                .frame(width: 8, height: 8)
+                .overlay(
+                    Circle()
+                        .stroke(isScanningActive ? AppColors.success : AppColors.destructive, lineWidth: 1)
+                        .frame(width: 12, height: 12)
                 )
-        )
-        .padding()
+            
+            Text(isScanningActive ? "SCANNER ACTIVE" : "SCANNER PAUSED")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+                .tracking(AppFonts.militaryTracking)
+            
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(AppColors.mutedBackground)
     }
     
     // MARK: - Transfer Initiation
@@ -189,15 +294,17 @@ struct QRScannerView: View {
         
         do {
             let _ = try await viewModel.initiateTransfer(for: property)
-            // Show success and dismiss
             await MainActor.run {
                 dismiss()
-                // TODO: Navigate to transfer detail or show success notification
+                // Success feedback would be shown by parent view
             }
         } catch {
             await MainActor.run {
                 viewModel.errorMessage = "Failed to initiate transfer: \(error.localizedDescription)"
                 viewModel.showingError = true
+                // Reset scanning
+                scannedCode = nil
+                isScanningActive = true
             }
         }
     }
@@ -216,224 +323,240 @@ struct TransferConfirmationView: View {
             ZStack {
                 AppColors.appBackground.ignoresSafeArea()
                 
-                VStack(spacing: 24) {
-                    // Property Info
+                VStack(spacing: 0) {
+                    // Header
                     VStack(spacing: 16) {
-                        Image(systemName: "qrcode.viewfinder")
-                            .font(.system(size: 60))
-                            .foregroundColor(AppColors.accent)
+                        ZStack {
+                            Rectangle()
+                                .fill(AppColors.success.opacity(0.1))
+                                .frame(width: 100, height: 100)
+                                .overlay(
+                                    Rectangle()
+                                        .stroke(AppColors.success.opacity(0.3), lineWidth: 2)
+                                )
+                            
+                            Image(systemName: "qrcode.viewfinder")
+                                .font(.system(size: 48))
+                                .foregroundColor(AppColors.success)
+                        }
                         
-                        Text("Transfer Request")
-                            .font(AppFonts.title)
-                            .foregroundColor(AppColors.primaryText)
+                        Text("QR CODE VERIFIED")
+                            .font(AppFonts.headline)
+                            .foregroundColor(AppColors.success)
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.secondaryBackground)
+                    .overlay(
+                        Rectangle()
+                            .stroke(AppColors.border, lineWidth: 1),
+                        alignment: .bottom
+                    )
+                    
+                    // Property Information
+                    VStack(spacing: 0) {
+                        sectionHeader(title: "PROPERTY INFORMATION")
                         
-                        VStack(alignment: .leading, spacing: 12) {
-                            PropertyInfoRow(label: "Item", value: property.itemName)
-                            PropertyInfoRow(label: "Serial #", value: property.serialNumber)
-                            PropertyInfoRow(label: "Category", value: property.category.capitalized)
-                            PropertyInfoRow(label: "Current Holder", value: property.currentHolderName ?? "User #\(property.currentHolderId)")
+                        VStack(spacing: 16) {
+                            PropertyInfoRow(label: "ITEM NAME", value: property.itemName)
+                            Rectangle().fill(AppColors.border).frame(height: 1)
+                            PropertyInfoRow(label: "SERIAL NUMBER", value: property.serialNumber, isMonospaced: true)
+                            Rectangle().fill(AppColors.border).frame(height: 1)
+                            PropertyInfoRow(label: "CATEGORY", value: property.category.uppercased())
+                            Rectangle().fill(AppColors.border).frame(height: 1)
+                            PropertyInfoRow(
+                                label: "CURRENT HOLDER",
+                                value: property.currentHolderName ?? "USER #\(property.currentHolderId)"
+                            )
                         }
                         .padding()
                         .background(AppColors.secondaryBackground)
-                        .cornerRadius(12)
                     }
                     
                     Spacer()
                     
-                    // Confirmation Text
-                    Text("Are you sure you want to request transfer of this property?")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
+                    // Confirmation message
+                    Text("REQUEST TRANSFER OF THIS PROPERTY?")
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .tracking(AppFonts.militaryTracking)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    // Action Buttons
-                    VStack(spacing: 12) {
-                        Button(action: onConfirm) {
-                            if viewModel.isProcessing {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .frame(maxWidth: .infinity)
-                            } else {
-                                Text("Confirm Transfer Request")
-                                    .font(AppFonts.bodyBold)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .buttonStyle(.primary)
-                        .disabled(viewModel.isProcessing)
-                        
-                        Button(action: onCancel) {
-                            Text("Cancel")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.accent)
-                                .frame(maxWidth: .infinity)
-                        }
                         .padding()
+                    
+                    // Action buttons
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .fill(AppColors.border)
+                            .frame(height: 1)
+                        
+                        HStack(spacing: 0) {
+                            Button(action: onCancel) {
+                                Text("CANCEL")
+                                    .font(AppFonts.bodyBold)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .tracking(AppFonts.militaryTracking)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                            }
+                            
+                            Rectangle()
+                                .fill(AppColors.border)
+                                .frame(width: 1)
+                            
+                            Button(action: onConfirm) {
+                                if viewModel.isProcessing {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                } else {
+                                    Text("CONFIRM TRANSFER")
+                                        .font(AppFonts.bodyBold)
+                                        .foregroundColor(AppColors.accent)
+                                        .tracking(AppFonts.militaryTracking)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                }
+                            }
+                            .disabled(viewModel.isProcessing)
+                        }
+                        .background(AppColors.tertiaryBackground)
                     }
                 }
-                .padding()
             }
             .navigationBarHidden(true)
         }
+    }
+    
+    private func sectionHeader(title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+                .tracking(AppFonts.militaryTracking)
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .background(AppColors.mutedBackground)
+        .overlay(
+            Rectangle()
+                .stroke(AppColors.border, lineWidth: 1),
+            alignment: .bottom
+        )
     }
 }
 
 struct PropertyInfoRow: View {
     let label: String
     let value: String
+    var isMonospaced: Bool = false
     
     var body: some View {
         HStack {
             Text(label)
-                .font(AppFonts.bodyBold)
-                .foregroundColor(AppColors.secondaryText)
-            Spacer()
+                .font(AppFonts.captionBold)
+                .foregroundColor(AppColors.tertiaryText)
+                .tracking(AppFonts.militaryTracking)
+                .frame(width: 140, alignment: .leading)
+            
             Text(value)
-                .font(AppFonts.body)
+                .font(isMonospaced ? AppFonts.mono : AppFonts.body)
                 .foregroundColor(AppColors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
-// MARK: - Camera Preview
+// MARK: - Supporting Shapes
 
-struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
+struct IndustrialCornerBracket: Shape {
+    let cornerIndex: Int
     
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let length: CGFloat = 20
         
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.connection?.videoOrientation = .portrait
+        switch cornerIndex {
+        case 0: // Top-left
+            path.move(to: CGPoint(x: 0, y: length))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: length, y: 0))
+        case 1: // Top-right
+            path.move(to: CGPoint(x: rect.width - length, y: 0))
+            path.addLine(to: CGPoint(x: rect.width, y: 0))
+            path.addLine(to: CGPoint(x: rect.width, y: length))
+        case 2: // Bottom-left
+            path.move(to: CGPoint(x: 0, y: rect.height - length))
+            path.addLine(to: CGPoint(x: 0, y: rect.height))
+            path.addLine(to: CGPoint(x: length, y: rect.height))
+        case 3: // Bottom-right
+            path.move(to: CGPoint(x: rect.width - length, y: rect.height))
+            path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+            path.addLine(to: CGPoint(x: rect.width, y: rect.height - length))
+        default:
+            break
+        }
         
-        view.layer.addSublayer(previewLayer)
-        
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {
-        guard let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer else { return }
-        previewLayer.frame = uiView.bounds
+        return path
     }
 }
 
-// MARK: - Corner Marker Shape
-
-struct CornerMarker: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let length: CGFloat = 15
-        
-        // Top-left corner
-        path.move(to: CGPoint(x: 0, y: length))
-        path.addLine(to: CGPoint(x: 0, y: 0))
-        path.addLine(to: CGPoint(x: length, y: 0))
-        
-        return path
+struct GridOverlay: View {
+    let size: CGFloat
+    
+    var body: some View {
+        ZStack {
+            // Horizontal lines
+            ForEach(0..<5) { i in
+                Rectangle()
+                    .fill(AppColors.accent.opacity(0.2))
+                    .frame(width: size - 40, height: 0.5)
+                    .offset(y: CGFloat(i - 2) * (size / 5))
+            }
+            
+            // Vertical lines
+            ForEach(0..<5) { i in
+                Rectangle()
+                    .fill(AppColors.accent.opacity(0.2))
+                    .frame(width: 0.5, height: size - 40)
+                    .offset(x: CGFloat(i - 2) * (size / 5))
+            }
+        }
+        .frame(width: size, height: size)
     }
 }
 
 // MARK: - View Model
 
 @MainActor
-class QRScannerViewModel: NSObject, ObservableObject {
+class QRScannerViewModel: ObservableObject {
     let apiService: APIServiceProtocol
-    let captureSession = AVCaptureSession()
-    private let metadataOutput = AVCaptureMetadataOutput()
-    private var videoDevice: AVCaptureDevice?
     
-    @Published var isScanning = false
+    @Published var isScanning = true
     @Published var isProcessing = false
-    @Published var isFlashOn = false
     @Published var scanLineOffset: CGFloat = -140
     @Published var showingError = false
     @Published var errorMessage = ""
     @Published var scannedProperty: ScannedPropertyInfo?
     @Published var showingTransferConfirmation = false
     
-    private var lastScannedCode: String?
-    private var scanDebounceTimer: Timer?
-    
     init(apiService: APIServiceProtocol) {
         self.apiService = apiService
-        super.init()
-        setupCamera()
     }
     
-    private func setupCamera() {
-        captureSession.beginConfiguration()
+    func processQRCode(_ code: String) async {
+        // Prevent processing multiple times
+        guard !isProcessing else { return }
         
-        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
-            errorMessage = "Camera not available"
-            showingError = true
-            return
+        await MainActor.run {
+            isProcessing = true
         }
         
-        self.videoDevice = videoDevice
-        
-        if captureSession.canAddInput(videoInput) {
-            captureSession.addInput(videoInput)
-        }
-        
-        if captureSession.canAddOutput(metadataOutput) {
-            captureSession.addOutput(metadataOutput)
-            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            metadataOutput.metadataObjectTypes = [.qr]
-        }
-        
-        captureSession.commitConfiguration()
-    }
-    
-    func startScanning() {
-        guard !captureSession.isRunning else { return }
-        
-        Task { @MainActor in
-            isScanning = true
-            lastScannedCode = nil
-        }
-        
-        // Start capture session on background queue
-        let session = captureSession
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.startRunning()
-        }
-    }
-    
-    func stopScanning() {
-        guard captureSession.isRunning else { return }
-        
-        isScanning = false
-        captureSession.stopRunning()
-        scanDebounceTimer?.invalidate()
-    }
-    
-    func toggleFlash() {
-        guard let device = videoDevice, device.hasTorch else { return }
-        
-        do {
-            try device.lockForConfiguration()
-            isFlashOn.toggle()
-            device.torchMode = isFlashOn ? .on : .off
-            device.unlockForConfiguration()
-        } catch {
-            print("Failed to toggle flash: \(error)")
-        }
-    }
-    
-    func processQRCode(_ code: String) async -> ScannedPropertyInfo? {
-        // Prevent processing the same code multiple times
-        guard code != lastScannedCode else { return nil }
-        lastScannedCode = code
-        
-        isProcessing = true
-        defer { 
-            Task { @MainActor in
-                isProcessing = false
-            }
-        }
+        // Haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
         
         do {
             // Parse QR code data
@@ -453,9 +576,8 @@ class QRScannerViewModel: NSObject, ObservableObject {
                 throw QRError.missingHash
             }
             
-            // TODO: Verify hash matches computed hash
-            
-            return ScannedPropertyInfo(
+            // Create scanned property info
+            var property = ScannedPropertyInfo(
                 itemId: itemId,
                 serialNumber: serialNumber,
                 itemName: itemName,
@@ -463,24 +585,48 @@ class QRScannerViewModel: NSObject, ObservableObject {
                 currentHolderId: currentHolderId,
                 qrData: qrData
             )
+            
+            // Try to get property owner name
+            if let holderId = Int(currentHolderId) {
+                do {
+                    let users = try await apiService.fetchUsers(searchQuery: nil)
+                    if let holder = users.first(where: { $0.id == holderId }) {
+                        property.currentHolderName = "\(holder.rank ?? "") \(holder.lastName ?? "")"
+                    }
+                } catch {
+                    print("Failed to fetch user info: \(error)")
+                }
+            }
+            
+            await MainActor.run {
+                self.scannedProperty = property
+                self.showingTransferConfirmation = true
+                self.isProcessing = false
+            }
         } catch {
             await MainActor.run {
-                errorMessage = "Invalid QR code format"
-                showingError = true
+                self.errorMessage = "Invalid QR code format"
+                self.showingError = true
+                self.isProcessing = false
             }
-            return nil
         }
     }
     
     func initiateTransfer(for property: ScannedPropertyInfo) async throws -> Transfer {
+        isProcessing = true
+        defer {
+            Task { @MainActor in
+                isProcessing = false
+            }
+        }
+        
         // Use the QR transfer API endpoint
         let response = try await apiService.initiateQRTransfer(
             qrData: property.qrData,
             scannedAt: ISO8601DateFormatter().string(from: Date())
         )
         
-        // Since the QR transfer returns a transferId, we need to fetch the actual transfer
-        // This would need to be implemented if needed, for now return a mock transfer
+        // Return a mock transfer for now
         // In a real implementation, you might want to fetch the transfer by ID
         return Transfer(
             id: response.transferId,
@@ -496,62 +642,6 @@ class QRScannerViewModel: NSObject, ObservableObject {
             toUser: nil,
             notes: "Transfer initiated via QR scan"
         )
-    }
-}
-
-// MARK: - QR Code Scanning Delegate
-
-extension QRScannerViewModel: AVCaptureMetadataOutputObjectsDelegate {
-    nonisolated func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        guard let metadataObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
-              let stringValue = metadataObject.stringValue else { return }
-        
-        Task { @MainActor in
-            guard isScanning, !isProcessing else { return }
-            
-            // Debounce rapid scans
-            scanDebounceTimer?.invalidate()
-            scanDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-                Task { @MainActor in
-                    self?.lastScannedCode = nil
-                }
-            }
-            
-            // Stop scanning temporarily
-            stopScanning()
-            
-            // Haptic feedback
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
-            
-            // Process the QR code
-            if let property = await processQRCode(stringValue) {
-                // Get property owner name if possible
-                if let holderId = Int(property.currentHolderId) {
-                    do {
-                        let users = try await apiService.fetchUsers(searchQuery: nil)
-                        if let holder = users.first(where: { $0.id == holderId }) {
-                            var updatedProperty = property
-                            updatedProperty.currentHolderName = "\(holder.rank ?? "") \(holder.lastName ?? "")"
-                            
-                            // Show confirmation sheet
-                            self.scannedProperty = updatedProperty
-                            self.showingTransferConfirmation = true
-                            return
-                        }
-                    } catch {
-                        print("Failed to fetch user info: \(error)")
-                    }
-                }
-                
-                // Show confirmation without holder name
-                self.scannedProperty = property
-                self.showingTransferConfirmation = true
-            } else {
-                // Resume scanning if processing failed
-                startScanning()
-            }
-        }
     }
 }
 
