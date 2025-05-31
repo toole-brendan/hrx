@@ -453,6 +453,8 @@ struct MoreActionRow: View {
 
 // MARK: - Profile Header Section
 struct ProfileHeaderSection: View {
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
         ZStack {
             AppColors.secondaryBackground
@@ -460,12 +462,40 @@ struct ProfileHeaderSection: View {
             
             VStack {
                 Spacer()
-                Text("PROFILE")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppColors.primaryText)
-                    .kerning(1.2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 12)
+                HStack {
+                    // Back button
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Back")
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(AppColors.accent)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("PROFILE")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(AppColors.primaryText)
+                        .kerning(1.2)
+                    
+                    Spacer()
+                    
+                    // Invisible placeholder for balance
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Back")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .foregroundColor(.clear)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 12)
             }
         }
         .frame(height: 36)
