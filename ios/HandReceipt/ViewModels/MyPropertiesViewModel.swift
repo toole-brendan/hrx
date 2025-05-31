@@ -93,7 +93,7 @@ class MyPropertiesViewModel: ObservableObject {
                 status: "Operational", // Default status
                 assignedToUserId: Int(cached.currentHolderId),
                 location: nil,
-                lastInventoryDate: cached.updatedAt,
+                lastVerificationDate: cached.updatedAt,
                 acquisitionDate: cached.createdAt,
                 notes: nil
             )
@@ -177,7 +177,7 @@ class MyPropertiesViewModel: ObservableObject {
             currentStatus: "operational",
             assignedToUserId: nil,
             location: nil,
-            lastInventoryDate: nil,
+            lastVerificationDate: nil,
             acquisitionDate: Date(),
             notes: nil,
             maintenanceDueDate: nil,

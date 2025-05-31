@@ -606,7 +606,7 @@ struct ReferencePropertyCard: View {
 struct ReferencePropertyDetailSheet: View {
     let item: ReferenceProperty
     @Environment(\.dismiss) private var dismiss
-    @State private var showingAddToInventory = false
+    @State private var showingAddToProperties = false
     
     private var categoryEnum: EquipmentCategory {
         guard let categoryString = item.category else { return .other }
@@ -687,11 +687,11 @@ struct ReferencePropertyDetailSheet: View {
                     // Actions
                     VStack(spacing: 12) {
                         Button(action: {
-                            showingAddToInventory = true
+                                                                showingAddToProperties = true
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
-                                Text("Add to Inventory")
+                                Text("Add to Properties")
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -723,9 +723,9 @@ struct ReferencePropertyDetailSheet: View {
                 }
             }
         }
-        .sheet(isPresented: $showingAddToInventory) {
+        .sheet(isPresented: $showingAddToProperties) {
             // TODO: Show create property form with pre-filled data
-            Text("Add to Inventory - Coming Soon")
+            Text("Add to Properties - Coming Soon")
         }
     }
     

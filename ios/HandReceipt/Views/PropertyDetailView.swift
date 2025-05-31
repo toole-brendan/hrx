@@ -324,12 +324,12 @@ struct PropertyDetailView: View {
                     
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Last Inventory")
+                            Text("Last Verification")
                                 .font(AppFonts.caption)
                                 .foregroundColor(AppColors.tertiaryText)
                             Text(lastInvDate, formatter: dateFormatter)
                                 .font(AppFonts.body)
-                                .foregroundColor(inventoryDateColor(lastInvDate))
+                                .foregroundColor(verificationDateColor(lastInvDate))
                         }
                         
                         Spacer()
@@ -547,7 +547,7 @@ struct PropertyDetailView: View {
         }
     }
     
-    private func inventoryDateColor(_ date: Date) -> Color {
+    private func verificationDateColor(_ date: Date) -> Color {
         let daysSince = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
         if daysSince > 90 {
             return AppColors.destructive

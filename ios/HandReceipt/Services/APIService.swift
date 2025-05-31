@@ -11,7 +11,7 @@ enum HTTPMethod: String {
 
 // Define a protocol for the API service to allow for mocking/testing
 public protocol APIServiceProtocol {
-    // Function to fetch reference items. Throws errors for network/parsing issues.
+    // Function to fetch reference properties. Throws errors for network/parsing issues.
     func fetchReferencePropertys() async throws -> [ReferenceProperty]
 
     // Function to fetch a specific property by its serial number.
@@ -452,7 +452,7 @@ public class APIService: APIServiceProtocol {
             debugPrint("ERROR: Failed to percent encode serial number: \(serialNumber)")
             throw APIError.invalidURL
         }
-        let endpoint = baseURL.appendingPathComponent("/api/inventory/property/serial/\(encodedSerialNumber)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/serial/\(encodedSerialNumber)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -485,7 +485,7 @@ public class APIService: APIServiceProtocol {
         let userResponse = try await checkSession()
         let userId = userResponse.user.id
         
-        let endpoint = baseURL.appendingPathComponent("/api/inventory/user/\(userId)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/user/\(userId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
@@ -500,7 +500,7 @@ public class APIService: APIServiceProtocol {
     public func getPropertyById(propertyId: Int) async throws -> Property {
         debugPrint("Fetching property with ID: \(propertyId)")
         // No need to encode Int for path component
-        let endpoint = baseURL.appendingPathComponent("/api/inventory/property/\(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies handled automatically
@@ -512,7 +512,7 @@ public class APIService: APIServiceProtocol {
     // Create Property Implementation
     public func createProperty(_ input: CreatePropertyInput) async throws -> Property {
         debugPrint("Creating property with serial number: \(input.serialNumber)")
-        let endpoint = baseURL.appendingPathComponent("/api/inventory")
+        let endpoint = baseURL.appendingPathComponent("/api/property")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

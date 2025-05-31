@@ -12,7 +12,7 @@ struct DashboardView: View {
     @State private var selectedTransferId: String?
     
     // Real data from API
-    @State private var totalInventory = 0
+    @State private var totalProperties = 0
     @State private var pendingTransfers = 0
     @State private var verifiedItems = (verified: 0, total: 0)
     @State private var maintenanceNeeded = 0
@@ -123,8 +123,8 @@ struct DashboardView: View {
             GridItem(.flexible())
         ], spacing: 12) {
             WebAlignedStatCard(
-                title: "Total Inventory",
-                value: "\(totalInventory)",
+                                            title: "Total Properties",
+                            value: "\(totalProperties)",
                 icon: "shippingbox.fill",
                 color: .blue
             ) {
@@ -332,7 +332,7 @@ struct DashboardView: View {
         do {
             // Fetch user's properties
             properties = try await apiService.getMyProperties()
-            totalInventory = properties.count
+                            totalProperties = properties.count
             
             // Calculate maintenance needed
             maintenanceNeeded = properties.filter { $0.needsMaintenance }.count
@@ -360,20 +360,20 @@ struct DashboardView: View {
     
     // MARK: - Calculations
     private func calculateOperationalPercentage() -> Int {
-        guard totalInventory > 0 else { return 0 }
+        guard totalProperties > 0 else { return 0 }
         let operational = properties.filter { $0.currentStatus == "active" || $0.currentStatus == "operational" }.count
-        return Int((Double(operational) / Double(totalInventory)) * 100)
+        return Int((Double(operational) / Double(totalProperties)) * 100)
     }
     
     private func calculateMaintenancePercentage() -> Int {
-        guard totalInventory > 0 else { return 0 }
-        return Int((Double(maintenanceNeeded) / Double(totalInventory)) * 100)
+        guard totalProperties > 0 else { return 0 }
+        return Int((Double(maintenanceNeeded) / Double(totalProperties)) * 100)
     }
     
     private func calculateNonOperationalPercentage() -> Int {
-        guard totalInventory > 0 else { return 0 }
+        guard totalProperties > 0 else { return 0 }
         let nonOperational = properties.filter { $0.currentStatus == "non-operational" || $0.currentStatus == "damaged" }.count
-        return Int((Double(nonOperational) / Double(totalInventory)) * 100)
+        return Int((Double(nonOperational) / Double(totalProperties)) * 100)
     }
 }
 

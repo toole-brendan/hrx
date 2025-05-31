@@ -408,7 +408,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   // Effect for handling direct navigation to an item via id prop
   useEffect(() => {
     if (!state.isLoading && id) {
-      const assignedItem = inventoryItems.find(item => item.id === id);
+      const assignedItem = properties.find(item => item.id === id);
       const signedOutItemDetails = signedOutItems.find(item => item.id === id); 
       
       let itemToSelect: DisplayItem | null = null;
@@ -433,7 +433,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         setDetailsModalOpen(true);
       }
     }
-  }, [id, inventoryItems, signedOutItems, state.isLoading]);
+  }, [id, properties, signedOutItems, state.isLoading]);
 
   // Handler for creating a new item
   const handleCreateItem = useCallback(async (itemData: {

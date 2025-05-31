@@ -3,7 +3,7 @@ import Foundation
 // Represents the detailed information for a specific property item,
 // likely fetched by serial number or ID.
 // Adjust properties based on your actual backend API response for the
-// /api/inventory/serial/:serialNumber endpoint.
+// /api/property/serial/:serialNumber endpoint.
 public struct Property: Identifiable, Decodable {
     public let id: Int // Changed from UUID
     public let serialNumber: String

@@ -28,7 +28,7 @@ struct MyPropertiesView: View {
     enum SortOption: String, CaseIterable {
         case name = "Name"
         case serialNumber = "Serial Number"
-        case lastInventory = "Last Inventory"
+        case lastVerification = "Last Verification"
         case status = "Status"
     }
     
@@ -236,7 +236,7 @@ struct MyPropertiesView: View {
             filtered.sort { $0.itemName < $1.itemName }
         case .serialNumber:
             filtered.sort { $0.serialNumber < $1.serialNumber }
-        case .lastInventory:
+        case .lastVerification:
             filtered.sort { ($0.lastInventoryDate ?? Date.distantPast) > ($1.lastInventoryDate ?? Date.distantPast) }
         case .status:
             filtered.sort { $0.status < $1.status }
@@ -381,7 +381,7 @@ struct PropertyRowEnhanced: View {
                             .foregroundColor(AppColors.primaryText)
                     }
                     
-                    // Bottom row: status and last inventory
+                    // Bottom row: status and last verification
                     HStack {
                         StatusBadge(status: property.status, type: statusBadgeType)
                         
@@ -389,12 +389,12 @@ struct PropertyRowEnhanced: View {
                         
                         if let lastInv = property.lastInventoryDate {
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text("Last Inventory")
+                                Text("Last Verification")
                                     .font(AppFonts.caption2)
                                     .foregroundColor(AppColors.tertiaryText)
                                 Text(lastInv, formatter: Self.dateFormatter)
                                     .font(AppFonts.caption)
-                                    .foregroundColor(inventoryDateColor(lastInv))
+                                    .foregroundColor(verificationDateColor(lastInv))
                             }
                         }
                     }
@@ -436,7 +436,7 @@ struct PropertyRowEnhanced: View {
         }
     }
     
-    private func inventoryDateColor(_ date: Date) -> Color {
+    private func verificationDateColor(_ date: Date) -> Color {
         let daysSince = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
         if daysSince > 90 {
             return AppColors.destructive
@@ -527,7 +527,7 @@ struct PropertiesEmptyStateView: View {
         }
         switch filter {
         case .all: return "Properties assigned to you will appear here."
-        case .operational: return "You have no operational items in your inventory."
+                    case .operational: return "You have no operational properties assigned to you."
         case .maintenance: return "Good news! No items require maintenance."
         case .sensitive: return "You have no sensitive items assigned."
         }
