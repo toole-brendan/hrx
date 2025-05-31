@@ -188,76 +188,126 @@ func (r *PostgresRepository) ListTransfers(userID uint, status *string) ([]domai
 	return transfers, nil
 }
 
-// --- QR Code Operations ---
-
-func (r *PostgresRepository) CreateQRCode(qrCode *domain.QRCode) error {
-	return r.db.Create(qrCode).Error
+// User Connection operations
+func (r *PostgresRepository) CreateConnection(connection *domain.UserConnection) error {
+	return r.db.Create(connection).Error
 }
 
-func (r *PostgresRepository) GetQRCodeByHash(hash string) (*domain.QRCode, error) {
-	var qrCode domain.QRCode
-	if err := r.db.Where("qr_code_hash = ?", hash).First(&qrCode).Error; err != nil {
+func (r *PostgresRepository) GetConnectionByID(id uint) (*domain.UserConnection, error) {
+	var connection domain.UserConnection
+	if err := r.db.Preload("User").Preload("ConnectedUser").First(&connection, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &qrCode, nil
+	return &connection, nil
 }
 
-func (r *PostgresRepository) GetQRCodeByID(id uint) (*domain.QRCode, error) {
-	var qrCode domain.QRCode
-	if err := r.db.First(&qrCode, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+func (r *PostgresRepository) GetUserConnections(userID uint) ([]domain.UserConnection, error) {
+	var connections []domain.UserConnection
+	err := r.db.Where("user_id = ? OR connected_user_id = ?", userID, userID).
+		Preload("User").
+		Preload("ConnectedUser").
+		Find(&connections).Error
+	return connections, err
+}
+
+func (r *PostgresRepository) UpdateConnection(connection *domain.UserConnection) error {
+	return r.db.Save(connection).Error
+}
+
+func (r *PostgresRepository) AreUsersConnected(userID1, userID2 uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.UserConnection{}).
+		Where("((user_id = ? AND connected_user_id = ?) OR (user_id = ? AND connected_user_id = ?)) AND connection_status = ?",
+			userID1, userID2, userID2, userID1, domain.ConnectionStatusAccepted).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *PostgresRepository) SearchUsers(query string, excludeUserID uint) ([]domain.User, error) {
+	var users []domain.User
+	searchPattern := "%" + query + "%"
+
+	err := r.db.Where(
+		"id != ? AND (LOWER(name) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?)",
+		excludeUserID, searchPattern, searchPattern, searchPattern,
+	).Limit(20).Find(&users).Error
+
+	return users, err
+}
+
+// Additional Property Operations
+func (r *PostgresRepository) GetPropertyBySerial(serialNumber string) (*domain.Property, error) {
+	var property domain.Property
+	err := r.db.Where("serial_number = ? AND current_status = ?", serialNumber, "active").
+		Preload("AssignedToUser").
+		First(&property).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return &property, err
+}
+
+// Transfer Offer Operations
+func (r *PostgresRepository) CreateTransferOffer(offer *domain.TransferOffer, recipientIDs []uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Create the offer
+		if err := tx.Create(offer).Error; err != nil {
+			return err
 		}
+
+		// Create recipient records
+		for _, recipientID := range recipientIDs {
+			recipient := domain.TransferOfferRecipient{
+				TransferOfferID: offer.ID,
+				RecipientUserID: recipientID,
+			}
+			if err := tx.Create(&recipient).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func (r *PostgresRepository) GetTransferOfferByID(id uint) (*domain.TransferOffer, error) {
+	var offer domain.TransferOffer
+	err := r.db.Preload("Property").
+		Preload("OfferingUser").
+		Preload("Recipients.RecipientUser").
+		First(&offer, id).Error
+
+	if err == gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	return &qrCode, nil
+	return &offer, err
 }
 
-func (r *PostgresRepository) UpdateQRCode(qrCode *domain.QRCode) error {
-	return r.db.Save(qrCode).Error
+func (r *PostgresRepository) ListActiveOffersForUser(userID uint) ([]domain.TransferOffer, error) {
+	var offers []domain.TransferOffer
+
+	err := r.db.
+		Joins("JOIN transfer_offer_recipients tor ON tor.transfer_offer_id = transfer_offers.id").
+		Where("tor.recipient_user_id = ? AND transfer_offers.offer_status = ?", userID, domain.OfferStatusActive).
+		Where("transfer_offers.expires_at IS NULL OR transfer_offers.expires_at > ?", time.Now()).
+		Preload("Property").
+		Preload("OfferingUser").
+		Find(&offers).Error
+
+	return offers, err
 }
 
-func (r *PostgresRepository) ListAllQRCodes() ([]domain.QRCode, error) {
-	var qrCodes []domain.QRCode
-	if err := r.db.Order("created_at DESC").Find(&qrCodes).Error; err != nil {
-		return nil, err
-	}
-	return qrCodes, nil
+func (r *PostgresRepository) UpdateTransferOffer(offer *domain.TransferOffer) error {
+	return r.db.Save(offer).Error
 }
 
-func (r *PostgresRepository) ListQRCodesForProperty(propertyID uint) ([]domain.QRCode, error) {
-	var qrCodes []domain.QRCode
-	if err := r.db.Where("property_id = ?", propertyID).
-		Order("created_at DESC").
-		Find(&qrCodes).Error; err != nil {
-		return nil, err
-	}
-	return qrCodes, nil
-}
-
-func (r *PostgresRepository) DeactivateQRCodesForProperty(propertyID uint) error {
-	// Deactivate all active QR codes for this property
+func (r *PostgresRepository) MarkOfferViewed(offerID, userID uint) error {
 	now := time.Now()
-	return r.db.Model(&domain.QRCode{}).
-		Where("property_id = ? AND is_active = ?", propertyID, true).
-		Updates(map[string]interface{}{
-			"is_active":      false,
-			"deactivated_at": now,
-		}).Error
-}
-
-func (r *PostgresRepository) GetActiveQRCodeForProperty(propertyID uint) (*domain.QRCode, error) {
-	var qrCode domain.QRCode
-	if err := r.db.Where("property_id = ? AND is_active = ?", propertyID, true).
-		Order("created_at DESC").
-		First(&qrCode).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &qrCode, nil
+	return r.db.Model(&domain.TransferOfferRecipient{}).
+		Where("transfer_offer_id = ? AND recipient_user_id = ?", offerID, userID).
+		Update("viewed_at", now).Error
 }

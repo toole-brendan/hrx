@@ -1,21 +1,14 @@
 package handlers
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skip2/go-qrcode"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
@@ -347,150 +340,4 @@ func (h *InventoryHandler) GetPropertyBySerialNumber(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, property) // Return the found property directly
-}
-
-// GeneratePropertyQRCode generates a QR code for a property item
-// Only the current holder can generate QR codes
-func (h *InventoryHandler) GeneratePropertyQRCode(c *gin.Context) {
-	// Parse property ID from URL parameter
-	propertyID, err := strconv.ParseUint(c.Param("propertyId"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid property ID format"})
-		return
-	}
-
-	// Get user ID from context
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-	userID, ok := userIDVal.(uint)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format in context"})
-		return
-	}
-
-	// Fetch property to verify ownership
-	property, err := h.Repo.GetPropertyByID(uint(propertyID))
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property"})
-		}
-		return
-	}
-
-	// Verify user is current holder
-	if property.AssignedToUserID == nil || *property.AssignedToUserID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only current holder can generate QR codes"})
-		return
-	}
-
-	// Determine category (you may need to adjust this based on your actual data model)
-	category := "other"
-	if property.PropertyModelID != nil {
-		// You might want to fetch the property model to get the actual category
-		// For now, we'll use a simple categorization based on name
-		if property.Name != "" {
-			// This is a simplified categorization - adjust based on your needs
-			category = h.getCategoryFromName(property.Name)
-		}
-	}
-
-	// Create QR data structure
-	qrData := map[string]interface{}{
-		"type":            "handreceipt_property",
-		"itemId":          fmt.Sprintf("%d", property.ID),
-		"serialNumber":    property.SerialNumber,
-		"itemName":        property.Name,
-		"category":        category,
-		"currentHolderId": fmt.Sprintf("%d", userID),
-		"timestamp":       time.Now().UTC().Format(time.RFC3339),
-	}
-
-	// Generate hash for verification
-	qrJSON, err := json.Marshal(qrData)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal QR data"})
-		return
-	}
-
-	hash := sha256.Sum256(qrJSON)
-	qrData["qrHash"] = hex.EncodeToString(hash[:])
-
-	// Marshal again with hash included
-	qrJSONWithHash, err := json.Marshal(qrData)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal QR data with hash"})
-		return
-	}
-
-	// Deactivate any existing active QR codes for this property
-	if err := h.Repo.DeactivateQRCodesForProperty(property.ID); err != nil {
-		log.Printf("WARNING: Failed to deactivate old QR codes for property %d: %v", property.ID, err)
-		// Continue anyway - we don't want to fail the operation
-	}
-
-	// Save QR record to database
-	qrRecord := &domain.QRCode{
-		PropertyID:        property.ID,
-		QRCodeData:        string(qrJSONWithHash),
-		QRCodeHash:        qrData["qrHash"].(string),
-		GeneratedByUserID: userID,
-		IsActive:          true,
-	}
-
-	if err := h.Repo.CreateQRCode(qrRecord); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save QR code record"})
-		return
-	}
-
-	// Generate actual QR code image using skip2/go-qrcode
-	qrCodeImage, err := qrcode.Encode(string(qrJSONWithHash), qrcode.Medium, 256)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code image"})
-		return
-	}
-
-	// Convert to base64
-	qrCodeBase64 := base64.StdEncoding.EncodeToString(qrCodeImage)
-
-	// Log to ledger
-	if err := h.Ledger.LogVerificationEvent(property.ID, property.SerialNumber, userID, "QR_CODE_GENERATED"); err != nil {
-		log.Printf("WARNING: Failed to log QR generation to ledger: %v", err)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"qrCodeData": string(qrJSONWithHash),
-		"qrCodeUrl":  "data:image/png;base64," + qrCodeBase64,
-	})
-}
-
-// Helper method to determine category from item name
-func (h *InventoryHandler) getCategoryFromName(name string) string {
-	nameLower := strings.ToLower(name)
-
-	switch {
-	case strings.Contains(nameLower, "m4") || strings.Contains(nameLower, "m16") ||
-		strings.Contains(nameLower, "rifle") || strings.Contains(nameLower, "carbine") ||
-		strings.Contains(nameLower, "pistol") || strings.Contains(nameLower, "weapon"):
-		return "weapons"
-	case strings.Contains(nameLower, "radio") || strings.Contains(nameLower, "prc") ||
-		strings.Contains(nameLower, "sincgars") || strings.Contains(nameLower, "comm"):
-		return "communications"
-	case strings.Contains(nameLower, "nvg") || strings.Contains(nameLower, "acog") ||
-		strings.Contains(nameLower, "optic") || strings.Contains(nameLower, "scope"):
-		return "optics"
-	case strings.Contains(nameLower, "vest") || strings.Contains(nameLower, "plate") ||
-		strings.Contains(nameLower, "helmet") || strings.Contains(nameLower, "ach") ||
-		strings.Contains(nameLower, "iotv") || strings.Contains(nameLower, "armor"):
-		return "protective-gear"
-	case strings.Contains(nameLower, "ifak") || strings.Contains(nameLower, "medical") ||
-		strings.Contains(nameLower, "aid"):
-		return "medical"
-	default:
-		return "other"
-	}
 }
