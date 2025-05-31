@@ -32,24 +32,38 @@ struct DashboardView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                headerSection
-                
-                if isLoading {
-                    loadingSection
-                } else if let error = loadingError {
-                    errorSection(error: error)
-                } else {
-                    mainContentSection
+        ZStack(alignment: .top) {
+            // Main content
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Spacer for header
+                    Color.clear
+                        .frame(height: 36)
+                    
+                    // Welcome text
+                    Text("Welcome, CPT Rodriguez")
+                        .font(AppFonts.largeTitle)
+                        .foregroundColor(AppColors.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    
+                    if isLoading {
+                        loadingSection
+                    } else if let error = loadingError {
+                        errorSection(error: error)
+                    } else {
+                        mainContentSection
+                    }
                 }
             }
-            .padding(.top, 1) // Minimal top padding to account for status bar
+            .background(AppColors.appBackground.ignoresSafeArea(.all))
+            
+            // Top bar that mirrors bottom tab bar
+            headerSection
         }
-        .background(AppColors.appBackground.ignoresSafeArea(.all))
         .navigationTitle("")
         .navigationBarHidden(true)
-        .ignoresSafeArea(.container, edges: .top)
         .refreshable {
             await refreshData()
         }
@@ -65,19 +79,23 @@ struct DashboardView: View {
     // MARK: - View Sections
     
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("DASHBOARD")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.secondaryText)
-                .tracking(1.2)
+        ZStack {
+            // Background that extends to top of screen
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
             
-            Text("Welcome, CPT Rodriguez")
-                .font(AppFonts.largeTitle)
-                .foregroundColor(AppColors.primaryText)
+            // Content positioned at bottom of header
+            VStack {
+                Spacer()
+                Text("DASHBOARD")
+                    .font(.system(size: 16, weight: .medium)) // Larger font
+                    .foregroundColor(AppColors.primaryText)
+                    .kerning(1.2) // Match TransfersView tracking
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12) // Bottom padding
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal)
-        .padding(.top, 75) // Set to 75pt for optimal status bar clearance
+        .frame(height: 36) // Very tight header
     }
     
     private var loadingSection: some View {

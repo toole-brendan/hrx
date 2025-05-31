@@ -177,7 +177,7 @@ struct ScanView: View {
         .sheet(isPresented: $showingUserSelection) {
             NavigationView {
                 UserSelectionView(onUserSelected: { selectedUser in
-                    if let property = selectedProperty {
+                    if selectedProperty != nil {
                         viewModel.initiateTransfer(targetUser: selectedUser)
                     }
                     showingUserSelection = false
@@ -339,7 +339,7 @@ struct PropertyDetailsCard: View {
             
             // Property details
             VStack(spacing: 12) {
-                ScanDetailRow(label: "NSN", value: property.nsn ?? "N/A")
+                ScanDetailRow(label: "NSN", value: property.nsn)
                 Rectangle().fill(AppColors.border).frame(height: 1)
                 ScanDetailRow(label: "NAME", value: property.itemName.uppercased())
                 Rectangle().fill(AppColors.border).frame(height: 1)

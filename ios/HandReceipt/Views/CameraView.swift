@@ -54,6 +54,8 @@ class CameraViewController: UIViewController {
     private var isProcessing = false
     private var lastScannedCode: String?
     private var lastScanTime: Date?
+    private var isConfigured = false
+    private var shouldStartWhenReady = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -66,19 +68,61 @@ class CameraViewController: UIViewController {
     }
     
     private func setupCamera() {
+        // Check camera permissions first
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            configureCameraSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                if granted {
+                    self?.configureCameraSession()
+                } else {
+                    print("Camera access denied")
+                }
+            }
+        case .denied, .restricted:
+            print("Camera access denied or restricted")
+        @unknown default:
+            print("Unknown camera authorization status")
+        }
+    }
+    
+    private func configureCameraSession() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
             self.captureSession.beginConfiguration()
+            defer {
+                self.captureSession.commitConfiguration()
+                self.isConfigured = true
+                
+                // Start scanning if it was requested while configuring
+                if self.shouldStartWhenReady {
+                    self.shouldStartWhenReady = false
+                    if !self.captureSession.isRunning {
+                        self.captureSession.startRunning()
+                    }
+                }
+            }
             
             // Add video input
-            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-                  let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
-                  self.captureSession.canAddInput(videoInput) else {
+            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+                print("Failed to get video device")
                 return
             }
             
-            self.captureSession.addInput(videoInput)
+            do {
+                let videoInput = try AVCaptureDeviceInput(device: videoDevice)
+                if self.captureSession.canAddInput(videoInput) {
+                    self.captureSession.addInput(videoInput)
+                } else {
+                    print("Cannot add video input to session")
+                    return
+                }
+            } catch {
+                print("Failed to create video input: \(error)")
+                return
+            }
             
             // Configure video output
             self.videoOutput.setSampleBufferDelegate(self, queue: self.sessionQueue)
@@ -86,6 +130,9 @@ class CameraViewController: UIViewController {
             
             if self.captureSession.canAddOutput(self.videoOutput) {
                 self.captureSession.addOutput(self.videoOutput)
+            } else {
+                print("Cannot add video output to session")
+                return
             }
             
             // Set up preview layer
@@ -98,15 +145,20 @@ class CameraViewController: UIViewController {
                     self.view.layer.insertSublayer(previewLayer, at: 0)
                 }
             }
-            
-            self.captureSession.commitConfiguration()
         }
     }
     
     func startScanning() {
         sessionQueue.async { [weak self] in
-            if !(self?.captureSession.isRunning ?? false) {
-                self?.captureSession.startRunning()
+            guard let self = self else { return }
+            
+            if self.isConfigured {
+                if !self.captureSession.isRunning {
+                    self.captureSession.startRunning()
+                }
+            } else {
+                // Mark that we should start when configuration is complete
+                self.shouldStartWhenReady = true
             }
         }
     }

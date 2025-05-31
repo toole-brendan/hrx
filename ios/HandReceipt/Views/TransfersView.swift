@@ -6,6 +6,7 @@ struct TransfersView: View {
     @State private var showingQRScanner = false
     @State private var selectedTransfer: Transfer?
     @State private var showingFilterOptions = false
+    @Environment(\.presentationMode) var presentationMode
     
     init(apiService: APIServiceProtocol? = nil) {
         let service = apiService ?? APIService()
@@ -18,10 +19,15 @@ struct TransfersView: View {
     }
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
+            // Main content
             AppColors.appBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // Spacer for header
+                Color.clear
+                    .frame(height: 36)
+                
                 // Tab Selector with industrial styling
                 tabSelector
                 
@@ -31,21 +37,14 @@ struct TransfersView: View {
                 // Transfer List or Empty State
                 transferContent
             }
+            
+            // Top bar that mirrors bottom tab bar
+            headerSection
         }
-        .navigationTitle("Transfers")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingQRScanner = true }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "qrcode.viewfinder")
-                        Text("SCAN")
-                            .font(AppFonts.captionBold)
-                            .tracking(AppFonts.militaryTracking)
-                    }
-                    .foregroundColor(AppColors.accent)
-                }
-            }
+        .navigationTitle("")
+        .navigationBarHidden(true)
+        .onAppear {
+            viewModel.fetchTransfers()
         }
         .sheet(isPresented: $showingQRScanner) {
             QRScannerView()
@@ -55,12 +54,47 @@ struct TransfersView: View {
                 TransferDetailView(transfer: transfer, viewModel: viewModel)
             }
         }
-        .onAppear {
-            viewModel.fetchTransfers()
+    }
+    
+    // MARK: - Header Section
+    
+    private var headerSection: some View {
+        ZStack {
+            // Background that extends to top of screen
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            // Content positioned at bottom of header
+            VStack {
+                Spacer()
+                ZStack {
+                    // Center the title
+                    Text("TRANSFERS")
+                        .font(.system(size: 16, weight: .medium)) // Larger font
+                        .foregroundColor(AppColors.primaryText)
+                        .kerning(1.2) // Match Dashboard tracking
+                        .frame(maxWidth: .infinity)
+                    
+                    // SCAN button aligned to trailing edge
+                    HStack {
+                        Spacer()
+                        Button(action: { showingQRScanner = true }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "qrcode.viewfinder")
+                                    .font(.caption)
+                                Text("SCAN")
+                                    .font(AppFonts.captionBold)
+                                    .tracking(AppFonts.militaryTracking)
+                            }
+                            .foregroundColor(AppColors.accent)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 12) // Bottom padding
+            }
         }
-        .refreshable {
-            viewModel.fetchTransfers()
-        }
+        .frame(height: 36) // Very tight header
     }
     
     // MARK: - Tab Selector
@@ -196,6 +230,9 @@ struct TransfersView: View {
                     }
                 }
                 .padding(.vertical)
+            }
+            .refreshable {
+                viewModel.fetchTransfers()
             }
         }
     }

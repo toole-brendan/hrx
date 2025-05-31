@@ -38,37 +38,54 @@ struct MyPropertiesView: View {
     }
     
     var body: some View {
-        ZStack {
-            AppColors.appBackground.ignoresSafeArea()
+        ZStack(alignment: .top) {
+            // Main content
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Spacer for header
+                    Color.clear
+                        .frame(height: 36)
+                    
+                    // The rest of the content
+                    contentView
+                }
+            }
+            .background(AppColors.appBackground.ignoresSafeArea(.all))
             
-            content
-                .navigationTitle("")
-                .navigationBarHidden(true)
-                .ignoresSafeArea(.container, edges: .top)
-                .sheet(isPresented: $showingCreateProperty) {
-                    CreatePropertyView()
-                        .onDisappear {
-                            viewModel.loadProperties()
-                        }
+            // Top bar that mirrors bottom tab bar
+            headerSection
+        }
+        .navigationTitle("")
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingCreateProperty) {
+            CreatePropertyView()
+                .onDisappear {
+                    viewModel.loadProperties()
                 }
-                .actionSheet(isPresented: $showingSortOptions) {
-                    ActionSheet(
-                        title: Text("Sort Properties"),
-                        buttons: SortOption.allCases.map { option in
-                            .default(Text(option.rawValue)) {
-                                selectedSortOption = option
-                            }
-                        } + [.cancel()]
-                    )
-                }
+        }
+        .actionSheet(isPresented: $showingSortOptions) {
+            ActionSheet(
+                title: Text("Sort Properties"),
+                buttons: SortOption.allCases.map { option in
+                    .default(Text(option.rawValue)) {
+                        selectedSortOption = option
+                    }
+                } + [.cancel()]
+            )
         }
     }
     
     @ViewBuilder
-    private var content: some View {
+    private var contentView: some View {
         VStack(spacing: 0) {
-            // Custom header section like Dashboard
-            headerSection
+            // Welcome text
+            Text("Manage Your Equipment")
+                .font(AppFonts.largeTitle)
+                .foregroundColor(AppColors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
             
             // Offline indicator
             if viewModel.isOffline {
@@ -77,27 +94,39 @@ struct MyPropertiesView: View {
             
             // Search and filters
             VStack(spacing: 12) {
-                // Search bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    TextField("Search properties...", text: $searchText)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .foregroundColor(AppColors.primaryText)
-                        .font(AppFonts.body)
-                    
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(AppColors.secondaryText)
+                // Search bar with sort button
+                HStack(spacing: 12) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(AppColors.secondaryText)
+                        
+                        TextField("Search properties...", text: $searchText)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .foregroundColor(AppColors.primaryText)
+                            .font(AppFonts.body)
+                        
+                        if !searchText.isEmpty {
+                            Button(action: { searchText = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(AppColors.secondaryText)
+                            }
                         }
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(8)
+                    
+                    // Sort button
+                    Button(action: { showingSortOptions = true }) {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .foregroundColor(AppColors.accent)
+                            .font(.body)
+                            .frame(width: 44, height: 44)
+                            .background(AppColors.secondaryBackground)
+                            .cornerRadius(8)
+                    }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(AppColors.secondaryBackground)
-                .cornerRadius(8)
                 .padding(.horizontal)
                 
                 // Filter pills
@@ -157,39 +186,23 @@ struct MyPropertiesView: View {
     // MARK: - Header Section
     
     private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 8) {
+        ZStack {
+            // Background that extends to top of screen
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            // Content positioned at bottom of header
+            VStack {
+                Spacer()
                 Text("PROPERTY BOOK")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-                    .tracking(1.2)
-                
-                Text("Manage Your Equipment")
-                    .font(AppFonts.largeTitle)
+                    .font(.system(size: 16, weight: .medium)) // Larger font
                     .foregroundColor(AppColors.primaryText)
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 16) {
-                // Sort button
-                Button(action: { showingSortOptions = true }) {
-                    Image(systemName: "arrow.up.arrow.down")
-                        .foregroundColor(AppColors.accent)
-                        .font(.title3)
-                }
-                
-                // Add button
-                Button(action: { showingCreateProperty = true }) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(AppColors.accent)
-                        .font(.title2)
-                }
+                    .kerning(1.2) // Match TransfersView tracking
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12) // Bottom padding
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal)
-        .padding(.top, 75) // Match Dashboard's status bar clearance
+        .frame(height: 36) // Very tight header
     }
     
     // Filter and sort logic
