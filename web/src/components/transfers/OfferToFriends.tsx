@@ -8,30 +8,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createOffer } from '@/services/transferService';
 import { useToast } from '@/hooks/use-toast';
 import { InventoryItem } from '@/types';
+import { getConnections } from '@/services/connectionService';
 
 interface Props {
     property?: InventoryItem;
-}
-
-// Mock connection type - replace with actual type from your API
-interface UserConnection {
-    id: number;
-    connectedUserId: number;
-    connectedUser?: {
-        name: string;
-        rank: string;
-        unit: string;
-    };
-}
-
-// Mock function to fetch connections - replace with actual API call
-async function fetchConnections(): Promise<UserConnection[]> {
-    // This should be replaced with actual API call
-    const response = await fetch('/api/connections', {
-        credentials: 'include',
-    });
-    if (!response.ok) throw new Error('Failed to fetch connections');
-    return response.json();
 }
 
 export const OfferToFriends: React.FC<Props> = ({ property }) => {
@@ -44,7 +24,7 @@ export const OfferToFriends: React.FC<Props> = ({ property }) => {
     // Fetch connections
     const { data: connections = [], isLoading: loadingConnections } = useQuery({
         queryKey: ['connections'],
-        queryFn: fetchConnections,
+        queryFn: getConnections,
     });
     
     // Create offer mutation

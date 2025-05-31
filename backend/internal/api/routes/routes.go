@@ -38,7 +38,6 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
 	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
-	qrCodeHandler := handlers.NewQRCodeHandler(ledgerService, repo)
 
 	// Add NSN handler
 	logger := logrus.New()
@@ -77,8 +76,6 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			inventory.GET("/history/:serialNumber", inventoryHandler.GetInventoryItemHistory)
 			inventory.GET("/serial/:serialNumber", inventoryHandler.GetPropertyBySerialNumber)
 			// Move specific routes BEFORE wildcard routes to prevent conflicts
-			inventory.GET("/:id/qrcodes", qrCodeHandler.GetPropertyQRCodes)        // This must come before bare /:id
-			inventory.POST("/:id/qrcode", inventoryHandler.GeneratePropertyQRCode) // Changed to use :id for consistency
 			inventory.GET("/:id", inventoryHandler.GetInventoryItem)
 			inventory.PATCH("/:id/status", inventoryHandler.UpdateInventoryItemStatus)
 			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
@@ -99,8 +96,6 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			transfer.GET("/offers/active", transferHandler.ListActiveOffers)
 			transfer.POST("/offers/:offerId/accept", transferHandler.AcceptOffer)
 
-			// Keep QR endpoint for backward compatibility (mark as deprecated)
-			transfer.POST("/qr-initiate", transferHandler.InitiateTransferByQR) // DEPRECATED
 		}
 
 		// Activity routes
@@ -143,19 +138,21 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			reference.GET("/models/nsn/:nsn", referenceDBHandler.GetPropertyModelByNSN)
 		}
 
-		// QR Code management routes
-		qrCodes := protected.Group("/qrcodes")
-		{
-			qrCodes.GET("", qrCodeHandler.GetAllQRCodes)
-			qrCodes.POST("/:id/report-damaged", qrCodeHandler.ReportQRCodeDamaged)
-		}
-
 		// User management routes
 		users := protected.Group("/users")
 		{
 			users.GET("", userHandler.GetAllUsers)
 			users.GET("/:id", userHandler.GetUserByID)
 			// POST /api/users from Node is handled by POST /api/auth/register
+
+			// User connections/friends routes
+			connections := users.Group("/connections")
+			{
+				connections.GET("", userHandler.GetConnections)
+				connections.POST("", userHandler.SendConnectionRequest)
+				connections.PATCH("/:connectionId", userHandler.UpdateConnectionStatus)
+			}
+			users.GET("/search", userHandler.SearchUsers)
 		}
 
 		// Photo routes

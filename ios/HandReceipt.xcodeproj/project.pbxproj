@@ -29,6 +29,7 @@
 		BF2685522DEB3BE700BFB170 /* RequestTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */; };
 		BF2685552DEB41A500BFB170 /* SerialNumberRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685542DEB41A500BFB170 /* SerialNumberRequestView.swift */; };
 		BF2685562DEB41A500BFB170 /* OfferPropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685532DEB41A500BFB170 /* OfferPropertyView.swift */; };
+		BF2685582DEB497C00BFB170 /* UserConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685572DEB497C00BFB170 /* UserConnection.swift */; };
 		BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */; };
 		BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */; };
 		BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */; };
@@ -87,6 +88,7 @@
 		BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestTransferView.swift; sourceTree = "<group>"; };
 		BF2685532DEB41A500BFB170 /* OfferPropertyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferPropertyView.swift; sourceTree = "<group>"; };
 		BF2685542DEB41A500BFB170 /* SerialNumberRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialNumberRequestView.swift; sourceTree = "<group>"; };
+		BF2685572DEB497C00BFB170 /* UserConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserConnection.swift; sourceTree = "<group>"; };
 		BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndustrialComponents.swift; sourceTree = "<group>"; };
 		BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncService.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 		33080A0085219D77C59F202D /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				BF2685572DEB497C00BFB170 /* UserConnection.swift */,
 				434D1A44E761BE2F69B0CCF0 /* AuthModels.swift */,
 				179F5783D238DB11F5EA7A8F /* Models.swift */,
 				4051F5A67B8C0D943FCF1495 /* Property.swift */,
@@ -328,6 +331,7 @@
 				902492E2AE615BA4C6ACC792 /* ContentView.swift in Sources */,
 				FE49F4C972C3577086DB327C /* LoginView.swift in Sources */,
 				BF2685512DEB3BE700BFB170 /* ConnectionsView.swift in Sources */,
+				BF2685582DEB497C00BFB170 /* UserConnection.swift in Sources */,
 				BF2685522DEB3BE700BFB170 /* RequestTransferView.swift in Sources */,
 				3B5F067C856CA39C6502F916 /* LoginViewModel.swift in Sources */,
 				58674DC812CCD6A39DD7DF4F /* ManualSNEntryView.swift in Sources */,

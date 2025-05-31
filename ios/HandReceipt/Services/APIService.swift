@@ -4,6 +4,7 @@ enum HTTPMethod: String {
     case GET
     case POST
     case PUT
+    case PATCH
     case DELETE
     // Add other methods as needed
 }
@@ -56,6 +57,12 @@ public protocol APIServiceProtocol {
 
     // --- User Functions ---
     func fetchUsers(searchQuery: String?) async throws -> [UserSummary] // Expect UserSummary for selection
+
+    // --- User Connection Functions ---
+    func getConnections() async throws -> [UserConnection]
+    func searchUsers(query: String) async throws -> [User]
+    func sendConnectionRequest(targetUserId: Int) async throws -> UserConnection
+    func updateConnectionStatus(connectionId: Int, status: String) async throws -> UserConnection
 
     // Add requirement for base URL string for cookie clearing
     var baseURLString: String { get }
@@ -668,6 +675,87 @@ public class APIService: APIServiceProtocol {
         return users
     }
 
+    // --- User Connection Functions ---
+    
+    // Get user connections
+    public func getConnections() async throws -> [UserConnection] {
+        debugPrint("Fetching user connections")
+        let endpoint = baseURL.appendingPathComponent("/api/users/connections")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as ConnectionsResponse
+        debugPrint("Successfully fetched \(response.connections.count) connections")
+        return response.connections
+    }
+    
+    // Search users
+    public func searchUsers(query: String) async throws -> [User] {
+        debugPrint("Searching users with query: \(query)")
+        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw APIError.invalidURL
+        }
+        
+        let endpoint = baseURL.appendingPathComponent("/api/users/search")
+        var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "q", value: encoded)]
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as UsersResponse
+        debugPrint("Successfully found \(response.users.count) users")
+        return response.users
+    }
+    
+    // Send connection request
+    public func sendConnectionRequest(targetUserId: Int) async throws -> UserConnection {
+        debugPrint("Sending connection request to user: \(targetUserId)")
+        let endpoint = baseURL.appendingPathComponent("/api/users/connections")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = ["targetUserId": targetUserId]
+        do {
+            request.httpBody = try encoder.encode(body)
+            debugPrint("Successfully encoded connection request")
+        } catch {
+            debugPrint("ERROR: Failed to encode connection request: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let connection = try await performRequest(request: request) as UserConnection
+        debugPrint("Successfully sent connection request: \(connection.id)")
+        return connection
+    }
+    
+    // Update connection status
+    public func updateConnectionStatus(connectionId: Int, status: String) async throws -> UserConnection {
+        debugPrint("Updating connection \(connectionId) to status: \(status)")
+        let endpoint = baseURL.appendingPathComponent("/api/users/connections/\(connectionId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = ["status": status]
+        do {
+            request.httpBody = try encoder.encode(body)
+            debugPrint("Successfully encoded status update")
+        } catch {
+            debugPrint("ERROR: Failed to encode status update: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let connection = try await performRequest(request: request) as UserConnection
+        debugPrint("Successfully updated connection status: \(connection.id)")
+        return connection
+    }
+
     // Helper function to add authentication header (adjust if needed)
     private func addAuthHeader(to request: inout URLRequest) {
         // Add JWT token to header if available
@@ -922,4 +1010,13 @@ public struct CreatePropertyInput: Codable {
 
 public struct QRTransferResponse: Decodable {
     public let transferId: Int
+}
+
+// Connection response models
+public struct ConnectionsResponse: Decodable {
+    public let connections: [UserConnection]
+}
+
+public struct UsersResponse: Decodable {
+    public let users: [User]
 } 
