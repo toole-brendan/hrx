@@ -27,6 +27,8 @@
 		9CAA7907B48AF7D46F77FB02 /* UserSelectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE530B592D095523725035D /* UserSelectionViewModel.swift */; };
 		BF2685512DEB3BE700BFB170 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF26854F2DEB3BE700BFB170 /* ConnectionsView.swift */; };
 		BF2685522DEB3BE700BFB170 /* RequestTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */; };
+		BF2685552DEB41A500BFB170 /* SerialNumberRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685542DEB41A500BFB170 /* SerialNumberRequestView.swift */; };
+		BF2685562DEB41A500BFB170 /* OfferPropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685532DEB41A500BFB170 /* OfferPropertyView.swift */; };
 		BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */; };
 		BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */; };
 		BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */; };
@@ -83,6 +85,8 @@
 		BBE530B592D095523725035D /* UserSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionViewModel.swift; sourceTree = "<group>"; };
 		BF26854F2DEB3BE700BFB170 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 		BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestTransferView.swift; sourceTree = "<group>"; };
+		BF2685532DEB41A500BFB170 /* OfferPropertyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfferPropertyView.swift; sourceTree = "<group>"; };
+		BF2685542DEB41A500BFB170 /* SerialNumberRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialNumberRequestView.swift; sourceTree = "<group>"; };
 		BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndustrialComponents.swift; sourceTree = "<group>"; };
 		BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncService.swift; sourceTree = "<group>"; };
@@ -197,6 +201,8 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BF2685532DEB41A500BFB170 /* OfferPropertyView.swift */,
+				BF2685542DEB41A500BFB170 /* SerialNumberRequestView.swift */,
 				BF26854F2DEB3BE700BFB170 /* ConnectionsView.swift */,
 				BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */,
 				BF8172302DEA96A10086B2DD /* SettingsView.swift */,
@@ -353,6 +359,8 @@
 				0E15AB56596FFD79CE89E2D4 /* ReferenceItemDetailViewModel.swift in Sources */,
 				35EF675708F8DDFCA2E0CD06 /* ScanView.swift in Sources */,
 				BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */,
+				BF2685552DEB41A500BFB170 /* SerialNumberRequestView.swift in Sources */,
+				BF2685562DEB41A500BFB170 /* OfferPropertyView.swift in Sources */,
 				D8EA460483AC0CF32381B58C /* ScanViewModel.swift in Sources */,
 				BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */,
 				EC2C299F01AD11DD03AA3084 /* TransfersView.swift in Sources */,

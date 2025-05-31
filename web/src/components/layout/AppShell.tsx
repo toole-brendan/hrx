@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
 import MobileMenu from "./MobileMenu";
 import MobileNav from "./MobileNav";
-import QRScannerModal from "@/components/shared/QRScannerModal";
 import NotificationPanel from "@/components/modals/NotificationPanel";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
@@ -133,12 +132,6 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
       
       {/* Mobile Navigation Footer */}
       <MobileNav openQRScanner={openScanner} />
-      
-      {/* QR Scanner Modal */}
-      <QRScannerModal
-        isOpen={scannerOpen}
-        onClose={() => setScannerOpen(false)}
-      />
       
       {/* Notification Panel */}
       <NotificationPanel

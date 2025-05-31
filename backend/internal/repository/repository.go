@@ -44,6 +44,16 @@ type Repository interface {
 	UpdateTransfer(transfer *domain.Transfer) error
 	ListTransfers(userID uint, status *string) ([]domain.Transfer, error) // List transfers involving a user (from/to), optionally filter by status
 
+	// Property queries
+	GetPropertyBySerial(serialNumber string) (*domain.Property, error)
+
+	// Transfer offer operations
+	CreateTransferOffer(offer *domain.TransferOffer, recipientIDs []uint) error
+	GetTransferOfferByID(id uint) (*domain.TransferOffer, error)
+	ListActiveOffersForUser(userID uint) ([]domain.TransferOffer, error)
+	UpdateTransferOffer(offer *domain.TransferOffer) error
+	MarkOfferViewed(offerID, userID uint) error
+
 	// QR Code operations
 	CreateQRCode(qrCode *domain.QRCode) error
 	GetQRCodeByHash(hash string) (*domain.QRCode, error)

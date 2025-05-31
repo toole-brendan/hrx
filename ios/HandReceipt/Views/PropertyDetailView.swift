@@ -14,6 +14,7 @@ struct PropertyDetailView: View {
 
     @State private var showingHistory = false
     @State private var showingMaintenanceSchedule = false
+    @State private var showingOfferSheet = false
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -77,6 +78,11 @@ struct PropertyDetailView: View {
                         MaintenanceScheduleView(property: property)
                     }
                 }
+                .sheet(isPresented: $showingOfferSheet) {
+                    if let property = viewModel.property {
+                        OfferPropertyView(property: property)
+                    }
+                }
                 .overlay(TransferStatusMessage(state: viewModel.transferRequestState))
         }
         .onAppear {
@@ -105,6 +111,12 @@ struct PropertyDetailView: View {
                     
                     // Status and location
                     statusLocationCard(property)
+                    
+                    // Offer to friends section (if user owns the property)
+                    if let currentUserId = AuthManager.shared.getCurrentUserId(),
+                       property.assignedToUserId == currentUserId {
+                        offerToFriendsCard(property)
+                    }
                     
                     // Maintenance info (if applicable)
                     if property.needsMaintenance || property.maintenanceDueDate != nil {
@@ -332,6 +344,47 @@ struct PropertyDetailView: View {
                         }
                     }
                 }
+            }
+            .padding()
+        }
+    }
+    
+    private func offerToFriendsCard(_ property: Property) -> some View {
+        WebAlignedCard {
+            VStack(spacing: 16) {
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "gift.fill")
+                            .foregroundColor(AppColors.accent)
+                        Text("TRANSFER OPTIONS")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.secondaryText)
+                            .tracking(1.2)
+                    }
+                    Spacer()
+                }
+                
+                Button(action: { showingOfferSheet = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.2.fill")
+                        Text("Offer to Friends")
+                    }
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(AppColors.accent.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                
+                Text("Send transfer offers to your connections")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
             }
             .padding()
         }

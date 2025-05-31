@@ -92,7 +92,15 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			transfer.GET("", transferHandler.GetAllTransfers)
 			transfer.GET("/:id", transferHandler.GetTransferByID)
 			transfer.GET("/user/:userId", transferHandler.GetTransfersByUser)
-			transfer.POST("/qr-initiate", transferHandler.InitiateTransferByQR) // New QR-based transfer endpoint
+
+			// New routes for serial number and offer functionality
+			transfer.POST("/request-by-serial", transferHandler.RequestBySerial)
+			transfer.POST("/offer", transferHandler.CreateOffer)
+			transfer.GET("/offers/active", transferHandler.ListActiveOffers)
+			transfer.POST("/offers/:offerId/accept", transferHandler.AcceptOffer)
+
+			// Keep QR endpoint for backward compatibility (mark as deprecated)
+			transfer.POST("/qr-initiate", transferHandler.InitiateTransferByQR) // DEPRECATED
 		}
 
 		// Activity routes

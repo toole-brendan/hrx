@@ -112,6 +112,38 @@ type Transfer struct {
 	Initiator *User     `json:"initiator,omitempty" gorm:"foreignKey:InitiatorID"`
 }
 
+// TransferOffer represents an offer to transfer property to one or more users
+type TransferOffer struct {
+	ID               uint       `json:"id" gorm:"primaryKey"`
+	PropertyID       uint       `json:"propertyId" gorm:"column:property_id;not null"`
+	OfferingUserID   uint       `json:"offeringUserId" gorm:"column:offering_user_id;not null"`
+	OfferStatus      string     `json:"offerStatus" gorm:"column:offer_status;default:'active';not null"`
+	Notes            *string    `json:"notes"`
+	ExpiresAt        *time.Time `json:"expiresAt" gorm:"column:expires_at"`
+	CreatedAt        time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	AcceptedByUserID *uint      `json:"acceptedByUserId" gorm:"column:accepted_by_user_id"`
+	AcceptedAt       *time.Time `json:"acceptedAt" gorm:"column:accepted_at"`
+
+	// Relationships
+	Property       *Property                `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+	OfferingUser   *User                    `json:"offeringUser,omitempty" gorm:"foreignKey:OfferingUserID"`
+	AcceptedByUser *User                    `json:"acceptedByUser,omitempty" gorm:"foreignKey:AcceptedByUserID"`
+	Recipients     []TransferOfferRecipient `json:"recipients,omitempty" gorm:"foreignKey:TransferOfferID"`
+}
+
+// TransferOfferRecipient represents a recipient of a transfer offer
+type TransferOfferRecipient struct {
+	ID              uint       `json:"id" gorm:"primaryKey"`
+	TransferOfferID uint       `json:"transferOfferId" gorm:"column:transfer_offer_id;not null"`
+	RecipientUserID uint       `json:"recipientUserId" gorm:"column:recipient_user_id;not null"`
+	NotifiedAt      *time.Time `json:"notifiedAt" gorm:"column:notified_at"`
+	ViewedAt        *time.Time `json:"viewedAt" gorm:"column:viewed_at"`
+
+	// Relationships
+	TransferOffer *TransferOffer `json:"transferOffer,omitempty" gorm:"foreignKey:TransferOfferID"`
+	RecipientUser *User          `json:"recipientUser,omitempty" gorm:"foreignKey:RecipientUserID"`
+}
+
 // Activity represents a system activity or event (consider replacing with specific ledger events)
 type Activity struct {
 	ID                uint      `json:"id" gorm:"primaryKey"`
@@ -225,6 +257,14 @@ const (
 	TransferTypeOffer   = "offer"
 )
 
+// Constants for offer status
+const (
+	OfferStatusActive    = "active"
+	OfferStatusAccepted  = "accepted"
+	OfferStatusExpired   = "expired"
+	OfferStatusCancelled = "cancelled"
+)
+
 // CreateUserInput represents input for creating a user
 type CreateUserInput struct {
 	Username string `json:"username" binding:"required"`
@@ -286,6 +326,23 @@ type CreateConnectionRequest struct {
 // UpdateConnectionRequest represents input for updating a connection status
 type UpdateConnectionRequest struct {
 	Status string `json:"status" binding:"required,oneof=accepted blocked"`
+}
+
+// Input DTOs
+type RequestBySerialInput struct {
+	SerialNumber string  `json:"serialNumber" binding:"required"`
+	Notes        *string `json:"notes"`
+}
+
+type CreateOfferInput struct {
+	PropertyID    uint    `json:"propertyId" binding:"required"`
+	RecipientIDs  []uint  `json:"recipientIds" binding:"required,min=1"`
+	Notes         *string `json:"notes"`
+	ExpiresInDays *int    `json:"expiresInDays"` // Optional expiration
+}
+
+type AcceptOfferInput struct {
+	OfferID uint `json:"offerId" binding:"required"`
 }
 
 // CorrectionEvent represents a record from the CorrectionEvents ledger table.

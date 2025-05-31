@@ -163,4 +163,95 @@ export async function deleteTransfer(id: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`Failed to delete transfer: ${response.statusText}`);
   }
+}
+
+/**
+ * Request a transfer by serial number
+ */
+export async function requestBySerial(data: {
+  serialNumber: string;
+  notes?: string;
+}): Promise<Transfer> {
+  const response = await fetch(`${API_BASE_URL}/transfers/request-by-serial`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({
+      serial_number: data.serialNumber,
+      notes: data.notes,
+    }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to request transfer: ${error}`);
+  }
+  
+  const backendTransfer = await response.json();
+  return mapBackendTransferToFrontend(backendTransfer);
+}
+
+/**
+ * Create an offer to transfer property
+ */
+export async function createOffer(data: {
+  propertyId: number;
+  recipientIds: number[];
+  notes?: string;
+  expiresInDays?: number;
+}): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/transfers/offer`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({
+      property_id: data.propertyId,
+      recipient_ids: data.recipientIds,
+      notes: data.notes,
+      expires_in_days: data.expiresInDays,
+    }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create offer: ${error}`);
+  }
+  
+  return response.json();
+}
+
+/**
+ * Get active offers for the current user
+ */
+export async function getActiveOffers(): Promise<any[]> {
+  const response = await fetch(`${API_BASE_URL}/transfers/offers/active`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch offers: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  return data.offers || [];
+}
+
+/**
+ * Accept a transfer offer
+ */
+export async function acceptOffer(offerId: number): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/transfers/offers/${offerId}/accept`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to accept offer: ${error}`);
+  }
+  
+  return response.json();
 } 

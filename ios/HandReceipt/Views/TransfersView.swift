@@ -3,7 +3,9 @@ import SwiftUI
 struct TransfersView: View {
     @StateObject private var viewModel: TransfersViewModel
     @State private var selectedTab = TransferTab.incoming
-    @State private var showingQRScanner = false
+    @State private var showingTransferOptions = false
+    @State private var showingSerialRequest = false
+    @State private var activeOffers: [TransferOffer] = []
     @State private var selectedTransfer: Transfer?
     @State private var showingFilterOptions = false
     @Environment(\.presentationMode) var presentationMode
@@ -46,8 +48,22 @@ struct TransfersView: View {
         .onAppear {
             viewModel.fetchTransfers()
         }
-        .sheet(isPresented: $showingQRScanner) {
-            QRScannerView()
+        .task {
+            await loadActiveOffers()
+        }
+        .actionSheet(isPresented: $showingTransferOptions) {
+            ActionSheet(
+                title: Text("New Transfer"),
+                buttons: [
+                    .default(Text("Request by Serial Number")) {
+                        showingSerialRequest = true
+                    },
+                    .cancel()
+                ]
+            )
+        }
+        .sheet(isPresented: $showingSerialRequest) {
+            SerialNumberRequestView()
         }
         .sheet(item: $selectedTransfer) { transfer in
             NavigationView {
@@ -75,18 +91,13 @@ struct TransfersView: View {
                         .kerning(1.2) // Match Dashboard tracking
                         .frame(maxWidth: .infinity)
                     
-                    // SCAN button aligned to trailing edge
+                    // Add button aligned to trailing edge
                     HStack {
                         Spacer()
-                        Button(action: { showingQRScanner = true }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "qrcode.viewfinder")
-                                    .font(.caption)
-                                Text("SCAN")
-                                    .font(AppFonts.captionBold)
-                                    .tracking(AppFonts.militaryTracking)
-                            }
-                            .foregroundColor(AppColors.accent)
+                        Button(action: { showingTransferOptions = true }) {
+                            Image(systemName: "plus")
+                                .font(.body)
+                                .foregroundColor(AppColors.accent)
                         }
                     }
                 }
@@ -202,11 +213,51 @@ struct TransfersView: View {
         
         if case .loading = viewModel.loadingState {
             loadingView
-        } else if transfers.isEmpty {
+        } else if transfers.isEmpty && activeOffers.isEmpty {
             emptyStateView
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
+                    // Active offers section (only for incoming tab)
+                    if selectedTab == .incoming && !activeOffers.isEmpty {
+                        Section {
+                            ForEach(activeOffers) { offer in
+                                OfferRow(offer: offer)
+                                
+                                if offer.id != activeOffers.last?.id {
+                                    Rectangle()
+                                        .fill(AppColors.border)
+                                        .frame(height: 1)
+                                        .padding(.horizontal)
+                                }
+                            }
+                        } header: {
+                            HStack {
+                                Text("OFFERS FOR YOU")
+                                    .font(AppFonts.captionBold)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .tracking(AppFonts.militaryTracking)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
+                            .background(AppColors.mutedBackground)
+                            .overlay(
+                                Rectangle()
+                                    .stroke(AppColors.border, lineWidth: 1),
+                                alignment: .bottom
+                            )
+                        }
+                        
+                        // Divider between offers and transfers
+                        if !transfers.isEmpty {
+                            Rectangle()
+                                .fill(AppColors.border)
+                                .frame(height: 1)
+                                .padding(.vertical, 8)
+                        }
+                    }
+                    
                     ForEach(transfers) { transfer in
                         TransferCard(
                             transfer: transfer,
@@ -295,17 +346,17 @@ struct TransfersView: View {
                 
                 if selectedTab == .outgoing {
                     VStack(spacing: 12) {
-                        Button(action: { showingQRScanner = true }) {
+                        Button(action: { showingTransferOptions = true }) {
                             HStack(spacing: 8) {
-                                Image(systemName: "qrcode.viewfinder")
-                                Text("SCAN QR CODE")
+                                Image(systemName: "plus.circle")
+                                Text("NEW TRANSFER REQUEST")
                                     .tracking(AppFonts.militaryTracking)
                             }
                             .font(AppFonts.bodyBold)
                         }
                         .buttonStyle(.primary)
                         
-                        Text("Scan property QR code to request transfer")
+                        Text("Request property transfer by serial number")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.tertiaryText)
                     }
@@ -316,6 +367,14 @@ struct TransfersView: View {
             .padding(.bottom, 100) // Offset to appear higher
             
             Spacer()
+        }
+    }
+    
+    private func loadActiveOffers() async {
+        do {
+            activeOffers = try await TransferService.shared.getActiveOffers()
+        } catch {
+            print("Failed to load offers: \(error)")
         }
     }
 }
@@ -890,6 +949,132 @@ extension AuthManager {
         // This should retrieve the actual current user ID from stored auth data
         // For now, returning nil - implement based on your auth system
         return self.getUserId()
+    }
+}
+
+// MARK: - Offer Row
+
+struct OfferRow: View {
+    let offer: TransferOffer
+    @State private var showingAcceptDialog = false
+    @State private var showingRejectDialog = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Property Info
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(offer.property?.name ?? "UNKNOWN ITEM")
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .tracking(AppFonts.normalTracking)
+                    
+                    Text("SN: \(offer.property?.serialNumber ?? "")")
+                        .font(AppFonts.mono)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                // Expiration
+                if let expiresAt = offer.expiresAt {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("EXPIRES")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                            .tracking(AppFonts.militaryTracking)
+                        
+                        Text(formatRelativeDate(expiresAt))
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.warning)
+                    }
+                }
+            }
+            
+            // From User
+            HStack {
+                Image(systemName: "gift")
+                    .font(.caption)
+                    .foregroundColor(AppColors.accent)
+                
+                Text("Offered by \(offer.offeror?.rank ?? "") \(offer.offeror?.lastName ?? "")")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+            }
+            
+            // Notes if any
+            if let notes = offer.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                    .italic()
+                    .padding(.vertical, 4)
+            }
+            
+            // Action buttons
+            HStack(spacing: 12) {
+                Button(action: { showingRejectDialog = true }) {
+                    Text("DECLINE")
+                        .font(AppFonts.captionBold)
+                        .tracking(AppFonts.militaryTracking)
+                        .foregroundColor(AppColors.destructive)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(AppColors.destructive.opacity(0.1))
+                        .overlay(
+                            Rectangle()
+                                .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                        )
+                }
+                
+                Button(action: { showingAcceptDialog = true }) {
+                    Text("ACCEPT")
+                        .font(AppFonts.captionBold)
+                        .tracking(AppFonts.militaryTracking)
+                        .foregroundColor(AppColors.success)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(AppColors.success.opacity(0.1))
+                        .overlay(
+                            Rectangle()
+                                .stroke(AppColors.success.opacity(0.3), lineWidth: 1)
+                        )
+                }
+            }
+        }
+        .padding()
+        .background(AppColors.secondaryBackground)
+        .overlay(
+            Rectangle()
+                .stroke(AppColors.border, lineWidth: 1)
+        )
+        .padding(.horizontal)
+        .alert("Accept Offer?", isPresented: $showingAcceptDialog) {
+            Button("Cancel", role: .cancel) { }
+            Button("Accept") {
+                Task {
+                    try? await TransferService.shared.acceptOffer(offer.id)
+                }
+            }
+        } message: {
+            Text("Accept this property transfer offer from \(offer.offeror?.rank ?? "") \(offer.offeror?.lastName ?? "")?")
+        }
+        .alert("Decline Offer?", isPresented: $showingRejectDialog) {
+            Button("Cancel", role: .cancel) { }
+            Button("Decline", role: .destructive) {
+                Task {
+                    try? await TransferService.shared.rejectOffer(offer.id)
+                }
+            }
+        } message: {
+            Text("Decline this property transfer offer?")
+        }
+    }
+    
+    private func formatRelativeDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 

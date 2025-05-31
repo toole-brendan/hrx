@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import StatusBadge from '@/components/common/StatusBadge';
-import QRCodeGenerator from '@/components/common/QRCodeGenerator';
 import BlockchainLedger from '@/components/blockchain/BlockchainLedger';
 import { SensitiveItem, sensitiveItems } from '@/lib/sensitiveItemsData'; // Assuming these are needed for blockchain check
 import { isBlockchainEnabled } from '@/lib/blockchain';
@@ -99,20 +98,6 @@ const TransferDetailsModal: React.FC<TransferDetailsModalProps> = ({
                 </div>
               )}
             </div>
-          </div>
-
-          <div>
-            {/* QR Code for the transfer */}
-            <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Transfer QR Code</h3> {/* Styling update */}
-            <div className="flex justify-center bg-white p-4 rounded-md border"> {/* Added border */}
-              <QRCodeGenerator
-                itemName={transfer.name}
-                serialNumber={transfer.serialNumber}
-              />
-            </div>
-            <p className="text-xs text-center text-muted-foreground mt-2">
-              Scan this code to quickly access this transfer
-            </p>
           </div>
         </div>
 

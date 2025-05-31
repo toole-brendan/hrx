@@ -65,11 +65,13 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 
 	// Prepare the transfer for database insertion
 	transfer := &domain.Transfer{ // Changed to pointer
-		PropertyID: input.PropertyID,
-		FromUserID: requestingUserID, // Set FromUserID to the authenticated user
-		ToUserID:   input.ToUserID,
-		Status:     "Requested", // Set initial status
-		Notes:      input.Notes,
+		PropertyID:   input.PropertyID,
+		FromUserID:   requestingUserID, // Set FromUserID to the authenticated user
+		ToUserID:     input.ToUserID,
+		Status:       "Requested",              // Set initial status
+		TransferType: domain.TransferTypeOffer, // Add this
+		InitiatorID:  &requestingUserID,        // Add this
+		Notes:        input.Notes,
 		// RequestDate defaults to CURRENT_TIMESTAMP in DB
 		// ResolvedDate is null initially
 	}
@@ -664,5 +666,277 @@ func (h *TransferHandler) OfferTransfer(c *gin.Context) {
 		"transferId": transfer.ID,
 		"status":     "pending",
 		"message":    "Transfer offer sent",
+	})
+}
+
+// RequestBySerial allows users to request property by entering serial number
+func (h *TransferHandler) RequestBySerial(c *gin.Context) {
+	var input domain.RequestBySerialInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+		return
+	}
+
+	// Get requesting user from session
+	requestingUserID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID := requestingUserID.(uint)
+
+	// Find property by serial number
+	property, err := h.Repo.GetPropertyBySerial(input.SerialNumber)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property with this serial number not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find property"})
+		}
+		return
+	}
+
+	// Check if property is assigned
+	if property.AssignedToUserID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Property is not currently assigned to anyone"})
+		return
+	}
+
+	// Prevent self-transfer
+	if *property.AssignedToUserID == userID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "You already own this property"})
+		return
+	}
+
+	// Create transfer request
+	transfer := &domain.Transfer{
+		PropertyID:            property.ID,
+		FromUserID:            *property.AssignedToUserID,
+		ToUserID:              userID,
+		Status:                "Requested",
+		TransferType:          domain.TransferTypeRequest,
+		InitiatorID:           &userID,
+		RequestedSerialNumber: &input.SerialNumber,
+		Notes:                 input.Notes,
+	}
+
+	if err := h.Repo.CreateTransfer(transfer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transfer request"})
+		return
+	}
+
+	// Log to ledger
+	if err := h.Ledger.LogTransferEvent(*transfer, property.SerialNumber); err != nil {
+		log.Printf("WARNING: Failed to log serial request transfer to ledger: %v", err)
+	}
+
+	// TODO: Send notification to property owner
+
+	c.JSON(http.StatusCreated, gin.H{
+		"transfer": transfer,
+		"message":  fmt.Sprintf("Transfer request sent to %s", property.AssignedToUser.Name),
+	})
+}
+
+// CreateOffer allows property owners to offer items to friends
+func (h *TransferHandler) CreateOffer(c *gin.Context) {
+	var input domain.CreateOfferInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+		return
+	}
+
+	// Get offering user from session
+	offeringUserID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID := offeringUserID.(uint)
+
+	// Verify ownership
+	property, err := h.Repo.GetPropertyByID(input.PropertyID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
+		return
+	}
+
+	if property.AssignedToUserID == nil || *property.AssignedToUserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't own this property"})
+		return
+	}
+
+	// Verify all recipients are connected friends
+	connections, err := h.Repo.GetUserConnections(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify connections"})
+		return
+	}
+
+	connectedUserIDs := make(map[uint]bool)
+	for _, conn := range connections {
+		if conn.ConnectionStatus == domain.ConnectionStatusAccepted {
+			// Check both directions of the connection
+			if conn.UserID == userID {
+				connectedUserIDs[conn.ConnectedUserID] = true
+			} else if conn.ConnectedUserID == userID {
+				connectedUserIDs[conn.UserID] = true
+			}
+		}
+	}
+
+	// Validate all recipients are friends
+	for _, recipientID := range input.RecipientIDs {
+		if !connectedUserIDs[recipientID] {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("User %d is not in your connections", recipientID),
+			})
+			return
+		}
+	}
+
+	// Calculate expiration
+	var expiresAt *time.Time
+	if input.ExpiresInDays != nil && *input.ExpiresInDays > 0 {
+		exp := time.Now().AddDate(0, 0, *input.ExpiresInDays)
+		expiresAt = &exp
+	}
+
+	// Create offer
+	offer := &domain.TransferOffer{
+		PropertyID:     property.ID,
+		OfferingUserID: userID,
+		OfferStatus:    domain.OfferStatusActive,
+		Notes:          input.Notes,
+		ExpiresAt:      expiresAt,
+	}
+
+	if err := h.Repo.CreateTransferOffer(offer, input.RecipientIDs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create offer"})
+		return
+	}
+
+	// TODO: Send notifications to all recipients
+
+	c.JSON(http.StatusCreated, gin.H{
+		"offer":   offer,
+		"message": fmt.Sprintf("Offer sent to %d recipients", len(input.RecipientIDs)),
+	})
+}
+
+// ListActiveOffers shows offers available to the current user
+func (h *TransferHandler) ListActiveOffers(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	offers, err := h.Repo.ListActiveOffersForUser(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch offers"})
+		return
+	}
+
+	// Mark offers as viewed
+	for _, offer := range offers {
+		h.Repo.MarkOfferViewed(offer.ID, userID.(uint))
+	}
+
+	c.JSON(http.StatusOK, gin.H{"offers": offers})
+}
+
+// AcceptOffer allows a recipient to accept an offer
+func (h *TransferHandler) AcceptOffer(c *gin.Context) {
+	offerIDParam := c.Param("offerId")
+	offerID, err := strconv.ParseUint(offerIDParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid offer ID"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	acceptingUserID := userID.(uint)
+
+	// Get offer details
+	offer, err := h.Repo.GetTransferOfferByID(uint(offerID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Offer not found"})
+		return
+	}
+
+	// Verify offer is still active
+	if offer.OfferStatus != domain.OfferStatusActive {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Offer is no longer active"})
+		return
+	}
+
+	// Verify user is a recipient
+	isRecipient := false
+	for _, recipient := range offer.Recipients {
+		if recipient.RecipientUserID == acceptingUserID {
+			isRecipient = true
+			break
+		}
+	}
+
+	if !isRecipient {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not a recipient of this offer"})
+		return
+	}
+
+	// Create transfer record
+	transfer := &domain.Transfer{
+		PropertyID:   offer.PropertyID,
+		FromUserID:   offer.OfferingUserID,
+		ToUserID:     acceptingUserID,
+		Status:       "Approved",
+		TransferType: domain.TransferTypeOffer,
+		InitiatorID:  &offer.OfferingUserID,
+		Notes:        offer.Notes,
+		ResolvedDate: &time.Time{},
+	}
+	*transfer.ResolvedDate = time.Now()
+
+	// Transaction: create transfer, update offer, update property ownership
+	err = h.Repo.CreateTransfer(transfer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transfer"})
+		return
+	}
+
+	// Update offer status
+	offer.OfferStatus = domain.OfferStatusAccepted
+	offer.AcceptedByUserID = &acceptingUserID
+	now := time.Now()
+	offer.AcceptedAt = &now
+
+	if err := h.Repo.UpdateTransferOffer(offer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update offer"})
+		return
+	}
+
+	// Update property ownership
+	property := offer.Property
+	property.AssignedToUserID = &acceptingUserID
+	property.UpdatedAt = time.Now()
+
+	if err := h.Repo.UpdateProperty(property); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update property ownership"})
+		return
+	}
+
+	// Log to ledger
+	if err := h.Ledger.LogTransferEvent(*transfer, property.SerialNumber); err != nil {
+		log.Printf("WARNING: Failed to log offer acceptance to ledger: %v", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"transfer": transfer,
+		"message":  "Offer accepted successfully",
 	})
 }

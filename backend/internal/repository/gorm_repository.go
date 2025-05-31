@@ -268,3 +268,137 @@ func (r *gormRepository) GetActiveQRCodeForProperty(propertyID uint) (*domain.QR
 	}
 	return &qrCode, nil
 }
+
+// --- User Connection Operations ---
+
+func (r *gormRepository) CreateConnection(connection *domain.UserConnection) error {
+	return r.db.Create(connection).Error
+}
+
+func (r *gormRepository) GetConnectionByID(id uint) (*domain.UserConnection, error) {
+	var connection domain.UserConnection
+	err := r.db.Preload("User").Preload("ConnectedUser").First(&connection, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("connection with ID %d not found", id)
+		}
+		return nil, err
+	}
+	return &connection, nil
+}
+
+func (r *gormRepository) GetUserConnections(userID uint) ([]domain.UserConnection, error) {
+	var connections []domain.UserConnection
+	err := r.db.Where("user_id = ? OR connected_user_id = ?", userID, userID).
+		Preload("User").
+		Preload("ConnectedUser").
+		Find(&connections).Error
+	return connections, err
+}
+
+func (r *gormRepository) UpdateConnection(connection *domain.UserConnection) error {
+	return r.db.Save(connection).Error
+}
+
+func (r *gormRepository) AreUsersConnected(userID1, userID2 uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.UserConnection{}).
+		Where("((user_id = ? AND connected_user_id = ?) OR (user_id = ? AND connected_user_id = ?)) AND connection_status = ?",
+			userID1, userID2, userID2, userID1, domain.ConnectionStatusAccepted).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *gormRepository) SearchUsers(query string, excludeUserID uint) ([]domain.User, error) {
+	var users []domain.User
+	searchPattern := "%" + query + "%"
+
+	err := r.db.Where(
+		"id != ? AND (LOWER(name) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?)",
+		excludeUserID, searchPattern, searchPattern, searchPattern,
+	).Limit(20).Find(&users).Error
+
+	return users, err
+}
+
+// --- Additional Property Operations ---
+
+// GetPropertyBySerial retrieves a property by its serial number
+func (r *gormRepository) GetPropertyBySerial(serialNumber string) (*domain.Property, error) {
+	var property domain.Property
+	err := r.db.Where("serial_number = ? AND current_status = ?", serialNumber, "active").
+		Preload("AssignedToUser").
+		First(&property).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return &property, err
+}
+
+// --- Transfer Offer Operations ---
+
+// CreateTransferOffer creates a new transfer offer with recipients
+func (r *gormRepository) CreateTransferOffer(offer *domain.TransferOffer, recipientIDs []uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Create the offer
+		if err := tx.Create(offer).Error; err != nil {
+			return err
+		}
+
+		// Create recipient records
+		for _, recipientID := range recipientIDs {
+			recipient := domain.TransferOfferRecipient{
+				TransferOfferID: offer.ID,
+				RecipientUserID: recipientID,
+			}
+			if err := tx.Create(&recipient).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+// GetTransferOfferByID retrieves an offer with all relationships
+func (r *gormRepository) GetTransferOfferByID(id uint) (*domain.TransferOffer, error) {
+	var offer domain.TransferOffer
+	err := r.db.Preload("Property").
+		Preload("OfferingUser").
+		Preload("Recipients.RecipientUser").
+		First(&offer, id).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return &offer, err
+}
+
+// ListActiveOffersForUser lists all active offers where user is a recipient
+func (r *gormRepository) ListActiveOffersForUser(userID uint) ([]domain.TransferOffer, error) {
+	var offers []domain.TransferOffer
+
+	err := r.db.
+		Joins("JOIN transfer_offer_recipients tor ON tor.transfer_offer_id = transfer_offers.id").
+		Where("tor.recipient_user_id = ? AND transfer_offers.offer_status = ?", userID, domain.OfferStatusActive).
+		Where("transfer_offers.expires_at IS NULL OR transfer_offers.expires_at > ?", time.Now()).
+		Preload("Property").
+		Preload("OfferingUser").
+		Find(&offers).Error
+
+	return offers, err
+}
+
+// UpdateTransferOffer updates an existing transfer offer
+func (r *gormRepository) UpdateTransferOffer(offer *domain.TransferOffer) error {
+	return r.db.Save(offer).Error
+}
+
+// MarkOfferViewed marks when a recipient views an offer
+func (r *gormRepository) MarkOfferViewed(offerID, userID uint) error {
+	now := time.Now()
+	return r.db.Model(&domain.TransferOfferRecipient{}).
+		Where("transfer_offer_id = ? AND recipient_user_id = ?", offerID, userID).
+		Update("viewed_at", now).Error
+}
