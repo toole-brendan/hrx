@@ -155,182 +155,320 @@ struct AuthenticatedTabView: View {
     }
 }
 
-// MARK: - More View (New)
+// MARK: - More View (Updated)
 struct MoreView: View {
     @ObservedObject var authViewModel: AuthViewModel
-    @State private var showingReferenceDB = false
     
     var body: some View {
-        List {
-            // Additional Features Section
-            Section("Equipment Management") {
-                NavigationLink(destination: ReferenceDatabaseBrowserView()) {
-                    HStack {
-                        Image(systemName: "book.closed.fill")
-                            .foregroundColor(.blue)
-                            .frame(width: 30)
-                        Text("Reference Database")
-                        Spacer()
+        ZStack(alignment: .top) {
+            // Main content
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Spacer for header
+                    Color.clear
+                        .frame(height: 36)
+                    
+                    // Equipment Management Section
+                    VStack(alignment: .leading, spacing: 0) {
+                        SectionHeader(title: "Equipment Management")
+                        
+                        VStack(spacing: 0) {
+                            // Reference Database
+                            MoreActionRow(
+                                icon: "book.closed.fill",
+                                iconColor: .blue,
+                                title: "Reference Database",
+                                subtitle: "Browse NSN/LIN catalog",
+                                destination: AnyView(ReferenceDatabaseBrowserView())
+                            )
+                            
+                            Divider()
+                                .background(AppColors.border)
+                            
+                            // Sensitive Items
+                            MoreActionRow(
+                                icon: "shield.fill",
+                                iconColor: AppColors.success,
+                                title: "Sensitive Items",
+                                subtitle: "Track high-value equipment",
+                                destination: AnyView(SensitiveItemsView())
+                            )
+                            
+                            Divider()
+                                .background(AppColors.border)
+                            
+                            // Maintenance
+                            MoreActionRow(
+                                icon: "wrench.and.screwdriver.fill",
+                                iconColor: AppColors.warning,
+                                title: "Maintenance",
+                                subtitle: "Equipment maintenance tracking",
+                                destination: AnyView(MaintenanceView())
+                            )
+                        }
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(0)
+                        .overlay(
+                            Rectangle()
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                        .padding(.horizontal)
                     }
-                }
-                
-                NavigationLink(destination: SensitiveItemsView()) {
-                    HStack {
-                        Image(systemName: "shield.fill")
-                            .foregroundColor(.green)
-                            .frame(width: 30)
-                        Text("Sensitive Items")
-                        Spacer()
+                    
+                    // Settings Section
+                    VStack(alignment: .leading, spacing: 0) {
+                        SectionHeader(title: "Settings")
+                        
+                        VStack(spacing: 0) {
+                            // QR Management
+                            MoreActionRow(
+                                icon: "qrcode",
+                                iconColor: .cyan,
+                                title: "QR Management",
+                                subtitle: "Generate and manage QR codes",
+                                destination: AnyView(QRManagementView())
+                            )
+                            
+                            Divider()
+                                .background(AppColors.border)
+                            
+                            // Settings
+                            MoreActionRow(
+                                icon: "gear",
+                                iconColor: .gray,
+                                title: "Settings",
+                                subtitle: "App preferences and sync",
+                                destination: AnyView(SettingsView(authViewModel: authViewModel))
+                            )
+                            
+                            Divider()
+                                .background(AppColors.border)
+                            
+                            // Profile
+                            MoreActionRow(
+                                icon: "person.circle.fill",
+                                iconColor: AppColors.accent,
+                                title: "Profile",
+                                subtitle: "Account information",
+                                destination: AnyView(ProfileView(authViewModel: authViewModel))
+                            )
+                        }
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(0)
+                        .overlay(
+                            Rectangle()
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                        .padding(.horizontal)
                     }
-                }
-                
-                NavigationLink(destination: MaintenanceView()) {
-                    HStack {
-                        Image(systemName: "wrench.and.screwdriver.fill")
-                            .foregroundColor(.orange)
-                            .frame(width: 30)
-                        Text("Maintenance")
-                        Spacer()
-                    }
+                    
+                    // Bottom spacer
+                    Spacer()
+                        .frame(height: 100)
                 }
             }
-            .listRowBackground(AppColors.secondaryBackground)
+            .background(AppColors.appBackground.ignoresSafeArea(.all))
             
-            // Reports Section
-            Section("Reports & Analytics") {
-                NavigationLink(destination: ReportsView()) {
-                    HStack {
-                        Image(systemName: "chart.bar.doc.horizontal.fill")
-                            .foregroundColor(.purple)
-                            .frame(width: 30)
-                        Text("Reports")
-                        Spacer()
-                    }
-                }
-                
-                NavigationLink(destination: Text("Audit Log View - Coming Soon")) {
-                    HStack {
-                        Image(systemName: "doc.text.magnifyingglass")
-                            .foregroundColor(.indigo)
-                            .frame(width: 30)
-                        Text("Audit Log")
-                        Spacer()
-                    }
-                }
-            }
-            .listRowBackground(AppColors.secondaryBackground)
-            
-            // Settings Section
-            Section("Settings") {
-                NavigationLink(destination: Text("QR Management View - Coming Soon")) {
-                    HStack {
-                        Image(systemName: "qrcode")
-                            .foregroundColor(.cyan)
-                            .frame(width: 30)
-                        Text("QR Management")
-                        Spacer()
-                    }
-                }
-                
-                NavigationLink(destination: SettingsView(authViewModel: authViewModel)) {
-                    HStack {
-                        Image(systemName: "gear")
-                            .foregroundColor(.gray)
-                            .frame(width: 30)
-                        Text("Settings")
-                        Spacer()
-                    }
-                }
-                
-                NavigationLink(destination: ProfileView(authViewModel: authViewModel)) {
-                    HStack {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundColor(AppColors.accent)
-                            .frame(width: 30)
-                        Text("Profile")
-                        Spacer()
-                    }
-                }
-            }
-            .listRowBackground(AppColors.secondaryBackground)
+            // Top bar header
+            MoreHeaderSection()
         }
-        .listStyle(.insetGrouped)
-        .background(AppColors.appBackground.ignoresSafeArea())
-        .navigationTitle("More")
+        .navigationTitle("")
+        .navigationBarHidden(true)
     }
 }
 
-// MARK: - Profile View (New)
+// MARK: - Profile View (Updated)
 struct ProfileView: View {
     @ObservedObject var authViewModel: AuthViewModel
     
     var body: some View {
-        List {
-            // User Profile Section
-            Section {
-                if let user = authViewModel.currentUser?.user {
-                    HStack {
-                        // Profile Picture Placeholder
-                        ZStack {
-                            Circle()
-                                .fill(AppColors.accent)
-                                .frame(width: 80, height: 80)
-                            
-                            Text(user.name.prefix(1).uppercased())
-                                .font(.largeTitle)
-                                .foregroundColor(.white)
+        ZStack(alignment: .top) {
+            // Main content
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Spacer for header
+                    Color.clear
+                        .frame(height: 36)
+                    
+                    // User Profile Card
+                    WebAlignedCard {
+                        if let user = authViewModel.currentUser?.user {
+                            HStack(spacing: 16) {
+                                // Profile Picture
+                                ZStack {
+                                    Circle()
+                                        .fill(AppColors.accent)
+                                        .frame(width: 80, height: 80)
+                                    
+                                    Text(user.name.prefix(1).uppercased())
+                                        .font(.largeTitle)
+                                        .foregroundColor(.white)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("\(user.rank) \(user.name)")
+                                        .font(AppFonts.headline)
+                                        .foregroundColor(AppColors.primaryText)
+                                    
+                                    Text("@\(user.username)")
+                                        .font(AppFonts.body)
+                                        .foregroundColor(AppColors.secondaryText)
+                                    
+                                    Text("ID: #\(user.id)")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding()
                         }
-                        .padding(.trailing)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(user.rank) \(user.name)")
-                                .font(AppFonts.headline)
-                                .foregroundColor(AppColors.primaryText)
-                            
-                            Text("@\(user.username)")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.secondaryText)
-                            
-                            Text("ID: #\(user.id)")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.tertiaryText)
-                        }
-                        
-                        Spacer()
                     }
-                    .padding(.vertical)
+                    .padding(.horizontal)
+                    
+                    // Account Details Section
+                    VStack(alignment: .leading, spacing: 0) {
+                        SectionHeader(title: "Account Details")
+                        
+                        WebAlignedCard {
+                            VStack(spacing: 0) {
+                                ProfileDetailRow(label: "Role", value: "Company Commander")
+                                Divider().background(AppColors.border)
+                                ProfileDetailRow(label: "Unit", value: "A Company, 1-502 INF")
+                                Divider().background(AppColors.border)
+                                ProfileDetailRow(label: "Member Since", value: "Jan 2023")
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    // Activity Statistics Section
+                    VStack(alignment: .leading, spacing: 0) {
+                        SectionHeader(title: "Activity Statistics")
+                        
+                        WebAlignedCard {
+                            VStack(spacing: 0) {
+                                ProfileDetailRow(label: "Total Items", value: "156")
+                                Divider().background(AppColors.border)
+                                ProfileDetailRow(label: "Transfers Completed", value: "47")
+                                Divider().background(AppColors.border)
+                                ProfileDetailRow(label: "Items Verified", value: "312")
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    // Actions
+                    Button("Sign Out", role: .destructive) {
+                        authViewModel.logout()
+                    }
+                    .buttonStyle(.destructive)
+                    .padding(.horizontal)
+                    
+                    // Bottom spacer
+                    Spacer()
+                        .frame(height: 100)
                 }
             }
-            .listRowBackground(AppColors.secondaryBackground)
+            .background(AppColors.appBackground.ignoresSafeArea(.all))
             
-            // Account Details Section
-            Section("Account Details") {
-                ProfileDetailRow(label: "Role", value: "Company Commander")
-                ProfileDetailRow(label: "Unit", value: "A Company, 1-502 INF")
-                ProfileDetailRow(label: "Member Since", value: "Jan 2023")
-            }
-            .listRowBackground(AppColors.secondaryBackground)
-            
-            // Statistics Section
-            Section("Activity Statistics") {
-                ProfileDetailRow(label: "Total Items", value: "156")
-                ProfileDetailRow(label: "Transfers Completed", value: "47")
-                ProfileDetailRow(label: "Items Verified", value: "312")
-            }
-            .listRowBackground(AppColors.secondaryBackground)
-            
-            // Actions Section
-            Section {
-                Button("Sign Out", role: .destructive) {
-                    authViewModel.logout()
-                }
-                .font(AppFonts.bodyBold)
-            }
-            .listRowBackground(AppColors.secondaryBackground)
+            // Header
+            ProfileHeaderSection()
         }
-        .listStyle(.insetGrouped)
-        .background(AppColors.appBackground.ignoresSafeArea())
-        .navigationTitle("Profile")
+        .navigationTitle("")
+        .navigationBarHidden(true)
+    }
+}
+
+// MARK: - More Header Section
+struct MoreHeaderSection: View {
+    var body: some View {
+        ZStack {
+            // Background that extends to top of screen
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            // Content positioned at bottom of header
+            VStack {
+                Spacer()
+                Text("MORE")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(AppColors.primaryText)
+                    .kerning(1.2)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12)
+            }
+        }
+        .frame(height: 36)
+    }
+}
+
+// MARK: - More Action Row Component
+struct MoreActionRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let subtitle: String
+    let destination: AnyView
+    
+    var body: some View {
+        NavigationLink(destination: destination) {
+            HStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Rectangle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                        .cornerRadius(0)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(iconColor)
+                }
+                
+                // Text content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                    
+                    Text(subtitle)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+            .padding()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Profile Header Section
+struct ProfileHeaderSection: View {
+    var body: some View {
+        ZStack {
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            VStack {
+                Spacer()
+                Text("PROFILE")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(AppColors.primaryText)
+                    .kerning(1.2)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12)
+            }
+        }
+        .frame(height: 36)
     }
 }
 
@@ -349,7 +487,72 @@ struct ProfileDetailRow: View {
                 .font(AppFonts.bodyBold)
                 .foregroundColor(AppColors.primaryText)
         }
-        .padding(.vertical, 4)
+        .padding()
+    }
+}
+
+// MARK: - QR Management View (Placeholder)
+struct QRManagementView: View {
+    var body: some View {
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    Color.clear.frame(height: 36)
+                    
+                    Text("QR Code Management")
+                        .font(AppFonts.largeTitle)
+                        .foregroundColor(AppColors.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                    
+                    WebAlignedCard {
+                        VStack(spacing: 16) {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 60))
+                                .foregroundColor(AppColors.secondaryText)
+                            
+                            Text("QR Management Coming Soon")
+                                .font(AppFonts.headline)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Text("This feature will allow you to generate and manage QR codes for your equipment.")
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.secondaryText)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer().frame(height: 100)
+                }
+            }
+            .background(AppColors.appBackground.ignoresSafeArea(.all))
+            
+            QRManagementHeaderSection()
+        }
+        .navigationTitle("")
+        .navigationBarHidden(true)
+    }
+}
+
+struct QRManagementHeaderSection: View {
+    var body: some View {
+        ZStack {
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            VStack {
+                Spacer()
+                Text("QR MANAGEMENT")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(AppColors.primaryText)
+                    .kerning(1.2)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 12)
+            }
+        }
+        .frame(height: 36)
     }
 }
 
@@ -380,108 +583,7 @@ struct FloatingActionButton: View {
     }
 }
 
-// MARK: - Settings View
-struct SettingsView: View {
-    @ObservedObject var authViewModel: AuthViewModel
 
-    var body: some View {
-        List {
-            // User Info Section
-            Section("Account") {
-                if let user = authViewModel.currentUser?.user {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Name:")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(AppColors.secondaryText)
-                            Text("\(user.rank) \(user.name)")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.primaryText)
-                        }
-                        
-                        HStack {
-                            Text("Username:")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(AppColors.secondaryText)
-                            Text("@\(user.username)")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.primaryText)
-                        }
-                        
-                        HStack {
-                            Text("User ID:")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(AppColors.secondaryText)
-                            Text("#\(user.id)")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.primaryText)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-            .listRowBackground(AppColors.secondaryBackground)
-
-            // App Info Section
-            Section("Application") {
-                HStack {
-                    Text("Version")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                    Spacer()
-                    Text("1.0.0")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.primaryText)
-                }
-                
-                HStack {
-                    Text("Server")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                    Spacer()
-                    Text("Connected")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.accent)
-                }
-            }
-            .listRowBackground(AppColors.secondaryBackground)
-
-            // Actions Section
-            Section {
-                Button(action: {
-                    // TODO: Implement sync action
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                        Text("Force Sync")
-                    }
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.accent)
-                }
-                
-                Button(action: {
-                    // TODO: Clear local cache
-                }) {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text("Clear Cache")
-                    }
-                    .font(AppFonts.body)
-                    .foregroundColor(.orange)
-                }
-                
-                Button("Logout", role: .destructive) {
-                    authViewModel.logout()
-                }
-                .font(AppFonts.bodyBold)
-            }
-            .listRowBackground(AppColors.secondaryBackground)
-        }
-        .listStyle(.insetGrouped)
-        .background(AppColors.appBackground.ignoresSafeArea())
-        .navigationTitle("Settings")
-    }
-}
 
 // MARK: - Helper Extension for UIFont conversion
 extension AppFonts {
@@ -527,4 +629,4 @@ struct AuthenticatedTabView_Previews: PreviewProvider {
         AuthenticatedTabView(authViewModel: AuthViewModel())
             .preferredColorScheme(.dark)
     }
-} 
+}
