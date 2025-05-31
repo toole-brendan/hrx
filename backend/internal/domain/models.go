@@ -18,6 +18,20 @@ type User struct {
 	UpdatedAt time.Time `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
 }
 
+// UserConnection represents a friendship/connection between users (like Venmo)
+type UserConnection struct {
+	ID               uint      `json:"id" gorm:"primaryKey"`
+	UserID           uint      `json:"userId" gorm:"column:user_id;not null"`
+	ConnectedUserID  uint      `json:"connectedUserId" gorm:"column:connected_user_id;not null"`
+	ConnectionStatus string    `json:"connectionStatus" gorm:"column:connection_status;default:'pending';not null"`
+	CreatedAt        time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt        time.Time `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+
+	// Relationships
+	User          *User `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	ConnectedUser *User `json:"connectedUser,omitempty" gorm:"foreignKey:ConnectedUserID"`
+}
+
 // Property represents an individual piece of property in the inventory
 type Property struct {
 	ID                uint       `json:"id" gorm:"primaryKey"`
@@ -77,20 +91,25 @@ type PropertyModel struct {
 
 // Transfer represents a transfer of property between users
 type Transfer struct {
-	ID           uint       `json:"id" gorm:"primaryKey"`
-	PropertyID   uint       `json:"propertyId" gorm:"column:property_id;not null"` // Renamed from ItemID
-	FromUserID   uint       `json:"fromUserId" gorm:"column:from_user_id;not null"`
-	ToUserID     uint       `json:"toUserId" gorm:"column:to_user_id;not null"`
-	Status       string     `json:"status" gorm:"not null"` // e.g., Requested, Approved, Completed, Rejected
-	RequestDate  time.Time  `json:"requestDate" gorm:"column:request_date;not null;default:CURRENT_TIMESTAMP"`
-	ResolvedDate *time.Time `json:"resolvedDate" gorm:"column:resolved_date"`
-	Notes        *string    `json:"notes"`
-	CreatedAt    time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"` // Added CreatedAt
-	UpdatedAt    time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"` // Added UpdatedAt
+	ID                    uint       `json:"id" gorm:"primaryKey"`
+	PropertyID            uint       `json:"propertyId" gorm:"column:property_id;not null"` // Renamed from ItemID
+	FromUserID            uint       `json:"fromUserId" gorm:"column:from_user_id;not null"`
+	ToUserID              uint       `json:"toUserId" gorm:"column:to_user_id;not null"`
+	Status                string     `json:"status" gorm:"not null"`                                            // e.g., Requested, Approved, Completed, Rejected
+	TransferType          string     `json:"transferType" gorm:"column:transfer_type;default:'offer';not null"` // NEW: 'request' or 'offer'
+	InitiatorID           *uint      `json:"initiatorId" gorm:"column:initiator_id"`                            // NEW: Who started the transfer
+	RequestedSerialNumber *string    `json:"requestedSerialNumber" gorm:"column:requested_serial_number"`       // NEW: For serial number-based requests
+	RequestDate           time.Time  `json:"requestDate" gorm:"column:request_date;not null;default:CURRENT_TIMESTAMP"`
+	ResolvedDate          *time.Time `json:"resolvedDate" gorm:"column:resolved_date"`
+	Notes                 *string    `json:"notes"`
+	CreatedAt             time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"` // Added CreatedAt
+	UpdatedAt             time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"` // Added UpdatedAt
 
-	// Property      *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
-	// FromUser      *User     `json:"fromUser,omitempty" gorm:"foreignKey:FromUserID"`
-	// ToUser        *User     `json:"toUser,omitempty" gorm:"foreignKey:ToUserID"`
+	// Relationships
+	Property  *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+	FromUser  *User     `json:"fromUser,omitempty" gorm:"foreignKey:FromUserID"`
+	ToUser    *User     `json:"toUser,omitempty" gorm:"foreignKey:ToUserID"`
+	Initiator *User     `json:"initiator,omitempty" gorm:"foreignKey:InitiatorID"`
 }
 
 // Activity represents a system activity or event (consider replacing with specific ledger events)
@@ -193,6 +212,19 @@ const (
 	SyncStatusFailed   = "failed"
 )
 
+// Constants for connection status
+const (
+	ConnectionStatusPending  = "pending"
+	ConnectionStatusAccepted = "accepted"
+	ConnectionStatusBlocked  = "blocked"
+)
+
+// Constants for transfer types
+const (
+	TransferTypeRequest = "request"
+	TransferTypeOffer   = "offer"
+)
+
 // CreateUserInput represents input for creating a user
 type CreateUserInput struct {
 	Username string `json:"username" binding:"required"`
@@ -244,6 +276,16 @@ type LoginInput struct {
 type QRTransferRequest struct {
 	QRData    map[string]interface{} `json:"qrData" binding:"required"`
 	ScannedAt string                 `json:"scannedAt" binding:"required"`
+}
+
+// CreateConnectionRequest represents input for creating a user connection
+type CreateConnectionRequest struct {
+	TargetUserID uint `json:"targetUserId" binding:"required"`
+}
+
+// UpdateConnectionRequest represents input for updating a connection status
+type UpdateConnectionRequest struct {
+	Status string `json:"status" binding:"required,oneof=accepted blocked"`
 }
 
 // CorrectionEvent represents a record from the CorrectionEvents ledger table.

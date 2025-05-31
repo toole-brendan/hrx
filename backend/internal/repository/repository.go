@@ -11,7 +11,15 @@ type Repository interface {
 	GetUserByID(id uint) (*domain.User, error)
 	GetUserByUsername(username string) (*domain.User, error)
 	GetAllUsers() ([]domain.User, error)
+	SearchUsers(query string, excludeUserID uint) ([]domain.User, error)
 	// Add other user methods as needed (Update, Delete, List)
+
+	// User Connection operations
+	CreateConnection(connection *domain.UserConnection) error
+	GetConnectionByID(id uint) (*domain.UserConnection, error)
+	GetUserConnections(userID uint) ([]domain.UserConnection, error)
+	UpdateConnection(connection *domain.UserConnection) error
+	AreUsersConnected(userID1, userID2 uint) (bool, error)
 
 	// Property operations
 	CreateProperty(property *domain.Property) error

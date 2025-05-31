@@ -92,25 +92,52 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 	c.JSON(http.StatusCreated, transfer)
 }
 
-// UpdateTransferStatus updates the status of a transfer
+// UpdateTransferStatus godoc
+// @Summary Update transfer status
+// @Description Accept, reject, or cancel a transfer based on transfer type and user authorization
+// @Tags Transfers
+// @Accept json
+// @Produce json
+// @Param id path string true "Transfer ID"
+// @Param request body object true "Status update"
+// @Success 200 {object} domain.Transfer
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 403 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "Transfer not found"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /transfers/{id}/status [patch]
+// @Security BearerAuth
 func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
-	// Parse ID from URL parameter
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	transferIDParam := c.Param("id")
+	transferID, err := strconv.ParseUint(transferIDParam, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid transfer ID"})
 		return
 	}
 
 	// Parse status from request body
-	var updateData domain.UpdateTransferInput // Use domain type
+	var req struct {
+		Status string  `json:"status" binding:"required,oneof=accepted rejected cancelled"`
+		Reason *string `json:"reason"`
+	}
 
-	if err := c.ShouldBindJSON(&updateData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input format: " + err.Error()})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
+	// Convert to domain type for compatibility with existing code
+	updateData := domain.UpdateTransferInput{
+		Status: req.Status,
+		Notes:  req.Reason,
+	}
+
 	// Validate status value (adjust allowed statuses as needed)
-	allowedStatuses := map[string]bool{"Requested": true, "Approved": true, "Rejected": true, "Completed": true, "Cancelled": true} // Added more statuses
+	allowedStatuses := map[string]bool{
+		"pending": true, "accepted": true, "rejected": true, "cancelled": true,
+		// Legacy statuses for backwards compatibility
+		"Requested": true, "Approved": true, "Rejected": true, "Completed": true, "Cancelled": true,
+	}
 	if !allowedStatuses[updateData.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
 		return
@@ -129,7 +156,7 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 	}
 
 	// Fetch transfer from repository
-	transfer, err := h.Repo.GetTransferByID(uint(id))
+	transfer, err := h.Repo.GetTransferByID(uint(transferID))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Transfer not found"})
@@ -139,32 +166,33 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 		return
 	}
 
-	// Authorization: Check if user is allowed to update this transfer
-	switch updateData.Status {
-	case "Approved", "Rejected":
-		// Only the recipient (ToUserID) can approve or reject
-		if currentUserID != transfer.ToUserID {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Only the transfer recipient can approve or reject"})
-			return
+	// Authorization logic based on transfer type
+	authorized := false
+	if transfer.TransferType == domain.TransferTypeRequest {
+		// For requests: property owner (from_user) approves/rejects
+		authorized = (transfer.FromUserID == currentUserID && (updateData.Status == "accepted" || updateData.Status == "rejected"))
+		// Requestor can cancel
+		authorized = authorized || (transfer.ToUserID == currentUserID && updateData.Status == "cancelled")
+	} else if transfer.TransferType == domain.TransferTypeOffer {
+		// For offers: recipient (to_user) accepts/rejects
+		authorized = (transfer.ToUserID == currentUserID && (updateData.Status == "accepted" || updateData.Status == "rejected"))
+		// Offerer can cancel
+		authorized = authorized || (transfer.FromUserID == currentUserID && updateData.Status == "cancelled")
+	} else {
+		// Legacy transfers (no transfer type) - use old logic
+		switch updateData.Status {
+		case "Approved", "Rejected":
+			authorized = (currentUserID == transfer.ToUserID)
+		case "Cancelled":
+			authorized = (currentUserID == transfer.FromUserID && transfer.Status == "Requested")
+		default:
+			authorized = (currentUserID == transfer.FromUserID || currentUserID == transfer.ToUserID)
 		}
-	case "Cancelled":
-		// Only the sender (FromUserID) can cancel a pending transfer
-		if currentUserID != transfer.FromUserID {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Only the transfer sender can cancel"})
-			return
-		}
-		// Can only cancel if still in "Requested" status
-		if transfer.Status != "Requested" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Can only cancel transfers in 'Requested' status"})
-			return
-		}
-	default:
-		// For other status changes, require admin role or ownership
-		// For now, we'll restrict to participants only
-		if currentUserID != transfer.FromUserID && currentUserID != transfer.ToUserID {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to update this transfer"})
-			return
-		}
+	}
+
+	if !authorized {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to update this transfer"})
+		return
 	}
 
 	// Fetch the related inventory item using repository for serial number
@@ -179,12 +207,19 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 	// Update fields
 	previousStatus := transfer.Status
 	transfer.Status = updateData.Status
-	if updateData.Notes != nil {
-		transfer.Notes = updateData.Notes
+
+	// Append reason to existing notes if provided
+	if req.Reason != nil && *req.Reason != "" {
+		if transfer.Notes != nil && *transfer.Notes != "" {
+			newNotes := *transfer.Notes + " | " + *req.Reason
+			transfer.Notes = &newNotes
+		} else {
+			transfer.Notes = req.Reason
+		}
 	}
 
 	// Update ResolvedDate based on status
-	if transfer.Status == "Approved" || transfer.Status == "Rejected" || transfer.Status == "Completed" || transfer.Status == "Cancelled" {
+	if transfer.Status == "accepted" || transfer.Status == "rejected" || transfer.Status == "cancelled" {
 		now := time.Now().UTC()
 		transfer.ResolvedDate = &now
 	} else {
@@ -197,8 +232,8 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 		return
 	}
 
-	// If approved, update the property ownership
-	if transfer.Status == "Approved" && previousStatus != "Approved" {
+	// If accepted, update the property ownership
+	if transfer.Status == "accepted" && previousStatus != "accepted" {
 		// Update the property's current holder
 		item.AssignedToUserID = &transfer.ToUserID
 		item.UpdatedAt = time.Now().UTC()
@@ -214,16 +249,20 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 		}
 
 		log.Printf("Property %d ownership transferred from user %d to user %d", item.ID, transfer.FromUserID, transfer.ToUserID)
+
+		// Log successful transfer completion
+		if err := h.Ledger.LogTransferEvent(*transfer, item.SerialNumber); err != nil {
+			log.Printf("WARNING: Failed to log transfer completion to ledger: %v", err)
+		}
 	}
 
-	// Log the updated state to Ledger Service
-	errLedger := h.Ledger.LogTransferEvent(*transfer, item.SerialNumber)
-	if errLedger != nil {
-		// Log error but don't fail the request as DB update succeeded
-		log.Printf("WARNING: Failed to log transfer status update (ID: %d, SN: %s, NewStatus: %s) to Ledger: %v", transfer.ID, item.SerialNumber, transfer.Status, errLedger)
-		c.Writer.Write([]byte("\nWarning: Failed to log status update to immutable ledger")) // Optionally notify client
-	} else {
-		log.Printf("Successfully logged transfer status update (ID: %d, NewStatus: %s) to Ledger", transfer.ID, transfer.Status)
+	// Log status updates (except for accepted status which is logged above with ownership change)
+	if transfer.Status != "accepted" {
+		if err := h.Ledger.LogTransferEvent(*transfer, item.SerialNumber); err != nil {
+			log.Printf("WARNING: Failed to log transfer status update (ID: %d, SN: %s, NewStatus: %s) to Ledger: %v", transfer.ID, item.SerialNumber, transfer.Status, err)
+		} else {
+			log.Printf("Successfully logged transfer status update (ID: %d, NewStatus: %s) to Ledger", transfer.ID, transfer.Status)
+		}
 	}
 
 	c.JSON(http.StatusOK, transfer)
@@ -430,5 +469,200 @@ func (h *TransferHandler) InitiateTransferByQR(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"transferId": fmt.Sprintf("%d", transfer.ID),
 		"status":     transfer.Status,
+	})
+}
+
+// RequestTransferBySerial godoc
+// @Summary Request transfer by serial number
+// @Description Request a property transfer by providing the serial number
+// @Tags Transfers
+// @Accept json
+// @Produce json
+// @Param request body object true "Transfer request"
+// @Success 201 {object} map[string]interface{} "Transfer request created"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 403 {object} map[string]string "Not connected to owner"
+// @Failure 404 {object} map[string]string "Property not found"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /transfers/request [post]
+// @Security BearerAuth
+func (h *TransferHandler) RequestTransferBySerial(c *gin.Context) {
+	// Get requestor ID from context
+	requestorIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	requestorID, ok := requestorIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format in context"})
+		return
+	}
+
+	var req struct {
+		SerialNumber string  `json:"serialNumber" binding:"required"`
+		Notes        *string `json:"notes"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Find property by serial number
+	property, err := h.Repo.GetPropertyBySerialNumber(req.SerialNumber)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
+		return
+	}
+
+	// Check if property is assigned to someone
+	if property.AssignedToUserID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Property is not assigned to anyone"})
+		return
+	}
+
+	// Prevent self-request
+	if requestorID == *property.AssignedToUserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot request property from yourself"})
+		return
+	}
+
+	// Check if requestor and owner are connected
+	isConnected, err := h.Repo.AreUsersConnected(requestorID, *property.AssignedToUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user connection"})
+		return
+	}
+	if !isConnected {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You must be connected to request this item"})
+		return
+	}
+
+	// Create transfer request
+	transfer := &domain.Transfer{
+		PropertyID:            property.ID,
+		FromUserID:            *property.AssignedToUserID,
+		ToUserID:              requestorID,
+		Status:                "pending",
+		TransferType:          domain.TransferTypeRequest,
+		InitiatorID:           &requestorID,
+		RequestedSerialNumber: &req.SerialNumber,
+		Notes:                 req.Notes,
+		RequestDate:           time.Now(),
+	}
+
+	if err := h.Repo.CreateTransfer(transfer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transfer request"})
+		return
+	}
+
+	// Log to immutable ledger
+	if err := h.Ledger.LogTransferEvent(*transfer, property.SerialNumber); err != nil {
+		log.Printf("WARNING: Failed to log transfer request to ledger: %v", err)
+	}
+
+	// TODO: Notify property owner
+	// h.notificationService.SendTransferRequest(transfer)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"transferId": transfer.ID,
+		"status":     "pending",
+		"message":    "Transfer request sent to property owner",
+	})
+}
+
+// OfferTransfer godoc
+// @Summary Offer transfer to connection
+// @Description Offer a property transfer to a connected user
+// @Tags Transfers
+// @Accept json
+// @Produce json
+// @Param request body object true "Transfer offer"
+// @Success 201 {object} map[string]interface{} "Transfer offer created"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 403 {object} map[string]string "Unauthorized or not connected"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /transfers/offer [post]
+// @Security BearerAuth
+func (h *TransferHandler) OfferTransfer(c *gin.Context) {
+	// Get owner ID from context
+	ownerIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	ownerID, ok := ownerIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format in context"})
+		return
+	}
+
+	var req struct {
+		PropertyID  uint    `json:"propertyId" binding:"required"`
+		RecipientID uint    `json:"recipientId" binding:"required"`
+		Notes       *string `json:"notes"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Prevent self-offer
+	if ownerID == req.RecipientID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot offer property to yourself"})
+		return
+	}
+
+	// Verify ownership
+	property, err := h.Repo.GetPropertyByID(req.PropertyID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
+		return
+	}
+	if property.AssignedToUserID == nil || *property.AssignedToUserID != ownerID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't own this property"})
+		return
+	}
+
+	// Check connection
+	isConnected, err := h.Repo.AreUsersConnected(ownerID, req.RecipientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user connection"})
+		return
+	}
+	if !isConnected {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You must be connected to offer items"})
+		return
+	}
+
+	// Create transfer offer
+	transfer := &domain.Transfer{
+		PropertyID:   property.ID,
+		FromUserID:   ownerID,
+		ToUserID:     req.RecipientID,
+		Status:       "pending",
+		TransferType: domain.TransferTypeOffer,
+		InitiatorID:  &ownerID,
+		Notes:        req.Notes,
+		RequestDate:  time.Now(),
+	}
+
+	if err := h.Repo.CreateTransfer(transfer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create transfer offer"})
+		return
+	}
+
+	// Log and notify
+	if err := h.Ledger.LogTransferEvent(*transfer, property.SerialNumber); err != nil {
+		log.Printf("WARNING: Failed to log transfer offer to ledger: %v", err)
+	}
+	// TODO: h.notificationService.SendTransferOffer(transfer)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"transferId": transfer.ID,
+		"status":     "pending",
+		"message":    "Transfer offer sent",
 	})
 }

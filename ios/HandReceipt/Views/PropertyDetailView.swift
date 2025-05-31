@@ -11,7 +11,7 @@ struct PropertyDetailView: View {
     @State private var showingImagePicker = false
     @State private var showingCamera = false
     @State private var selectedImage: UIImage?
-    @State private var showingQRCode = false
+
     @State private var showingHistory = false
     @State private var showingMaintenanceSchedule = false
     
@@ -38,10 +38,6 @@ struct PropertyDetailView: View {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         if viewModel.property != nil {
                             Menu {
-                                Button(action: { showingQRCode = true }) {
-                                    Label("Show QR Code", systemImage: "qrcode")
-                                }
-                                
                                 Button(action: { showingHistory = true }) {
                                     Label("View History", systemImage: "clock.arrow.circlepath")
                                 }
@@ -70,11 +66,7 @@ struct PropertyDetailView: View {
                         viewModel.initiateTransfer(targetUser: selectedUser)
                     })
                 }
-                .sheet(isPresented: $showingQRCode) {
-                    if let property = viewModel.property {
-                        PropertyQRCodeView(property: property)
-                    }
-                }
+
                 .sheet(isPresented: $showingHistory) {
                     if let property = viewModel.property {
                         PropertyHistoryView(propertyId: property.id)
@@ -526,59 +518,7 @@ struct PropertyDetailView: View {
 
 // MARK: - Supporting Views
 
-struct PropertyQRCodeView: View {
-    let property: Property
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                Text("Scan this code to initiate transfer")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-                
-                // QR Code placeholder
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(width: 250, height: 250)
-                    .cornerRadius(12)
-                    .overlay(
-                        Text("QR Code")
-                            .foregroundColor(.black)
-                    )
-                
-                VStack(spacing: 8) {
-                    Text(property.itemName)
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Text("S/N: \(property.serialNumber)")
-                        .font(AppFonts.mono)
-                        .foregroundColor(AppColors.secondaryText)
-                }
-                
-                Spacer()
-                
-                Button("Done") {
-                    dismiss()
-                }
-                .buttonStyle(.primary)
-            }
-            .padding()
-            .navigationTitle("Property QR Code")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Share") {
-                        // TODO: Implement share functionality
-                    }
-                    .foregroundColor(AppColors.accent)
-                }
-            })
-        }
-    }
-}
+
 
 struct PropertyHistoryView: View {
     let propertyId: Int

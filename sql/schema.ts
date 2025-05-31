@@ -69,13 +69,26 @@ export const properties = pgTable("properties", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Transfers Table - Updated to reference properties
+// User Connections Table - Friends Network (like Venmo)
+export const userConnections = pgTable("user_connections", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  connectedUserId: integer("connected_user_id").references(() => users.id).notNull(),
+  connectionStatus: text("connection_status").default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Transfers Table - Updated for serial number-based system
 export const transfers = pgTable("transfers", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").references(() => properties.id).notNull(),
   fromUserId: integer("from_user_id").references(() => users.id).notNull(),
   toUserId: integer("to_user_id").references(() => users.id).notNull(),
   status: text("status").notNull(),
+  transferType: text("transfer_type").default("offer").notNull(), // 'request' or 'offer'
+  initiatorId: integer("initiator_id").references(() => users.id),
+  requestedSerialNumber: text("requested_serial_number"),
   requestDate: timestamp("request_date").defaultNow().notNull(),
   resolvedDate: timestamp("resolved_date"),
   notes: text("notes"),
@@ -104,7 +117,7 @@ export const activities = pgTable("activities", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
-// QR Codes Table - Updated to reference properties correctly
+// QR Codes Table - DEPRECATED (Phase 1 refactor)
 export const qrCodes = pgTable("qr_codes", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").references(() => properties.id).notNull(),
@@ -114,6 +127,7 @@ export const qrCodes = pgTable("qr_codes", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deactivatedAt: timestamp("deactivated_at"),
+  deprecatedAt: timestamp("deprecated_at"), // Added for Phase 1 deprecation
 });
 
 // Attachments Table - For photos and documents
@@ -247,6 +261,10 @@ export type InsertPropertyModel = typeof propertyModels.$inferInsert;
 
 export type Property = typeof properties.$inferSelect;
 export type InsertProperty = typeof properties.$inferInsert;
+
+// User Connection Types
+export type UserConnection = typeof userConnections.$inferSelect;
+export type InsertUserConnection = typeof userConnections.$inferInsert;
 
 // Transfer Types
 export type Transfer = typeof transfers.$inferSelect;

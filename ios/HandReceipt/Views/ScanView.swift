@@ -1,8 +1,8 @@
 import SwiftUI
 
-// This is the view shown when tapping the "Scan" tab in the tab bar
-struct ScanTabPlaceholderView: View {
-    @State private var showingQRScanner = false
+// This is the view shown when tapping the "Request" tab in the tab bar
+struct RequestTransferTabView: View {
+    @State private var showingRequestTransfer = false
     @State private var animationAmount: CGFloat = 1.0
     
     var body: some View {
@@ -12,7 +12,7 @@ struct ScanTabPlaceholderView: View {
             VStack(spacing: 32) {
                 Spacer()
                 
-                // Animated QR icon
+                // Animated search icon
                 ZStack {
                     // Background rings
                     ForEach(0..<3) { index in
@@ -39,7 +39,7 @@ struct ScanTabPlaceholderView: View {
                                     .stroke(AppColors.accent, lineWidth: 2)
                             )
                         
-                        Image(systemName: "qrcode.viewfinder")
+                        Image(systemName: "doc.text.magnifyingglass")
                             .font(.system(size: 60))
                             .foregroundColor(AppColors.accent)
                     }
@@ -50,12 +50,12 @@ struct ScanTabPlaceholderView: View {
                 
                 // Instructions
                 VStack(spacing: 16) {
-                    Text("SCAN QR CODE")
+                    Text("REQUEST TRANSFER")
                         .font(AppFonts.title)
                         .foregroundColor(AppColors.primaryText)
                         .tracking(AppFonts.militaryTracking)
                     
-                    Text("Scan property QR codes to initiate transfers")
+                    Text("Enter serial number to request property from connected users")
                         .font(AppFonts.body)
                         .foregroundColor(AppColors.secondaryText)
                         .multilineTextAlignment(.center)
@@ -65,27 +65,27 @@ struct ScanTabPlaceholderView: View {
                 Spacer()
                 
                 // Action button
-                Button(action: { showingQRScanner = true }) {
+                Button(action: { showingRequestTransfer = true }) {
                     HStack(spacing: 12) {
-                        Image(systemName: "camera.fill")
-                        Text("OPEN SCANNER")
+                        Image(systemName: "keyboard")
+                        Text("ENTER SERIAL NUMBER")
                             .tracking(AppFonts.militaryTracking)
                     }
                     .font(AppFonts.bodyBold)
-                    .frame(width: 200)
+                    .frame(width: 240)
                 }
                 .buttonStyle(.primary)
                 
                 // Alternative actions
                 HStack(spacing: 32) {
                     Button(action: {
-                        // TODO: Navigate to manual entry
+                        // TODO: Show connections
                     }) {
                         VStack(spacing: 8) {
-                            Image(systemName: "keyboard")
+                            Image(systemName: "person.2")
                                 .font(.title2)
                                 .foregroundColor(AppColors.accent)
-                            Text("MANUAL ENTRY")
+                            Text("MY NETWORK")
                                 .font(AppFonts.caption)
                                 .foregroundColor(AppColors.secondaryText)
                                 .tracking(AppFonts.normalTracking)
@@ -93,13 +93,13 @@ struct ScanTabPlaceholderView: View {
                     }
                     
                     Button(action: {
-                        // TODO: Show recent scans
+                        // TODO: Show recent requests
                     }) {
                         VStack(spacing: 8) {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.title2)
                                 .foregroundColor(AppColors.accent)
-                            Text("RECENT SCANS")
+                            Text("RECENT REQUESTS")
                                 .font(AppFonts.caption)
                                 .foregroundColor(AppColors.secondaryText)
                                 .tracking(AppFonts.normalTracking)
@@ -111,205 +111,278 @@ struct ScanTabPlaceholderView: View {
                 Spacer()
             }
         }
-        .sheet(isPresented: $showingQRScanner) {
-            QRScannerView()
+        .sheet(isPresented: $showingRequestTransfer) {
+            RequestTransferView()
         }
     }
 }
 
-// MARK: - Original ScanView for direct camera scanning (kept for compatibility)
+// MARK: - Manual Serial Number Entry View
 struct ScanView: View {
-    @StateObject private var viewModel = ScanViewModel()
-    @State private var isScanningActive: Bool = true
-    @State private var showingUserSelection = false
-    @State private var selectedProperty: Property?
+    @StateObject private var viewModel = ManualSNViewModel()
+    @State private var serialNumber = ""
+    @State private var notes = ""
+    @State private var showingTransferConfirmation = false
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         ZStack {
-            // Camera View background
-            CameraView(scannedCode: $viewModel.scannedCodeFromCamera, isScanning: $isScanningActive)
-                .edgesIgnoringSafeArea(.all)
-                .onChange(of: viewModel.scanState) { newState in
-                    isScanningActive = (newState == .scanning)
-                }
-
-            // Dimming overlay when not actively scanning
-            if !isScanningActive {
-                Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
-            }
-
-            // UI Overlays
-            ScanStatusOverlay(
-                scanState: viewModel.scanState,
-                onScanAgain: { viewModel.scanAgain() },
-                onConfirm: { property in
-                    selectedProperty = property
-                    showingUserSelection = true
-                }
-            )
+            AppColors.appBackground.ignoresSafeArea()
             
-            ScanTransferStatusMessage(state: viewModel.transferRequestState)
+            VStack(spacing: 24) {
+                
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 48))
+                        .foregroundColor(AppColors.accent)
+                    
+                    Text("REQUEST PROPERTY")
+                        .font(AppFonts.title)
+                        .foregroundColor(AppColors.primaryText)
+                        .tracking(AppFonts.militaryTracking)
+                    
+                    Text("Enter the serial number of the property you want to request")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+                .padding(.top, 40)
+                
+                Spacer()
+                
+                // Input form
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("SERIAL NUMBER")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.tertiaryText)
+                            .tracking(AppFonts.militaryTracking)
+                        
+                        TextField("Enter serial number", text: $serialNumber)
+                            .textInputAutocapitalization(.characters)
+                            .font(AppFonts.body)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(AppColors.secondaryBackground)
+                            .overlay(
+                                Rectangle()
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("REQUEST NOTES (OPTIONAL)")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.tertiaryText)
+                            .tracking(AppFonts.militaryTracking)
+                        
+                        TextField("Reason for request...", text: $notes, axis: .vertical)
+                            .lineLimit(3...6)
+                            .font(AppFonts.body)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(AppColors.secondaryBackground)
+                            .overlay(
+                                Rectangle()
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
+                    }
+                }
+                .padding(.horizontal, 24)
+                
+                Spacer()
+                
+                // Action buttons
+                VStack(spacing: 16) {
+                    Button(action: {
+                        viewModel.searchProperty(serialNumber: serialNumber)
+                    }) {
+                        HStack(spacing: 12) {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "magnifyingglass")
+                            }
+                            Text(viewModel.isLoading ? "SEARCHING..." : "FIND PROPERTY")
+                                .tracking(AppFonts.militaryTracking)
+                        }
+                        .font(AppFonts.bodyBold)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.primary)
+                    .disabled(serialNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
+                    
+                    if let property = viewModel.foundProperty {
+                        Button(action: {
+                            showingTransferConfirmation = true
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "arrow.right.circle.fill")
+                                Text("REQUEST TRANSFER")
+                                    .tracking(AppFonts.militaryTracking)
+                            }
+                            .font(AppFonts.bodyBold)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
+                
+                // Property details (if found)
+                if let property = viewModel.foundProperty {
+                    PropertyDetailsCard(property: property)
+                        .padding(.horizontal, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                
+                // Error message
+                if let errorMessage = viewModel.errorMessage {
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(AppColors.destructive)
+                        Text(errorMessage.uppercased())
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.destructive)
+                            .multilineTextAlignment(.center)
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .padding()
+                    .background(AppColors.destructive.opacity(0.1))
+                    .overlay(
+                        Rectangle()
+                            .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
-        .navigationTitle("SCAN ITEM")
+        .navigationTitle("REQUEST TRANSFER")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("CANCEL") {
-                    viewModel.scanAgain()
-                    isScanningActive = false
                     presentationMode.wrappedValue.dismiss()
                 }
                 .font(AppFonts.bodyBold)
                 .foregroundColor(AppColors.accent)
             }
         }
-        .background(Color.black.ignoresSafeArea())
-        .onAppear {
-            isScanningActive = true
-            if viewModel.scanState != .scanning {
-                viewModel.scanAgain()
+        .sheet(isPresented: $showingTransferConfirmation) {
+            if let property = viewModel.foundProperty {
+                TransferRequestConfirmationView(
+                    property: property,
+                    notes: notes
+                )
             }
         }
-        .onDisappear {
-            isScanningActive = false
-        }
-        .sheet(isPresented: $showingUserSelection) {
-            NavigationView {
-                UserSelectionView(onUserSelected: { selectedUser in
-                    if selectedProperty != nil {
-                        viewModel.initiateTransfer(targetUser: selectedUser)
-                    }
-                    showingUserSelection = false
-                })
-            }
-            .accentColor(AppColors.accent)
-        }
+        .animation(.spring(), value: viewModel.foundProperty)
+        .animation(.spring(), value: viewModel.errorMessage)
     }
 }
 
-// MARK: - Scan Status Overlay with Industrial Design
-struct ScanStatusOverlay: View {
-    let scanState: ScanState
-    let onScanAgain: () -> Void
-    let onConfirm: (Property) -> Void
-
-    var body: some View {
-        VStack {
-            Spacer()
-
-            Group {
-                switch scanState {
-                case .scanning:
-                    statusCard(
-                        icon: "viewfinder",
-                        text: "POSITION CAMERA AT SERIAL NUMBER",
-                        subtext: "Align barcode or text within frame",
-                        color: AppColors.accent
-                    )
-
-                case .loading:
-                    HStack(spacing: 12) {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("SEARCHING DATABASE...")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(AppColors.primaryText)
-                                .tracking(AppFonts.militaryTracking)
-                            Text("Verifying serial number")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(AppColors.secondaryBackground)
-                    .overlay(
-                        Rectangle()
-                            .stroke(AppColors.accent, lineWidth: 1)
-                    )
-
-                case .success(let property):
-                    VStack(spacing: 16) {
-                        PropertyDetailsCard(property: property)
-                        
-                        HStack(spacing: 16) {
-                            Button("SCAN AGAIN", role: .cancel) {
-                                onScanAgain()
-                            }
-                            .buttonStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-
-                            Button("REQUEST TRANSFER") {
-                                onConfirm(property)
-                            }
-                            .buttonStyle(.primary)
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-
-                case .notFound:
-                    VStack(spacing: 16) {
-                        statusCard(
-                            icon: "questionmark.circle",
-                            text: "ITEM NOT FOUND",
-                            subtext: "Serial number not in database",
-                            color: AppColors.warning
-                        )
-                        
-                        Button("SCAN AGAIN", action: onScanAgain)
-                            .buttonStyle(.secondary)
-                    }
-
-                case .error(let message):
-                    VStack(spacing: 16) {
-                        statusCard(
-                            icon: "exclamationmark.triangle.fill",
-                            text: "SCAN ERROR",
-                            subtext: message,
-                            color: AppColors.destructive
-                        )
-                        
-                        Button("TRY AGAIN", action: onScanAgain)
-                            .buttonStyle(.secondary)
-                    }
-                }
-            }
-            .padding()
-            .animation(.spring(), value: scanState)
-        }
-    }
+// MARK: - Transfer Request Confirmation View
+struct TransferRequestConfirmationView: View {
+    let property: Property
+    let notes: String
+    @StateObject private var transferService = TransferService()
+    @Environment(\.presentationMode) var presentationMode
     
-    @ViewBuilder
-    private func statusCard(icon: String, text: String, subtext: String, color: Color) -> some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
+    var body: some View {
+        NavigationView {
+            ZStack {
+                AppColors.appBackground.ignoresSafeArea()
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(text)
-                        .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.primaryText)
-                        .tracking(AppFonts.militaryTracking)
+                VStack(spacing: 24) {
+                    // Property Summary
+                    PropertyDetailsCard(property: property)
+                        .padding(.horizontal, 16)
                     
-                    Text(subtext)
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
+                    // Notes Section
+                    if !notes.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("REQUEST NOTES")
+                                .font(AppFonts.captionBold)
+                                .foregroundColor(AppColors.tertiaryText)
+                                .tracking(AppFonts.militaryTracking)
+                            
+                            Text(notes)
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.primaryText)
+                                .padding()
+                                .background(AppColors.secondaryBackground)
+                                .overlay(
+                                    Rectangle()
+                                        .stroke(AppColors.border, lineWidth: 1)
+                                )
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    
+                    Spacer()
+                    
+                    // Confirmation Button
+                    Button(action: {
+                        transferService.requestTransfer(
+                            serialNumber: property.serialNumber,
+                            notes: notes
+                        )
+                    }) {
+                        HStack(spacing: 12) {
+                            if transferService.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "paperplane.fill")
+                            }
+                            Text(transferService.isLoading ? "SENDING REQUEST..." : "CONFIRM REQUEST")
+                                .tracking(AppFonts.militaryTracking)
+                        }
+                        .font(AppFonts.bodyBold)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.primary)
+                    .disabled(transferService.isLoading)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 32)
+                    
+                    // Success/Error Messages
+                    if transferService.isSuccess {
+                        SuccessMessageView(message: "Transfer request sent!")
+                            .padding(.horizontal, 16)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    presentationMode.wrappedValue.dismiss()
+                                }
+                            }
+                    }
+                    
+                    if let error = transferService.errorMessage {
+                        ErrorMessageView(message: error)
+                            .padding(.horizontal, 16)
+                    }
                 }
-                
-                Spacer()
+                .padding(.top, 16)
+            }
+            .navigationTitle("Confirm Request")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.accent)
+                }
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(AppColors.secondaryBackground)
-        .overlay(
-            Rectangle()
-                .stroke(color.opacity(0.5), lineWidth: 1)
-        )
     }
 }
 
@@ -357,81 +430,28 @@ struct PropertyDetailsCard: View {
     }
 }
 
-// MARK: - Transfer Status Message
-struct ScanTransferStatusMessage: View {
-    let state: TransferRequestState
+// MARK: - Transfer Service for Serial Number Requests
+class TransferService: ObservableObject {
+    @Published var isLoading = false
+    @Published var isSuccess = false
+    @Published var errorMessage: String?
     
-    var body: some View {
-        VStack {
-            if state != .idle {
-                VStack(spacing: 12) {
-                    switch state {
-                    case .idle:
-                        EmptyView()
-                        
-                    case .loading:
-                        HStack(spacing: 12) {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            Text("INITIATING TRANSFER...")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(.white)
-                                .tracking(AppFonts.militaryTracking)
-                        }
-                        
-                    case .success:
-                        HStack(spacing: 12) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.white)
-                            Text("TRANSFER REQUEST SENT")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(.white)
-                                .tracking(AppFonts.militaryTracking)
-                        }
-                        
-                    case .error(let message):
-                        HStack(spacing: 12) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.white)
-                            Text(message.uppercased())
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(.white)
-                                .tracking(AppFonts.militaryTracking)
-                        }
-                    }
-                }
-                .padding()
-                .background(
-                    state == .error("") ? AppColors.destructive : AppColors.accent
-                )
-                .transition(.move(edge: .top).combined(with: .opacity))
+    func requestTransfer(serialNumber: String, notes: String) {
+        isLoading = true
+        errorMessage = nil
+        isSuccess = false
+        
+        // TODO: Implement actual API call to request transfer by serial number
+        // This should call the backend endpoint POST /api/transfers/request
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            // Simulate API response
+            self.isLoading = false
+            if serialNumber.count >= 4 {
+                self.isSuccess = true
+            } else {
+                self.errorMessage = "Failed to send transfer request"
             }
-            
-            Spacer()
-        }
-        .animation(.spring(), value: state)
-    }
-}
-
-// MARK: - Detail Row Component
-struct ScanDetailRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text("\(label):")
-                .font(AppFonts.captionBold)
-                .foregroundColor(AppColors.tertiaryText)
-                .tracking(AppFonts.militaryTracking)
-                .frame(width: 80, alignment: .leading)
-            
-            Text(value)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.primaryText)
-                .lineLimit(1)
-            
-            Spacer()
         }
     }
 }
@@ -441,19 +461,24 @@ struct ScanDetailRow: View {
 struct ScanView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            // Scan tab placeholder
+            // Request transfer tab placeholder
             NavigationView {
-                ScanTabPlaceholderView()
+                RequestTransferTabView()
             }
             .preferredColorScheme(.dark)
-            .previewDisplayName("Scan Tab")
+            .previewDisplayName("Request Tab")
             
-            // Direct scan view
+            // Manual entry view
             NavigationView {
                 ScanView()
             }
             .preferredColorScheme(.dark)
-            .previewDisplayName("Direct Scan")
+            .previewDisplayName("Manual Entry")
+            
+            // Request transfer view
+            RequestTransferView()
+                .preferredColorScheme(.dark)
+                .previewDisplayName("Request Transfer")
         }
     }
 } 

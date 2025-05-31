@@ -25,10 +25,11 @@
 		746506184194C32049616F45 /* PropertyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 097C24F1EA75B2E56BCBCC08 /* PropertyDetailView.swift */; };
 		902492E2AE615BA4C6ACC792 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AEE26AF958DBCB601C895CD /* ContentView.swift */; };
 		9CAA7907B48AF7D46F77FB02 /* UserSelectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE530B592D095523725035D /* UserSelectionViewModel.swift */; };
+		BF2685512DEB3BE700BFB170 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF26854F2DEB3BE700BFB170 /* ConnectionsView.swift */; };
+		BF2685522DEB3BE700BFB170 /* RequestTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */; };
 		BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */; };
 		BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */; };
 		BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */; };
-		BF2DF4412DE929E700E450D6 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4402DE929E700E450D6 /* QRScannerView.swift */; };
 		BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */; };
 		BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */; };
 		BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = BF2DF4442DE92A0600E450D6 /* HandReceipt.xcdatamodeld */; };
@@ -80,12 +81,13 @@
 		B28E9A92DD3453473BE10961 /* UserSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionView.swift; sourceTree = "<group>"; };
 		B32078152333561CB10233BA /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		BBE530B592D095523725035D /* UserSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionViewModel.swift; sourceTree = "<group>"; };
+		BF26854F2DEB3BE700BFB170 /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
+		BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestTransferView.swift; sourceTree = "<group>"; };
 		BF2DF4382DE929C800E450D6 /* IndustrialComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndustrialComponents.swift; sourceTree = "<group>"; };
 		BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		BF2DF43B2DE929D700E450D6 /* OfflineSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncService.swift; sourceTree = "<group>"; };
 		BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePropertyView.swift; sourceTree = "<group>"; };
 		BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSNSearchView.swift; sourceTree = "<group>"; };
-		BF2DF4402DE929E700E450D6 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		BF2DF4452DE92A0600E450D6 /* HandReceipt.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = HandReceipt.xcdatamodel; sourceTree = "<group>"; };
 		BF8172302DEA96A10086B2DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
@@ -195,6 +197,8 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BF26854F2DEB3BE700BFB170 /* ConnectionsView.swift */,
+				BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */,
 				BF8172302DEA96A10086B2DD /* SettingsView.swift */,
 				BFA1280C2DEA2F4300C12800 /* MaintenanceView.swift */,
 				BFA1280D2DEA2F4300C12800 /* ReportsView.swift */,
@@ -203,7 +207,6 @@
 				BFA128022DEA165E00C12800 /* RegisterView.swift */,
 				BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */,
 				BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */,
-				BF2DF4402DE929E700E450D6 /* QRScannerView.swift */,
 				8322A1CD58E045E33629F8B1 /* AuthenticatedTabView.swift */,
 				7F0B20078F52C4DC41D93104 /* CameraView.swift */,
 				CDEC488299CE976110299615 /* LoginView.swift */,
@@ -318,6 +321,8 @@
 				4BA08BBDC120ACB9D4AAF6D5 /* CameraView.swift in Sources */,
 				902492E2AE615BA4C6ACC792 /* ContentView.swift in Sources */,
 				FE49F4C972C3577086DB327C /* LoginView.swift in Sources */,
+				BF2685512DEB3BE700BFB170 /* ConnectionsView.swift in Sources */,
+				BF2685522DEB3BE700BFB170 /* RequestTransferView.swift in Sources */,
 				3B5F067C856CA39C6502F916 /* LoginViewModel.swift in Sources */,
 				58674DC812CCD6A39DD7DF4F /* ManualSNEntryView.swift in Sources */,
 				49D619D92A060D750592E785 /* ManualSNViewModel.swift in Sources */,
@@ -331,7 +336,6 @@
 				649E4FB8CB9A2BAAA06A65F8 /* PropertyDetailViewModel.swift in Sources */,
 				FFA463230EB2A719A3E334F9 /* ReferenceDBViewModel.swift in Sources */,
 				6647A7F294F0B05BBAA6BCD7 /* ReferenceDatabaseBrowserView.swift in Sources */,
-				BF2DF4412DE929E700E450D6 /* QRScannerView.swift in Sources */,
 				BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */,
 				BFA1280F2DEA2F4300C12800 /* MaintenanceView.swift in Sources */,
 				BFA128102DEA2F4300C12800 /* SensitiveItemsView.swift in Sources */,
