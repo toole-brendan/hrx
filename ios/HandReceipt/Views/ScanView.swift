@@ -339,13 +339,13 @@ struct PropertyDetailsCard: View {
             
             // Property details
             VStack(spacing: 12) {
-                ScanDetailRow(label: "NSN", value: property.nsn)
+                ScanDetailRow(label: "NSN", value: property.nsn ?? "N/A")
                 Rectangle().fill(AppColors.border).frame(height: 1)
                 ScanDetailRow(label: "NAME", value: property.itemName.uppercased())
                 Rectangle().fill(AppColors.border).frame(height: 1)
                 ScanDetailRow(label: "SERIAL", value: property.serialNumber)
                 Rectangle().fill(AppColors.border).frame(height: 1)
-                ScanDetailRow(label: "STATUS", value: property.status.uppercased())
+                ScanDetailRow(label: "STATUS", value: (property.status ?? property.currentStatus ?? "Unknown").uppercased())
             }
             .padding()
         }

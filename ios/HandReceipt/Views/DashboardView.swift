@@ -228,7 +228,7 @@ struct DashboardView: View {
                     WebAlignedActivityRow(
                         title: getTransferTitle(for: transfer),
                         subtitle: getTransferSubtitle(for: transfer),
-                        time: RelativeDateFormatter.shared.string(from: transfer.requestTimestamp),
+                                                    time: RelativeDateFormatter.shared.string(from: transfer.requestDate),
                         icon: "arrow.left.arrow.right.circle.fill",
                         iconColor: AppColors.accent
                     ) {
@@ -318,15 +318,15 @@ struct DashboardView: View {
     
     // MARK: - Helper Methods
     private func getTransferTitle(for transfer: Transfer) -> String {
-        switch transfer.status {
-        case .PENDING:
+        switch transfer.status.lowercased() {
+        case "pending":
             return "Transfer Requested"
-        case .APPROVED:
+        case "completed", "approved":
             return "Transfer Completed"
-        case .REJECTED:
+        case "rejected":
             return "Transfer Rejected"
         default:
-            return "Transfer \(transfer.status.rawValue.capitalized)"
+            return "Transfer \(transfer.status.capitalized)"
         }
     }
     
@@ -357,8 +357,8 @@ struct DashboardView: View {
             
             // Fetch transfers
             let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
-            pendingTransfers = transfers.filter { $0.status == .PENDING }.count
-            recentTransfers = transfers.sorted { $0.requestTimestamp > $1.requestTimestamp }
+            pendingTransfers = transfers.filter { $0.status.lowercased() == "pending" }.count
+            recentTransfers = transfers.sorted { $0.requestDate > $1.requestDate }
             
             isLoading = false
         } catch {
@@ -493,15 +493,15 @@ extension ActivityRow {
         let title: String
         let subtitle: String
         
-        switch transfer.status {
-        case .PENDING:
+        switch transfer.status.lowercased() {
+        case "pending":
             title = "Transfer Requested"
-        case .APPROVED:
+        case "completed", "approved":
             title = "Transfer Completed"
-        case .REJECTED:
+        case "rejected":
             title = "Transfer Rejected"
         default:
-            title = "Transfer \(transfer.status.rawValue.capitalized)"
+            title = "Transfer \(transfer.status.capitalized)"
         }
         
         if let property = property {
@@ -514,7 +514,7 @@ extension ActivityRow {
             type: .transfer,
             title: title,
             subtitle: subtitle,
-            time: RelativeDateFormatter.shared.string(from: transfer.requestTimestamp)
+                                        time: RelativeDateFormatter.shared.string(from: transfer.requestDate)
         )
     }
 }

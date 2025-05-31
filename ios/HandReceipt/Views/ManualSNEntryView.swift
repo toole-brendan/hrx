@@ -329,11 +329,11 @@ struct PropertyFoundView: View {
             }
             HStack {
                 Text("NSN:").bold().frame(width: 100, alignment: .leading)
-                Text(property.nsn)
+                Text(property.nsn ?? "N/A")
             }
              HStack {
                 Text("Status:").bold().frame(width: 100, alignment: .leading)
-                Text(property.status)
+                Text(property.status ?? property.currentStatus ?? "Unknown")
             }
             HStack(alignment: .top) {
                 Text("Location:").bold().frame(width: 100, alignment: .leading)

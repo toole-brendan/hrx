@@ -635,9 +635,9 @@ class QRScannerViewModel: ObservableObject {
             propertyName: property.itemName,
             fromUserId: Int(property.currentHolderId) ?? 0,
             toUserId: 0, // Would be set by the API
-            status: .PENDING,
-            requestTimestamp: Date(),
-            approvalTimestamp: nil,
+                                    status: "pending",
+                        requestDate: Date(),
+                        resolvedDate: nil,
             fromUser: nil,
             toUser: nil,
             notes: "Transfer initiated via QR scan"

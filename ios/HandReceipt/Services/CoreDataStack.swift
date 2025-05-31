@@ -182,9 +182,9 @@ class CoreDataStack {
             cachedTransfer.propertyName = transfer.propertyName
             cachedTransfer.fromUserId = Int32(transfer.fromUserId)
             cachedTransfer.toUserId = Int32(transfer.toUserId)
-            cachedTransfer.status = transfer.status.rawValue
-            cachedTransfer.requestTimestamp = transfer.requestTimestamp
-            cachedTransfer.approvalTimestamp = transfer.approvalTimestamp
+            cachedTransfer.status = transfer.status
+                    cachedTransfer.requestTimestamp = transfer.requestDate
+        cachedTransfer.approvalTimestamp = transfer.resolvedDate
             cachedTransfer.notes = transfer.notes
             cachedTransfer.lastUpdated = Date()
             

@@ -260,7 +260,7 @@ struct ReferenceDatabaseBrowserView: View {
         
         // TODO: Load from actual NSN API
         // For now, generate mock data
-        await Task.sleep(1_000_000_000) // 1 second delay to simulate loading
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay to simulate loading
         
         referenceItems = generateMockReferenceItems()
         isLoading = false

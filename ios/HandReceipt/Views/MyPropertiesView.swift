@@ -594,7 +594,7 @@ extension Property {
             serialNumber: "SN123", 
             nsn: "1111-11-111-1111", 
             lin: "E03045", 
-            itemName: "Test Prop 1", 
+            name: "Test Prop 1", 
             description: "Mock Description 1", 
             manufacturer: "Mock Manu", 
             imageUrl: nil, 
@@ -606,14 +606,19 @@ extension Property {
             acquisitionDate: nil, 
             notes: nil,
             maintenanceDueDate: nil,
-            isSensitiveItem: false
+            isSensitiveItem: false,
+            propertyModelId: nil,
+            lastVerifiedAt: nil,
+            lastMaintenanceAt: nil,
+            createdAt: Date(),
+            updatedAt: Date()
         ),
         Property(
             id: 2, 
             serialNumber: "SN456", 
             nsn: "2222-22-222-2222", 
             lin: "E03046", 
-            itemName: "Test Prop 2", 
+            name: "Test Prop 2", 
             description: "Mock Description 2", 
             manufacturer: "Mock Manu", 
             imageUrl: nil, 
@@ -625,14 +630,19 @@ extension Property {
             acquisitionDate: nil, 
             notes: nil,
             maintenanceDueDate: Calendar.current.date(byAdding: .day, value: 5, to: Date()),
-            isSensitiveItem: false
+            isSensitiveItem: false,
+            propertyModelId: nil,
+            lastVerifiedAt: nil,
+            lastMaintenanceAt: nil,
+            createdAt: Date(),
+            updatedAt: Date()
         ),
         Property(
             id: 3, 
             serialNumber: "SN789", 
             nsn: "3333-33-333-3333", 
             lin: "E03047", 
-            itemName: "Test Prop 3", 
+            name: "Test Prop 3", 
             description: "Mock Description 3", 
             manufacturer: "Mock Manu", 
             imageUrl: nil, 
@@ -644,7 +654,12 @@ extension Property {
             acquisitionDate: nil, 
             notes: nil,
             maintenanceDueDate: nil,
-            isSensitiveItem: true
+            isSensitiveItem: true,
+            propertyModelId: nil,
+            lastVerifiedAt: nil,
+            lastMaintenanceAt: nil,
+            createdAt: Date(),
+            updatedAt: Date()
         )
     ]
 }

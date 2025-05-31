@@ -70,7 +70,7 @@ class TransfersViewModel: ObservableObject {
         
         return transfers.filter { transfer in
             // Status Filter
-            let statusMatch = (selectedStatusFilter == .all || transfer.status.rawValue.lowercased() == selectedStatusFilter.rawValue.lowercased())
+            let statusMatch = (selectedStatusFilter == .all || transfer.status.lowercased() == selectedStatusFilter.rawValue.lowercased())
             
             // Direction Filter (requires currentUserId)
             var directionMatch = true // Default to true if no filter or ID unavailable

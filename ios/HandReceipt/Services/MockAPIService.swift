@@ -120,9 +120,9 @@ class MockAPIService: APIServiceProtocol {
             propertyName: "Mock Property",
             fromUserId: 1,
             toUserId: targetUserId,
-            status: .PENDING,
-            requestTimestamp: Date(),
-            approvalTimestamp: nil,
+                                status: "pending",
+                    requestDate: Date(),
+                    resolvedDate: nil,
             fromUser: nil,
             toUser: nil,
             notes: nil
@@ -137,9 +137,9 @@ class MockAPIService: APIServiceProtocol {
             propertyName: "Mock Property",
             fromUserId: 1,
             toUserId: 2,
-            status: .APPROVED,
-            requestTimestamp: Date(),
-            approvalTimestamp: Date(),
+                                status: "completed",
+                    requestDate: Date(),
+                    resolvedDate: Date(),
             fromUser: nil,
             toUser: nil,
             notes: nil
@@ -154,9 +154,9 @@ class MockAPIService: APIServiceProtocol {
             propertyName: "Mock Property",
             fromUserId: 1,
             toUserId: 2,
-            status: .REJECTED,
-            requestTimestamp: Date(),
-            approvalTimestamp: Date(),
+            status: "rejected",
+            requestDate: Date(),
+            resolvedDate: Date(),
             fromUser: nil,
             toUser: nil,
             notes: nil
@@ -241,7 +241,7 @@ class MockAPIService: APIServiceProtocol {
             serialNumber: property.serialNumber,
             nsn: property.nsn ?? "1005-01-584-1079",
             lin: property.lin,
-            itemName: property.name,
+            name: property.name,  // Changed from itemName
             description: property.description,
             manufacturer: nil,
             imageUrl: nil,
@@ -253,7 +253,12 @@ class MockAPIService: APIServiceProtocol {
             acquisitionDate: Date(),
             notes: nil,
             maintenanceDueDate: nil,
-            isSensitiveItem: false
+            isSensitiveItem: false,
+            propertyModelId: nil,
+            lastVerifiedAt: nil,
+            lastMaintenanceAt: nil,
+            createdAt: Date(),
+            updatedAt: Date()
         )
     }
 } 

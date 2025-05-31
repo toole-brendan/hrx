@@ -444,7 +444,7 @@ struct TransferCard: View {
                         Image(systemName: "clock")
                             .font(.caption)
                             .foregroundColor(AppColors.tertiaryText)
-                        Text("Requested: \(formatDate(transfer.requestTimestamp))")
+                                                    Text("Requested: \(formatDate(transfer.requestDate))")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
                     }
@@ -452,7 +452,7 @@ struct TransferCard: View {
                 .padding()
                 
                 // Quick actions for pending incoming transfers
-                if isIncoming && transfer.status == .PENDING {
+                if isIncoming && transfer.status.lowercased() == "pending" {
                     HStack(spacing: 0) {
                         Button(action: onQuickReject) {
                             HStack {
@@ -555,7 +555,7 @@ struct TransferDetailView: View {
                     }
                     
                     // Actions for pending incoming transfers
-                    if viewModel.currentUserId == transfer.toUserId && transfer.status == .PENDING {
+                    if viewModel.currentUserId == transfer.toUserId && transfer.status.lowercased() == "pending" {
                         actionSection
                     }
                 }
@@ -616,7 +616,7 @@ struct TransferDetailView: View {
             }
             
             // Status text
-            Text(transfer.status.rawValue.uppercased())
+            Text(transfer.status.uppercased())
                 .font(AppFonts.title)
                 .foregroundColor(statusColor)
                 .tracking(AppFonts.militaryTracking)
@@ -658,9 +658,9 @@ struct TransferDetailView: View {
             }
             
             // Timestamps
-            TransferDetailRow(label: "REQUESTED", value: formatDate(transfer.requestTimestamp))
-            
-            if let approvalDate = transfer.approvalTimestamp {
+                            TransferDetailRow(label: "REQUESTED", value: formatDate(transfer.requestDate))
+                
+                if let approvalDate = transfer.resolvedDate {
                 Rectangle().fill(AppColors.border).frame(height: 1)
                 TransferDetailRow(label: "COMPLETED", value: formatDate(approvalDate))
             }
@@ -776,26 +776,26 @@ struct TransferDetailView: View {
         return formatter.string(from: date).uppercased()
     }
     
-    private func statusColor(for status: TransferStatus) -> Color {
-        switch status {
-        case .PENDING:
+    private func statusColor(for status: String) -> Color {
+        switch status.lowercased() {
+        case "pending":
             return AppColors.warning
-        case .APPROVED:
+        case "completed", "approved":
             return AppColors.success
-        case .REJECTED:
+        case "rejected":
             return AppColors.destructive
         default:
             return AppColors.secondaryText
         }
     }
     
-    private func statusIcon(for status: TransferStatus) -> String {
-        switch status {
-        case .PENDING:
+    private func statusIcon(for status: String) -> String {
+        switch status.lowercased() {
+        case "pending":
             return "clock.fill"
-        case .APPROVED:
+        case "completed", "approved":
             return "checkmark.circle.fill"
-        case .REJECTED:
+        case "rejected":
             return "xmark.circle.fill"
         default:
             return "questionmark.circle.fill"
