@@ -1,268 +1,261 @@
 import SwiftUI
 import AVFoundation
-import Vision // Import Vision framework
+import Vision
 
+// Camera view for barcode and text scanning
 struct CameraView: UIViewControllerRepresentable {
-    @Binding var scannedCode: String? // To hold scanned barcode/OCR result
-    @Binding var isScanning: Bool // To control the session
-
+    @Binding var scannedCode: String?
+    @Binding var isScanning: Bool
+    
     func makeUIViewController(context: Context) -> CameraViewController {
         let controller = CameraViewController()
         controller.delegate = context.coordinator
         return controller
     }
-
+    
     func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
         if isScanning {
-            uiViewController.startSession()
+            uiViewController.startScanning()
         } else {
-            uiViewController.stopSession()
+            uiViewController.stopScanning()
         }
     }
-
+    
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-
+    
     class Coordinator: NSObject, CameraViewControllerDelegate {
-        var parent: CameraView
-
+        let parent: CameraView
+        
         init(_ parent: CameraView) {
             self.parent = parent
         }
-
-        func didScanCode(code: String) {
+        
+        func didScanCode(_ code: String) {
             parent.scannedCode = code
-            parent.isScanning = false // Stop scanning after finding a code
-            print("Coordinator: Scanned Code - \(code)") // Debugging
-        }
-
-        func didFail(error: Error) {
-            print("Coordinator: Camera Error - \(error.localizedDescription)")
-            // Handle error appropriately (e.g., show alert)
-            parent.isScanning = false
         }
     }
 }
+
+// MARK: - Camera View Controller
 
 protocol CameraViewControllerDelegate: AnyObject {
-    func didScanCode(code: String)
-    func didFail(error: Error)
+    func didScanCode(_ code: String)
 }
 
-class CameraViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
-    var captureSession: AVCaptureSession!
-    var previewLayer: AVCaptureVideoPreviewLayer!
-    var metadataOutput: AVCaptureMetadataOutput!
-    var videoDataOutput: AVCaptureVideoDataOutput!
+class CameraViewController: UIViewController {
     weak var delegate: CameraViewControllerDelegate?
-    private let sessionQueue = DispatchQueue(label: "session queue")
-    private var isSessionRunning = false
     
-    // Debounce properties for OCR
-    private var lastFrameTime = Date(timeIntervalSince1970: 0)
-    private let debounceInterval: TimeInterval = 1.0 // 1 second
-
+    private let captureSession = AVCaptureSession()
+    private let videoOutput = AVCaptureVideoDataOutput()
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    private let sessionQueue = DispatchQueue(label: "camera.session.queue")
+    private var isProcessing = false
+    private var lastScannedCode: String?
+    private var lastScanTime: Date?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
-        checkCameraPermissions()
+        setupCamera()
     }
-
-    private func checkCameraPermissions() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized: // The user has previously granted access to the camera.
-            setupCaptureSession()
-        case .notDetermined: // The user has not yet been asked for camera access.
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        self?.setupCaptureSession()
-                    }
-                } else {
-                    self?.delegate?.didFail(error: CameraError.permissionDenied)
-                }
-            }
-        default: // The user has previously denied access.
-            delegate?.didFail(error: CameraError.permissionDenied)
-        }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer?.frame = view.bounds
     }
-
-    private func setupCaptureSession() {
+    
+    private func setupCamera() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
-            self.captureSession = AVCaptureSession()
+            
             self.captureSession.beginConfiguration()
-
-            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-                DispatchQueue.main.async {
-                    self.delegate?.didFail(error: CameraError.noDeviceFound)
-                }
-                self.captureSession.commitConfiguration()
+            
+            // Add video input
+            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+                  let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
+                  self.captureSession.canAddInput(videoInput) else {
                 return
-            }
-            let videoInput: AVCaptureDeviceInput
-
-            do {
-                videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-            } catch {
-                DispatchQueue.main.async {
-                    self.delegate?.didFail(error: error)
-                }
-                self.captureSession.commitConfiguration()
-                return
-            }
-
-            if (self.captureSession.canAddInput(videoInput)) {
-                self.captureSession.addInput(videoInput)
-            } else {
-                DispatchQueue.main.async {
-                    self.delegate?.didFail(error: CameraError.cannotAddInput)
-                }
-                self.captureSession.commitConfiguration()
-                return
-            }
-
-            // --- Setup Metadata Output (Barcodes/QR Codes) ---
-            self.metadataOutput = AVCaptureMetadataOutput()
-            if (self.captureSession.canAddOutput(self.metadataOutput)) {
-                self.captureSession.addOutput(self.metadataOutput)
-                self.metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-                // Configure for common barcode types (add more as needed)
-                self.metadataOutput.metadataObjectTypes = [.qr, .ean8, .ean13, .pdf417, .code128, .code39, .code93, .upce, .aztec, .dataMatrix]
-            } else {
-                print("Could not add metadata output")
-                // Optionally fail or continue without barcode scanning
-            }
-
-            // --- Setup Video Data Output (for OCR) ---
-            self.videoDataOutput = AVCaptureVideoDataOutput()
-            if (self.captureSession.canAddOutput(self.videoDataOutput)) {
-                self.captureSession.addOutput(self.videoDataOutput)
-                self.videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "video data queue"))
-                self.videoDataOutput.alwaysDiscardsLateVideoFrames = true // Recommended
-                // Configure video settings if necessary (e.g., pixel format)
-            } else {
-                print("Could not add video data output")
-                // Optionally fail or continue without OCR
-            }
-
-            self.captureSession.commitConfiguration()
-
-            // Setup Preview Layer on Main Thread
-            DispatchQueue.main.async {
-                self.setupPreviewLayer()
-                if !self.isSessionRunning {
-                   self.startSession() // Start if configured successfully
-                }
-            }
-        }
-    }
-
-    private func setupPreviewLayer() {
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.frame = view.layer.bounds
-        previewLayer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(previewLayer)
-    }
-
-    func startSession() {
-        sessionQueue.async { [weak self] in
-            guard let self = self, !self.isSessionRunning, self.captureSession != nil, !self.captureSession.isRunning else { return }
-            self.captureSession.startRunning()
-            self.isSessionRunning = true
-            print("Camera Session Started")
-        }
-    }
-
-    func stopSession() {
-        sessionQueue.async { [weak self] in
-            guard let self = self, self.isSessionRunning, self.captureSession != nil, self.captureSession.isRunning else { return }
-            self.captureSession.stopRunning()
-            self.isSessionRunning = false
-            print("Camera Session Stopped")
-        }
-    }
-
-    // AVCaptureMetadataOutputObjectsDelegate (Barcode/QR)
-    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        // Debounce slightly to avoid processing barcode and OCR from nearly the same moment
-        guard Date().timeIntervalSince(lastFrameTime) > 0.2 else { return }
-        
-        if let metadataObject = metadataObjects.first {
-            guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
-            guard let stringValue = readableObject.stringValue else { return }
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-            lastFrameTime = Date() // Update timestamp after successful scan
-            delegate?.didScanCode(code: stringValue) // Barcode takes precedence
-        }
-    }
-
-    // AVCaptureVideoDataOutputSampleBufferDelegate (OCR)
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        let currentTime = Date()
-        guard currentTime.timeIntervalSince(lastFrameTime) >= debounceInterval else {
-            // print("Debounced frame") // Can be noisy
-            return // Debounce
-        }
-        lastFrameTime = currentTime // Update time even if processing fails
-
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            return
-        }
-
-        let requestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right, options: [:]) // Assuming back camera landscape right
-
-        let request = VNRecognizeTextRequest { [weak self] (request, error) in
-            // Ensure processing happens off the main thread initially, delegate call will dispatch to main if needed
-            guard let self = self else { return }
-
-            if let error = error {
-                print("OCR Error: \(error.localizedDescription)")
-                return
-            }
-
-            guard let observations = request.results as? [VNRecognizedTextObservation], !observations.isEmpty else {
-                return
-            }
-
-            // Improved Text Processing:
-            let recognizedStrings = observations.compactMap { observation in
-                // Consider confidence thresholds: observation.confidence > 0.5
-                observation.topCandidates(1).first?.string
             }
             
-            let combinedText = recognizedStrings.joined().trimmingCharacters(in: .whitespacesAndNewlines)
-             // Filter for alphanumeric and check length
-            let potentialSN = combinedText.filter { $0.isLetter || $0.isNumber }
-
-            if potentialSN.count > 4 { // Minimum length check
-                print("Filtered OCR Result: \(potentialSN)")
-                AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-                // Still call didScanCode, but maybe add a parameter later to differentiate?
-                DispatchQueue.main.async { // Ensure delegate call is on main thread
-                    self.delegate?.didScanCode(code: potentialSN)
-                }
-            } else if !combinedText.isEmpty {
-                 print("OCR Recognized but ignored (short/non-alphanumeric): \(combinedText)")
+            self.captureSession.addInput(videoInput)
+            
+            // Configure video output
+            self.videoOutput.setSampleBufferDelegate(self, queue: self.sessionQueue)
+            self.videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+            
+            if self.captureSession.canAddOutput(self.videoOutput) {
+                self.captureSession.addOutput(self.videoOutput)
             }
-        }
-        
-        // Configure the request (optional)
-        request.recognitionLevel = .fast // Prioritize speed for live scanning
-        // request.usesLanguageCorrection = false // Usually not needed for SNs
-
-        do {
-            try requestHandler.perform([request])
-        } catch {
-            print("Failed to perform text recognition request: \(error)")
+            
+            // Set up preview layer
+            DispatchQueue.main.async {
+                self.previewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
+                self.previewLayer?.videoGravity = .resizeAspectFill
+                self.previewLayer?.frame = self.view.bounds
+                
+                if let previewLayer = self.previewLayer {
+                    self.view.layer.insertSublayer(previewLayer, at: 0)
+                }
+            }
+            
+            self.captureSession.commitConfiguration()
         }
     }
+    
+    func startScanning() {
+        sessionQueue.async { [weak self] in
+            if !(self?.captureSession.isRunning ?? false) {
+                self?.captureSession.startRunning()
+            }
+        }
+    }
+    
+    func stopScanning() {
+        sessionQueue.async { [weak self] in
+            if self?.captureSession.isRunning ?? false {
+                self?.captureSession.stopRunning()
+            }
+        }
+    }
+}
 
-    enum CameraError: Error {
-        case permissionDenied
-        case noDeviceFound
-        case cannotAddInput
-        case cannotAddOutput
+// MARK: - Video Output Delegate
+
+extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard !isProcessing else { return }
+        
+        // Debounce scanning - wait at least 1 second between scans
+        if let lastTime = lastScanTime, Date().timeIntervalSince(lastTime) < 1.0 {
+            return
+        }
+        
+        isProcessing = true
+        
+        // Process the frame for barcodes and text
+        processFrame(sampleBuffer: sampleBuffer)
+    }
+    
+    private func processFrame(sampleBuffer: CMSampleBuffer) {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            isProcessing = false
+            return
+        }
+        
+        // Try barcode detection first
+        detectBarcode(in: pixelBuffer) { [weak self] barcodeResult in
+            if let code = barcodeResult {
+                self?.handleScannedCode(code)
+                return
+            }
+            
+            // If no barcode found, try text recognition
+            self?.detectText(in: pixelBuffer) { textResult in
+                if let code = textResult {
+                    self?.handleScannedCode(code)
+                } else {
+                    self?.isProcessing = false
+                }
+            }
+        }
+    }
+    
+    private func detectBarcode(in pixelBuffer: CVPixelBuffer, completion: @escaping (String?) -> Void) {
+        let request = VNDetectBarcodesRequest { request, error in
+            guard error == nil,
+                  let results = request.results as? [VNBarcodeObservation],
+                  let barcode = results.first,
+                  let payload = barcode.payloadStringValue else {
+                completion(nil)
+                return
+            }
+            
+            completion(payload)
+        }
+        
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            completion(nil)
+        }
+    }
+    
+    private func detectText(in pixelBuffer: CVPixelBuffer, completion: @escaping (String?) -> Void) {
+        let request = VNRecognizeTextRequest { request, error in
+            guard error == nil,
+                  let results = request.results as? [VNRecognizedTextObservation] else {
+                completion(nil)
+                return
+            }
+            
+            // Look for serial number patterns
+            for observation in results {
+                guard let candidate = observation.topCandidates(1).first else { continue }
+                let text = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Check if it looks like a serial number (alphanumeric, reasonable length)
+                if self.isValidSerialNumber(text) {
+                    completion(text)
+                    return
+                }
+            }
+            
+            completion(nil)
+        }
+        
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = false
+        
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            completion(nil)
+        }
+    }
+    
+    private func isValidSerialNumber(_ text: String) -> Bool {
+        // Basic validation - adjust based on your serial number format
+        let cleanText = text.replacingOccurrences(of: " ", with: "")
+        let isValidLength = cleanText.count >= 6 && cleanText.count <= 20
+        let isAlphanumeric = cleanText.range(of: "^[A-Z0-9-]+$", options: [.regularExpression, .caseInsensitive]) != nil
+        
+        return isValidLength && isAlphanumeric
+    }
+    
+    private func handleScannedCode(_ code: String) {
+        // Avoid duplicate scans
+        if code == lastScannedCode {
+            isProcessing = false
+            return
+        }
+        
+        lastScannedCode = code
+        lastScanTime = Date()
+        
+        DispatchQueue.main.async { [weak self] in
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Notify delegate
+            self?.delegate?.didScanCode(code)
+            
+            // Reset processing flag after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self?.isProcessing = false
+            }
+        }
+    }
+}
+
+// MARK: - Preview Provider
+
+struct CameraView_Previews: PreviewProvider {
+    static var previews: some View {
+        CameraView(scannedCode: .constant(nil), isScanning: .constant(true))
+            .ignoresSafeArea()
     }
 } 

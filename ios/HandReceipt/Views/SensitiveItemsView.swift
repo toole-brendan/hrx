@@ -197,7 +197,7 @@ struct SensitiveItemRow: View {
 }
 
 // MARK: - DetailRow Component
-struct DetailRow: View {
+struct SensitiveDetailRow: View {
     let label: String
     let value: String
     
@@ -229,11 +229,11 @@ struct VerificationSheet: View {
                         .font(AppFonts.headline)
                         .foregroundColor(AppColors.primaryText)
                     
-                    DetailRow(label: "Item", value: item.itemName)
-                    DetailRow(label: "Serial Number", value: item.serialNumber)
-                    DetailRow(label: "NSN", value: item.nsn)
+                    SensitiveDetailRow(label: "Item", value: item.itemName)
+                    SensitiveDetailRow(label: "Serial Number", value: item.serialNumber)
+                    SensitiveDetailRow(label: "NSN", value: item.nsn)
                     if let location = item.location {
-                        DetailRow(label: "Location", value: location)
+                        SensitiveDetailRow(label: "Location", value: location)
                     }
                 }
                 .padding()

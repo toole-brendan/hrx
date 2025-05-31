@@ -56,12 +56,10 @@ struct TransfersView: View {
             }
         }
         .onAppear {
-            Task {
-                await viewModel.fetchTransfers()
-            }
+            viewModel.fetchTransfers()
         }
         .refreshable {
-            await viewModel.fetchTransfers()
+            viewModel.fetchTransfers()
         }
     }
     
@@ -181,10 +179,10 @@ struct TransfersView: View {
                             isIncoming: selectedTab == .incoming,
                             onTap: { selectedTransfer = transfer },
                             onQuickApprove: {
-                                Task { await viewModel.approveTransfer(transferId: transfer.id) }
+                                viewModel.approveTransfer(transferId: transfer.id)
                             },
                             onQuickReject: {
-                                Task { await viewModel.rejectTransfer(transferId: transfer.id) }
+                                viewModel.rejectTransfer(transferId: transfer.id)
                             }
                         )
                         
@@ -718,22 +716,17 @@ struct TransferDetailView: View {
     private func performAction(_ action: TransferAction) async {
         isProcessing = true
         
-        do {
-            switch action {
-            case .approve:
-                let _ = try await viewModel.approveTransfer(transferId: transfer.id)
-            case .reject:
-                let _ = try await viewModel.rejectTransfer(transferId: transfer.id)
-            }
-            
-            dismiss()
-            
-            // Refresh transfers
-            await viewModel.fetchTransfers()
-        } catch {
-            // Handle error - in production, show an error alert
-            print("Transfer action failed: \(error)")
+        switch action {
+        case .approve:
+            viewModel.approveTransfer(transferId: transfer.id)
+        case .reject:
+            viewModel.rejectTransfer(transferId: transfer.id)
         }
+        
+        dismiss()
+        
+        // Refresh transfers
+        viewModel.fetchTransfers()
         
         isProcessing = false
         pendingAction = nil

@@ -149,7 +149,7 @@ struct ScanView: View {
                 }
             )
             
-            TransferStatusMessage(state: viewModel.transferRequestState)
+            ScanTransferStatusMessage(state: viewModel.transferRequestState)
         }
         .navigationTitle("SCAN ITEM")
         .navigationBarTitleDisplayMode(.inline)
@@ -339,13 +339,13 @@ struct PropertyDetailsCard: View {
             
             // Property details
             VStack(spacing: 12) {
-                DetailRow(label: "NSN", value: property.nsn ?? "N/A", isMonospaced: true)
+                ScanDetailRow(label: "NSN", value: property.nsn ?? "N/A")
                 Rectangle().fill(AppColors.border).frame(height: 1)
-                DetailRow(label: "NAME", value: property.itemName.uppercased())
+                ScanDetailRow(label: "NAME", value: property.itemName.uppercased())
                 Rectangle().fill(AppColors.border).frame(height: 1)
-                DetailRow(label: "SERIAL", value: property.serialNumber, isMonospaced: true)
+                ScanDetailRow(label: "SERIAL", value: property.serialNumber)
                 Rectangle().fill(AppColors.border).frame(height: 1)
-                DetailRow(label: "STATUS", value: property.status.uppercased())
+                ScanDetailRow(label: "STATUS", value: property.status.uppercased())
             }
             .padding()
         }
@@ -358,7 +358,7 @@ struct PropertyDetailsCard: View {
 }
 
 // MARK: - Transfer Status Message
-struct TransferStatusMessage: View {
+struct ScanTransferStatusMessage: View {
     let state: TransferRequestState
     
     var body: some View {
@@ -414,10 +414,9 @@ struct TransferStatusMessage: View {
 }
 
 // MARK: - Detail Row Component
-struct DetailRow: View {
+struct ScanDetailRow: View {
     let label: String
     let value: String
-    var isMonospaced: Bool = false
     
     var body: some View {
         HStack {
@@ -428,7 +427,7 @@ struct DetailRow: View {
                 .frame(width: 80, alignment: .leading)
             
             Text(value)
-                .font(isMonospaced ? AppFonts.mono : AppFonts.body)
+                .font(AppFonts.body)
                 .foregroundColor(AppColors.primaryText)
                 .lineLimit(1)
             
