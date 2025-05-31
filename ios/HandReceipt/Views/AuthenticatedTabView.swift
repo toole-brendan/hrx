@@ -522,31 +522,32 @@ struct ProfileDetailRow: View {
 }
 
 // MARK: - QR Management View (DEPRECATED - Removed)
-// struct QRManagementView: View {
-//     var body: some View {
-//         ZStack(alignment: .top) {
-//             ScrollView {
-//                 VStack(spacing: 24) {
-//                     Color.clear.frame(height: 36)
-//                     
-//                     Text("QR Code Management")
-//                         .font(AppFonts.largeTitle)
-//                         .foregroundColor(AppColors.primaryText)
-//                         .frame(maxWidth: .infinity, alignment: .leading)
-//                         .padding(.horizontal)
-//                     
-//                     WebAlignedCard {
-//                         VStack(spacing: 16) {
-//                             Image(systemName: "qrcode")
-//                                 .font(.system(size: 60))
-//                                 .foregroundColor(AppColors.secondaryText)
-//                             
-//                             Text("QR Management Coming Soon")
-//                                 .font(AppFonts.headline)
-//                                 .foregroundColor(AppColors.primaryText)
-//                             
-//                             Text("This feature will allow you to generate and manage QR codes for your equipment.")
-//                                 .font(AppFonts.body)
+/*
+struct QRManagementView: View {
+    var body: some View {
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    Color.clear.frame(height: 36)
+                    
+                    Text("QR Code Management")
+                        .font(AppFonts.largeTitle)
+                        .foregroundColor(AppColors.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                    
+                    WebAlignedCard {
+                        VStack(spacing: 16) {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 60))
+                                .foregroundColor(AppColors.secondaryText)
+                            
+                            Text("QR Management Coming Soon")
+                                .font(AppFonts.headline)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Text("This feature will allow you to generate and manage QR codes for your equipment.")
+                                .font(AppFonts.body)
                                 .foregroundColor(AppColors.secondaryText)
                                 .multilineTextAlignment(.center)
                         }
@@ -585,6 +586,7 @@ struct QRManagementHeaderSection: View {
         .frame(height: 36)
     }
 }
+*/
 
 // MARK: - Floating Action Button
 struct FloatingActionButton: View {

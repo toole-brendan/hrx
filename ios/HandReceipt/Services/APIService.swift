@@ -60,7 +60,7 @@ public protocol APIServiceProtocol {
 
     // --- User Connection Functions ---
     func getConnections() async throws -> [UserConnection]
-    func searchUsers(query: String) async throws -> [User]
+    func searchUsers(query: String) async throws -> [UserSummary]
     func sendConnectionRequest(targetUserId: Int) async throws -> UserConnection
     func updateConnectionStatus(connectionId: Int, status: String) async throws -> UserConnection
 
@@ -690,7 +690,7 @@ public class APIService: APIServiceProtocol {
     }
     
     // Search users
-    public func searchUsers(query: String) async throws -> [User] {
+    public func searchUsers(query: String) async throws -> [UserSummary] {
         debugPrint("Searching users with query: \(query)")
         guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             throw APIError.invalidURL
@@ -1018,5 +1018,5 @@ public struct ConnectionsResponse: Decodable {
 }
 
 public struct UsersResponse: Decodable {
-    public let users: [User]
+    public let users: [UserSummary]
 } 

@@ -12,11 +12,9 @@
 		1299AA22A3FCD62C0D1EF061 /* ReferenceItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57B08EF0C112F6455B0B8B19 /* ReferenceItem.swift */; };
 		1BFC98364CE8F60E5B9A4E34 /* MyPropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8E23BCE585953FE3D50B06 /* MyPropertiesView.swift */; };
 		26AA81A70A773FCEDA22BF5E /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434D1A44E761BE2F69B0CCF0 /* AuthModels.swift */; };
-		35EF675708F8DDFCA2E0CD06 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0105AC145A7F93DEC4352E4 /* ScanView.swift */; };
 		3B5F067C856CA39C6502F916 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8224D43097503B39DABB717 /* LoginViewModel.swift */; };
 		4263559251C2849EDF4EC0F6 /* ReferenceItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E2CD7F8B3C5D6862B54902 /* ReferenceItemDetailView.swift */; };
 		49D619D92A060D750592E785 /* ManualSNViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53F7BF0039FD86CCADAE664 /* ManualSNViewModel.swift */; };
-		4BA08BBDC120ACB9D4AAF6D5 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0B20078F52C4DC41D93104 /* CameraView.swift */; };
 		58674DC812CCD6A39DD7DF4F /* ManualSNEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8182874E0188120E70082C86 /* ManualSNEntryView.swift */; };
 		586DE93C3BC5E7C648DCAAA9 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F5783D238DB11F5EA7A8F /* Models.swift */; };
 		649E4FB8CB9A2BAAA06A65F8 /* PropertyDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E802C4C49927B352FE30895E /* PropertyDetailViewModel.swift */; };
@@ -43,7 +41,6 @@
 		BFA1280B2DEA2DCD00C12800 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280A2DEA2DCD00C12800 /* DashboardView.swift */; };
 		BFA1280F2DEA2F4300C12800 /* MaintenanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280C2DEA2F4300C12800 /* MaintenanceView.swift */; };
 		BFA128102DEA2F4300C12800 /* SensitiveItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280E2DEA2F4300C12800 /* SensitiveItemsView.swift */; };
-		BFA128112DEA2F4300C12800 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA1280D2DEA2F4300C12800 /* ReportsView.swift */; };
 		BFA128142DEA3D3200C12800 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128122DEA3D3200C12800 /* AuthManager.swift */; };
 		BFA128152DEA3D3200C12800 /* MockAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128132DEA3D3200C12800 /* MockAPIService.swift */; };
 		BFA1281B2DEA435900C12800 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = BFA1281A2DEA435900C12800 /* KeychainSwift */; };
@@ -72,7 +69,6 @@
 		57B08EF0C112F6455B0B8B19 /* ReferenceItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceItem.swift; sourceTree = "<group>"; };
 		5C8E23BCE585953FE3D50B06 /* MyPropertiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPropertiesView.swift; sourceTree = "<group>"; };
 		7B2CFBE73F56575D96AF2C22 /* ReferenceDatabaseBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceDatabaseBrowserView.swift; sourceTree = "<group>"; };
-		7F0B20078F52C4DC41D93104 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		80310CAEECA0B61592334244 /* TransfersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersViewModel.swift; sourceTree = "<group>"; };
 		8182874E0188120E70082C86 /* ManualSNEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualSNEntryView.swift; sourceTree = "<group>"; };
 		8322A1CD58E045E33629F8B1 /* AuthenticatedTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedTabView.swift; sourceTree = "<group>"; };
@@ -80,7 +76,6 @@
 		A53F7BF0039FD86CCADAE664 /* ManualSNViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualSNViewModel.swift; sourceTree = "<group>"; };
 		A8224D43097503B39DABB717 /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
 		AF23091E8CECB56658FF4CE8 /* HandReceipt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HandReceipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B0105AC145A7F93DEC4352E4 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		B28E9A92DD3453473BE10961 /* UserSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionView.swift; sourceTree = "<group>"; };
 		B32078152333561CB10233BA /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		BBE530B592D095523725035D /* UserSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSelectionViewModel.swift; sourceTree = "<group>"; };
@@ -101,7 +96,6 @@
 		BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = HandReceipt/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		BFA1280A2DEA2DCD00C12800 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		BFA1280C2DEA2F4300C12800 /* MaintenanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaintenanceView.swift; sourceTree = "<group>"; };
-		BFA1280D2DEA2F4300C12800 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
 		BFA1280E2DEA2F4300C12800 /* SensitiveItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveItemsView.swift; sourceTree = "<group>"; };
 		BFA128122DEA3D3200C12800 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		BFA128132DEA3D3200C12800 /* MockAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAPIService.swift; sourceTree = "<group>"; };
@@ -210,21 +204,18 @@
 				BF2685502DEB3BE700BFB170 /* RequestTransferView.swift */,
 				BF8172302DEA96A10086B2DD /* SettingsView.swift */,
 				BFA1280C2DEA2F4300C12800 /* MaintenanceView.swift */,
-				BFA1280D2DEA2F4300C12800 /* ReportsView.swift */,
 				BFA1280E2DEA2F4300C12800 /* SensitiveItemsView.swift */,
 				BFA1280A2DEA2DCD00C12800 /* DashboardView.swift */,
 				BFA128022DEA165E00C12800 /* RegisterView.swift */,
 				BF2DF43E2DE929E700E450D6 /* CreatePropertyView.swift */,
 				BF2DF43F2DE929E700E450D6 /* NSNSearchView.swift */,
 				8322A1CD58E045E33629F8B1 /* AuthenticatedTabView.swift */,
-				7F0B20078F52C4DC41D93104 /* CameraView.swift */,
 				CDEC488299CE976110299615 /* LoginView.swift */,
 				8182874E0188120E70082C86 /* ManualSNEntryView.swift */,
 				5C8E23BCE585953FE3D50B06 /* MyPropertiesView.swift */,
 				097C24F1EA75B2E56BCBCC08 /* PropertyDetailView.swift */,
 				7B2CFBE73F56575D96AF2C22 /* ReferenceDatabaseBrowserView.swift */,
 				F6E2CD7F8B3C5D6862B54902 /* ReferenceItemDetailView.swift */,
-				B0105AC145A7F93DEC4352E4 /* ScanView.swift */,
 				2E1B312C9970C11A03F76240 /* TransfersView.swift */,
 				B28E9A92DD3453473BE10961 /* UserSelectionView.swift */,
 			);
@@ -327,7 +318,6 @@
 				26AA81A70A773FCEDA22BF5E /* AuthModels.swift in Sources */,
 				0DA6EB357E621AF6A54CF8F5 /* AuthViewModel.swift in Sources */,
 				D05A7634F0941E129237A9DB /* AuthenticatedTabView.swift in Sources */,
-				4BA08BBDC120ACB9D4AAF6D5 /* CameraView.swift in Sources */,
 				902492E2AE615BA4C6ACC792 /* ContentView.swift in Sources */,
 				FE49F4C972C3577086DB327C /* LoginView.swift in Sources */,
 				BF2685512DEB3BE700BFB170 /* ConnectionsView.swift in Sources */,
@@ -349,7 +339,6 @@
 				BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */,
 				BFA1280F2DEA2F4300C12800 /* MaintenanceView.swift in Sources */,
 				BFA128102DEA2F4300C12800 /* SensitiveItemsView.swift in Sources */,
-				BFA128112DEA2F4300C12800 /* ReportsView.swift in Sources */,
 				BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */,
 				1299AA22A3FCD62C0D1EF061 /* ReferenceItem.swift in Sources */,
 				BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */,
@@ -361,7 +350,6 @@
 				BFA128152DEA3D3200C12800 /* MockAPIService.swift in Sources */,
 				4263559251C2849EDF4EC0F6 /* ReferenceItemDetailView.swift in Sources */,
 				0E15AB56596FFD79CE89E2D4 /* ReferenceItemDetailViewModel.swift in Sources */,
-				35EF675708F8DDFCA2E0CD06 /* ScanView.swift in Sources */,
 				BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */,
 				BF2685552DEB41A500BFB170 /* SerialNumberRequestView.swift in Sources */,
 				BF2685562DEB41A500BFB170 /* OfferPropertyView.swift in Sources */,

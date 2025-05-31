@@ -3,7 +3,7 @@ struct UserConnection: Codable, Identifiable {
     let userId: Int
     let connectedUserId: Int
     let connectionStatus: ConnectionStatus
-    let connectedUser: User?
+    let connectedUser: UserSummary?
     let createdAt: Date
     
     enum ConnectionStatus: String, Codable {
