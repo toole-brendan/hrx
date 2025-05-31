@@ -133,7 +133,7 @@ struct MyPropertiesView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(PropertyFilter.allCases, id: \.self) { filter in
-                            FilterPill(
+                            PropertyFilterPill(
                                 title: filter.rawValue,
                                 icon: filter.icon,
                                 isSelected: selectedFilter == filter
@@ -267,7 +267,7 @@ struct OfflineIndicator: View {
     }
 }
 
-struct FilterPill: View {
+struct PropertyFilterPill: View {
     let title: String
     let icon: String
     let isSelected: Bool

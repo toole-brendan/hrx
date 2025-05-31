@@ -38,7 +38,7 @@ struct SensitiveItemsView: View {
             return filtered.filter { item in
                 item.itemName.localizedCaseInsensitiveContains(searchText) ||
                 item.serialNumber.localizedCaseInsensitiveContains(searchText) ||
-                item.nsn?.localizedCaseInsensitiveContains(searchText) ?? false
+                item.nsn.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
@@ -535,11 +535,9 @@ struct SensitiveItemCard: View {
                                 .font(AppFonts.mono)
                                 .foregroundColor(AppColors.secondaryText)
                             
-                            if let nsn = item.nsn {
-                                Label(nsn, systemImage: "barcode")
-                                    .font(AppFonts.caption)
-                                    .foregroundColor(AppColors.tertiaryText)
-                            }
+                            Label(item.nsn, systemImage: "barcode")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
                         }
                         
                         HStack {
@@ -621,11 +619,9 @@ struct VerificationSheet: View {
                                 .font(AppFonts.mono)
                                 .foregroundColor(AppColors.secondaryText)
                             
-                            if let nsn = item.nsn {
-                                Label(nsn, systemImage: "barcode")
-                                    .font(AppFonts.caption)
-                                    .foregroundColor(AppColors.tertiaryText)
-                            }
+                            Label(item.nsn, systemImage: "barcode")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
                         }
                     }
                     .padding()
