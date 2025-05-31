@@ -451,13 +451,12 @@ public struct WebAlignedStatusProgressRow: View {
 
 // Supporting QuickAction enum for web-aligned components
 public enum QuickAction {
-    case requestTransfer, findItem, exportReport
+    case requestTransfer, findItem
     
     public var title: String {
         switch self {
         case .requestTransfer: return "Request Transfer"
         case .findItem: return "Find Item"
-        case .exportReport: return "Export Report"
         }
     }
     
@@ -465,7 +464,6 @@ public enum QuickAction {
         switch self {
         case .requestTransfer: return "arrow.left.arrow.right"
         case .findItem: return "magnifyingglass"
-        case .exportReport: return "doc.text"
         }
     }
     
@@ -473,7 +471,6 @@ public enum QuickAction {
         switch self {
         case .requestTransfer: return .orange
         case .findItem: return .green
-        case .exportReport: return .red
         }
     }
 }

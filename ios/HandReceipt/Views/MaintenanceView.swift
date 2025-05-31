@@ -220,23 +220,12 @@ struct MaintenanceView: View {
                 showingMaintenanceForm = true
             }) {
                 HStack {
-                    Image(systemName: "plus.circle.fill")
+                    Image(systemName: "plus")
                     Text("Schedule Maintenance")
                 }
                 .font(AppFonts.bodyBold)
             }
             .buttonStyle(.primary)
-            
-            Button(action: {
-                // TODO: Generate maintenance report
-            }) {
-                HStack {
-                    Image(systemName: "doc.text")
-                    Text("Generate Report")
-                }
-                .font(AppFonts.bodyBold)
-            }
-            .buttonStyle(.secondary)
         }
         .padding(.horizontal)
     }

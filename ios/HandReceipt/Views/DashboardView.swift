@@ -9,7 +9,6 @@ struct DashboardView: View {
     @State private var navigateToProperties = false
     @State private var navigateToMaintenance = false
     @State private var navigateToSensitiveItems = false
-    @State private var navigateToReports = false
     @State private var selectedTransferId: String?
     
     // Real data from API
@@ -179,10 +178,6 @@ struct DashboardView: View {
                 WebAlignedQuickActionCard(action: .findItem) {
                     navigateToProperties = true
                 }
-                
-                WebAlignedQuickActionCard(action: .exportReport) {
-                    navigateToReports = true
-                }
             }
             .padding(.horizontal)
         }
@@ -247,7 +242,7 @@ struct DashboardView: View {
             SectionHeader(
                 title: "Equipment Status",
                 action: {
-                    navigateToReports = true
+                    // No action needed
                 },
                 actionLabel: "View Details"
             )
@@ -303,11 +298,6 @@ struct DashboardView: View {
             NavigationLink(
                 destination: SensitiveItemsView(),
                 isActive: $navigateToSensitiveItems
-            ) { EmptyView() }
-            
-            NavigationLink(
-                destination: ReportsView(),
-                isActive: $navigateToReports
             ) { EmptyView() }
         }
     }
