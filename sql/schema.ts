@@ -1,8 +1,6 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, bigint, jsonb } from "drizzle-orm/pg-core";
 
-// Users Table
+// Users Table - Updated with military fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -11,84 +9,151 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   name: text("name").notNull(),
-  rank: text("rank").notNull(),
+  rank: text("rank"),
   unit: text("unit"),
   role: text("role").default("user"),
+  phone: text("phone"),
+  dodid: text("dodid").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  name: true,
-  createdAt: true,
-});
-
-// Inventory Items Table
-export const inventoryItems = pgTable("inventory_items", {
+// Property Types Table
+export const propertyTypes = pgTable("property_types", {
   id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Property Models Table
+export const propertyModels = pgTable("property_models", {
+  id: serial("id").primaryKey(),
+  propertyTypeId: integer("property_type_id").references(() => propertyTypes.id).notNull(),
+  modelName: text("model_name").notNull(),
+  manufacturer: text("manufacturer"),
+  nsn: text("nsn").unique(),
+  description: text("description"),
+  specifications: jsonb("specifications"),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Properties Table - Renamed from inventoryItems and enhanced
+export const properties = pgTable("properties", {
+  id: serial("id").primaryKey(),
+  propertyModelId: integer("property_model_id").references(() => propertyModels.id),
   name: text("name").notNull(),
   serialNumber: text("serial_number").notNull().unique(),
   description: text("description"),
-  category: text("category"),
-  status: text("status").notNull(),
-  assignedUserId: integer("assigned_user_id").references(() => users.id),
-  assignedDate: timestamp("assigned_date"),
+  currentStatus: text("current_status").notNull(),
+  condition: text("condition").default("serviceable"),
+  conditionNotes: text("condition_notes"),
+  nsn: text("nsn"),
+  lin: text("lin"),
+  location: text("location"),
+  acquisitionDate: timestamp("acquisition_date"),
+  unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).default("0"),
+  quantity: integer("quantity").default(1),
+  photoUrl: text("photo_url"),
+  assignedToUserId: integer("assigned_to_user_id").references(() => users.id),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  lastMaintenanceAt: timestamp("last_maintenance_at"),
+  syncStatus: text("sync_status").default("synced"),
+  lastSyncedAt: timestamp("last_synced_at"),
+  clientId: text("client_id"),
+  version: integer("version").default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertInventoryItemSchema = createInsertSchema(inventoryItems).omit({
-  id: true,
-  createdAt: true,
-});
-
-// Transfers Table
+// Transfers Table - Updated to reference properties
 export const transfers = pgTable("transfers", {
   id: serial("id").primaryKey(),
-  itemId: integer("item_id").references(() => inventoryItems.id).notNull(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
   fromUserId: integer("from_user_id").references(() => users.id).notNull(),
   toUserId: integer("to_user_id").references(() => users.id).notNull(),
   status: text("status").notNull(),
   requestDate: timestamp("request_date").defaultNow().notNull(),
   resolvedDate: timestamp("resolved_date"),
   notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertTransferSchema = createInsertSchema(transfers).omit({
-  id: true,
-  requestDate: true,
-  resolvedDate: true,
+// Transfer Items Table - For bulk transfers
+export const transferItems = pgTable("transfer_items", {
+  id: serial("id").primaryKey(),
+  transferId: integer("transfer_id").references(() => transfers.id).notNull(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  quantity: integer("quantity").default(1),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Activities Table
+// Activities Table - Updated to reference properties
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(),
   description: text("description").notNull(),
   userId: integer("user_id").references(() => users.id),
-  relatedItemId: integer("related_item_id").references(() => inventoryItems.id),
+  relatedPropertyId: integer("related_property_id").references(() => properties.id),
   relatedTransferId: integer("related_transfer_id").references(() => transfers.id),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({
-  id: true,
-  timestamp: true,
+// QR Codes Table - Updated to reference properties correctly
+export const qrCodes = pgTable("qr_codes", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  qrCodeData: text("qr_code_data").notNull(),
+  qrCodeHash: text("qr_code_hash").notNull().unique(),
+  generatedByUserId: integer("generated_by_user_id").references(() => users.id).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deactivatedAt: timestamp("deactivated_at"),
 });
 
-// Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+// Attachments Table - For photos and documents
+export const attachments = pgTable("attachments", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: bigint("file_size", { mode: "number" }),
+  mimeType: text("mime_type"),
+  uploadedByUserId: integer("uploaded_by_user_id").references(() => users.id).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
-export type InsertInventoryItem = z.infer<typeof insertInventoryItemSchema>;
-export type InventoryItem = typeof inventoryItems.$inferSelect;
+// Offline Sync Queue Table - For iOS offline support
+export const offlineSyncQueue = pgTable("offline_sync_queue", {
+  id: serial("id").primaryKey(),
+  clientId: text("client_id").notNull(),
+  operationType: text("operation_type").notNull(), // 'create', 'update', 'delete'
+  entityType: text("entity_type").notNull(), // 'property', 'transfer', etc.
+  entityId: integer("entity_id"),
+  payload: jsonb("payload").notNull(),
+  syncStatus: text("sync_status").default("pending"),
+  retryCount: integer("retry_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  syncedAt: timestamp("synced_at"),
+});
 
-export type InsertTransfer = z.infer<typeof insertTransferSchema>;
-export type Transfer = typeof transfers.$inferSelect;
+// ImmuDB References Table - For audit trail integration
+export const immudbReferences = pgTable("immudb_references", {
+  id: serial("id").primaryKey(),
+  entityType: text("entity_type").notNull(),
+  entityId: integer("entity_id").notNull(),
+  immudbKey: text("immudb_key").notNull(),
+  immudbIndex: bigint("immudb_index", { mode: "number" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
-export type InsertActivity = z.infer<typeof insertActivitySchema>;
-export type Activity = typeof activities.$inferSelect;
-
-// NSN Catalog Tables
+// NSN Catalog Tables (keeping existing structure)
 
 // NSN Items Table
 export const nsnItems = pgTable("nsn_items", {
@@ -111,11 +176,6 @@ export const nsnItems = pgTable("nsn_items", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertNsnItemSchema = createInsertSchema(nsnItems).omit({
-  createdAt: true,
-  updatedAt: true,
-});
-
 // NSN Parts Table
 export const nsnParts = pgTable("nsn_parts", {
   id: serial("id").primaryKey(),
@@ -125,11 +185,6 @@ export const nsnParts = pgTable("nsn_parts", {
   manufacturerName: text("manufacturer_name"),
   isPrimary: boolean("is_primary").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertNsnPartSchema = createInsertSchema(nsnParts).omit({
-  id: true,
-  createdAt: true,
 });
 
 // LIN Items Table
@@ -144,10 +199,6 @@ export const linItems = pgTable("lin_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertLinItemSchema = createInsertSchema(linItems).omit({
-  createdAt: true,
-});
-
 // CAGE Codes Table
 export const cageCodes = pgTable("cage_codes", {
   cageCode: text("cage_code").primaryKey(),
@@ -160,10 +211,6 @@ export const cageCodes = pgTable("cage_codes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertCageCodeSchema = createInsertSchema(cageCodes).omit({
-  createdAt: true,
-});
-
 // NSN Synonyms Table
 export const nsnSynonyms = pgTable("nsn_synonyms", {
   id: serial("id").primaryKey(),
@@ -171,11 +218,6 @@ export const nsnSynonyms = pgTable("nsn_synonyms", {
   synonym: text("synonym").notNull(),
   synonymType: text("synonym_type"), // 'common_name', 'abbreviation', 'slang'
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertNsnSynonymSchema = createInsertSchema(nsnSynonyms).omit({
-  id: true,
-  createdAt: true,
 });
 
 // Catalog Updates Table
@@ -190,48 +232,63 @@ export const catalogUpdates = pgTable("catalog_updates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertCatalogUpdateSchema = createInsertSchema(catalogUpdates).omit({
-  id: true,
-  createdAt: true,
-});
+// Export types for all tables
+
+// User Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+// Property Types
+export type PropertyType = typeof propertyTypes.$inferSelect;
+export type InsertPropertyType = typeof propertyTypes.$inferInsert;
+
+export type PropertyModel = typeof propertyModels.$inferSelect;
+export type InsertPropertyModel = typeof propertyModels.$inferInsert;
+
+export type Property = typeof properties.$inferSelect;
+export type InsertProperty = typeof properties.$inferInsert;
+
+// Transfer Types
+export type Transfer = typeof transfers.$inferSelect;
+export type InsertTransfer = typeof transfers.$inferInsert;
+
+export type TransferItem = typeof transferItems.$inferSelect;
+export type InsertTransferItem = typeof transferItems.$inferInsert;
+
+// Activity Types
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = typeof activities.$inferInsert;
+
+// QR Code Types
+export type QrCode = typeof qrCodes.$inferSelect;
+export type InsertQrCode = typeof qrCodes.$inferInsert;
+
+// Attachment Types
+export type Attachment = typeof attachments.$inferSelect;
+export type InsertAttachment = typeof attachments.$inferInsert;
+
+// Sync Types
+export type OfflineSyncQueue = typeof offlineSyncQueue.$inferSelect;
+export type InsertOfflineSyncQueue = typeof offlineSyncQueue.$inferInsert;
+
+export type ImmudbReference = typeof immudbReferences.$inferSelect;
+export type InsertImmudbReference = typeof immudbReferences.$inferInsert;
 
 // NSN Types
-export type InsertNsnItem = z.infer<typeof insertNsnItemSchema>;
 export type NsnItem = typeof nsnItems.$inferSelect;
+export type InsertNsnItem = typeof nsnItems.$inferInsert;
 
-export type InsertNsnPart = z.infer<typeof insertNsnPartSchema>;
 export type NsnPart = typeof nsnParts.$inferSelect;
+export type InsertNsnPart = typeof nsnParts.$inferInsert;
 
-export type InsertLinItem = z.infer<typeof insertLinItemSchema>;
 export type LinItem = typeof linItems.$inferSelect;
+export type InsertLinItem = typeof linItems.$inferInsert;
 
-export type InsertCageCode = z.infer<typeof insertCageCodeSchema>;
 export type CageCode = typeof cageCodes.$inferSelect;
+export type InsertCageCode = typeof cageCodes.$inferInsert;
 
-export type InsertNsnSynonym = z.infer<typeof insertNsnSynonymSchema>;
 export type NsnSynonym = typeof nsnSynonyms.$inferSelect;
+export type InsertNsnSynonym = typeof nsnSynonyms.$inferInsert;
 
-export type InsertCatalogUpdate = z.infer<typeof insertCatalogUpdateSchema>;
 export type CatalogUpdate = typeof catalogUpdates.$inferSelect;
-
-// QR Codes Table - tracks generated QR codes for items
-export const qrCodes = pgTable("qr_codes", {
-  id: serial("id").primaryKey(),
-  inventoryItemId: integer("inventory_item_id").references(() => inventoryItems.id).notNull(),
-  qrCodeData: text("qr_code_data").notNull(), // JSON string with item details
-  qrCodeHash: text("qr_code_hash").notNull().unique(), // SHA-256 hash for verification
-  generatedByUserId: integer("generated_by_user_id").references(() => users.id).notNull(),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deactivatedAt: timestamp("deactivated_at"),
-});
-
-export const insertQrCodeSchema = createInsertSchema(qrCodes).omit({
-  id: true,
-  createdAt: true,
-  deactivatedAt: true,
-});
-
-// Add to exports
-export type InsertQrCode = z.infer<typeof insertQrCodeSchema>;
-export type QrCode = typeof qrCodes.$inferSelect;
+export type InsertCatalogUpdate = typeof catalogUpdates.$inferInsert;

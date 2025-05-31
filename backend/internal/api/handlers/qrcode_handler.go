@@ -34,7 +34,7 @@ func (h *QRCodeHandler) GetAllQRCodes(c *gin.Context) {
 	var qrCodesWithItems []map[string]interface{}
 	for _, qrCode := range qrCodes {
 		// Get the inventory item
-		property, err := h.Repo.GetPropertyByID(qrCode.InventoryItemID)
+		property, err := h.Repo.GetPropertyByID(qrCode.PropertyID)
 		if err != nil {
 			// Skip this QR code if property not found
 			continue
@@ -48,7 +48,7 @@ func (h *QRCodeHandler) GetAllQRCodes(c *gin.Context) {
 
 		qrCodeWithItem := map[string]interface{}{
 			"id":                fmt.Sprintf("%d", qrCode.ID),
-			"inventoryItemId":   fmt.Sprintf("%d", qrCode.InventoryItemID),
+			"inventoryItemId":   fmt.Sprintf("%d", qrCode.PropertyID),
 			"qrCodeData":        qrCode.QRCodeData,
 			"qrCodeHash":        qrCode.QRCodeHash,
 			"generatedByUserId": fmt.Sprintf("%d", qrCode.GeneratedByUserID),
@@ -145,7 +145,7 @@ func (h *QRCodeHandler) ReportQRCodeDamaged(c *gin.Context) {
 	}
 
 	// Get the property for logging
-	property, err := h.Repo.GetPropertyByID(qrCode.InventoryItemID)
+	property, err := h.Repo.GetPropertyByID(qrCode.PropertyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property"})
 		return

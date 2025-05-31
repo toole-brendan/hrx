@@ -214,7 +214,7 @@ struct MyPropertiesView: View {
             filtered = filtered.filter { property in
                 property.itemName.localizedCaseInsensitiveContains(searchText) ||
                 property.serialNumber.localizedCaseInsensitiveContains(searchText) ||
-                property.nsn.localizedCaseInsensitiveContains(searchText)
+                (property.nsn ?? "").localizedCaseInsensitiveContains(searchText)
             }
         }
         
@@ -223,7 +223,7 @@ struct MyPropertiesView: View {
         case .all:
             break
         case .operational:
-            filtered = filtered.filter { $0.status.lowercased() == "operational" }
+            filtered = filtered.filter { ($0.status ?? "").lowercased() == "operational" }
         case .maintenance:
             filtered = filtered.filter { $0.needsMaintenance }
         case .sensitive:

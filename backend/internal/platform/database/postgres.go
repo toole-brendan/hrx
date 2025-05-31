@@ -57,13 +57,29 @@ func ConnectDB() (*gorm.DB, error) {
 		&domain.PropertyModel{},
 		&domain.Property{},
 		&domain.Transfer{},
-		&domain.Activity{}, // Keep if still used, otherwise remove
+		&domain.Activity{},
+		&domain.QRCode{},           // Added
+		&domain.Attachment{},       // Added
+		&domain.TransferItem{},     // Added
+		&domain.OfflineSyncQueue{}, // Added
+		&domain.ImmuDBReference{},  // Added
 	)
 	if err != nil {
 		log.Printf("Auto-migration failed: %v\n", err)
 		return nil, fmt.Errorf("auto-migration failed: %w", err)
 	}
+
 	log.Println("Auto-migration completed.")
 
 	return db, nil
+}
+
+// CloseDB closes the database connection.
+func CloseDB(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get database instance: %w", err)
+	}
+
+	return sqlDB.Close()
 }

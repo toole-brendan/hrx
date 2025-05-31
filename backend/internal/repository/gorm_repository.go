@@ -238,7 +238,7 @@ func (r *gormRepository) ListAllQRCodes() ([]domain.QRCode, error) {
 
 func (r *gormRepository) ListQRCodesForProperty(propertyID uint) ([]domain.QRCode, error) {
 	var qrCodes []domain.QRCode
-	err := r.db.Where("inventory_item_id = ?", propertyID).
+	err := r.db.Where("property_id = ?", propertyID).
 		Order("created_at DESC").
 		Find(&qrCodes).Error
 	return qrCodes, err
@@ -248,7 +248,7 @@ func (r *gormRepository) DeactivateQRCodesForProperty(propertyID uint) error {
 	// Deactivate all active QR codes for this property
 	now := time.Now()
 	return r.db.Model(&domain.QRCode{}).
-		Where("inventory_item_id = ? AND is_active = ?", propertyID, true).
+		Where("property_id = ? AND is_active = ?", propertyID, true).
 		Updates(map[string]interface{}{
 			"is_active":      false,
 			"deactivated_at": now,
@@ -257,7 +257,7 @@ func (r *gormRepository) DeactivateQRCodesForProperty(propertyID uint) error {
 
 func (r *gormRepository) GetActiveQRCodeForProperty(propertyID uint) (*domain.QRCode, error) {
 	var qrCode domain.QRCode
-	err := r.db.Where("inventory_item_id = ? AND is_active = ?", propertyID, true).
+	err := r.db.Where("property_id = ? AND is_active = ?", propertyID, true).
 		Order("created_at DESC").
 		First(&qrCode).Error
 	if err != nil {

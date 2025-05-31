@@ -167,9 +167,9 @@ class MyPropertiesViewModel: ObservableObject {
         let tempProperty = Property(
             id: -Int.random(in: 1...999999), // Negative ID for offline items
             serialNumber: serialNumber,
-            nsn: nsn ?? "",
+            nsn: nsn,
             lin: lin,
-            itemName: itemName,
+            name: itemName,
             description: description,
             manufacturer: nil,
             imageUrl: nil,
@@ -181,7 +181,12 @@ class MyPropertiesViewModel: ObservableObject {
             acquisitionDate: Date(),
             notes: nil,
             maintenanceDueDate: nil,
-            isSensitiveItem: false
+            isSensitiveItem: false,
+            propertyModelId: nil,
+            lastVerifiedAt: nil,
+            lastMaintenanceAt: nil,
+            createdAt: Date(),
+            updatedAt: Date()
         )
         
         // Queue for sync

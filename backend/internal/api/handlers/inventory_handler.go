@@ -435,7 +435,7 @@ func (h *InventoryHandler) GeneratePropertyQRCode(c *gin.Context) {
 
 	// Save QR record to database
 	qrRecord := &domain.QRCode{
-		InventoryItemID:   property.ID,
+		PropertyID:        property.ID,
 		QRCodeData:        string(qrJSONWithHash),
 		QRCodeHash:        qrData["qrHash"].(string),
 		GeneratedByUserID: userID,

@@ -230,7 +230,7 @@ func (r *PostgresRepository) ListAllQRCodes() ([]domain.QRCode, error) {
 
 func (r *PostgresRepository) ListQRCodesForProperty(propertyID uint) ([]domain.QRCode, error) {
 	var qrCodes []domain.QRCode
-	if err := r.db.Where("inventory_item_id = ?", propertyID).
+	if err := r.db.Where("property_id = ?", propertyID).
 		Order("created_at DESC").
 		Find(&qrCodes).Error; err != nil {
 		return nil, err
@@ -242,7 +242,7 @@ func (r *PostgresRepository) DeactivateQRCodesForProperty(propertyID uint) error
 	// Deactivate all active QR codes for this property
 	now := time.Now()
 	return r.db.Model(&domain.QRCode{}).
-		Where("inventory_item_id = ? AND is_active = ?", propertyID, true).
+		Where("property_id = ? AND is_active = ?", propertyID, true).
 		Updates(map[string]interface{}{
 			"is_active":      false,
 			"deactivated_at": now,
@@ -251,7 +251,7 @@ func (r *PostgresRepository) DeactivateQRCodesForProperty(propertyID uint) error
 
 func (r *PostgresRepository) GetActiveQRCodeForProperty(propertyID uint) (*domain.QRCode, error) {
 	var qrCode domain.QRCode
-	if err := r.db.Where("inventory_item_id = ? AND is_active = ?", propertyID, true).
+	if err := r.db.Where("property_id = ? AND is_active = ?", propertyID, true).
 		Order("created_at DESC").
 		First(&qrCode).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

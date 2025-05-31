@@ -4,34 +4,50 @@ import (
 	"time"
 )
 
-// User represents a user in the system
+// User represents a user in the system with military-specific fields
 type User struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
 	Username  string    `json:"username" gorm:"uniqueIndex;not null"`
 	Password  string    `json:"-" gorm:"not null"` // Password is omitted from JSON responses
 	Name      string    `json:"name" gorm:"not null"`
 	Rank      string    `json:"rank" gorm:"not null"`
+	Unit      string    `json:"unit"`
+	Phone     string    `json:"phone"`                            // NEW: Added for contact info
+	DoDID     string    `json:"dodid" gorm:"column:dodid;unique"` // NEW: Department of Defense ID
 	CreatedAt time.Time `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP"` // Added UpdatedAt for consistency
+	UpdatedAt time.Time `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
 }
 
 // Property represents an individual piece of property in the inventory
 type Property struct {
 	ID                uint       `json:"id" gorm:"primaryKey"`
-	PropertyModelID   *uint      `json:"propertyModelId" gorm:"column:property_model_id"` // Foreign key to PropertyModel
-	Name              string     `json:"name" gorm:"not null"`                            // Retained Name for easier display, though model has name too
+	PropertyModelID   *uint      `json:"propertyModelId" gorm:"column:property_model_id"`
+	Name              string     `json:"name" gorm:"not null"`
 	SerialNumber      string     `json:"serialNumber" gorm:"column:serial_number;uniqueIndex;not null"`
 	Description       *string    `json:"description" gorm:"default:null"`
 	CurrentStatus     string     `json:"currentStatus" gorm:"column:current_status;not null"`
-	AssignedToUserID  *uint      `json:"assignedToUserId" gorm:"column:assigned_to_user_id"` // Tracks current assigned user
+	Condition         string     `json:"condition" gorm:"default:'serviceable'"`         // NEW
+	ConditionNotes    *string    `json:"conditionNotes" gorm:"column:condition_notes"`   // NEW
+	NSN               *string    `json:"nsn" gorm:"column:nsn"`                          // NEW: National Stock Number
+	LIN               *string    `json:"lin" gorm:"column:lin"`                          // NEW: Line Item Number
+	Location          *string    `json:"location"`                                       // NEW
+	AcquisitionDate   *time.Time `json:"acquisitionDate" gorm:"column:acquisition_date"` // NEW
+	UnitPrice         float64    `json:"unitPrice" gorm:"column:unit_price;default:0"`   // NEW
+	Quantity          int        `json:"quantity" gorm:"default:1"`                      // NEW
+	PhotoURL          *string    `json:"photoUrl" gorm:"column:photo_url"`               // NEW: MinIO URL
+	AssignedToUserID  *uint      `json:"assignedToUserId" gorm:"column:assigned_to_user_id"`
 	LastVerifiedAt    *time.Time `json:"lastVerifiedAt" gorm:"column:last_verified_at"`
 	LastMaintenanceAt *time.Time `json:"lastMaintenanceAt" gorm:"column:last_maintenance_at"`
+	SyncStatus        string     `json:"syncStatus" gorm:"column:sync_status;default:'synced'"` // NEW
+	LastSyncedAt      *time.Time `json:"lastSyncedAt" gorm:"column:last_synced_at"`             // NEW
+	ClientID          *string    `json:"clientId" gorm:"column:client_id"`                      // NEW
+	Version           int        `json:"version" gorm:"default:1"`                              // NEW: For conflict resolution
 	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt         time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
 
-	// Optional: Eager/Lazy load related data with GORM tags
-	// PropertyModel     *PropertyModel `json:"propertyModel,omitempty" gorm:"foreignKey:PropertyModelID"`
-	// AssignedToUser    *User          `json:"assignedToUser,omitempty" gorm:"foreignKey:AssignedToUserID"`
+	// Relationships
+	PropertyModel  *PropertyModel `json:"propertyModel,omitempty" gorm:"foreignKey:PropertyModelID"`
+	AssignedToUser *User          `json:"assignedToUser,omitempty" gorm:"foreignKey:AssignedToUserID"`
 }
 
 // PropertyType represents a broad category of property (e.g., Weapon, Communication)
@@ -89,17 +105,93 @@ type Activity struct {
 	// Consider adding CreatedAt/UpdatedAt if this table remains
 }
 
-// QRCode represents a generated QR code for a property item
+// QRCode represents a generated QR code for a property item (FIXED)
 type QRCode struct {
 	ID                uint       `json:"id" gorm:"primaryKey"`
-	InventoryItemID   uint       `json:"inventoryItemId" gorm:"column:inventory_item_id;not null"`
+	PropertyID        uint       `json:"propertyId" gorm:"column:property_id;not null"` // FIXED: was InventoryItemID
 	QRCodeData        string     `json:"qrCodeData" gorm:"column:qr_code_data;type:text;not null"`
 	QRCodeHash        string     `json:"qrCodeHash" gorm:"column:qr_code_hash;uniqueIndex;not null"`
 	GeneratedByUserID uint       `json:"generatedByUserId" gorm:"column:generated_by_user_id;not null"`
 	IsActive          bool       `json:"isActive" gorm:"column:is_active;default:true;not null"`
 	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
 	DeactivatedAt     *time.Time `json:"deactivatedAt" gorm:"column:deactivated_at"`
+
+	// Relationships
+	Property        *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+	GeneratedByUser *User     `json:"generatedByUser,omitempty" gorm:"foreignKey:GeneratedByUserID"`
 }
+
+// Attachment represents a photo or document attached to a property (NEW)
+type Attachment struct {
+	ID               uint      `json:"id" gorm:"primaryKey"`
+	PropertyID       uint      `json:"propertyId" gorm:"column:property_id;not null"`
+	FileName         string    `json:"fileName" gorm:"column:file_name;not null"`
+	FileURL          string    `json:"fileUrl" gorm:"column:file_url;not null"` // MinIO URL
+	FileSize         *int64    `json:"fileSize" gorm:"column:file_size"`
+	MimeType         *string   `json:"mimeType" gorm:"column:mime_type"`
+	UploadedByUserID uint      `json:"uploadedByUserId" gorm:"column:uploaded_by_user_id;not null"`
+	Description      *string   `json:"description"`
+	CreatedAt        time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+
+	// Relationships
+	Property       *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+	UploadedByUser *User     `json:"uploadedByUser,omitempty" gorm:"foreignKey:UploadedByUserID"`
+}
+
+// TransferItem represents individual items in a bulk transfer (NEW)
+type TransferItem struct {
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	TransferID uint      `json:"transferId" gorm:"column:transfer_id;not null"`
+	PropertyID uint      `json:"propertyId" gorm:"column:property_id;not null"`
+	Quantity   int       `json:"quantity" gorm:"default:1"`
+	Notes      *string   `json:"notes"`
+	CreatedAt  time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+
+	// Relationships
+	Transfer *Transfer `json:"transfer,omitempty" gorm:"foreignKey:TransferID"`
+	Property *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+}
+
+// OfflineSyncQueue represents pending sync operations from offline iOS devices (NEW)
+type OfflineSyncQueue struct {
+	ID            uint       `json:"id" gorm:"primaryKey"`
+	ClientID      string     `json:"clientId" gorm:"column:client_id;not null"`
+	OperationType string     `json:"operationType" gorm:"column:operation_type;not null"` // create, update, delete
+	EntityType    string     `json:"entityType" gorm:"column:entity_type;not null"`       // property, transfer, etc.
+	EntityID      *uint      `json:"entityId" gorm:"column:entity_id"`
+	Payload       string     `json:"payload" gorm:"type:jsonb;not null"`
+	SyncStatus    string     `json:"syncStatus" gorm:"column:sync_status;default:'pending'"`
+	RetryCount    int        `json:"retryCount" gorm:"column:retry_count;default:0"`
+	CreatedAt     time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	SyncedAt      *time.Time `json:"syncedAt" gorm:"column:synced_at"`
+}
+
+// ImmuDBReference represents a reference to an immutable audit entry (NEW)
+type ImmuDBReference struct {
+	ID          uint      `json:"id" gorm:"primaryKey"`
+	EntityType  string    `json:"entityType" gorm:"column:entity_type;not null"`
+	EntityID    uint      `json:"entityId" gorm:"column:entity_id;not null"`
+	ImmuDBKey   string    `json:"immudbKey" gorm:"column:immudb_key;not null"`
+	ImmuDBIndex uint64    `json:"immudbIndex" gorm:"column:immudb_index;not null"`
+	CreatedAt   time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+}
+
+// Constants for property conditions
+const (
+	ConditionServiceable   = "serviceable"
+	ConditionUnserviceable = "unserviceable"
+	ConditionNeedsRepair   = "needs_repair"
+	ConditionBeyondRepair  = "beyond_repair"
+	ConditionNew           = "new"
+)
+
+// Constants for sync status
+const (
+	SyncStatusSynced   = "synced"
+	SyncStatusPending  = "pending"
+	SyncStatusConflict = "conflict"
+	SyncStatusFailed   = "failed"
+)
 
 // CreateUserInput represents input for creating a user
 type CreateUserInput struct {
