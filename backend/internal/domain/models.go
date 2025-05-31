@@ -156,21 +156,21 @@ type Activity struct {
 	// Consider adding CreatedAt/UpdatedAt if this table remains
 }
 
-// QRCode represents a generated QR code for a property item (FIXED)
-type QRCode struct {
-	ID                uint       `json:"id" gorm:"primaryKey"`
-	PropertyID        uint       `json:"propertyId" gorm:"column:property_id;not null"` // FIXED: was InventoryItemID
-	QRCodeData        string     `json:"qrCodeData" gorm:"column:qr_code_data;type:text;not null"`
-	QRCodeHash        string     `json:"qrCodeHash" gorm:"column:qr_code_hash;uniqueIndex;not null"`
-	GeneratedByUserID uint       `json:"generatedByUserId" gorm:"column:generated_by_user_id;not null"`
-	IsActive          bool       `json:"isActive" gorm:"column:is_active;default:true;not null"`
-	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
-	DeactivatedAt     *time.Time `json:"deactivatedAt" gorm:"column:deactivated_at"`
-
-	// Relationships
-	Property        *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
-	GeneratedByUser *User     `json:"generatedByUser,omitempty" gorm:"foreignKey:GeneratedByUserID"`
-}
+// DEPRECATED: QRCode represents a generated QR code for a property item - REMOVED
+// type QRCode struct {
+// 	ID                uint       `json:"id" gorm:"primaryKey"`
+// 	PropertyID        uint       `json:"propertyId" gorm:"column:property_id;not null"`
+// 	QRCodeData        string     `json:"qrCodeData" gorm:"column:qr_code_data;type:text;not null"`
+// 	QRCodeHash        string     `json:"qrCodeHash" gorm:"column:qr_code_hash;uniqueIndex;not null"`
+// 	GeneratedByUserID uint       `json:"generatedByUserId" gorm:"column:generated_by_user_id;not null"`
+// 	IsActive          bool       `json:"isActive" gorm:"column:is_active;default:true;not null"`
+// 	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+// 	DeactivatedAt     *time.Time `json:"deactivatedAt" gorm:"column:deactivated_at"`
+//
+// 	// Relationships
+// 	Property        *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+// 	GeneratedByUser *User     `json:"generatedByUser,omitempty" gorm:"foreignKey:GeneratedByUserID"`
+// }
 
 // Attachment represents a photo or document attached to a property (NEW)
 type Attachment struct {
@@ -312,11 +312,11 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// QRTransferRequest represents input for initiating a transfer via QR code scan
-type QRTransferRequest struct {
-	QRData    map[string]interface{} `json:"qrData" binding:"required"`
-	ScannedAt string                 `json:"scannedAt" binding:"required"`
-}
+// DEPRECATED: QRTransferRequest represents input for initiating a transfer via QR code scan - REMOVED
+// type QRTransferRequest struct {
+// 	QRData    map[string]interface{} `json:"qrData" binding:"required"`
+// 	ScannedAt string                 `json:"scannedAt" binding:"required"`
+// }
 
 // CreateConnectionRequest represents input for creating a user connection
 type CreateConnectionRequest struct {

@@ -50,14 +50,14 @@ struct AuthenticatedTabView: View {
                     Label("Transfers", systemImage: "arrow.left.arrow.right")
                 }
 
-                // Scan Tab
-                NavigationView {
-                    ScanTabPlaceholderView()
-                }
-                .tag(3)
-                .tabItem {
-                    Label("Scan", systemImage: "qrcode.viewfinder")
-                }
+                // QR Scan functionality has been removed
+                // NavigationView {
+                //     ScanTabPlaceholderView()
+                // }
+                // .tag(3)
+                // .tabItem {
+                //     Label("Scan", systemImage: "qrcode.viewfinder")
+                // }
 
                 // More Tab - Contains additional pages
                 NavigationView {
@@ -220,17 +220,17 @@ struct MoreView: View {
                         SectionHeader(title: "Settings")
                         
                         VStack(spacing: 0) {
-                            // QR Management
-                            MoreActionRow(
-                                icon: "qrcode",
-                                iconColor: .cyan,
-                                title: "QR Management",
-                                subtitle: "Generate and manage QR codes",
-                                destination: AnyView(QRManagementView())
-                            )
-                            
-                            Divider()
-                                .background(AppColors.border)
+                            // QR Management - Removed
+                            // MoreActionRow(
+                            //     icon: "qrcode",
+                            //     iconColor: .cyan,
+                            //     title: "QR Management",
+                            //     subtitle: "Generate and manage QR codes",
+                            //     destination: AnyView(QRManagementView())
+                            // )
+                            //
+                            // Divider()
+                            //     .background(AppColors.border)
                             
                             // Settings
                             MoreActionRow(
@@ -521,32 +521,32 @@ struct ProfileDetailRow: View {
     }
 }
 
-// MARK: - QR Management View (Placeholder)
-struct QRManagementView: View {
-    var body: some View {
-        ZStack(alignment: .top) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    Color.clear.frame(height: 36)
-                    
-                    Text("QR Code Management")
-                        .font(AppFonts.largeTitle)
-                        .foregroundColor(AppColors.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                    
-                    WebAlignedCard {
-                        VStack(spacing: 16) {
-                            Image(systemName: "qrcode")
-                                .font(.system(size: 60))
-                                .foregroundColor(AppColors.secondaryText)
-                            
-                            Text("QR Management Coming Soon")
-                                .font(AppFonts.headline)
-                                .foregroundColor(AppColors.primaryText)
-                            
-                            Text("This feature will allow you to generate and manage QR codes for your equipment.")
-                                .font(AppFonts.body)
+// MARK: - QR Management View (DEPRECATED - Removed)
+// struct QRManagementView: View {
+//     var body: some View {
+//         ZStack(alignment: .top) {
+//             ScrollView {
+//                 VStack(spacing: 24) {
+//                     Color.clear.frame(height: 36)
+//                     
+//                     Text("QR Code Management")
+//                         .font(AppFonts.largeTitle)
+//                         .foregroundColor(AppColors.primaryText)
+//                         .frame(maxWidth: .infinity, alignment: .leading)
+//                         .padding(.horizontal)
+//                     
+//                     WebAlignedCard {
+//                         VStack(spacing: 16) {
+//                             Image(systemName: "qrcode")
+//                                 .font(.system(size: 60))
+//                                 .foregroundColor(AppColors.secondaryText)
+//                             
+//                             Text("QR Management Coming Soon")
+//                                 .font(AppFonts.headline)
+//                                 .foregroundColor(AppColors.primaryText)
+//                             
+//                             Text("This feature will allow you to generate and manage QR codes for your equipment.")
+//                                 .font(AppFonts.body)
                                 .foregroundColor(AppColors.secondaryText)
                                 .multilineTextAlignment(.center)
                         }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DashboardView: View {
-    @State private var showQRScanner = false
+    // QR Scanner functionality removed
     @State private var selectedQuickAction: QuickAction? = nil
     
     // Navigation states
@@ -67,9 +67,7 @@ struct DashboardView: View {
         .refreshable {
             await refreshData()
         }
-        .sheet(isPresented: $showQRScanner) {
-            QRScannerView()
-        }
+        // QR Scanner sheet removed
         .background(navigationLinks)
         .task {
             await loadData()
@@ -172,9 +170,7 @@ struct DashboardView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                WebAlignedQuickActionCard(action: .scanQR) {
-                    showQRScanner = true
-                }
+                // QR Scanner quick action removed
                 
                 WebAlignedQuickActionCard(action: .requestTransfer) {
                     navigateToTransfers = true

@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Bell, Menu, QrCode, Search, User } from 'lucide-react';
+import { Bell, Menu, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -11,13 +11,12 @@ import { Link } from "wouter";
 
 interface TopNavBarProps {
   toggleMobileMenu: () => void;
-  openScanner: () => void;
+  // QR Scanner functionality removed
   openNotifications: () => void;
 }
 
 const TopNavBar: React.FC<TopNavBarProps> = ({
   toggleMobileMenu,
-  openScanner,
   openNotifications
 }) => {
   const { user } = useAuth();
@@ -63,15 +62,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
       
       {/* Right section: Actions */}
       <div className="flex items-center space-x-2">
-        {/* QR Scanner button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={openScanner}
-          className="relative text-muted-foreground hover:text-foreground"
-        >
-          <QrCode className="h-5 w-5" />
-        </Button>
+
         
         {/* Notifications button */}
         <Button

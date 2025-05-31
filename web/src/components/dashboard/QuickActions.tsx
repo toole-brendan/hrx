@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { QrCode, ArrowRightLeft, Search, FileText } from "lucide-react";
+import { ArrowRightLeft, Search, FileText } from "lucide-react";
 
 interface QuickActionProps {
   icon: React.ReactNode;
@@ -51,27 +51,13 @@ const QuickAction: React.FC<QuickActionProps> = ({
 };
 
 interface QuickActionsProps {
-  openScanner: () => void;
+  // QR Scanner functionality removed
 }
 
-const QuickActions: React.FC<QuickActionsProps> = ({ openScanner }) => {
+const QuickActions: React.FC<QuickActionsProps> = () => {
   const [, navigate] = useLocation();
 
   const actions = [
-    { 
-      icon: <QrCode />, 
-      label: "Scan QR", 
-      bgColor: "bg-blue-100",
-      bgGradient: "bg-gradient-to-br from-blue-50 to-blue-100",
-      borderColor: "border-blue-200",
-      darkBgGradient: "dark:from-blue-900/20 dark:to-blue-800/20",
-      darkBorderColor: "dark:border-blue-800",
-      iconBgColor: "bg-blue-200",
-      darkIconBgColor: "dark:bg-blue-700/30",
-      iconColor: "text-blue-700",
-      darkIconColor: "dark:text-blue-500",
-      onClick: openScanner 
-    },
     { 
       icon: <ArrowRightLeft />, 
       label: "Request Transfer", 

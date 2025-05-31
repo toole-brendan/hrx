@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { 
   LayoutDashboard, 
   Package, 
-  QrCode, 
   Send, 
   Wrench
 } from "lucide-react";
@@ -12,21 +11,15 @@ import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 
 interface MobileNavProps {
-  openQRScanner?: () => void;
+  // QR Scanner functionality removed
 }
 
-const MobileNav: React.FC<MobileNavProps> = ({ openQRScanner }) => {
+const MobileNav: React.FC<MobileNavProps> = () => {
   const [location] = useLocation();
   const { theme } = useApp();
 
   const isActive = (path: string) => {
     return location === path;
-  };
-
-  const handleQRScanClick = () => {
-    if (openQRScanner) {
-      openQRScanner();
-    }
   };
 
   return (
@@ -38,14 +31,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ openQRScanner }) => {
         </div>
       </Link>
       
-      <div 
-        className={`flex flex-col items-center justify-center cursor-pointer 
-                   p-2 bg-purple-600 dark:bg-purple-600 rounded-full -mt-6 border-4 
-                   ${theme === 'dark' ? 'border-black' : 'border-white'}`}
-        onClick={handleQRScanClick}
-      >
-        <QrCode className="h-6 w-6 text-white" />
-      </div>
+
       
       <Link href="/transfers">
         <div className={`flex flex-col items-center justify-center ${isActive('/transfers') ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>

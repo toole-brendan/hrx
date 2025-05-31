@@ -7,14 +7,13 @@ import { Link } from "wouter";
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  openQRScanner?: () => void;
+  // QR Scanner functionality removed
   openNotificationPanel?: () => void;
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ 
   isOpen, 
   onClose,
-  openQRScanner,
   openNotificationPanel
 }) => {
   const { toggleTheme } = useApp();
@@ -34,7 +33,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         <Sidebar 
           isMobile={true} 
           closeMobileMenu={onClose} 
-          openQRScanner={openQRScanner}
           toggleTheme={toggleTheme}
           openNotificationPanel={openNotificationPanel}
         />

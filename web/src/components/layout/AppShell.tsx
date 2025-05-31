@@ -20,13 +20,11 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [location, navigate] = useLocation();
   
-  // State for mobile menu, scanner, and notifications
+  // State for mobile menu and notifications
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   
   // Handlers for opening/closing various panels
-  const openScanner = () => setScannerOpen(true);
   const openNotifications = () => setNotificationsOpen(true);
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
   
@@ -78,7 +76,6 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
       {/* Sidebar - hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar 
-          openQRScanner={openScanner} 
           toggleTheme={toggleTheme}
           toggleSidebar={toggleSidebar}
           openNotificationPanel={openNotifications}
@@ -89,7 +86,6 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
       <MobileMenu 
         isOpen={mobileMenuOpen} 
         onClose={() => setMobileMenuOpen(false)} 
-        openQRScanner={openScanner}
         openNotificationPanel={openNotifications}
       />
       
@@ -131,7 +127,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
       
       {/* Mobile Navigation Footer */}
-      <MobileNav openQRScanner={openScanner} />
+      <MobileNav />
       
       {/* Notification Panel */}
       <NotificationPanel

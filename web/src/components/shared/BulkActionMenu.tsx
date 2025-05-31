@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowLeftRight, QrCode, Edit } from 'lucide-react'; // Example icons
+import { ArrowLeftRight, Edit } from 'lucide-react'; // Example icons
 
 interface BulkActionMenuProps {
   selectedItemCount: number;
@@ -39,10 +39,7 @@ const BulkActionMenu: React.FC<BulkActionMenuProps> = ({
                <Edit className="mr-2 h-4 w-4" />
                <span>Update Status</span>
             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => onActionTriggered('bulkPrintQR')}>
-               <QrCode className="mr-2 h-4 w-4" />
-               <span>Print QR Codes</span>
-            </DropdownMenuItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
         {/* Maybe add a Cancel/Deselect All button here later */}

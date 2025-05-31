@@ -16,7 +16,6 @@ import {
   Menu,
   Moon,
   Sun,
-  QrCode,
   ChevronLeft,
   ChevronRight,
   BookOpen,
@@ -30,7 +29,7 @@ import {
 interface SidebarProps {
   isMobile?: boolean;
   closeMobileMenu?: () => void;
-  openQRScanner?: () => void;
+  // QR Scanner functionality removed
   toggleTheme?: () => void;
   toggleSidebar?: () => void;
   openNotificationPanel?: () => void;
@@ -39,7 +38,6 @@ interface SidebarProps {
 const Sidebar = ({
   isMobile = false,
   closeMobileMenu,
-  openQRScanner,
   toggleTheme: toggleThemeProp,
   toggleSidebar: toggleSidebarProp,
   openNotificationPanel,
@@ -85,15 +83,6 @@ const Sidebar = ({
     // Navigate to the dashboard page
     window.location.href = '/dashboard';
   };
-  
-  const handleQRScanClick = () => {
-    if (openQRScanner) {
-      openQRScanner();
-    }
-    if (isMobile && closeMobileMenu) {
-      closeMobileMenu();
-    }
-  };
 
   const handleNotificationClick = () => {
     if (openNotificationPanel) {
@@ -112,7 +101,7 @@ const Sidebar = ({
     onClick?: () => void;
   }
 
-  // Updated nav items according to the new structure
+  // Updated nav items without QR Management
   const navItems: NavItem[] = [
     { path: "/dashboard", icon: <Home className="sidebar-item-icon" />, label: "Dashboard" },
     { path: "/property-book", icon: <BookOpen className="sidebar-item-icon" />, label: "Property Book" },
@@ -123,18 +112,10 @@ const Sidebar = ({
       label: "Transfers"
     },
     { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" },
-    { path: "/qr-management", icon: <QrCode className="sidebar-item-icon" />, label: "QR Management" },
     { path: "/reports", icon: <FileText className="sidebar-item-icon" />, label: "Reports" }
   ];
   
   // Footer actions
-  const qrScanAction = {
-    path: "#",
-    icon: <QrCode className="sidebar-item-icon" />,
-    label: "Scan QR Code",
-    onClick: handleQRScanClick
-  };
-  
   const settingsAction = {
     path: "/settings",
     icon: <Settings className="sidebar-item-icon" />,
@@ -234,16 +215,6 @@ const Sidebar = ({
         <div className="mt-auto p-4 space-y-3">
           {/* Footer divider */}
           <div className="border-t border-gray-700/50 dark:border-white/10 my-3"></div>
-          
-          {/* QR Scanner button - Mobile */}
-          <div 
-            key={qrScanAction.path}
-            onClick={() => handleLinkClick(qrScanAction.onClick)}
-            className="flex items-center justify-center bg-blue-300 hover:bg-blue-400 text-blue-800 dark:bg-blue-500/70 dark:hover:bg-blue-500/90 dark:text-white rounded-md py-2 px-4 cursor-pointer transition-colors border-0"
-          >
-            <QrCode className="h-4 w-4 mr-1.5" />
-            <span className="text-xs uppercase tracking-wider">Scan QR Code</span>
-          </div>
           
           {/* Mobile version - Notification Item */}
           <div 
@@ -394,25 +365,6 @@ const Sidebar = ({
         <div className={`mt-auto px-2 pt-2 pb-4 ${sidebarCollapsed ? 'text-center' : ''}`}>
           {/* First divider */}
           <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
-          
-          {/* Make QR Scanner look like an action button distinct from regular nav items */}
-          <div className="px-2 mb-2">
-            <div 
-              key={`desktop-${qrScanAction.path}`}
-              onClick={() => handleLinkClick(qrScanAction.onClick)}
-              className={cn(
-                "flex items-center justify-center bg-blue-300 hover:bg-blue-400 text-blue-800 dark:bg-blue-500/70 dark:hover:bg-blue-500/90 dark:text-white rounded-md py-2 cursor-pointer transition-colors border-0",
-                sidebarCollapsed ? "px-2.5" : "px-4" // Slightly more horizontal padding when collapsed
-              )}
-            >
-              <QrCode className={cn(
-                "h-4 w-4",
-                !sidebarCollapsed && "mr-1.5", // Only add right margin when NOT collapsed
-                sidebarCollapsed && "mx-auto" // Center the icon when collapsed
-              )} />
-              {!sidebarCollapsed && <span className="text-xs uppercase tracking-wider">Scan QR Code</span>}
-            </div>
-          </div>
           
           {/* Navigation items group - styled as regular sidebar items */}
           <div className="mb-2">
