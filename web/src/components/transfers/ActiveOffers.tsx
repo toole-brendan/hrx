@@ -42,7 +42,7 @@ export const ActiveOffers: React.FC = () => {
             // Invalidate queries
             queryClient.invalidateQueries({ queryKey: ['activeOffers'] });
             queryClient.invalidateQueries({ queryKey: ['transfers'] });
-            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['property'] });
             
             toast({
                 title: 'Offer Accepted',

@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createOffer } from '@/services/transferService';
 import { useToast } from '@/hooks/use-toast';
-import { InventoryItem } from '@/types';
+import { Property } from '@/types';
 import { getConnections } from '@/services/connectionService';
 
 interface Props {
-    property?: InventoryItem;
+    property?: Property;
 }
 
 export const OfferToFriends: React.FC<Props> = ({ property }) => {

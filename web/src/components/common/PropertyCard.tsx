@@ -1,14 +1,14 @@
 import { useToast } from "@/hooks/use-toast";
-import { InventoryItem as InventoryItemType } from "@/types";
+import { Property as PropertyType } from "@/types";
 import { Package, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-interface InventoryItemProps {
-  item: InventoryItemType;
+interface PropertyProps {
+  item: PropertyType;
 }
 
-const InventoryItem: React.FC<InventoryItemProps> = ({ item }) => {
+const Property: React.FC<PropertyProps> = ({ item }) => {
   const { toast } = useToast();
 
   const handleTransferRequest = () => {
@@ -55,4 +55,4 @@ const InventoryItem: React.FC<InventoryItemProps> = ({ item }) => {
   );
 };
 
-export default InventoryItem;
+export default Property;

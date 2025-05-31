@@ -1,7 +1,7 @@
 import Foundation
 
 // Represents an item from the reference database (models endpoint)
-public struct ReferenceItem: Identifiable, Decodable {
+public struct ReferenceProperty: Identifiable, Decodable {
     public let id: Int
     public let name: String
     public let nsn: String
@@ -28,7 +28,7 @@ public struct ReferenceItem: Identifiable, Decodable {
     }
 
     // Provide a default empty item for previews or placeholders
-    static let example = ReferenceItem(
+    static let example = ReferenceProperty(
         id: 0,
         name: "Example Item",
         nsn: "1234-00-123-4567",
@@ -43,7 +43,7 @@ public struct ReferenceItem: Identifiable, Decodable {
 }
 
 // Extension to provide computed properties
-extension ReferenceItem {
+extension ReferenceProperty {
     public var formattedNSN: String {
         // Format NSN as XXXX-XX-XXX-XXXX
         let digits = nsn.replacingOccurrences(of: "-", with: "")
@@ -59,6 +59,6 @@ extension ReferenceItem {
 }
 
 // Wrapper for API response that contains array of reference items
-public struct ReferenceItemsResponse: Decodable {
-    public let models: [ReferenceItem]
+public struct ReferencePropertysResponse: Decodable {
+    public let models: [ReferenceProperty]
 } 

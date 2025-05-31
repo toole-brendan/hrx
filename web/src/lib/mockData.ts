@@ -1,7 +1,7 @@
 // @ts-ignore
 import { 
   User, 
-  InventoryItem, 
+  Property, 
   Transfer, 
   Activity, 
   Notification 
@@ -34,7 +34,7 @@ export const user: User = {
 };
 
 // Mock Inventory Items
-export const inventory: InventoryItem[] = [
+export const inventory: Property[] = [
   {
     id: "1",
     name: "ACH",

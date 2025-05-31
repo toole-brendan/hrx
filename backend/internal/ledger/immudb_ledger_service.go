@@ -50,8 +50,8 @@ func (s *ImmuDBLedgerService) Initialize() error {
 	return nil
 }
 
-// LogItemCreation logs an equipment creation/registration event to ImmuDB
-func (s *ImmuDBLedgerService) LogItemCreation(property domain.Property, userID uint) error {
+// LogPropertyCreation logs an equipment creation/registration event to ImmuDB
+func (s *ImmuDBLedgerService) LogPropertyCreation(property domain.Property, userID uint) error {
 	event := map[string]interface{}{
 		"event_type":    "ItemCreation",
 		"item_id":       property.ID,
@@ -154,8 +154,8 @@ func (s *ImmuDBLedgerService) LogCorrectionEvent(originalEventID string, eventTy
 	return s.storeEvent(fmt.Sprintf("correction_%s_%d", originalEventID, time.Now().Unix()), event)
 }
 
-// GetItemHistory retrieves the history of an item from ImmuDB
-func (s *ImmuDBLedgerService) GetItemHistory(itemID uint) ([]map[string]interface{}, error) {
+// GetPropertyHistory retrieves the history of an item from ImmuDB
+func (s *ImmuDBLedgerService) GetPropertyHistory(itemID uint) ([]map[string]interface{}, error) {
 	// ImmuDB doesn't have SQL-like queries, so we need to scan for keys related to this item
 	// This is a simplified implementation - in production you might want to use a more sophisticated indexing strategy
 

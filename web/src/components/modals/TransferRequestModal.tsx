@@ -9,13 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTransfer } from "@/services/transferService";
-import { InventoryItem } from "@/types";
+import { Property } from "@/types";
 import { Loader2 } from "lucide-react";
 
 interface TransferRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: InventoryItem;
+  item: Property;
   onTransferSuccess?: () => void;
 }
 
@@ -52,7 +52,7 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
     mutationFn: createTransfer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['property'] });
       
       toast({
         title: "Transfer Request Submitted",

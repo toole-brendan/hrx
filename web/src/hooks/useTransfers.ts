@@ -78,7 +78,7 @@ export function useUpdateTransferStatus() {
       queryClient.invalidateQueries({ queryKey: transferKeys.detail(updatedTransfer.id) });
       
       // Also invalidate inventory queries as ownership may have changed
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['property'] });
       
       const action = variables.status === 'approved' ? 'approved' : 'rejected';
       toast({

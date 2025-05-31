@@ -5,7 +5,7 @@ import Combine // Needed for ObservableObject
 @MainActor // Ensure UI updates happen on the main thread
 class ReferenceDBViewModel: ObservableObject {
 
-    @Published var referenceItems: [ReferenceItem] = []
+    @Published var referenceItems: [ReferenceProperty] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
 
@@ -17,7 +17,7 @@ class ReferenceDBViewModel: ObservableObject {
     }
 
     // Function to fetch reference items from the API
-    func loadReferenceItems() {
+    func loadReferencePropertys() {
         // Don't fetch if already loading
         guard !isLoading else { return }
 
@@ -26,7 +26,7 @@ class ReferenceDBViewModel: ObservableObject {
 
         Task {
             do {
-                let items = try await apiService.fetchReferenceItems()
+                let items = try await apiService.fetchReferencePropertys()
                 self.referenceItems = items
             } catch let apiError as APIService.APIError {
                  print("API Error loading reference items: \(apiError.localizedDescription)")

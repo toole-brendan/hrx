@@ -13,10 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Package } from 'lucide-react';
-import { categoryOptions } from '@/lib/inventoryUtils';
+import { categoryOptions } from '@/lib/propertyUtils';
 import { useToast } from '@/hooks/use-toast';
 
-interface CreateItemDialogProps {
+interface CreatePropertyDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: {
@@ -30,7 +30,7 @@ interface CreateItemDialogProps {
   }) => Promise<void>;
 }
 
-const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
+const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
   isOpen,
   onClose,
   onSubmit,
@@ -236,4 +236,4 @@ const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
   );
 };
 
-export default CreateItemDialog; 
+export default CreatePropertyDialog; 

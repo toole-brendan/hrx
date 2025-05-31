@@ -1,4 +1,4 @@
-import { InventoryItem } from "@/types";
+import { Property } from "@/types";
 
 // Define state interface
 export interface PropertyBookState {

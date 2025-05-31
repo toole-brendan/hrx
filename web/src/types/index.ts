@@ -52,7 +52,7 @@ export interface CalibrationInfo {
 // --- End Calibration Types ---
 
 // Inventory Types
-export interface InventoryItem {
+export interface Property {
   id: string;
   name: string;
   description: string;
@@ -126,7 +126,7 @@ export interface QRCode {
 
 // Extended QR Code with item info for UI
 export interface QRCodeWithItem extends QRCode {
-  inventoryItem?: InventoryItem;
+  inventoryItem?: Property;
   qrCodeStatus: "active" | "damaged" | "missing" | "replaced";
   lastPrinted?: string;
   lastUpdated?: string;

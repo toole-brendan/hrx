@@ -59,9 +59,9 @@ func (s *AzureSqlLedgerService) Initialize() error {
 	return nil
 }
 
-// LogItemCreation logs an equipment creation/registration event to the Azure SQL Ledger.
+// LogPropertyCreation logs an equipment creation/registration event to the Azure SQL Ledger.
 // This implementation assumes the event type is 'Created' based on the function name.
-func (s *AzureSqlLedgerService) LogItemCreation(property domain.Property, userID uint) error {
+func (s *AzureSqlLedgerService) LogPropertyCreation(property domain.Property, userID uint) error {
 	ctx := context.Background() // Or use a more specific context if available
 	log.Printf("AzureSqlLedgerService: Logging Equipment Event - ItemID: %d, UserID: %d, Type: Created", property.ID, userID)
 
@@ -280,8 +280,8 @@ func (s *AzureSqlLedgerService) LogCorrectionEvent(originalEventID string, event
 	return nil
 }
 
-// GetItemHistory retrieves the history of an item from the Azure SQL Ledger tables based on its ItemID.
-func (s *AzureSqlLedgerService) GetItemHistory(itemID uint) ([]map[string]interface{}, error) {
+// GetPropertyHistory retrieves the history of an item from the Azure SQL Ledger tables based on its ItemID.
+func (s *AzureSqlLedgerService) GetPropertyHistory(itemID uint) ([]map[string]interface{}, error) {
 	ctx := context.Background()
 	log.Printf("AzureSqlLedgerService: Getting history for ItemID: %d", itemID)
 	var history []map[string]interface{}

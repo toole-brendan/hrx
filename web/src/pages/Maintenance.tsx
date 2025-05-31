@@ -86,8 +86,8 @@ import {
   getMaintenanceLogsByItemIdFromDB,
   addMaintenanceLogToDB
 } from "@/lib/maintenanceIdb";
-import { getInventoryItemsFromDB } from "@/lib/idb";
-import { InventoryItem } from "@/types";
+import { getPropertysFromDB } from "@/lib/idb";
+import { Property } from "@/types";
 import CalibrationManager from "@/components/maintenance/CalibrationManager";
 import { v4 as uuidv4 } from 'uuid';
 import { Label } from "@/components/ui/label";
@@ -114,8 +114,8 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [addBulletinModalOpen, setAddBulletinModalOpen] = useState(false);
   const [showCalibrationManager, setShowCalibrationManager] = useState(false);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
+  const [inventoryItems, setPropertys] = useState<Property[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [modalInventorySearchTerm, setModalInventorySearchTerm] = useState("");
@@ -238,8 +238,8 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
         console.log("[Maintenance] Loaded stats:", statsData); // Log loaded stats
         
         // Load inventory items for reference
-        const inventory = await getInventoryItemsFromDB();
-        setInventoryItems(inventory);
+        const inventory = await getPropertysFromDB();
+        setPropertys(inventory);
         
         // Update state
         dispatch({ type: 'SET_MAINTENANCE_ITEMS', payload: items });
@@ -507,7 +507,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
 
   // Handler for opening new maintenance request modal
   const handleNewRequestClick = useCallback(() => {
-    setSelectedInventoryItem(null);
+    setSelectedProperty(null);
     setNewRequestModalOpen(true);
   }, []);
 
@@ -522,7 +522,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
       // Create new maintenance item
       const newItem: MaintenanceItem = {
         id: `m_${uuidv4()}`,
-        itemId: selectedInventoryItem?.id || formData.itemId || '',
+        itemId: selectedProperty?.id || formData.itemId || '',
         itemName: formData.itemName,
         serialNumber: formData.serialNumber,
         category: formData.category,
@@ -553,7 +553,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
       });
       
       // Reset selected inventory item
-      setSelectedInventoryItem(null);
+      setSelectedProperty(null);
     } catch (err) {
       console.error("Failed to submit maintenance request:", err);
       toast({
@@ -564,7 +564,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
     } finally {
       dispatch({ type: 'SET_SUBMITTING', payload: false });
     }
-  }, [dispatch, selectedInventoryItem, toast]);
+  }, [dispatch, selectedProperty, toast]);
 
   // Handler for adding a new bulletin
   const handleAddBulletinClick = useCallback(() => {
@@ -1019,9 +1019,9 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
           }}>
             <div className="grid gap-4 py-2">
               {/* Equipment Selection Method */}
-              <Tabs defaultValue="inventory" className="w-full">
+              <Tabs defaultValue="property" className="w-full">
                 <TabsList className="grid grid-cols-2 mb-4">
-                  <TabsTrigger value="inventory">
+                  <TabsTrigger value="property">
                     <LinkIcon className="h-4 w-4 mr-2" />
                     Link Inventory Item
                   </TabsTrigger>
@@ -1031,7 +1031,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="inventory">
+                <TabsContent value="property">
                   <Card className="mb-4 border-border shadow-none rounded-none">
                     <CardContent className="py-4">
                       <div className="space-y-4">
@@ -1069,8 +1069,8 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
                                   {filteredInventory.map((item) => (
                                     <div 
                                       key={item.id}
-                                      className={`p-3 hover:bg-muted/50 cursor-pointer ${selectedInventoryItem?.id === item.id ? 'bg-muted/50' : ''}`}
-                                      onClick={() => setSelectedInventoryItem(item)}
+                                      className={`p-3 hover:bg-muted/50 cursor-pointer ${selectedProperty?.id === item.id ? 'bg-muted/50' : ''}`}
+                                      onClick={() => setSelectedProperty(item)}
                                     >
                                       <div className="font-medium text-sm">{item.name}</div>
                                       <div className="text-xs text-muted-foreground font-mono">SN: {item.serialNumber}</div>
@@ -1082,19 +1082,19 @@ const Maintenance: React.FC<MaintenanceProps> = ({ id }) => {
                           )()}
                         </div>
                         
-                        {selectedInventoryItem && (
+                        {selectedProperty && (
                           <div className="bg-muted/30 p-3 border border-border rounded-md">
                             <div className="flex items-start justify-between">
                               <div>
                                 <h4 className="font-medium text-sm">Selected Item</h4>
-                                <p className="text-sm">{selectedInventoryItem.name}</p>
-                                <p className="text-xs text-muted-foreground font-mono">SN: {selectedInventoryItem.serialNumber}</p>
+                                <p className="text-sm">{selectedProperty.name}</p>
+                                <p className="text-xs text-muted-foreground font-mono">SN: {selectedProperty.serialNumber}</p>
                               </div>
                               <Button 
                                 type="button"
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => setSelectedInventoryItem(null)}
+                                onClick={() => setSelectedProperty(null)}
                                 className="h-8 w-8 p-0"
                               >
                                 <XIcon className="h-4 w-4" />

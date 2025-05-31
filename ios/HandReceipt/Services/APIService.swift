@@ -12,7 +12,7 @@ enum HTTPMethod: String {
 // Define a protocol for the API service to allow for mocking/testing
 public protocol APIServiceProtocol {
     // Function to fetch reference items. Throws errors for network/parsing issues.
-    func fetchReferenceItems() async throws -> [ReferenceItem]
+    func fetchReferencePropertys() async throws -> [ReferenceProperty]
 
     // Function to fetch a specific property by its serial number.
     func fetchPropertyBySerialNumber(serialNumber: String) async throws -> Property
@@ -27,7 +27,7 @@ public protocol APIServiceProtocol {
     func checkSession() async throws -> LoginResponse
 
     // Add function to fetch a specific reference item by ID
-    func fetchReferenceItemById(itemId: String) async throws -> ReferenceItem
+    func fetchReferencePropertyById(itemId: String) async throws -> ReferenceProperty
 
     // Add function to fetch current user's properties
     func getMyProperties() async throws -> [Property] // Expect a list of Property objects
@@ -44,7 +44,7 @@ public protocol APIServiceProtocol {
     func deletePropertyPhoto(propertyId: Int, filename: String) async throws
 
     // Add other API functions here as needed (e.g., fetch by NSN, etc.)
-    // func fetchItemByNSN(nsn: String) async throws -> ReferenceItem
+    // func fetchItemByNSN(nsn: String) async throws -> ReferenceProperty
     
     // --- Transfer Functions ---
     func fetchTransfers(status: String?, direction: String?) async throws -> [Transfer]
@@ -433,7 +433,7 @@ public class APIService: APIServiceProtocol {
         return response.toLoginResponse()
     }
 
-    public func fetchReferenceItems() async throws -> [ReferenceItem] {
+    public func fetchReferencePropertys() async throws -> [ReferenceProperty] {
         debugPrint("Fetching all reference items")
         let endpoint = baseURL.appendingPathComponent("/api/reference/models")
         var request = URLRequest(url: endpoint)
@@ -441,7 +441,7 @@ public class APIService: APIServiceProtocol {
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
         
         // Use wrapper response type and extract models array
-        let response = try await performRequest(request: request) as ReferenceItemsResponse
+        let response = try await performRequest(request: request) as ReferencePropertysResponse
         debugPrint("Successfully fetched \(response.models.count) reference items")
         return response.models
     }
@@ -462,7 +462,7 @@ public class APIService: APIServiceProtocol {
     }
 
     // Function to fetch a specific reference item by ID
-    public func fetchReferenceItemById(itemId: String) async throws -> ReferenceItem {
+    public func fetchReferencePropertyById(itemId: String) async throws -> ReferenceProperty {
         debugPrint("Fetching reference item with ID: \(itemId)")
         guard let encodedItemId = itemId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
             debugPrint("ERROR: Failed to percent encode item ID: \(itemId)")
@@ -472,7 +472,7 @@ public class APIService: APIServiceProtocol {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         // Cookies are handled automatically by URLSession/HTTPCookieStorage
-        let item = try await performRequest(request: request) as ReferenceItem
+        let item = try await performRequest(request: request) as ReferenceProperty
         debugPrint("Successfully fetched reference item: \(item.name)")
         return item
     }

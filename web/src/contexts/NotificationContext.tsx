@@ -7,7 +7,7 @@ export interface Notification {
   type: 'info' | 'warning' | 'critical' | 'success' | string; // Allow custom types too
   title: string;
   message: string;
-  relatedEntityType?: string; // e.g., 'InventoryItem', 'TransferRequest'
+  relatedEntityType?: string; // e.g., 'Property', 'TransferRequest'
   relatedEntityId?: string; // ID for linking
   timestamp: number;
   read: boolean;

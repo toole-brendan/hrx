@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { InventoryItem, ConsumableItem } from '@/types'; // Importing ConsumableItem type
+import { Property, ConsumableItem } from '@/types'; // Importing ConsumableItem type
 // Import other types as needed, e.g., Notification, SyncAction
 import { Notification } from '@/contexts/NotificationContext';
 
@@ -31,7 +31,7 @@ export interface ConsumptionHistoryEntry {
 interface HandReceiptDB extends DBSchema {
   inventory: {
     key: string; // Using item.id as the key
-    value: InventoryItem;
+    value: Property;
     indexes: { 'by-name': string }; // Example index
   };
   consumables: {
@@ -79,7 +79,7 @@ function getDb(): Promise<IDBPDatabase<HandReceiptDB>> {
         // Create stores based on version changes
         if (oldVersion < 1) {
           // Create inventory store
-          const inventoryStore = db.createObjectStore('inventory', { keyPath: 'id' });
+          const inventoryStore = db.createObjectStore('property', { keyPath: 'id' });
           inventoryStore.createIndex('by-name', 'name');
           console.log('Created inventory object store');
           
@@ -132,19 +132,19 @@ function getDb(): Promise<IDBPDatabase<HandReceiptDB>> {
 // 4. Basic CRUD operation helpers (Examples)
 
 // --- Inventory Store Helpers ---
-export async function getInventoryItemsFromDB(): Promise<InventoryItem[]> {
+export async function getPropertysFromDB(): Promise<Property[]> {
   const db = await getDb();
-  return db.getAll('inventory');
+  return db.getAll('property');
 }
 
-export async function getInventoryItemFromDB(id: string): Promise<InventoryItem | undefined> {
+export async function getPropertyFromDB(id: string): Promise<Property | undefined> {
     const db = await getDb();
-    return db.get('inventory', id);
+    return db.get('property', id);
 }
 
-export async function saveInventoryItemsToDB(items: InventoryItem[]) {
+export async function savePropertysToDB(items: Property[]) {
   const db = await getDb();
-  const tx = db.transaction('inventory', 'readwrite');
+  const tx = db.transaction('property', 'readwrite');
   await Promise.all(items.map(item => tx.store.put(item)));
   await tx.done;
   console.log(`${items.length} inventory items saved to DB.`);
@@ -152,7 +152,7 @@ export async function saveInventoryItemsToDB(items: InventoryItem[]) {
 
 export async function clearInventoryDB() {
     const db = await getDb();
-    await db.clear('inventory');
+    await db.clear('property');
     console.log('Inventory DB cleared.');
 }
 
@@ -247,37 +247,37 @@ export async function removeSyncAction(id: string) {
 // --- Optimized Inventory Store Helpers ---
 
 // Add a single item to the inventory
-export async function addInventoryItemToDB(item: InventoryItem): Promise<void> {
+export async function addPropertyToDB(item: Property): Promise<void> {
   const db = await getDb();
-  await db.add('inventory', item);
+  await db.add('property', item);
   console.log(`Inventory item ${item.id} added to DB.`);
 }
 
 // Update a single item in the inventory
-export async function updateInventoryItemInDB(item: InventoryItem): Promise<void> {
+export async function updatePropertyInDB(item: Property): Promise<void> {
   const db = await getDb();
-  await db.put('inventory', item);
+  await db.put('property', item);
   console.log(`Inventory item ${item.id} updated in DB.`);
 }
 
 // Delete a single item from the inventory
-export async function deleteInventoryItemFromDB(id: string): Promise<void> {
+export async function deletePropertyFromDB(id: string): Promise<void> {
   const db = await getDb();
-  await db.delete('inventory', id);
+  await db.delete('property', id);
   console.log(`Inventory item ${id} deleted from DB.`);
 }
 
 // Get items by a specific category
-export async function getInventoryItemsByCategoryFromDB(category: string): Promise<InventoryItem[]> {
+export async function getPropertysByCategoryFromDB(category: string): Promise<Property[]> {
   const db = await getDb();
-  const allItems = await db.getAll('inventory');
+  const allItems = await db.getAll('property');
   return allItems.filter(item => item.category === category);
 }
 
 // Search inventory items by name or serial number
-export async function searchInventoryItemsFromDB(searchTerm: string): Promise<InventoryItem[]> {
+export async function searchPropertysFromDB(searchTerm: string): Promise<Property[]> {
   const db = await getDb();
-  const allItems = await db.getAll('inventory');
+  const allItems = await db.getAll('property');
   const lowerSearchTerm = searchTerm.toLowerCase();
   
   return allItems.filter(item => 
@@ -287,12 +287,12 @@ export async function searchInventoryItemsFromDB(searchTerm: string): Promise<In
 }
 
 // Update component data for an item
-export async function updateInventoryItemComponentsInDB(
+export async function updatePropertyComponentsInDB(
   itemId: string, 
   components: any[]
-): Promise<InventoryItem | undefined> {
+): Promise<Property | undefined> {
   const db = await getDb();
-  const tx = db.transaction('inventory', 'readwrite');
+  const tx = db.transaction('property', 'readwrite');
   const item = await tx.store.get(itemId);
   
   if (item) {

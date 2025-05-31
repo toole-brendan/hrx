@@ -15,19 +15,19 @@ import (
 	"gorm.io/gorm"
 )
 
-// InventoryHandler handles inventory operations
-type InventoryHandler struct {
+// PropertyHandler handles property operations
+type PropertyHandler struct {
 	Ledger ledger.LedgerService
 	Repo   repository.Repository
 }
 
-// NewInventoryHandler creates a new inventory handler
-func NewInventoryHandler(ledgerService ledger.LedgerService, repo repository.Repository) *InventoryHandler {
-	return &InventoryHandler{Ledger: ledgerService, Repo: repo}
+// NewPropertyHandler creates a new property handler
+func NewPropertyHandler(ledgerService ledger.LedgerService, repo repository.Repository) *PropertyHandler {
+	return &PropertyHandler{Ledger: ledgerService, Repo: repo}
 }
 
-// GetAllInventoryItems returns all inventory items
-func (h *InventoryHandler) GetAllInventoryItems(c *gin.Context) {
+// GetAllProperties returns all propertys
+func (h *PropertyHandler) GetAllProperties(c *gin.Context) {
 	// Check if filtering by assigned user ID
 	var userID *uint
 	userIDStr := c.Query("assignedToUserId")
@@ -41,17 +41,17 @@ func (h *InventoryHandler) GetAllInventoryItems(c *gin.Context) {
 		userID = &tempID
 	}
 
-	items, err := h.Repo.ListProperties(userID)
+	properties, err := h.Repo.ListProperties(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch inventory items"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch properties"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"items": items})
+	c.JSON(http.StatusOK, gin.H{"properties": properties})
 }
 
-// GetInventoryItem returns a specific inventory item
-func (h *InventoryHandler) GetInventoryItem(c *gin.Context) {
+// GetProperty returns a specific property
+func (h *PropertyHandler) GetProperty(c *gin.Context) {
 	// Parse ID from URL parameter
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -59,22 +59,22 @@ func (h *InventoryHandler) GetInventoryItem(c *gin.Context) {
 		return
 	}
 
-	// Fetch item from repository
-	item, err := h.Repo.GetPropertyByID(uint(id))
+	// Fetch property from repository
+	property, err := h.Repo.GetPropertyByID(uint(id))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Inventory item not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch inventory item"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property"})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"item": item})
+	c.JSON(http.StatusOK, gin.H{"property": property})
 }
 
-// CreateInventoryItem creates a new inventory item
-func (h *InventoryHandler) CreateInventoryItem(c *gin.Context) {
+// CreateProperty creates a new property
+func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	var input domain.CreatePropertyInput
 
 	// Validate request body
@@ -96,18 +96,18 @@ func (h *InventoryHandler) CreateInventoryItem(c *gin.Context) {
 	}
 
 	// Check for duplicate serial number
-	existingItem, err := h.Repo.GetPropertyBySerialNumber(input.SerialNumber)
+	existingProperty, err := h.Repo.GetPropertyBySerialNumber(input.SerialNumber)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for existing serial number"})
 		return
 	}
-	if existingItem != nil {
+	if existingProperty != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("A digital twin with serial number '%s' already exists", input.SerialNumber)})
 		return
 	}
 
-	// Prepare the inventory item for database insertion
-	item := &domain.Property{ // Changed to pointer
+	// Prepare the property for database insertion
+	property := &domain.Property{
 		Name:             input.Name,
 		SerialNumber:     input.SerialNumber,
 		Description:      input.Description,
@@ -117,23 +117,23 @@ func (h *InventoryHandler) CreateInventoryItem(c *gin.Context) {
 	}
 
 	// Insert into database using repository
-	if err := h.Repo.CreateProperty(item); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create inventory item: " + err.Error()})
+	if err := h.Repo.CreateProperty(property); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create property: " + err.Error()})
 		return
 	}
 
-	// Log to Ledger Service (use the item *after* creation to ensure ID is populated)
-	errLedger := h.Ledger.LogItemCreation(*item, userID)
+	// Log to Ledger Service (use the property *after* creation to ensure ID is populated)
+	errLedger := h.Ledger.LogPropertyCreation(*property, userID)
 	if errLedger != nil {
 		// Log the error but don't fail the primary operation
-		log.Printf("WARNING: Failed to log item creation (ID: %d, SN: %s) to Ledger: %v", item.ID, item.SerialNumber, errLedger)
+		log.Printf("WARNING: Failed to log property creation (ID: %d, SN: %s) to Ledger: %v", property.ID, property.SerialNumber, errLedger)
 	}
 
-	c.JSON(http.StatusCreated, item)
+	c.JSON(http.StatusCreated, property)
 }
 
-// UpdateInventoryItemStatus updates the status of an inventory item
-func (h *InventoryHandler) UpdateInventoryItemStatus(c *gin.Context) {
+// UpdatePropertyStatus updates the status of an property
+func (h *PropertyHandler) UpdatePropertyStatus(c *gin.Context) {
 	// Parse ID from URL parameter
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -151,24 +151,24 @@ func (h *InventoryHandler) UpdateInventoryItemStatus(c *gin.Context) {
 		return
 	}
 
-	// Fetch item from repository
-	item, err := h.Repo.GetPropertyByID(uint(id))
+	// Fetch property from repository
+	property, err := h.Repo.GetPropertyByID(uint(id))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Inventory item not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch inventory item"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property"})
 		}
 		return
 	}
 
 	// Store old status for logging
-	oldStatus := item.CurrentStatus
+	oldStatus := property.CurrentStatus
 
 	// Update status
-	item.CurrentStatus = updateData.Status
-	if err := h.Repo.UpdateProperty(item); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update inventory item status"})
+	property.CurrentStatus = updateData.Status
+	if err := h.Repo.UpdateProperty(property); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update property status"})
 		return
 	}
 
@@ -178,24 +178,24 @@ func (h *InventoryHandler) UpdateInventoryItemStatus(c *gin.Context) {
 		userID, ok := userIDVal.(uint)
 		if ok {
 			// Log to Ledger Service
-			errLedger := h.Ledger.LogStatusChange(item.ID, item.SerialNumber, oldStatus, updateData.Status, userID)
+			errLedger := h.Ledger.LogStatusChange(property.ID, property.SerialNumber, oldStatus, updateData.Status, userID)
 			if errLedger != nil {
 				// Log error but don't fail the request
-				log.Printf("WARNING: Failed to log status change (ItemID: %d, SN: %s) to Ledger: %v", item.ID, item.SerialNumber, errLedger)
+				log.Printf("WARNING: Failed to log status change (PropertyID: %d, SN: %s) to Ledger: %v", property.ID, property.SerialNumber, errLedger)
 				c.Writer.Write([]byte("\nWarning: Failed to log status update to immutable ledger")) // Optionally notify client
 			}
 		} else {
-			log.Printf("WARNING: Could not assert userID to uint for ledger logging in UpdateInventoryItemStatus")
+			log.Printf("WARNING: Could not assert userID to uint for ledger logging in UpdatePropertyStatus")
 		}
 	} else {
-		log.Printf("WARNING: UserID not found in context for ledger logging in UpdateInventoryItemStatus")
+		log.Printf("WARNING: UserID not found in context for ledger logging in UpdatePropertyStatus")
 	}
 
-	c.JSON(http.StatusOK, gin.H{"item": item})
+	c.JSON(http.StatusOK, gin.H{"property": property})
 }
 
-// GetInventoryItemsByUser returns inventory items assigned to a specific user
-func (h *InventoryHandler) GetInventoryItemsByUser(c *gin.Context) {
+// GetPropertysByUser returns propertys assigned to a specific user
+func (h *PropertyHandler) GetPropertysByUser(c *gin.Context) {
 	// Parse user ID from URL parameter
 	userID, err := strconv.ParseUint(c.Param("userId"), 10, 32)
 	if err != nil {
@@ -203,19 +203,19 @@ func (h *InventoryHandler) GetInventoryItemsByUser(c *gin.Context) {
 		return
 	}
 
-	// Fetch items using repository
+	// Fetch properties using repository
 	userIDUint := uint(userID)
-	items, err := h.Repo.ListProperties(&userIDUint)
+	properties, err := h.Repo.ListProperties(&userIDUint)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch inventory items"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch properties"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"items": items})
+	c.JSON(http.StatusOK, gin.H{"properties": properties})
 }
 
-// GetInventoryItemHistory returns the history of an inventory item from the Ledger
-func (h *InventoryHandler) GetInventoryItemHistory(c *gin.Context) {
+// GetPropertyHistory returns the history of an property from the Ledger
+func (h *PropertyHandler) GetPropertyHistory(c *gin.Context) {
 	// Parse serial number from URL parameter
 	serialNumber := c.Param("serialNumber")
 	if serialNumber == "" {
@@ -223,29 +223,29 @@ func (h *InventoryHandler) GetInventoryItemHistory(c *gin.Context) {
 		return
 	}
 
-	// Fetch the item by serial number to get its ID
-	item, err := h.Repo.GetPropertyBySerialNumber(serialNumber)
+	// Fetch the property by serial number to get its ID
+	property, err := h.Repo.GetPropertyBySerialNumber(serialNumber)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Inventory item not found for serial number: " + serialNumber})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found for serial number: " + serialNumber})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch item by serial number: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property by serial number: " + err.Error()})
 		}
 		return
 	}
 
-	// Get item history from Ledger Service using ItemID
-	history, err := h.Ledger.GetItemHistory(item.ID)
+	// Get property history from Ledger Service using PropertyID
+	history, err := h.Ledger.GetPropertyHistory(property.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch item history from ledger: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property history from ledger: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"history": history})
 }
 
-// VerifyInventoryItem logs a verification event for an inventory item
-func (h *InventoryHandler) VerifyInventoryItem(c *gin.Context) {
+// VerifyProperty logs a verification event for an property
+func (h *PropertyHandler) VerifyProperty(c *gin.Context) {
 	// Parse ID from URL parameter
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -276,43 +276,43 @@ func (h *InventoryHandler) VerifyInventoryItem(c *gin.Context) {
 		return
 	}
 
-	// Fetch item from repository to get serial number
-	item, err := h.Repo.GetPropertyByID(uint(id))
+	// Fetch property from repository to get serial number
+	property, err := h.Repo.GetPropertyByID(uint(id))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Inventory item not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch inventory item: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property: " + err.Error()})
 		}
 		return
 	}
 
 	// Log verification event to Ledger Service
-	errLedger := h.Ledger.LogVerificationEvent(item.ID, item.SerialNumber, userID, verificationInput.VerificationType)
+	errLedger := h.Ledger.LogVerificationEvent(property.ID, property.SerialNumber, userID, verificationInput.VerificationType)
 	if errLedger != nil {
 		// Log error but don't necessarily fail the request, depending on requirements
-		log.Printf("WARNING: Failed to log verification event (ItemID: %d, SN: %s, Type: %s) to Ledger: %v", item.ID, item.SerialNumber, verificationInput.VerificationType, errLedger)
+		log.Printf("WARNING: Failed to log verification event (PropertyID: %d, SN: %s, Type: %s) to Ledger: %v", property.ID, property.SerialNumber, verificationInput.VerificationType, errLedger)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log verification event to ledger"}) // Or return 200 with warning?
 		return
 	}
 
-	log.Printf("Successfully logged verification event for ItemID: %d, SN: %s", item.ID, item.SerialNumber)
+	log.Printf("Successfully logged verification event for PropertyID: %d, SN: %s", property.ID, property.SerialNumber)
 	c.JSON(http.StatusOK, gin.H{"message": "Verification event logged successfully"})
 }
 
 // GetPropertyBySerialNumber godoc
 // @Summary Get property by serial number
-// @Description Get details for a specific property item by its unique serial number
-// @Tags Inventory
+// @Description Get details for a specific property by its unique serial number
+// @Tags Property
 // @Produce json
 // @Param serialNumber path string true "Serial Number"
 // @Success 200 {object} domain.Property "Successfully retrieved property"
 // @Failure 400 {object} map[string]string "error: Invalid Serial Number parameter"
 // @Failure 404 {object} map[string]string "error: Property not found"
 // @Failure 500 {object} map[string]string "error: Failed to fetch property"
-// @Router /inventory/serial/{serialNumber} [get]
+// @Router /property/serial/{serialNumber} [get]
 // @Security BearerAuth
-func (h *InventoryHandler) GetPropertyBySerialNumber(c *gin.Context) {
+func (h *PropertyHandler) GetPropertyBySerialNumber(c *gin.Context) {
 	serialNumber := c.Param("serialNumber")
 	if serialNumber == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Serial number parameter cannot be empty"})

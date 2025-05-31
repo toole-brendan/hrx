@@ -1,15 +1,15 @@
 import SwiftUI
 
-struct ReferenceItemDetailView: View {
+struct ReferencePropertyDetailView: View {
     // Use @StateObject to create and manage the ViewModel instance
     // The ViewModel will be kept alive for the lifecycle of this view
-    @StateObject private var viewModel: ReferenceItemDetailViewModel
+    @StateObject private var viewModel: ReferencePropertyDetailViewModel
 
     // Initializer receives the itemId and creates the ViewModel
     init(itemId: String) {
         // Initialize the StateObject with the ViewModel, passing the itemId
-        _viewModel = StateObject(wrappedValue: ReferenceItemDetailViewModel(itemId: itemId))
-         print("ReferenceItemDetailView initialized for item ID: \(itemId)")
+        _viewModel = StateObject(wrappedValue: ReferencePropertyDetailViewModel(itemId: itemId))
+         print("ReferencePropertyDetailView initialized for item ID: \(itemId)")
     }
 
     var body: some View {
@@ -47,7 +47,7 @@ struct ReferenceItemDetailView: View {
 
 // Subview for displaying the actual item content
 struct ItemDetailContent: View {
-    let item: ReferenceItem
+    let item: ReferenceProperty
 
     var body: some View {
         ScrollView {
@@ -98,11 +98,11 @@ struct ItemDetailContent: View {
 }
 
 // Preview Provider
-struct ReferenceItemDetailView_Previews: PreviewProvider {
+struct ReferencePropertyDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView { // Wrap in NavigationView for preview context
             // Provide a sample UUID string for the preview
-             ReferenceItemDetailView(itemId: UUID().uuidString) 
+             ReferencePropertyDetailView(itemId: UUID().uuidString) 
         }
     }
 } 

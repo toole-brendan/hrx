@@ -1,9 +1,9 @@
 import { 
-  saveInventoryItemsToDB, 
+  savePropertysToDB, 
   saveConsumablesToDB, 
   addConsumptionHistoryEntryToDB, 
   getConsumablesFromDB,
-  getInventoryItemsFromDB
+  getPropertysFromDB
 } from "./idb";
 import { inventory } from "./mockData";
 import { consumables, consumptionHistory } from "./consumablesData";
@@ -14,10 +14,10 @@ import { consumables, consumptionHistory } from "./consumablesData";
 export async function seedDatabase() {
   try {
     // Check if inventory data already exists
-    const existingItems = await getInventoryItemsFromDB();
+    const existingItems = await getPropertysFromDB();
     if (existingItems.length === 0) {
       console.log("Seeding inventory data...");
-      await saveInventoryItemsToDB(inventory);
+      await savePropertysToDB(inventory);
     } else {
       console.log("Inventory data already exists, skipping seeding.");
     }

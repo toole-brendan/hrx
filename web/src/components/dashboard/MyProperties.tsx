@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { inventory } from "@/lib/mockData";
-import InventoryItem from "../common/InventoryItem";
+import Property from "../common/Property";
 import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 
-const MyInventory: React.FC = () => {
+const MyProperties: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [, navigate] = useLocation();
   
@@ -57,7 +57,7 @@ const MyInventory: React.FC = () => {
             </div>
           ) : (
             filteredInventory.map((item) => (
-              <InventoryItem key={item.id} item={item} />
+              <Property key={item.id} item={item} />
             ))
           )}
         </div>
@@ -66,4 +66,4 @@ const MyInventory: React.FC = () => {
   );
 };
 
-export default MyInventory;
+export default MyProperties;

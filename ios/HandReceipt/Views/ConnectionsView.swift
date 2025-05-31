@@ -19,7 +19,7 @@ struct ConnectionsView: View {
                             // Connections Section
                             if !viewModel.connections.isEmpty {
                                 VStack(spacing: 12) {
-                                    SectionHeader(
+                                    NetworkSectionHeader(
                                         title: "MY NETWORK",
                                         subtitle: "\(viewModel.connections.count) connected",
                                         icon: "person.2.fill"
@@ -37,7 +37,7 @@ struct ConnectionsView: View {
                             // Pending Requests Section
                             if !viewModel.pendingRequests.isEmpty {
                                 VStack(spacing: 12) {
-                                    SectionHeader(
+                                    NetworkSectionHeader(
                                         title: "PENDING REQUESTS",
                                         subtitle: "\(viewModel.pendingRequests.count) waiting",
                                         icon: "clock"
@@ -93,8 +93,8 @@ struct ConnectionsView: View {
     }
 }
 
-// MARK: - Section Header
-struct SectionHeader: View {
+// MARK: - Network Section Header
+struct NetworkSectionHeader: View {
     let title: String
     let subtitle: String
     let icon: String

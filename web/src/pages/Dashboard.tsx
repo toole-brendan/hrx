@@ -35,7 +35,7 @@ import { Separator } from '@/components/ui/separator';
 import QRScannerModal from '@/components/shared/QRScannerModal';
 
 // Dashboard components
-import MyInventory from '@/components/dashboard/MyInventory';
+import MyProperties from '@/components/dashboard/MyProperties';
 import PendingTransfers from '@/components/dashboard/PendingTransfers';
 import QuickActions from '@/components/dashboard/QuickActions';
 import RecentActivity from '@/components/dashboard/RecentActivity';
@@ -50,11 +50,11 @@ import { maintenanceStats, maintenanceItems } from '@/lib/maintenanceData';
 import { useNotifications } from "@/contexts/NotificationContext";
 import { parseISO, isBefore, isAfter, addDays, startOfDay } from 'date-fns';
 import { 
-  InventoryItem as InventoryItemType, 
+  Property as PropertyType, 
   Transfer, 
   Activity, 
   Notification 
-} from "@/types"; // Import InventoryItem from @/types
+} from "@/types"; // Import Property from @/types
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -90,7 +90,7 @@ export default function Dashboard() {
     let nonOperationalCount = 0;
     let otherCount = 0;
 
-    inventory.forEach((item: InventoryItemType) => {
+    inventory.forEach((item: PropertyType) => {
       // Keep case statements lowercase, assuming type definition matches mock data
       switch (item.status) { 
         case 'operational':
@@ -258,7 +258,7 @@ export default function Dashboard() {
           
           {/* Inventory Items */}
           <div className="mb-6">
-            <MyInventory />
+            <MyProperties />
           </div>
           
           {/* Stats Tabs */}

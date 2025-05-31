@@ -29,7 +29,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(repo)
-	inventoryHandler := handlers.NewInventoryHandler(ledgerService, repo)
+	propertyHandler := handlers.NewPropertyHandler(ledgerService, repo)
 	transferHandler := handlers.NewTransferHandler(ledgerService, repo)
 	activityHandler := handlers.NewActivityHandler() // No ledger needed
 	verificationHandler := handlers.NewVerificationHandler(ledgerService)
@@ -67,18 +67,18 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	{
 		// Current user route can now be removed as it's handled above
 
-		// Inventory routes
-		inventory := protected.Group("/inventory")
+		// Property routes
+		property := protected.Group("/property")
 		{
-			inventory.GET("", inventoryHandler.GetAllInventoryItems)
-			inventory.POST("", inventoryHandler.CreateInventoryItem)
-			inventory.GET("/user/:userId", inventoryHandler.GetInventoryItemsByUser)
-			inventory.GET("/history/:serialNumber", inventoryHandler.GetInventoryItemHistory)
-			inventory.GET("/serial/:serialNumber", inventoryHandler.GetPropertyBySerialNumber)
+			property.GET("", propertyHandler.GetAllProperties)
+			property.POST("", propertyHandler.CreateProperty)
+			property.GET("/user/:userId", propertyHandler.GetPropertysByUser)
+			property.GET("/history/:serialNumber", propertyHandler.GetPropertyHistory)
+			property.GET("/serial/:serialNumber", propertyHandler.GetPropertyBySerialNumber)
 			// Move specific routes BEFORE wildcard routes to prevent conflicts
-			inventory.GET("/:id", inventoryHandler.GetInventoryItem)
-			inventory.PATCH("/:id/status", inventoryHandler.UpdateInventoryItemStatus)
-			inventory.POST("/:id/verify", inventoryHandler.VerifyInventoryItem)
+			property.GET("/:id", propertyHandler.GetProperty)
+			property.PATCH("/:id/status", propertyHandler.UpdatePropertyStatus)
+			property.POST("/:id/verify", propertyHandler.VerifyProperty)
 		}
 
 		// Transfer routes

@@ -4,11 +4,11 @@ import SwiftUI
 struct ReferenceDatabaseBrowserView: View {
     @State private var searchText = ""
     @State private var selectedCategory: EquipmentCategory = .all
-    @State private var referenceItems: [ReferenceItem] = []
+    @State private var referenceItems: [ReferenceProperty] = []
     @State private var isLoading = false
     @State private var loadingError: String?
     @State private var showingItemDetail = false
-    @State private var selectedItem: ReferenceItem?
+    @State private var selectedItem: ReferenceProperty?
     
     // Services
     private let apiService: APIServiceProtocol
@@ -17,7 +17,7 @@ struct ReferenceDatabaseBrowserView: View {
         self.apiService = apiService
     }
     
-    var filteredItems: [ReferenceItem] {
+    var filteredItems: [ReferenceProperty] {
         let categoryFiltered = referenceItems.filter { item in
             selectedCategory == .all || item.category?.lowercased() == selectedCategory.rawValue.lowercased()
         }
@@ -86,7 +86,7 @@ struct ReferenceDatabaseBrowserView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showingItemDetail) {
             if let item = selectedItem {
-                ReferenceItemDetailSheet(item: item)
+                ReferencePropertyDetailSheet(item: item)
             }
         }
         .task {
@@ -239,7 +239,7 @@ struct ReferenceDatabaseBrowserView: View {
             
             VStack(spacing: 12) {
                 ForEach(filteredItems.prefix(50)) { item in
-                    ReferenceItemCard(
+                    ReferencePropertyCard(
                         item: item,
                         onTap: {
                             selectedItem = item
@@ -262,7 +262,7 @@ struct ReferenceDatabaseBrowserView: View {
         // For now, generate mock data
         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay to simulate loading
         
-        referenceItems = generateMockReferenceItems()
+        referenceItems = generateMockReferencePropertys()
         isLoading = false
     }
     
@@ -273,9 +273,9 @@ struct ReferenceDatabaseBrowserView: View {
         return referenceItems.filter { $0.category?.lowercased() == category.rawValue.lowercased() }.count
     }
     
-    private func generateMockReferenceItems() -> [ReferenceItem] {
+    private func generateMockReferencePropertys() -> [ReferenceProperty] {
         let items = [
-            ReferenceItem(
+            ReferenceProperty(
                 id: 1,
                 name: "Night Vision Goggle AN/PVS-14",
                 nsn: "5855-01-432-8923",
@@ -287,7 +287,7 @@ struct ReferenceDatabaseBrowserView: View {
                 imageUrl: nil,
                 specifications: nil
             ),
-            ReferenceItem(
+            ReferenceProperty(
                 id: 2,
                 name: "Radio Set AN/PRC-152A",
                 nsn: "5965-01-547-3421",
@@ -299,7 +299,7 @@ struct ReferenceDatabaseBrowserView: View {
                 imageUrl: nil,
                 specifications: nil
             ),
-            ReferenceItem(
+            ReferenceProperty(
                 id: 3,
                 name: "Machine Gun M240B",
                 nsn: "1005-01-519-8385",
@@ -311,7 +311,7 @@ struct ReferenceDatabaseBrowserView: View {
                 imageUrl: nil,
                 specifications: nil
             ),
-            ReferenceItem(
+            ReferenceProperty(
                 id: 4,
                 name: "HMMWV M1151A1",
                 nsn: "2350-01-438-7522",
@@ -323,7 +323,7 @@ struct ReferenceDatabaseBrowserView: View {
                 imageUrl: nil,
                 specifications: nil
             ),
-            ReferenceItem(
+            ReferenceProperty(
                 id: 5,
                 name: "Computer Unit AN/UYK-128",
                 nsn: "5895-01-521-6789",
@@ -338,14 +338,14 @@ struct ReferenceDatabaseBrowserView: View {
         ]
         
         // Duplicate items with variations to create more data
-        var allItems: [ReferenceItem] = []
+        var allItems: [ReferenceProperty] = []
         for i in 0..<5 {
             for (index, baseItem) in items.enumerated() {
                 let newId = i * items.count + index + 1
                 let newName = i > 0 ? "\(baseItem.name) (Variant \(i))" : baseItem.name
                 let newNsn = i > 0 ? String(baseItem.nsn.dropLast(4)) + String(format: "%04d", Int.random(in: 1000...9999)) : baseItem.nsn
                 
-                let item = ReferenceItem(
+                let item = ReferenceProperty(
                     id: newId,
                     name: newName,
                     nsn: newNsn,
@@ -404,7 +404,7 @@ enum EquipmentCategory: String, CaseIterable {
     }
 }
 
-// ReferenceItem struct removed - using the one from Models/ReferenceItem.swift
+// ReferenceProperty struct removed - using the one from Models/ReferenceProperty.swift
 
 // MARK: - Header Section
 struct ReferenceDBHeaderSection: View {
@@ -520,8 +520,8 @@ struct CategoryPill: View {
 }
 
 // MARK: - Reference Item Card
-struct ReferenceItemCard: View {
-    let item: ReferenceItem
+struct ReferencePropertyCard: View {
+    let item: ReferenceProperty
     let onTap: () -> Void
     
     private var categoryEnum: EquipmentCategory {
@@ -603,8 +603,8 @@ struct ReferenceItemCard: View {
 }
 
 // MARK: - Reference Item Detail Sheet
-struct ReferenceItemDetailSheet: View {
-    let item: ReferenceItem
+struct ReferencePropertyDetailSheet: View {
+    let item: ReferenceProperty
     @Environment(\.dismiss) private var dismiss
     @State private var showingAddToInventory = false
     

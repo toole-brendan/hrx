@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useReducer, useCallback } from "react";
-import { useInventoryItems, useOfflineSync, useUpdateInventoryItemComponents, useCreateInventoryItem } from "@/hooks/useInventory";
+import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreateProperty } from "@/hooks/useProperty";
 import { useTransfers } from "@/hooks/useTransfers";
-import { InventoryItem, Transfer, Component } from "@/types";
+import { Property, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Card, 
@@ -27,8 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageWrapper } from "@/components/ui/page-wrapper";
 import TransferRequestModal from "@/components/modals/TransferRequestModal";
-import ComponentList from "@/components/inventory/ComponentList";
-import PropertyBookTable, { DisplayItem } from "@/components/inventory/PropertyBookTable";
+import ComponentList from "@/components/property/ComponentList";
+import PropertyBookTable, { DisplayItem } from "@/components/property/PropertyBookTable";
 import { 
   Search, 
   Filter, 
@@ -63,8 +63,8 @@ import {
   getCategoryColor, 
   getCategoryIcon,
   normalizeItemStatus 
-} from "@/lib/inventoryUtils";
-import CreateItemDialog from "@/components/inventory/CreateItemDialog";
+} from "@/lib/propertyUtils";
+import CreatePropertyDialog from "@/components/property/CreatePropertyDialog";
 
 interface PropertyBookProps {
   id?: string;
@@ -134,7 +134,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [state, dispatch] = useReducer(propertyBookReducer, initialState);
   
   // State that remains outside the reducer
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Property | null>(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
@@ -142,10 +142,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const { toast } = useToast();
   
   // Use React Query hooks for data fetching
-  const { data: inventoryItems = [], isLoading, error } = useInventoryItems();
+  const { data: properties = [], isLoading, error } = useProperties();
   const { data: transfers = [] } = useTransfers();
-  const updateComponents = useUpdateInventoryItemComponents();
-  const createInventoryItem = useCreateInventoryItem();
+  const updateComponents = useUpdatePropertyComponents();
+  const createProperty = useCreateProperty();
   
   // Setup offline sync
   useOfflineSync();
@@ -159,19 +159,19 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   // Create memoized data for assigned items
   const assignedToMe: DisplayItem[] = useMemo(() => {
     // Map existing properties to ensure categories are using the new system
-    return inventoryItems.map(item => ({
+    return properties.map(item => ({
       ...item,
       // Derive category from name if not already set or using old system
       category: getCategoryFromName(item.name)
     }));
-  }, [inventoryItems]);
+  }, [properties]);
   
   // Create memoized data for signed-out items based on transfers
   const signedOutItems: DisplayItem[] = useMemo(() => {
     return transfers
       .filter(transfer => transfer.status === "approved") // Assuming approved means signed out
       .map(transfer => {
-        const originalItem = inventoryItems.find(i => i.serialNumber === transfer.serialNumber);
+        const originalItem = properties.find(i => i.serialNumber === transfer.serialNumber);
         const derivedCategory = getCategoryFromName(transfer.name);
         
         return {
@@ -191,7 +191,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           parentItemId: originalItem?.parentItemId,
         }
       });
-  }, [inventoryItems, transfers]);
+  }, [properties, transfers]);
 
   // Filter items based on search and category
   const getFilteredItems = useCallback((items: DisplayItem[], tab: string): DisplayItem[] => {
@@ -252,24 +252,24 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }, [assignedToMe, signedOutItems, state.activeTab, getFilteredItems, getSortedItems]);
 
   // Handler for item transfer requests
-  const handleTransferRequest = useCallback((item: InventoryItem) => {
+  const handleTransferRequest = useCallback((item: Property) => {
     setSelectedItem(item);
     setTransferModalOpen(true);
   }, []);
 
   // Handler for viewing item details
-  const handleViewDetails = useCallback((item: InventoryItem) => {
+  const handleViewDetails = useCallback((item: Property) => {
     // Normalize status to new format when viewing details
-    const normalizedItem: InventoryItem = {
+    const normalizedItem: Property = {
       ...item,
-      status: normalizeItemStatus(item.status) as InventoryItem['status']
+      status: normalizeItemStatus(item.status) as Property['status']
     };
     setSelectedItem(normalizedItem);
     setDetailsModalOpen(true);
   }, []);
 
   // Handler for recalling an item
-  const handleRecallItem = useCallback((item: InventoryItem) => {
+  const handleRecallItem = useCallback((item: Property) => {
     toast({
       title: "Recall Action", 
       description: "Recall workflow initiated for " + item.name
@@ -416,7 +416,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       else if (signedOutItemDetails) { itemToSelect = signedOutItemDetails; }
 
       if (itemToSelect) {
-        const finalSelectedItem: InventoryItem = {
+        const finalSelectedItem: Property = {
            id: itemToSelect.id,
            name: itemToSelect.name,
            serialNumber: itemToSelect.serialNumber,
@@ -446,7 +446,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     assignToSelf: boolean;
   }) => {
     try {
-      await createInventoryItem.mutateAsync({
+      await createProperty.mutateAsync({
         name: itemData.name,
         serialNumber: itemData.serialNumber,
         description: itemData.description,
@@ -478,7 +478,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       }
       throw error; // Re-throw to let the dialog handle loading state
     }
-  }, [createInventoryItem, toast]);
+  }, [createProperty, toast]);
 
   // UI components and layout
   const actions = (
@@ -600,7 +600,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       </Card>
 
       {/* Create Item Dialog */}
-      <CreateItemDialog
+      <CreatePropertyDialog
         isOpen={createItemModalOpen}
         onClose={() => setCreateItemModalOpen(false)}
         onSubmit={handleCreateItem}

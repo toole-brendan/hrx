@@ -1,5 +1,5 @@
 import React, { Fragment } from "react";
-import { InventoryItem, Component } from "@/types";
+import { Property, Component } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 // Define types for our table components
-export type DisplayItem = InventoryItem & { 
+export type DisplayItem = Property & { 
   assignedTo?: string; 
   transferDate?: string; 
 };
@@ -31,9 +31,9 @@ type PropertyBookTableProps = {
   onItemSelect: (itemId: string) => void;
   onToggleExpand: (itemId: string) => void;
   onSelectAll: (checked: boolean) => void;
-  onTransferRequest: (item: InventoryItem) => void;
-  onViewDetails: (item: InventoryItem) => void;
-  onRecallItem: (item: InventoryItem) => void;
+  onTransferRequest: (item: Property) => void;
+  onViewDetails: (item: Property) => void;
+  onRecallItem: (item: Property) => void;
   onRequestSort: (key: string) => void;
   isLoading: boolean;
   error: string | null;
@@ -183,9 +183,9 @@ type PropertyBookTableRowProps = {
   state: PropertyBookState;
   onItemSelect: (itemId: string) => void;
   onToggleExpand: (itemId: string) => void;
-  onTransferRequest: (item: InventoryItem) => void;
-  onViewDetails: (item: InventoryItem) => void;
-  onRecallItem: (item: InventoryItem) => void;
+  onTransferRequest: (item: Property) => void;
+  onViewDetails: (item: Property) => void;
+  onRecallItem: (item: Property) => void;
   StatusBadge: React.FC<{ status: string }>;
 };
 
@@ -318,7 +318,7 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => onTransferRequest(item as InventoryItem)} 
+                    onClick={() => onTransferRequest(item as Property)} 
                     className="h-8 w-8"
                   >
                     <ArrowLeftRight className="h-4 w-4" />
@@ -333,7 +333,7 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => onRecallItem(item as InventoryItem)} 
+                    onClick={() => onRecallItem(item as Property)} 
                     className="h-8 w-8"
                   >
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -348,7 +348,7 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={() => onViewDetails(item as InventoryItem)} 
+                  onClick={() => onViewDetails(item as Property)} 
                   className="h-8 w-8"
                 >
                   <Info className="h-4 w-4" />

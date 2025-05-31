@@ -49,13 +49,13 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 		return
 	}
 
-	// Fetch the inventory item using repository to get the serial number for Ledger logging
+	// Fetch the property using repository to get the serial number for Ledger logging
 	item, err := h.Repo.GetPropertyByID(input.PropertyID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Inventory item not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch inventory item: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property: " + err.Error()})
 		}
 		return
 	}
@@ -194,12 +194,12 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 		return
 	}
 
-	// Fetch the related inventory item using repository for serial number
+	// Fetch the related property using repository for serial number
 	item, err := h.Repo.GetPropertyByID(transfer.PropertyID)
 	if err != nil {
 		log.Printf("Error fetching related item %d for transfer %d update: %v", transfer.PropertyID, transfer.ID, err)
 		// Decide if this is fatal - maybe proceed without Ledger logging? For now, fail.
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch related inventory item for logging"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch related property for logging"})
 		return
 	}
 
