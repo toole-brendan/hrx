@@ -40,7 +40,6 @@ import {
   ShieldCheck, 
   Send, 
   CheckCircle,
-  FileText,
   Package,
   Shield,
   Radio,
@@ -492,20 +491,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       >
         <Plus className="h-4 w-4" />
         <span className="text-xs uppercase tracking-wider">Create Item</span>
-      </Button>
-      <Button 
-        size="sm" 
-        variant="blue"
-        className="h-9 px-3 flex items-center gap-1.5"
-        onClick={() => {
-          toast({
-            title: "Export Generated",
-            description: "Property book report has been generated"
-          });
-        }}
-      >
-        <FileText className="h-4 w-4" />
-        <span className="text-xs uppercase tracking-wider">Export Report</span>
       </Button>
     </div>
   );

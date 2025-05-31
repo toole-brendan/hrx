@@ -15,8 +15,6 @@ import PropertyBook from "./pages/PropertyBook";
 import Profile from "./pages/Profile";
 import SensitiveItems from "./pages/SensitiveItems";
 import Maintenance from "./pages/Maintenance";
-import QRManagement from "./pages/QRManagement";
-import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UserManagement from "./pages/UserManagement";
@@ -27,10 +25,6 @@ import { queryClient } from "./lib/queryClient";
 // Define interfaces for component props with ID parameters
 interface ItemPageProps {
   id?: string;
-}
-
-interface ReportPageProps {
-  type?: string;
 }
 
 interface QRPageProps {
@@ -65,20 +59,12 @@ function Router() {
         <Route path="/maintenance/:id">
           {(params) => <Maintenance id={params.id} />}
         </Route>
-        <Route path="/qr-management" component={() => <QRManagement />} />
-        <Route path="/qr-management/:code">
-          {(params) => <QRManagement code={params.code} />}
-        </Route>
-        <Route path="/reports" component={() => <Reports />} />
-        <Route path="/reports/:type">
-          {(params) => <Reports type={params.type} />}
-        </Route>
+        <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/audit-log" component={() => <AuditLog />} />
         <Route path="/correction-log" component={() => <CorrectionLogPage />} />
         <Route path="/ledger-verification" component={() => <LedgerVerificationPage />} />
         <Route path="/settings" component={() => <Settings />} />
         <Route path="/profile" component={() => <Profile />} />
-        <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/login" component={() => <Login />} />
         <Route path="/register" component={() => <Register />} />
         <Route component={() => <NotFound />} />

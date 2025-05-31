@@ -51,7 +51,6 @@ import {
   History,
   BarChart3,
   Plus,
-  FileText,
   CalendarClock,
   ScanLine,
   Info,
@@ -326,21 +325,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
       >
         <ClipboardCheck className="h-4 w-4" />
         <span className="text-xs uppercase tracking-wider">Verify Items</span>
-      </Button>
-
-      <Button
-        variant="blue"
-        size="sm"
-        className="h-9 px-3 flex items-center gap-1.5"
-        onClick={() => {
-          toast({
-            title: "Report Generated",
-            description: "Sensitive items report has been exported"
-          });
-        }}
-      >
-        <FileText className="h-4 w-4" />
-        <span className="text-xs uppercase tracking-wider">Export Report</span>
       </Button>
     </div>
   );

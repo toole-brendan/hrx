@@ -17,7 +17,6 @@ import {
   Database,
   QrCode,
   Send,
-  FileText,
   Fingerprint,
   Search,
   Filter,
@@ -194,16 +193,6 @@ export default function Dashboard() {
       >
         <Send className="h-4 w-4" />
         <span className="hidden sm:inline text-xs uppercase tracking-wider">New Transfer</span>
-      </Button>
-      
-      <Button 
-        size="sm" 
-        variant="blue"
-        onClick={() => navigate('/reports')}
-        className="h-9 px-3 flex items-center gap-1.5"
-      >
-        <FileText className="h-4 w-4" />
-        <span className="hidden sm:inline text-xs uppercase tracking-wider">Reports</span>
       </Button>
     </div>
   );
@@ -439,16 +428,6 @@ export default function Dashboard() {
                 </div>
               </Tabs>
             </CardContent>
-            <div className="px-4 py-3 border-t border-border flex justify-end">
-              <Button 
-                variant="ghost" 
-                className="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:bg-transparent hover:text-blue-800 dark:hover:text-blue-300"
-                onClick={() => navigate("/reports")}
-              >
-                VIEW ALL REPORTS
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
           </Card>
         </div>
         

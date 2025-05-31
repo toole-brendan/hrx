@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRightLeft, Search, FileText } from "lucide-react";
+import { ArrowRightLeft, Search } from "lucide-react";
 
 interface QuickActionProps {
   icon: React.ReactNode;
@@ -85,20 +85,6 @@ const QuickActions: React.FC<QuickActionsProps> = () => {
       iconColor: "text-green-700",
       darkIconColor: "dark:text-green-500",
       onClick: () => navigate("/inventory") 
-    },
-    { 
-      icon: <FileText />, 
-      label: "Export Report", 
-      bgColor: "bg-red-100",
-      bgGradient: "bg-gradient-to-br from-red-50 to-red-100",
-      borderColor: "border-red-200",
-      darkBgGradient: "dark:from-red-900/20 dark:to-red-800/20",
-      darkBorderColor: "dark:border-red-800",
-      iconBgColor: "bg-red-200",
-      darkIconBgColor: "dark:bg-red-700/30",
-      iconColor: "text-red-700",
-      darkIconColor: "dark:text-red-500",
-      onClick: () => navigate("/audit-log") 
     },
   ];
 

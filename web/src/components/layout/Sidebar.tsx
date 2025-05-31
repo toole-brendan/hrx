@@ -21,7 +21,6 @@ import {
   BookOpen,
   Shield,
   Wrench,
-  FileText,
   User,
   Bell,
 } from "lucide-react";
@@ -111,8 +110,7 @@ const Sidebar = ({
       icon: <Send className="sidebar-item-icon" />, 
       label: "Transfers"
     },
-    { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" },
-    { path: "/reports", icon: <FileText className="sidebar-item-icon" />, label: "Reports" }
+    { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" }
   ];
   
   // Footer actions
