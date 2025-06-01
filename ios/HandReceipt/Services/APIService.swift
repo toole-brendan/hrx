@@ -57,6 +57,7 @@ public protocol APIServiceProtocol {
 
     // --- User Functions ---
     func fetchUsers(searchQuery: String?) async throws -> [UserSummary] // Expect UserSummary for selection
+    func getUserById(_ userId: Int) async throws -> UserSummary
 
     // --- User Connection Functions ---
     func getConnections() async throws -> [UserConnection]
@@ -673,6 +674,18 @@ public class APIService: APIServiceProtocol {
         let users = try await performRequest(request: request) as [UserSummary]
         debugPrint("Successfully fetched \(users.count) users")
         return users
+    }
+
+    // Get User by ID
+    public func getUserById(_ userId: Int) async throws -> UserSummary {
+        debugPrint("Fetching user with ID: \(userId)")
+        let endpoint = baseURL.appendingPathComponent("/api/auth/users/\(userId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let user = try await performRequest(request: request) as UserSummary
+        debugPrint("Successfully fetched user: \(user.username)")
+        return user
     }
 
     // --- User Connection Functions ---

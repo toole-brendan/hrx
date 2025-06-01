@@ -18,6 +18,8 @@ struct DashboardView: View {
     @State private var maintenanceNeeded = 0
     @State private var recentTransfers: [Transfer] = []
     @State private var properties: [Property] = []
+    @State private var connections: [UserConnection] = []
+    @State private var pendingConnectionRequests = 0
     
     // Loading states
     @State private var isLoading = true
@@ -110,6 +112,7 @@ struct DashboardView: View {
     private var mainContentSection: some View {
         VStack(spacing: 24) {
             statsCardsSection
+            connectionsSection
             quickActionsSection
             recentActivitySection
             equipmentStatusSection
@@ -159,6 +162,68 @@ struct DashboardView: View {
             }
         }
         .padding(.horizontal)
+    }
+    
+    private var connectionsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                SectionHeader(title: "My Network")
+                Spacer()
+                NavigationLink(destination: ConnectionsView()) {
+                    Text("VIEW ALL")
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.accent)
+                        .tracking(AppFonts.militaryTracking)
+                        .padding(.trailing)
+                }
+            }
+            
+            WebAlignedCard {
+                HStack(spacing: 20) {
+                    // Connected Users
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.2.fill")
+                                .font(.title2)
+                                .foregroundColor(AppColors.success)
+                            Text("\(connections.count)")
+                                .font(AppFonts.largeTitle)
+                                .foregroundColor(AppColors.primaryText)
+                        }
+                        Text("CONNECTED")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.secondaryText)
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Divider
+                    Rectangle()
+                        .fill(AppColors.border)
+                        .frame(width: 1)
+                        .padding(.vertical, 8)
+                    
+                    // Pending Requests
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock")
+                                .font(.title2)
+                                .foregroundColor(AppColors.warning)
+                            Text("\(pendingConnectionRequests)")
+                                .font(AppFonts.largeTitle)
+                                .foregroundColor(AppColors.primaryText)
+                        }
+                        Text("PENDING")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.secondaryText)
+                            .tracking(AppFonts.militaryTracking)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding()
+            }
+            .padding(.horizontal)
+        }
     }
     
     private var quickActionsSection: some View {
@@ -345,6 +410,11 @@ struct DashboardView: View {
             let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
             pendingTransfers = transfers.filter { $0.status.lowercased() == "pending" }.count
             recentTransfers = transfers.sorted { $0.requestDate > $1.requestDate }
+            
+            // Fetch connections
+            let allConnections = try await apiService.getConnections()
+            connections = allConnections.filter { $0.connectionStatus == .accepted }
+            pendingConnectionRequests = allConnections.filter { $0.connectionStatus == .pending }.count
             
             isLoading = false
         } catch {

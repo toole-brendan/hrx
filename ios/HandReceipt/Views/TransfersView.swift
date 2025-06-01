@@ -389,6 +389,8 @@ struct TransferCard: View {
     let onQuickReject: () -> Void
     
     @State private var isPressed = false
+    @State private var isOtherUserConnected = false
+    @StateObject private var connectionsVM = ConnectionsViewModel()
     
     private var statusColor: Color {
         switch transfer.status.uppercased() {
@@ -458,10 +460,18 @@ struct TransferCard: View {
                     HStack(spacing: 16) {
                         // From
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("FROM")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.tertiaryText)
-                                .tracking(AppFonts.militaryTracking)
+                            HStack(spacing: 4) {
+                                Text("FROM")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.tertiaryText)
+                                    .tracking(AppFonts.militaryTracking)
+                                
+                                if !isIncoming && isOtherUserConnected {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.success)
+                                }
+                            }
                             
                             if let fromUser = transfer.fromUser {
                                 Text("\(fromUser.rank ?? "") \(fromUser.lastName ?? "")")
@@ -481,10 +491,18 @@ struct TransferCard: View {
                         
                         // To
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("TO")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.tertiaryText)
-                                .tracking(AppFonts.militaryTracking)
+                            HStack(spacing: 4) {
+                                Text("TO")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.tertiaryText)
+                                    .tracking(AppFonts.militaryTracking)
+                                
+                                if isIncoming && isOtherUserConnected {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.success)
+                                }
+                            }
                             
                             if let toUser = transfer.toUser {
                                 Text("\(toUser.rank ?? "") \(toUser.lastName ?? "")")
@@ -503,7 +521,7 @@ struct TransferCard: View {
                         Image(systemName: "clock")
                             .font(.caption)
                             .foregroundColor(AppColors.tertiaryText)
-                                                    Text("Requested: \(formatDate(transfer.requestDate))")
+                            Text("Requested: \(formatDate(transfer.requestDate))")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
                     }
@@ -564,6 +582,14 @@ struct TransferCard: View {
             isPressed = pressing
         }, perform: {})
         .padding(.horizontal)
+        .task {
+            // Check if the other user is in our connections
+            let otherUserId = isIncoming ? transfer.fromUserId : transfer.toUserId
+            await connectionsVM.refresh()
+            isOtherUserConnected = connectionsVM.connections.contains { 
+                $0.connectedUserId == otherUserId && $0.connectionStatus == .accepted
+            }
+        }
     }
     
     private func formatDate(_ date: Date) -> String {
@@ -717,9 +743,9 @@ struct TransferDetailView: View {
             }
             
             // Timestamps
-                            TransferDetailRow(label: "REQUESTED", value: formatDate(transfer.requestDate))
-                
-                if let approvalDate = transfer.resolvedDate {
+            TransferDetailRow(label: "REQUESTED", value: formatDate(transfer.requestDate))
+            
+            if let approvalDate = transfer.resolvedDate {
                 Rectangle().fill(AppColors.border).frame(height: 1)
                 TransferDetailRow(label: "COMPLETED", value: formatDate(approvalDate))
             }

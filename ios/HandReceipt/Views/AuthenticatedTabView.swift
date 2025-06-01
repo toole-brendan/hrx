@@ -50,6 +50,15 @@ struct AuthenticatedTabView: View {
                     Label("Transfers", systemImage: "arrow.left.arrow.right")
                 }
 
+                // Connections Tab - NEW
+                NavigationView {
+                    ConnectionsView()
+                }
+                .tag(3)
+                .tabItem {
+                    Label("Network", systemImage: "person.2.fill")
+                }
+
                 // QR Scan functionality has been removed
                 // NavigationView {
                 //     ScanTabPlaceholderView()
@@ -180,6 +189,18 @@ struct MoreView: View {
                                 title: "Reference Database",
                                 subtitle: "Browse NSN/LIN catalog",
                                 destination: AnyView(ReferenceDatabaseBrowserView())
+                            )
+                            
+                            Divider()
+                                .background(AppColors.border)
+                            
+                            // My Network - NEW
+                            MoreActionRow(
+                                icon: "person.2.fill",
+                                iconColor: AppColors.accent,
+                                title: "My Network",
+                                subtitle: "Manage connections",
+                                destination: AnyView(ConnectionsView())
                             )
                             
                             Divider()

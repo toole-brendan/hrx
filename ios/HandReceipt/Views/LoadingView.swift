@@ -6,6 +6,10 @@ struct LoadingView: View {
     @State private var textOpacity = 0.0
     @State private var dotCount = 0
     
+    var error: Error? = nil
+    var onRetry: (() -> Void)? = nil
+    var onSkipToLogin: (() -> Void)? = nil
+    
     private let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -117,60 +121,120 @@ struct LoadingView: View {
                     .opacity(textOpacity)
                     .animation(.easeIn(duration: 1.0).delay(0.3), value: textOpacity)
                     
-                    // Loading status
-                    VStack(spacing: 8) {
-                        HStack(spacing: 4) {
-                            Text("AUTHENTICATING")
-                                .font(.system(size: 14, weight: .bold))
-                                .tracking(1.5)
-                                .foregroundColor(AppColors.tertiaryText)
+                    // Loading status or error state
+                    if let error = error {
+                        // Error state
+                        VStack(spacing: 16) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(AppColors.destructive)
+                                
+                                Text("AUTHENTICATION FAILED")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(AppColors.destructive)
+                            }
                             
-                            // Animated dots
-                            HStack(spacing: 2) {
-                                ForEach(0..<3) { index in
-                                    Text(".")
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(AppColors.accent)
-                                        .opacity(dotCount > index ? 1.0 : 0.3)
+                            Text(error.localizedDescription)
+                                .font(.system(size: 12))
+                                .foregroundColor(AppColors.tertiaryText)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                            
+                            HStack(spacing: 16) {
+                                if let onRetry = onRetry {
+                                    Button(action: onRetry) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 12))
+                                            Text("RETRY")
+                                                .font(.system(size: 12, weight: .bold))
+                                                .tracking(1.0)
+                                        }
+                                        .foregroundColor(AppColors.primaryText)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 10)
+                                        .background(AppColors.accent)
+                                        .cornerRadius(4)
+                                    }
+                                }
+                                
+                                if let onSkipToLogin = onSkipToLogin {
+                                    Button(action: onSkipToLogin) {
+                                        Text("LOGIN")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .tracking(1.0)
+                                            .foregroundColor(AppColors.accent)
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 10)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .stroke(AppColors.accent, lineWidth: 1)
+                                            )
+                                    }
                                 }
                             }
                         }
-                        
-                        // Progress bar
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                // Background
-                                Rectangle()
-                                    .fill(AppColors.secondaryBackground)
-                                    .frame(height: 4)
-                                    .overlay(
-                                        Rectangle()
-                                            .stroke(AppColors.border, lineWidth: 1)
-                                    )
+                        .padding(.top, 32)
+                        .opacity(textOpacity)
+                        .animation(.easeIn(duration: 1.0).delay(0.6), value: textOpacity)
+                    } else {
+                        // Loading state
+                        VStack(spacing: 8) {
+                            HStack(spacing: 4) {
+                                Text("AUTHENTICATING")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(AppColors.tertiaryText)
                                 
-                                // Animated fill
-                                Rectangle()
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                AppColors.accent,
-                                                AppColors.accent.opacity(0.7)
-                                            ]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: geometry.size.width * 0.7, height: 4)
-                                    .scaleEffect(x: isScaling ? 1.0 : 0.3, y: 1.0, anchor: .leading)
-                                    .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isScaling)
+                                // Animated dots
+                                HStack(spacing: 2) {
+                                    ForEach(0..<3) { index in
+                                        Text(".")
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(AppColors.accent)
+                                            .opacity(dotCount > index ? 1.0 : 0.3)
+                                    }
+                                }
                             }
+                            
+                            // Progress bar
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    // Background
+                                    Rectangle()
+                                        .fill(AppColors.secondaryBackground)
+                                        .frame(height: 4)
+                                        .overlay(
+                                            Rectangle()
+                                                .stroke(AppColors.border, lineWidth: 1)
+                                        )
+                                    
+                                    // Animated fill
+                                    Rectangle()
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [
+                                                    AppColors.accent,
+                                                    AppColors.accent.opacity(0.7)
+                                                ]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(width: geometry.size.width * 0.7, height: 4)
+                                        .scaleEffect(x: isScaling ? 1.0 : 0.3, y: 1.0, anchor: .leading)
+                                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isScaling)
+                                }
+                            }
+                            .frame(height: 4)
+                            .frame(maxWidth: 200)
                         }
-                        .frame(height: 4)
-                        .frame(maxWidth: 200)
+                        .padding(.top, 32)
+                        .opacity(textOpacity)
+                        .animation(.easeIn(duration: 1.0).delay(0.6), value: textOpacity)
                     }
-                    .padding(.top, 32)
-                    .opacity(textOpacity)
-                    .animation(.easeIn(duration: 1.0).delay(0.6), value: textOpacity)
                 }
                 
                 // Version info

@@ -257,6 +257,9 @@ struct RequestTransferView: View {
 // MARK: - Property Request Card
 struct PropertyRequestCard: View {
     let property: Property
+    @State private var isOwnerConnected = false
+    @State private var ownerInfo: UserSummary?
+    @StateObject private var connectionsVM = ConnectionsViewModel()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -288,8 +291,79 @@ struct PropertyRequestCard: View {
                 Divider()
                 PropertyDetailRow(label: "STATUS", value: (property.status ?? property.currentStatus ?? "Unknown").uppercased())
                 
-                // TODO: Add current holder information when available from API
-                // Currently, Property model doesn't include currentHolder field
+                // Owner Information - simplified since we only have user ID
+                if let assignedToUserId = property.assignedToUserId {
+                    Divider()
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("CURRENT HOLDER:")
+                                .font(AppFonts.captionBold)
+                                .foregroundColor(AppColors.tertiaryText)
+                                .tracking(AppFonts.militaryTracking)
+                            
+                            if let owner = ownerInfo {
+                                Text("\(owner.rank ?? "") \(owner.lastName ?? owner.username)")
+                                    .font(AppFonts.bodyBold)
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                Text("@\(owner.username)")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.secondaryText)
+                            } else {
+                                Text("User #\(assignedToUserId)")
+                                    .font(AppFonts.body)
+                                    .foregroundColor(AppColors.secondaryText)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        // Connection Status Badge
+                        if ownerInfo != nil {
+                            if isOwnerConnected {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.caption)
+                                    Text("CONNECTED")
+                                        .font(AppFonts.captionBold)
+                                        .tracking(AppFonts.militaryTracking)
+                                }
+                                .foregroundColor(AppColors.success)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppColors.success.opacity(0.15))
+                                .overlay(
+                                    Rectangle()
+                                        .stroke(AppColors.success.opacity(0.3), lineWidth: 1)
+                                )
+                            } else {
+                                Button(action: {
+                                    if let holderId = property.assignedToUserId {
+                                        Task {
+                                            do {
+                                                let _ = try await APIService().sendConnectionRequest(targetUserId: holderId)
+                                                await connectionsVM.refresh()
+                                            } catch {
+                                                print("Failed to send connection request: \(error)")
+                                            }
+                                        }
+                                    }
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "person.badge.plus")
+                                            .font(.caption)
+                                        Text("CONNECT")
+                                            .font(AppFonts.captionBold)
+                                            .tracking(AppFonts.militaryTracking)
+                                    }
+                                }
+                                .buttonStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.top, 8)
+                }
             }
             .padding()
         }
@@ -298,6 +372,23 @@ struct PropertyRequestCard: View {
             Rectangle()
                 .stroke(AppColors.border, lineWidth: 1)
         )
+        .task {
+            // Try to load owner info and check connection status
+            if let holderId = property.assignedToUserId {
+                // Fetch user info
+                do {
+                    ownerInfo = try await APIService().getUserById(holderId)
+                } catch {
+                    print("Failed to fetch owner info: \(error)")
+                }
+                
+                // Check if they're connected
+                await connectionsVM.refresh()
+                isOwnerConnected = connectionsVM.connections.contains { 
+                    $0.connectedUserId == holderId && $0.connectionStatus == .accepted
+                }
+            }
+        }
     }
 }
 

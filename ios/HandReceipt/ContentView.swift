@@ -53,10 +53,20 @@ struct ContentView: View {
         VStack {
             // Show loading indicator while checking session
             if isLoading {
-                LoadingView()
-                    .transition(.opacity)
-                    .zIndex(1) // Ensure it's on top
-                    .onAppear(perform: checkSessionStatus)
+                LoadingView(
+                    error: loadingError,
+                    onRetry: {
+                        loadingError = nil
+                        checkSessionStatus()
+                    },
+                    onSkipToLogin: {
+                        isLoading = false
+                        loadingError = nil
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(1) // Ensure it's on top
+                .onAppear(perform: checkSessionStatus)
             } else if !isAuthenticated {
                 LoginView { loginResponse in
                     debugPrint("ContentView: Login successful for user \(loginResponse.user.username)")

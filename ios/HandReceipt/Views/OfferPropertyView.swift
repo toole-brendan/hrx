@@ -13,21 +13,150 @@ struct OfferPropertyView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                propertySection
-                recipientsSection
-                offerDetailsSection
+            ZStack {
+                AppColors.appBackground.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Property Section
+                        VStack(alignment: .leading, spacing: 0) {
+                            SectionHeader(title: "PROPERTY DETAILS")
+                            
+                            WebAlignedCard {
+                                VStack(spacing: 0) {
+                                    PropertyInfoRow(label: "NAME", value: property.name)
+                                    Divider().background(AppColors.border)
+                                    PropertyInfoRow(label: "SERIAL", value: property.serialNumber)
+                                    if let nsn = property.nsn {
+                                        Divider().background(AppColors.border)
+                                        PropertyInfoRow(label: "NSN", value: nsn)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Recipients Section
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                SectionHeader(title: "SELECT RECIPIENTS")
+                                Spacer()
+                                if !selectedFriends.isEmpty {
+                                    Text("\(selectedFriends.count) SELECTED")
+                                        .font(AppFonts.captionBold)
+                                        .foregroundColor(AppColors.accent)
+                                        .tracking(AppFonts.militaryTracking)
+                                        .padding(.trailing)
+                                }
+                            }
+                            
+                            if connections.isEmpty && !isLoading {
+                                EmptyConnectionsMessage()
+                                    .padding()
+                            } else {
+                                LazyVStack(spacing: 12) {
+                                    ForEach(connections) { connection in
+                                        OfferConnectionRow(
+                                            connection: connection,
+                                            isSelected: selectedFriends.contains(String(connection.connectedUserId)),
+                                            onTap: { toggleSelection(for: connection) }
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                        
+                        // Offer Details Section
+                        VStack(alignment: .leading, spacing: 0) {
+                            SectionHeader(title: "OFFER DETAILS")
+                            
+                            VStack(spacing: 16) {
+                                // Notes Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("NOTES (OPTIONAL)")
+                                        .font(AppFonts.captionBold)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                        .tracking(AppFonts.militaryTracking)
+                                    
+                                    ZStack(alignment: .topLeading) {
+                                        TextEditor(text: $notes)
+                                            .frame(minHeight: 80, maxHeight: 120)
+                                            .font(AppFonts.body)
+                                            .padding(12)
+                                            .background(AppColors.secondaryBackground)
+                                            .overlay(
+                                                Rectangle()
+                                                    .stroke(AppColors.border, lineWidth: 1)
+                                            )
+                                        
+                                        if notes.isEmpty {
+                                            Text("Add a message to the recipients...")
+                                                .font(AppFonts.body)
+                                                .foregroundColor(AppColors.tertiaryText)
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 16)
+                                                .allowsHitTesting(false)
+                                        }
+                                    }
+                                }
+                                
+                                // Expiration Stepper
+                                WebAlignedCard {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("OFFER EXPIRES IN")
+                                                .font(AppFonts.captionBold)
+                                                .foregroundColor(AppColors.tertiaryText)
+                                                .tracking(AppFonts.militaryTracking)
+                                            
+                                            Text("\(expiresInDays) DAYS")
+                                                .font(AppFonts.headline)
+                                                .foregroundColor(AppColors.primaryText)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Stepper("", value: $expiresInDays, in: 1...30)
+                                            .labelsHidden()
+                                    }
+                                    .padding()
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Action Button
+                        Button(action: createOffer) {
+                            HStack(spacing: 12) {
+                                if isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "paperplane.fill")
+                                }
+                                Text(isLoading ? "SENDING OFFERS..." : "SEND OFFERS")
+                                    .tracking(AppFonts.militaryTracking)
+                            }
+                            .font(AppFonts.bodyBold)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.primary)
+                        .disabled(selectedFriends.isEmpty || isLoading)
+                        .padding(.horizontal)
+                        
+                        Spacer(minLength: 50)
+                    }
+                }
             }
             .navigationTitle("Offer Property")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Send Offer") { createOffer() }
-                        .disabled(selectedFriends.isEmpty || isLoading)
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.accent)
                 }
             }
             .disabled(isLoading)
@@ -37,64 +166,8 @@ struct OfferPropertyView: View {
         }
     }
     
-    // Break up the view into smaller components to avoid type-checking timeout
-    private var propertySection: some View {
-        Section(header: Text("Property")) {
-            HStack {
-                Text("Item:")
-                Spacer()
-                Text(property.name)
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack {
-                Text("Serial:")
-                Spacer()
-                Text(property.serialNumber)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-    
-    private var recipientsSection: some View {
-        Section(header: Text("Select Recipients")) {
-            if connections.isEmpty {
-                Text("No connections found")
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(connections) { connection in
-                    OfferConnectionRow(
-                        connection: connection,
-                        isSelected: selectedFriends.contains(String(connection.connectedUserId)),
-                        onTap: { toggleSelection(for: connection) }
-                    )
-                }
-            }
-        }
-    }
-    
-    private var offerDetailsSection: some View {
-        Section(header: Text("Offer Details")) {
-            // iOS 15 compatible multi-line text field
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Notes (Optional)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                TextEditor(text: $notes)
-                    .frame(minHeight: 60, maxHeight: 120)
-                    .padding(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                    )
-            }
-            
-            Stepper("Expires in \(expiresInDays) days", value: $expiresInDays, in: 1...30)
-        }
-    }
-    
     private func toggleSelection(for connection: UserConnection) {
-        let id = String(connection.connectedUserId)  // Fixed: use connectedUserId
+        let id = String(connection.connectedUserId)
         if selectedFriends.contains(id) {
             selectedFriends.remove(id)
         } else {
@@ -103,11 +176,13 @@ struct OfferPropertyView: View {
     }
     
     private func loadConnections() async {
+        isLoading = true
         do {
-            connections = try await apiService.getConnections()  // Fixed: use APIService instance
+            connections = try await apiService.getConnections()
         } catch {
             print("Failed to load connections: \(error)")
         }
+        isLoading = false
     }
     
     private func createOffer() {
@@ -121,7 +196,7 @@ struct OfferPropertyView: View {
                     
                     let expiresAt = Calendar.current.date(byAdding: .day, value: expiresInDays, to: Date())
                     
-                    let request = TransferOfferRequest(  // Fixed: use correct model
+                    let request = TransferOfferRequest(
                         propertyId: property.id,
                         offeredToUserId: recipientId,
                         notes: notes.isEmpty ? nil : notes,
@@ -141,37 +216,105 @@ struct OfferPropertyView: View {
     }
 }
 
-// Renamed to avoid conflict with ConnectionsView
+// MARK: - Property Info Row
+struct PropertyInfoRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text("\(label):")
+                .font(AppFonts.captionBold)
+                .foregroundColor(AppColors.tertiaryText)
+                .tracking(AppFonts.militaryTracking)
+                .frame(width: 80, alignment: .leading)
+            
+            Text(value)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+                .lineLimit(1)
+            
+            Spacer()
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Empty Connections Message
+struct EmptyConnectionsMessage: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.2.slash")
+                .font(.system(size: 48))
+                .foregroundColor(AppColors.tertiaryText)
+            
+            Text("NO CONNECTIONS")
+                .font(AppFonts.bodyBold)
+                .foregroundColor(AppColors.secondaryText)
+                .tracking(AppFonts.militaryTracking)
+            
+            Text("Add connections to offer property transfers")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+    }
+}
+
+// MARK: - Offer Connection Row
 struct OfferConnectionRow: View {
     let connection: UserConnection
     let isSelected: Bool
     let onTap: () -> Void
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(connection.connectedUser?.username ?? "Unknown")
-                    .font(.headline)
-                if let rank = connection.connectedUser?.rank,
-                   let lastName = connection.connectedUser?.lastName {
-                    Text("\(rank) \(lastName)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else if let rank = connection.connectedUser?.rank {
-                    Text(rank)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                // Avatar
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? AppColors.accent.opacity(0.2) : AppColors.tertiaryBackground)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Circle()
+                                .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: 1)
+                        )
+                    
+                    Text((connection.connectedUser?.lastName ?? connection.connectedUser?.username ?? "?").prefix(1))
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(isSelected ? AppColors.accent : AppColors.secondaryText)
                 }
+                
+                // User Info
+                VStack(alignment: .leading, spacing: 4) {
+                    if let user = connection.connectedUser {
+                        Text("\(user.rank ?? "") \(user.lastName ?? user.username)")
+                            .font(AppFonts.bodyBold)
+                            .foregroundColor(AppColors.primaryText)
+                        
+                        Text("@\(user.username)")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                }
+                
+                Spacer()
+                
+                // Selection Indicator
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(isSelected ? AppColors.accent : AppColors.tertiaryText)
             }
-            
-            Spacer()
-            
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.blue)
-            }
+            .padding()
+            .background(isSelected ? AppColors.accent.opacity(0.05) : AppColors.secondaryBackground)
+            .overlay(
+                Rectangle()
+                    .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: 1)
+            )
         }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
+        .buttonStyle(PlainButtonStyle())
     }
 } 

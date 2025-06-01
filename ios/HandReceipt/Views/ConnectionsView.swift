@@ -6,12 +6,18 @@ struct ConnectionsView: View {
     @State private var showingAddConnection = false
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                AppColors.appBackground.ignoresSafeArea()
+        ZStack(alignment: .top) {
+            // Main content
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Spacer for header
+                Color.clear
+                    .frame(height: 36)
                 
                 if viewModel.isLoading {
                     ConnectionsLoadingView()
+                        .padding(.top, 40)
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
@@ -72,24 +78,54 @@ struct ConnectionsView: View {
                     }
                 }
             }
-            .navigationTitle("My Network")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddConnection = true }) {
-                        Image(systemName: "person.badge.plus")
-                            .font(.title3)
-                            .foregroundColor(AppColors.accent)
+            
+            // Top bar header
+            headerSection
+        }
+        .navigationTitle("")
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingAddConnection) {
+            AddConnectionView()
+        }
+        .onAppear {
+            viewModel.loadConnections()
+        }
+    }
+    
+    // MARK: - Header Section
+    
+    private var headerSection: some View {
+        ZStack {
+            // Background that extends to top of screen
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            // Content positioned at bottom of header
+            VStack {
+                Spacer()
+                ZStack {
+                    // Center the title
+                    Text("NETWORK")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(AppColors.primaryText)
+                        .kerning(1.2)
+                        .frame(maxWidth: .infinity)
+                    
+                    // Add button aligned to trailing edge
+                    HStack {
+                        Spacer()
+                        Button(action: { showingAddConnection = true }) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 18))
+                                .foregroundColor(AppColors.accent)
+                        }
                     }
                 }
-            }
-            .sheet(isPresented: $showingAddConnection) {
-                AddConnectionView()
-            }
-            .onAppear {
-                viewModel.loadConnections()
+                .padding(.horizontal)
+                .padding(.bottom, 12)
             }
         }
+        .frame(height: 36)
     }
 }
 
