@@ -170,7 +170,7 @@ class DA2062ImportViewModel: ObservableObject {
             if let nsn = item.parsed.nsn {
                 do {
                     let nsnDetails = try await nsnService.lookupNSN(nsn)
-                    enriched.officialName = nsnDetails.name
+                    enriched.officialName = nsnDetails.nomenclature
                     enriched.manufacturer = nsnDetails.manufacturer
                     enriched.partNumber = nsnDetails.partNumber
                 } catch {

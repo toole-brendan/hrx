@@ -48,6 +48,7 @@
 		BF4A1C4A2DECCFA10066ADD9 /* DA2062Patterns.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C492DECCFA10066ADD9 /* DA2062Patterns.swift */; };
 		BF4A1C4C2DECD01B0066ADD9 /* DA2062ImportProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C4B2DECD01B0066ADD9 /* DA2062ImportProgressView.swift */; };
 		BF4A1C4E2DECD03E0066ADD9 /* DA2062ImportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C4D2DECD03E0066ADD9 /* DA2062ImportViewModel.swift */; };
+		BF4A1C502DECD0A40066ADD9 /* NSNService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C4F2DECD0A40066ADD9 /* NSNService.swift */; };
 		BF8172312DEA96A10086B2DD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8172302DEA96A10086B2DD /* SettingsView.swift */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
@@ -117,6 +118,7 @@
 		BF4A1C492DECCFA10066ADD9 /* DA2062Patterns.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062Patterns.swift; sourceTree = "<group>"; };
 		BF4A1C4B2DECD01B0066ADD9 /* DA2062ImportProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ImportProgressView.swift; sourceTree = "<group>"; };
 		BF4A1C4D2DECD03E0066ADD9 /* DA2062ImportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ImportViewModel.swift; sourceTree = "<group>"; };
+		BF4A1C4F2DECD0A40066ADD9 /* NSNService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSNService.swift; sourceTree = "<group>"; };
 		BF8172302DEA96A10086B2DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -186,6 +188,7 @@
 		9AD52AE44496465F5F0F3B16 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C4F2DECD0A40066ADD9 /* NSNService.swift */,
 				BF4A1C492DECCFA10066ADD9 /* DA2062Patterns.swift */,
 				BF4A1C452DECC7CD0066ADD9 /* DA2062OCRService.swift */,
 				BF4A1C362DEC950D0066ADD9 /* TransferService.swift */,
@@ -399,6 +402,7 @@
 				BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */,
 				BFC223D12DAB3E1F00ACF884 /* CommonImports.swift in Sources */,
 				BFA128142DEA3D3200C12800 /* AuthManager.swift in Sources */,
+				BF4A1C502DECD0A40066ADD9 /* NSNService.swift in Sources */,
 				BF4A1C4C2DECD01B0066ADD9 /* DA2062ImportProgressView.swift in Sources */,
 				BF4A1C332DEC879C0066ADD9 /* ConnectionsViewModel.swift in Sources */,
 				BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */,

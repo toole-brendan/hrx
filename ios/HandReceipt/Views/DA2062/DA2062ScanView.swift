@@ -4,9 +4,12 @@ import VisionKit
 struct DA2062ScanView: View {
     @StateObject private var scannerViewModel = DA2062DocumentScannerViewModel()
     @StateObject private var da2062ViewModel = DA2062ScanViewModel()
+    @StateObject private var importViewModel = DA2062ImportViewModel()
     @State private var showingScanner = false
     @State private var showingProcessingView = false
     @State private var showingReviewSheet = false
+    @State private var showingImportProgress = false
+    @State private var showingImportSummary = false
     @State private var scannerAvailable = VNDocumentCameraViewController.isSupported
     
     var body: some View {
@@ -118,9 +121,40 @@ struct DA2062ScanView: View {
                     form: da2062ViewModel.currentForm,
                     scannedPages: scannerViewModel.scannedPages,
                     onConfirm: { items in
-                        da2062ViewModel.createProperties(from: items)
+                        // Start the import process with progress tracking
+                        showingReviewSheet = false
+                        showingImportProgress = true
+                        
+                        Task {
+                            // Use the first scanned image for processing
+                            if let firstImage = scannerViewModel.scannedPages.first?.image {
+                                await importViewModel.processDA2062WithProgress(image: firstImage)
+                            }
+                        }
                     }
                 )
+            }
+            .sheet(isPresented: $showingImportProgress) {
+                DA2062ImportProgressView(viewModel: importViewModel)
+                    .interactiveDismissDisabled(importViewModel.isImporting)
+            }
+            .sheet(isPresented: $showingImportSummary) {
+                DA2062ImportSummaryView(
+                    totalItems: importViewModel.importSummary.total,
+                    successfulItems: importViewModel.importSummary.successful,
+                    errors: importViewModel.progress.errors,
+                    onDismiss: {
+                        showingImportSummary = false
+                        // Reset import view model
+                        importViewModel.progress = ImportProgress(totalItems: 0)
+                    }
+                )
+            }
+            .onChange(of: importViewModel.showingSummary) { showingSummary in
+                if showingSummary {
+                    showingImportProgress = false
+                    showingImportSummary = true
+                }
             }
         }
     }
