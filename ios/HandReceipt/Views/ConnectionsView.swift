@@ -11,7 +11,7 @@ struct ConnectionsView: View {
                 AppColors.appBackground.ignoresSafeArea()
                 
                 if viewModel.isLoading {
-                    LoadingView()
+                    ConnectionsLoadingView()
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
@@ -137,32 +137,21 @@ struct ConnectionRow: View {
                     .fill(AppColors.accent.opacity(0.2))
                     .frame(width: 48, height: 48)
                 
-                Text(connection.connectedUser.name.prefix(1))
+                Text((connection.connectedUser?.lastName ?? connection.connectedUser?.username ?? "?").prefix(1))
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.accent)
             }
             
             // User Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(connection.connectedUser.name)
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.primaryText)
-                
-                HStack(spacing: 8) {
-                    if let rank = connection.connectedUser.rank {
-                        Text(rank)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.accent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(AppColors.accent.opacity(0.1))
-                    }
+                if let user = connection.connectedUser {
+                    Text("\(user.rank ?? "") \(user.lastName ?? user.username)")
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
                     
-                    if let unit = connection.connectedUser.unit {
-                        Text(unit)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.secondaryText)
-                    }
+                    Text("@\(user.username)")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
                 }
             }
             
@@ -204,33 +193,20 @@ struct PendingRequestRow: View {
                         .fill(AppColors.warning.opacity(0.2))
                         .frame(width: 48, height: 48)
                     
-                    Text(request.requester.name.prefix(1))
+                    Text((request.requester.lastName ?? request.requester.username).prefix(1))
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.warning)
                 }
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(request.requester.name)
+                    Text("\(request.requester.rank ?? "") \(request.requester.lastName ?? request.requester.username)")
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.primaryText)
                     
-                    HStack(spacing: 8) {
-                        if let rank = request.requester.rank {
-                            Text(rank)
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.accent)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(AppColors.accent.opacity(0.1))
-                        }
-                        
-                        if let unit = request.requester.unit {
-                            Text(unit)
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                        }
-                    }
+                    Text("@\(request.requester.username)")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
                     
                     Text("Wants to connect")
                         .font(AppFonts.caption)
@@ -407,7 +383,7 @@ struct AddConnectionView: View {
 
 // MARK: - User Search Result Row
 struct UserSearchResultRow: View {
-    let user: User
+    let user: UserSummary
     let onConnect: () -> Void
     
     var body: some View {
@@ -418,33 +394,20 @@ struct UserSearchResultRow: View {
                     .fill(AppColors.accent.opacity(0.2))
                     .frame(width: 44, height: 44)
                 
-                Text(user.name.prefix(1))
+                Text((user.lastName ?? user.username).prefix(1))
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.accent)
             }
             
             // User Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(user.name)
+                Text("\(user.rank ?? "") \(user.lastName ?? user.username)")
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.primaryText)
                 
-                HStack(spacing: 8) {
-                    if let rank = user.rank {
-                        Text(rank)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.accent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(AppColors.accent.opacity(0.1))
-                    }
-                    
-                    if let unit = user.unit {
-                        Text(unit)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.secondaryText)
-                    }
-                }
+                Text("@\(user.username)")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
             }
             
             Spacer()
@@ -473,7 +436,7 @@ struct UserSearchResultRow: View {
 }
 
 // MARK: - Loading View
-struct LoadingView: View {
+struct ConnectionsLoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
             ProgressView()

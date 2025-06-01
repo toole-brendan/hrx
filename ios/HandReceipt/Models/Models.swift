@@ -95,7 +95,7 @@ public struct TransferRequest: Codable {
 }
 
 // Model for transfer offers
-public struct TransferOffer: Codable, Identifiable {
+public struct TransferOffer: Decodable, Identifiable {
     public let id: Int
     public let property: Property?
     public let offeror: UserSummary?
@@ -104,15 +104,4 @@ public struct TransferOffer: Codable, Identifiable {
     public let expiresAt: Date?
     public let createdAt: Date?
     public let updatedAt: Date?
-    
-    public init(id: Int, property: Property?, offeror: UserSummary?, offeredTo: UserSummary?, notes: String?, expiresAt: Date?, createdAt: Date?, updatedAt: Date?) {
-        self.id = id
-        self.property = property
-        self.offeror = offeror
-        self.offeredTo = offeredTo
-        self.notes = notes
-        self.expiresAt = expiresAt
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-    }
 } 

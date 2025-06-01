@@ -17,8 +17,7 @@ struct SerialNumberRequestView: View {
                         .textInputAutocapitalization(.characters)
                         .disableAutocorrection(true)
                     
-                    TextField("Notes (Optional)", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
+                    TextField("Notes (Optional)", text: $notes)
                 }
                 
                 Section {
@@ -29,16 +28,11 @@ struct SerialNumberRequestView: View {
             }
             .navigationTitle("Request by Serial")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Request") { requestTransfer() }
-                        .disabled(serialNumber.isEmpty || isLoading)
-                }
-            }
+            .navigationBarItems(
+                leading: Button("Cancel") { dismiss() },
+                trailing: Button("Request") { requestTransfer() }
+                    .disabled(serialNumber.isEmpty || isLoading)
+            )
             .alert("Error", isPresented: $showError) {
                 Button("OK") { }
             } message: {
@@ -56,13 +50,22 @@ struct SerialNumberRequestView: View {
     }
     
     private func requestTransfer() {
+        // For now, just dismiss the view since TransferService is not fully implemented
+        dismiss()
+        
+        // TODO: Implement when TransferService is available
+        /*
         isLoading = true
         
         Task {
             do {
-                let request = RequestBySerialInput(
-                    serialNumber: serialNumber.trimmingCharacters(in: .whitespacesAndNewlines),
-                    notes: notes.isEmpty ? nil : notes
+                let trimmedSerial = serialNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+                let requestNotes: String? = notes.isEmpty ? nil : notes
+                
+                let request = SerialTransferRequest(
+                    serialNumber: trimmedSerial,
+                    requestedFromUserId: nil,
+                    notes: requestNotes
                 )
                 
                 try await TransferService.shared.requestBySerial(request)
@@ -74,5 +77,6 @@ struct SerialNumberRequestView: View {
             
             isLoading = false
         }
+        */
     }
 } 
