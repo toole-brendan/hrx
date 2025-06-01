@@ -228,9 +228,47 @@ public class APIService: APIServiceProtocol {
     
     private let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601 // Matches Property model
+        
+        // Custom date formatter that handles fractional seconds
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        
+        // Create custom date decoding strategy that tries multiple formats
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            // Try with fractional seconds first
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+            
+            // Try ISO8601 without fractional seconds
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+            
+            // Try standard ISO8601
+            let iso8601Formatter = ISO8601DateFormatter()
+            iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = iso8601Formatter.date(from: dateString) {
+                return date
+            }
+            
+            // Try without fractional seconds
+            iso8601Formatter.formatOptions = [.withInternetDateTime]
+            if let date = iso8601Formatter.date(from: dateString) {
+                return date
+            }
+            
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
+        }
+        
         decoder.keyDecodingStrategy = .convertFromSnakeCase // Handle snake_case keys from server
-        debugPrint("Creating JSONDecoder with .iso8601 date strategy and .convertFromSnakeCase key strategy")
+        debugPrint("Creating JSONDecoder with custom date strategy and .convertFromSnakeCase key strategy")
         return decoder
     }()
 

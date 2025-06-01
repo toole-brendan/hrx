@@ -173,5 +173,10 @@ extension Property {
 
 // Wrapper for responses that contain an array of properties
 struct PropertyResponse: Decodable {
-    let items: [Property]
+    let properties: [Property]
+    
+    // Map properties to items for compatibility
+    var items: [Property] {
+        return properties
+    }
 } 
