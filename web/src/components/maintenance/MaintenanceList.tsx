@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MaintenanceItem } from "@/lib/maintenanceData"; // Adjust path if needed
-import { MaintenanceItemRow } from './MaintenanceItemRow'; // Import the row component
+import { MaintenancePropertyRow } from './MaintenancePropertyRow'; // Import the row component
 import { Search, Wrench, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -181,7 +181,7 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({
               <MaintenanceListHeader sortConfig={sortConfig} onSort={onSort} />
               <div className="divide-y divide-border px-0">
                 {items.map((item) => (
-                  <MaintenanceItemRow
+                  <MaintenancePropertyRow
                     key={item.id}
                     item={item}
                     onViewDetails={onViewDetails}

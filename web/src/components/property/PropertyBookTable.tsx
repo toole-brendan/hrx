@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { PropertyBookState } from "@/lib/propertyBookReducer";
-import { getCategoryColor, getCategoryIcon, getCategoryFromName, getCategoryLabel } from "@/lib/inventoryUtils";
+import { getCategoryColor, getCategoryIcon, getCategoryFromName, getCategoryLabel } from "@/lib/propertyUtils";
 import { 
   ArrowLeftRight, 
   CheckCircle, 

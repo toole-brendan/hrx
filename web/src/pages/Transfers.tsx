@@ -55,7 +55,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import StatusBadge from "@/components/common/StatusBadge"; // Ensure this path is correct
-import QRScannerModal from "@/components/shared/QRScannerModal"; // Ensure this path is correct
 import { useToast } from "@/hooks/use-toast";
 import { PageWrapper } from "@/components/ui/page-wrapper";
 import { PageHeader } from "@/components/ui/page-header";
@@ -92,7 +91,6 @@ import {
   BookOpen // For Property Book link
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import QRCodeGenerator from "@/components/common/QRCodeGenerator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; 
 // Import the extracted components
 import { 
@@ -107,8 +105,7 @@ import {
 import { 
   fetchTransfers, 
   createTransfer, 
-  updateTransferStatus,
-  initiateTransferByQR
+  updateTransferStatus
 } from '@/services/transferService';
 
 // --- State Management with useReducer (Modified) ---
@@ -128,7 +125,6 @@ interface TransfersState {
   filterStatus: TransferStatusFilter;
   activeView: TransferView;
   sortConfig: SortConfig;
-  showScanner: boolean;
   showNewTransfer: boolean;
   showTransferDetails: Transfer | null;
   transferToConfirm: { id: string; action: 'approve' | 'reject' } | null;
@@ -139,7 +135,6 @@ type TransfersAction =
   | { type: 'SET_FILTER_STATUS'; payload: TransferStatusFilter }
   | { type: 'SET_ACTIVE_VIEW'; payload: TransferView }
   | { type: 'SET_SORT_CONFIG'; payload: SortField }
-  | { type: 'TOGGLE_SCANNER'; payload: boolean }
   | { type: 'TOGGLE_NEW_TRANSFER'; payload: boolean }
   | { type: 'SHOW_DETAILS'; payload: Transfer | null }
   | { type: 'CONFIRM_ACTION'; payload: { id: string; action: 'approve' | 'reject' } | null }
@@ -150,7 +145,6 @@ const initialState: TransfersState = {
   filterStatus: "all",
   activeView: 'incoming',
   sortConfig: { field: 'date', order: 'desc' },
-  showScanner: false,
   showNewTransfer: false,
   showTransferDetails: null,
   transferToConfirm: null,
@@ -167,8 +161,6 @@ function transfersReducer(state: TransfersState, action: TransfersAction): Trans
     case 'SET_SORT_CONFIG':
       const newOrder = state.sortConfig.field === action.payload && state.sortConfig.order === 'asc' ? 'desc' : 'asc';
       return { ...state, sortConfig: { field: action.payload, order: newOrder } };
-    case 'TOGGLE_SCANNER':
-      return { ...state, showScanner: action.payload };
     case 'TOGGLE_NEW_TRANSFER':
       return { ...state, showNewTransfer: action.payload };
     case 'SHOW_DETAILS':
@@ -199,7 +191,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const queryClient = useQueryClient(); // Get query client
 
   const [state, dispatch] = useReducer(transfersReducer, initialState);
-  const { searchTerm, filterStatus, activeView, sortConfig, showScanner, showNewTransfer, showTransferDetails, transferToConfirm } = state;
+  const { searchTerm, filterStatus, activeView, sortConfig, showNewTransfer, showTransferDetails, transferToConfirm } = state;
 
   // Fetch transfers using useQuery
   const { 
@@ -250,24 +242,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     }
   });
 
-  // Add mutation for QR-initiated transfers
-  const initiateTransferByQRMutation = useMutation({
-    mutationFn: initiateTransferByQR,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['transfers'] });
-      toast({
-        title: "Transfer Initiated",
-        description: `Transfer request ${data.transferId} has been sent to the current holder.`
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Transfer Failed",
-        description: error.message || "Failed to initiate transfer via QR code",
-        variant: "destructive"
-      });
-    }
-  });
+
 
   // Helper for Blockchain recording
   const handleBlockchainRecord = (transfer: Transfer) => {
@@ -344,33 +319,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     // Logic moved to onSuccess
   };
 
-  // Update QR Scan handler to use the new API endpoint
-  const handleScanComplete = (result: string) => {
-    try {
-      // Parse the QR data - expecting JSON format from our QR codes
-      const qrData = JSON.parse(result);
-      
-      // Validate it's a HandReceipt QR code
-      if (qrData.type !== 'handreceipt_property') {
-        throw new Error("Invalid QR Code - not a HandReceipt property code");
-      }
 
-      // Use mutation to initiate transfer
-      initiateTransferByQRMutation.mutate({
-        qrData: qrData,
-        scannedAt: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      toast({ 
-        title: "QR Scan Error", 
-        description: error instanceof Error ? error.message : "Invalid QR code format", 
-        variant: "destructive" 
-      });
-    } finally {
-      dispatch({ type: 'TOGGLE_SCANNER', payload: false });
-    }
-  };
 
   // --- Filtering and Sorting Logic (Memoized) ---
   const filteredTransfers = useMemo(() => {
@@ -488,17 +437,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
               <Plus className="h-4 w-4" />
               <span className="text-xs uppercase tracking-wider">New Transfer</span>
             </Button>
-            <Button
-              size="sm"
-              variant="blue"
-              onClick={() => dispatch({ type: 'TOGGLE_SCANNER', payload: true })}
-              className="h-9 px-3 flex items-center gap-1.5"
-            >
-              <ScanLine className="h-4 w-4" />
-              <span className="text-xs uppercase tracking-wider">Scan QR</span>
-            </Button>
-            {/* QR Code Generator might be less relevant here than in QRManagement */}
-            {/* <QRCodeGenerator ... /> */}
           </div>
         </div>
       </div>
@@ -627,15 +565,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       </Card>
 
       {/* --- Modals and Dialogs --- */}
-
-      {/* QR Scanner Modal */}
-      {showScanner && (
-        <QRScannerModal
-          isOpen={showScanner}
-          onClose={() => dispatch({ type: 'TOGGLE_SCANNER', payload: false })}
-          onScan={handleScanComplete}
-        />
-      )}
 
       {/* Using extracted components */}
       <NewTransferDialog

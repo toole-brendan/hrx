@@ -93,7 +93,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Label } from "@/components/ui/label";
 import { MaintenanceStatusBadge, MaintenancePriorityBadge } from '@/components/maintenance/MaintenanceBadges';
 import { Play, Radio, Sword } from '@/components/ui/custom-icons';
-import { MaintenanceItemRow } from '@/components/maintenance/MaintenanceItemRow';
+import { MaintenancePropertyRow } from '@/components/maintenance/MaintenancePropertyRow';
 import { MaintenanceList } from '@/components/maintenance/MaintenanceList';
 import { MaintenanceDashboard } from '@/components/maintenance/MaintenanceDashboard';
 import { MaintenanceBulletinBoard } from '@/components/maintenance/MaintenanceBulletinBoard';

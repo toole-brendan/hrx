@@ -21,8 +21,6 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageWrapper } from "@/components/ui/page-wrapper";
 import { Separator } from "@/components/ui/separator";
-import QRCodeGenerator from "@/components/common/QRCodeGenerator";
-import QRDisplay from "@/components/common/QRDisplay";
 import TransferRequestModal from "@/components/modals/TransferRequestModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -165,7 +163,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
   const [selectedItem, setSelectedItem] = useState<SensitiveItem | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const [showQRDialog, setShowQRDialog] = useState(false);
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [assignmentTab, setAssignmentTab] = useState<'me' | 'others' | 'unassigned'>('me');
   const isMobile = useIsMobile();
@@ -310,16 +307,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
       <Button
         size="sm"
         variant="blue"
-        onClick={() => setShowQRDialog(true)}
-        className="h-9 px-3 flex items-center gap-1.5"
-      >
-        <QrCode className="h-4 w-4" />
-        <span className="text-xs uppercase tracking-wider">Scan QR Code</span>
-      </Button>
-
-      <Button
-        size="sm"
-        variant="blue"
         onClick={() => setShowVerifyDialog(true)}
         className="h-9 px-3 flex items-center gap-1.5"
       >
@@ -412,20 +399,7 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
             </div>
           </div>
           
-          {/* QR Code Section */}
-          <div className="mt-4 py-4 border-t border-dashed">
-            <h3 className="text-sm font-medium mb-2">Item QR Code</h3>
-            <div className="flex justify-center bg-white p-4 rounded-md">
-              <QRDisplay
-                value={`handreceipt://sensitive-items/${selectedItem.id}`} 
-                size={150} 
-                includeMargin={true}
-              />
-            </div>
-            <p className="text-xs text-center text-muted-foreground mt-2">
-              Scan this code during physical verification
-            </p>
-          </div>
+
           
           {/* Add the Blockchain Ledger component here */}
           <BlockchainLedger item={selectedItem} />
@@ -663,10 +637,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                           </TooltipTrigger>
                           <TooltipContent>Mark Verified</TooltipContent>
                         </Tooltip>
-                        <QRCodeGenerator 
-                          itemName={item.name} 
-                          serialNumber={item.serialNumber}
-                        />
                     </CardFooter>
                   </Card>
                 );
@@ -769,10 +739,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                                   </TooltipTrigger>
                                   <TooltipContent>Mark Verified</TooltipContent>
                                </Tooltip>
-                               <QRCodeGenerator 
-                                  itemName={item.name} 
-                                  serialNumber={item.serialNumber}
-                                />
                             </div>
                           </TableCell>
                         </TableRow>

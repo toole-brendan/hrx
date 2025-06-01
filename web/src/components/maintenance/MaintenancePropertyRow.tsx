@@ -7,14 +7,14 @@ import { Tag, Calendar, User, CheckCircle } from 'lucide-react';
 import { format } from "date-fns";
 
 // Props interface for the component
-interface MaintenanceItemRowProps {
+interface MaintenancePropertyRowProps {
   item: MaintenanceItem;
   onViewDetails: (item: MaintenanceItem) => void;
   onStartMaintenance: (item: MaintenanceItem) => void;
   onCompleteMaintenance: (item: MaintenanceItem) => void;
 }
 
-export const MaintenanceItemRow: React.FC<MaintenanceItemRowProps> = ({
+export const MaintenancePropertyRow: React.FC<MaintenancePropertyRowProps> = ({
   item,
   onViewDetails,
   onStartMaintenance,

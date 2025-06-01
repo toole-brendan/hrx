@@ -15,7 +15,6 @@ import {
   CheckCircle,
   Clock8,
   Database,
-  QrCode,
   Send,
   Fingerprint,
   Search,
@@ -32,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageWrapper } from '@/components/ui/page-wrapper';
 import { PageHeader } from '@/components/ui/page-header';
 import { Separator } from '@/components/ui/separator';
-import QRScannerModal from '@/components/shared/QRScannerModal';
+
 
 // Dashboard components
 import MyProperties from '@/components/dashboard/MyProperties';
@@ -59,7 +58,7 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [showQRScannerModal, setShowQRScannerModal] = useState(false);
+
   const { addNotification } = useNotifications();
   const [maintenanceCheckDone, setMaintenanceCheckDone] = useState(false);
 
@@ -91,26 +90,21 @@ export default function Dashboard() {
     let otherCount = 0;
 
     inventory.forEach((item: PropertyType) => {
-      // Keep case statements lowercase, assuming type definition matches mock data
+      // Match the actual Property status type definition
       switch (item.status) { 
-        case 'operational':
-        case 'ntc-prepped':
+        case 'Operational':
           operationalCount++;
           break;
-        case 'maintenance':
-        case 'awaiting-parts':
-        case 'bn-level-maint': 
-        case 'needs-reset': 
+        case 'Deadline - Maintenance':
+        case 'In Repair':
           maintenanceCount++;
           break;
-        case 'non-operational':
-        case 'damaged':
-        case 'deadline': // Assuming deadline means non-operational
+        case 'Non-Operational':
+        case 'Damaged':
           nonOperationalCount++;
           break;
-        case 'scheduled-for-turn-in':
-        case 'limited-use':
-        case 'active': // Map legacy 'active' to 'other' or 'operational' if preferred
+        case 'Deadline - Supply':
+        case 'Lost':
         default:
           otherCount++; 
           break;
@@ -178,16 +172,6 @@ export default function Dashboard() {
       <Button 
         size="sm" 
         variant="blue"
-        onClick={() => setShowQRScannerModal(true)}
-        className="h-9 px-3 flex items-center gap-1.5"
-      >
-        <QrCode className="h-4 w-4" />
-        <span className="hidden sm:inline text-xs uppercase tracking-wider">Scan QR Code</span>
-      </Button>
-      
-      <Button 
-        size="sm" 
-        variant="blue"
         onClick={() => navigate('/transfers')}
         className="h-9 px-3 flex items-center gap-1.5"
       >
@@ -247,7 +231,7 @@ export default function Dashboard() {
         <div className="text-xs uppercase tracking-wider font-medium mb-4 text-muted-foreground">
           QUICK ACTIONS
         </div>
-        <QuickActions openScanner={() => setShowQRScannerModal(true)} />
+        <QuickActions />
       </div>
 
       {/* Main Content Grid with split layout */}
@@ -298,9 +282,9 @@ export default function Dashboard() {
                         <p className="text-xs tracking-wide text-muted-foreground mt-1">Last 7 days average</p>
                       </div>
                       <div className="p-4 border border-border bg-muted/80 dark:bg-zinc-900 shadow-sm">
-                        <h4 className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground mb-2">QR SCANS</h4>
-                        <div className="text-2xl font-light tracking-tight">32</div>
-                        <p className="text-xs tracking-wide text-muted-foreground mt-1">Last 24 hours</p>
+                        <h4 className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground mb-2">MAINTENANCE</h4>
+                        <div className="text-2xl font-light tracking-tight">{maintenanceStats.scheduled + maintenanceStats.inProgress}</div>
+                        <p className="text-xs tracking-wide text-muted-foreground mt-1">Items requiring attention</p>
                       </div>
                     </div>
                   </TabsContent>
@@ -436,42 +420,42 @@ export default function Dashboard() {
           {/* Activity Feed */}
           <RecentActivity />
           
-          {/* QR Management Summary */}
+          {/* Equipment Status Summary */}
           <Card className="overflow-hidden border-border shadow-none bg-card">
             <div className="p-4 flex justify-between items-baseline">
               <div>
                 <div className="uppercase text-xs tracking-wider font-medium text-muted-foreground mb-1">
-                  QR TRACKING
+                  EQUIPMENT STATUS
                 </div>
                 <div className="text-lg font-normal">
-                  Barcode status
+                  Current overview
                 </div>
               </div>
               
               <Button 
                 variant="ghost" 
                 className="text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:bg-transparent hover:text-blue-800 dark:hover:text-blue-300"
-                onClick={() => navigate('/qr-management')}
+                onClick={() => navigate('/property-book')}
               >
-                MANAGE ALL
+                VIEW ALL
               </Button>
             </div>
             
             <CardContent className="px-4 pb-4">
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="tracking-wide">Total QR Codes</span>
+                  <span className="tracking-wide">Total Items</span>
                   <span className="font-medium">{inventory.length}</span>
                 </div>
                 <Separator className="bg-border" />
                 <div className="flex justify-between items-center text-sm">
-                  <span className="tracking-wide">Needs Reprinting</span>
-                  <Badge variant="outline" className="bg-yellow-100/70 dark:bg-transparent text-yellow-700 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 uppercase text-[10px] tracking-wider rounded-none">2</Badge>
+                  <span className="tracking-wide">Operational</span>
+                  <Badge variant="outline" className="bg-green-100/70 dark:bg-transparent text-green-700 dark:text-green-400 border border-green-600 dark:border-green-500 uppercase text-[10px] tracking-wider rounded-none">{readinessStats.operational.count}</Badge>
                 </div>
                 <Separator className="bg-border" />
                 <div className="flex justify-between items-center text-sm">
-                  <span className="tracking-wide">Recently Generated</span>
-                  <Badge variant="outline" className="bg-green-100/70 dark:bg-transparent text-green-700 dark:text-green-400 border border-green-600 dark:border-green-500 uppercase text-[10px] tracking-wider rounded-none">5</Badge>
+                  <span className="tracking-wide">Need Maintenance</span>
+                  <Badge variant="outline" className="bg-amber-100/70 dark:bg-transparent text-amber-700 dark:text-amber-400 border border-amber-600 dark:border-amber-500 uppercase text-[10px] tracking-wider rounded-none">{readinessStats.maintenance.count}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -526,17 +510,7 @@ export default function Dashboard() {
         </div>
       </div>
       
-      {/* QR Scanner Modal */}
-      {showQRScannerModal && (
-        <QRScannerModal 
-          isOpen={showQRScannerModal} 
-          onClose={() => setShowQRScannerModal(false)}
-          onScan={(code) => {
-            console.log("QR Code scanned:", code);
-            setShowQRScannerModal(false);
-          }}
-        />
-      )}
+
     </PageWrapper>
   );
 }

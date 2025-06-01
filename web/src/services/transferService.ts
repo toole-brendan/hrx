@@ -128,27 +128,7 @@ export async function getTransferById(id: string): Promise<Transfer> {
   return mapBackendTransferToFrontend(backendTransfer);
 }
 
-/**
- * Initiate a transfer by QR code scan
- */
-export async function initiateTransferByQR(qrData: {
-  qrData: Record<string, any>;
-  scannedAt: string;
-}): Promise<{ transferId: string; status: string }> {
-  const response = await fetch(`${API_BASE_URL}/transfers/qr-initiate`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(qrData),
-  });
-  
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to initiate QR transfer: ${error}`);
-  }
-  
-  return response.json();
-}
+
 
 /**
  * Delete a transfer (if permitted)
