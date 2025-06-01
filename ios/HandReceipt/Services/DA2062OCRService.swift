@@ -36,6 +36,7 @@ class DA2062OCRService {
     
     // MARK: - Properties
     private let minimumConfidenceThreshold: Float = 0.5  // Lower threshold with .accurate
+    private let patterns = DA2062Patterns()  // Enhanced pattern recognition
     
     // MARK: - Main Processing Method
     func processImage(_ image: UIImage, completion: @escaping (Result<DA2062Form, Error>) -> Void) {
@@ -97,12 +98,12 @@ class DA2062OCRService {
     
     // Custom military terms to improve recognition accuracy
     private func customMilitaryTerms() -> [String] {
-        return [
+        // Combine basic terms with enhanced military terms
+        var terms = [
             // Common military abbreviations on DA-2062
-            "NSN", "LIN", "EA", "BX", "PR", "FT", "DOZ",
-            // Military equipment terms
-            "CARBINE", "MAGAZINE", "OPTIC", "NVGS", "IOTV", "ACH",
-            "ESAPI", "IFAK", "SINCGARS", "ASIP", "ACOG", "EOTECH",
+            "NSN", "LIN", "EA", "PR", "BX", "DZ", "GR", "CS", "HD", "ST", "SE", 
+            "KT", "PG", "PK", "RL", "CN", "BT", "GL", "DR", "QT", "PT", "LB", 
+            "OZ", "FT", "IN", "YD", "MI", "M", "CM", "MM", "KM",
             // Common form headers
             "HAND RECEIPT", "STOCK NUMBER", "ITEM DESCRIPTION",
             "UNIT OF ISSUE", "QUANTITY", "SERIAL NUMBER",
@@ -110,20 +111,25 @@ class DA2062OCRService {
             "DODAAC", "UIC", "PBO", "MTOE", "TDA", "FEDLOG",
             "PROPERTY BOOK", "COMPONENT", "END ITEM"
         ]
+        
+        // Add all terms from MilitaryTerms
+        terms.append(contentsOf: DA2062Patterns.MilitaryTerms.allTerms)
+        
+        return terms
     }
     
     // MARK: - Parsing Methods
     private func parseDA2062(from observations: [VNRecognizedTextObservation], originalImage: UIImage) -> DA2062Form {
-        var items: [DA2062Item] = []
         var overallConfidence: Double = 0.0
         var confidenceCount = 0
         
         var unitName: String?
         var dodaac: String?
+        var formNumber: String?
         var allTextLines: [String] = []
         
+        // First pass - collect all high-confidence text lines
         for observation in observations {
-            // With .accurate, we get better confidence scores
             guard let candidate = observation.topCandidates(1).first else { continue }
             
             let text = candidate.string
@@ -133,7 +139,7 @@ class DA2062OCRService {
             overallConfidence += Double(confidence)
             confidenceCount += 1
             
-            // Only process high-confidence text (threshold lower with .accurate)
+            // Only process high-confidence text
             if confidence > minimumConfidenceThreshold {
                 allTextLines.append(text)
                 
@@ -145,11 +151,23 @@ class DA2062OCRService {
                 if text.contains("DODAAC:") || text.contains("UIC:") {
                     dodaac = extractValue(from: text, after: ["DODAAC:", "UIC:"])
                 }
+                
+                if text.contains("FORM") && text.contains("2062") {
+                    formNumber = extractFormNumber(from: text)
+                }
             }
         }
         
-        // Parse items from collected text lines
-        items = parseItemsFromLines(allTextLines)
+        // Use enhanced multi-line detection
+        let itemGroups = patterns.detectMultiLineItems(from: allTextLines)
+        var items: [DA2062Item] = []
+        
+        // Parse each group of lines as a single item
+        for (index, group) in itemGroups.enumerated() {
+            if let item = parseItemFromGroup(group, lineNumber: index + 1) {
+                items.append(item)
+            }
+        }
         
         let avgConfidence = confidenceCount > 0 ? overallConfidence / Double(confidenceCount) : 0.0
         
@@ -163,9 +181,85 @@ class DA2062OCRService {
             dodaac: dodaac,
             dateCreated: Date(),
             items: items,
-            formNumber: "DA2062-\(Int(Date().timeIntervalSince1970))",
+            formNumber: formNumber ?? "DA2062-\(Int(Date().timeIntervalSince1970))",
             confidence: avgConfidence
         )
+    }
+    
+    private func parseItemFromGroup(_ lines: [String], lineNumber: Int) -> DA2062Item? {
+        // Join lines to check for complete item info
+        let fullText = lines.joined(separator: " ")
+        
+        // Try to parse as single line first
+        if var item = patterns.parseItemLine(fullText, lineNumber: lineNumber) {
+            // Check if serial number is in subsequent lines
+            if item.serialNumber == nil && lines.count > 1 {
+                if let serial = patterns.extractSerialFromLines(lines) {
+                    item.serialNumber = serial
+                    item.hasExplicitSerial = true
+                }
+            }
+            return item
+        }
+        
+        // If single line parsing failed, try parsing first line and enhance with subsequent lines
+        guard let firstLine = lines.first else { return nil }
+        
+        var item = DA2062Item(
+            lineNumber: lineNumber,
+            stockNumber: nil,
+            itemDescription: "",
+            quantity: 1,
+            unitOfIssue: "EA",
+            serialNumber: nil,
+            condition: "Serviceable",
+            confidence: 0.0,
+            quantityConfidence: 0.8,
+            hasExplicitSerial: false
+        )
+        
+        // Extract components from first line
+        if let nsn = patterns.extractNSN(from: firstLine) {
+            item.stockNumber = nsn
+        }
+        
+        if let lin = patterns.extractLIN(from: firstLine) {
+            item.itemDescription = "[LIN: \(lin)] "
+        }
+        
+        // Extract from all lines
+        for line in lines {
+            if let unit = patterns.extractUnitOfIssue(from: line) {
+                item.unitOfIssue = unit
+            }
+            
+            // Try to extract quantity from each line
+            if let qty = extractQuantityFromLine(line) {
+                item.quantity = qty
+            }
+        }
+        
+        // Extract serial from multi-line
+        if let serial = patterns.extractSerialFromLines(lines) {
+            item.serialNumber = serial
+            item.hasExplicitSerial = true
+        }
+        
+        // Build description from remaining text
+        var description = fullText
+        if let nsn = item.stockNumber {
+            description = description.replacingOccurrences(of: nsn, with: "")
+        }
+        description = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if !description.isEmpty {
+            item.itemDescription += description
+        }
+        
+        // Calculate confidence
+        item.confidence = calculateItemConfidence(item: item)
+        
+        return item.itemDescription.isEmpty && item.stockNumber == nil ? nil : item
     }
     
     private func extractValue(from text: String, after keywords: [String]) -> String? {
@@ -181,17 +275,59 @@ class DA2062OCRService {
         return nil
     }
     
-    private func parseItemsFromLines(_ lines: [String]) -> [DA2062Item] {
-        // Use the enhanced parsing method
-        return parseItemsFromLinesEnhanced(lines)
+    private func extractFormNumber(from text: String) -> String? {
+        // Extract form number pattern like "2062-R-NOV-2017"
+        let pattern = "2062[A-Z0-9-]*"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let range = Range(match.range, in: text) {
+            return String(text[range])
+        }
+        return nil
     }
     
-    private func extractGroup(from string: String, at index: Int, in match: NSTextCheckingResult) -> String? {
-        guard index < match.numberOfRanges else { return nil }
-        let range = match.range(at: index)
-        guard range.location != NSNotFound,
-              let swiftRange = Range(range, in: string) else { return nil }
-        return String(string[swiftRange]).trimmingCharacters(in: .whitespaces)
+    private func extractQuantityFromLine(_ line: String) -> Int? {
+        // Look for standalone numbers that could be quantities
+        let pattern = "\\b(\\d{1,3})\\b"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+            let matches = regex.matches(in: line, range: NSRange(line.startIndex..., in: line))
+            
+            for match in matches {
+                if let range = Range(match.range(at: 1), in: line) {
+                    let numberStr = String(line[range])
+                    if let number = Int(numberStr), number > 0 && number <= 999 {
+                        // Check context to see if this is likely a quantity
+                        let beforeIndex = line.index(range.lowerBound, offsetBy: -min(10, line.distance(from: line.startIndex, to: range.lowerBound)))
+                        let afterIndex = line.index(range.upperBound, offsetBy: min(10, line.distance(from: range.upperBound, to: line.endIndex)))
+                        let context = String(line[beforeIndex..<afterIndex])
+                        
+                        // If near a unit of issue, likely a quantity
+                        if patterns.extractUnitOfIssue(from: context) != nil {
+                            return number
+                        }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    private func calculateItemConfidence(item: DA2062Item) -> Double {
+        var confidence = 0.5 // Base confidence
+        
+        if item.stockNumber != nil {
+            confidence += 0.2
+        }
+        
+        if !item.itemDescription.isEmpty && item.itemDescription.count > 5 {
+            confidence += 0.15
+        }
+        
+        if item.serialNumber != nil && item.hasExplicitSerial {
+            confidence += 0.15
+        }
+        
+        return min(confidence, 1.0)
     }
     
     // MARK: - Device Capability Check
@@ -292,176 +428,4 @@ extension DA2062OCRService {
 }
 #endif
 
-// MARK: - OCR Service Enhancement for Quantity Detection
-
-extension DA2062OCRService {
-    
-    private func parseItemLine(_ line: String, lineNumber: Int) -> DA2062Item? {
-        let components = line.split(separator: " ", maxSplits: 10, omittingEmptySubsequences: true)
-        
-        guard components.count >= 3 else { return nil }
-        
-        let nsn = extractNSN(from: String(components[0]))
-        
-        // Enhanced quantity parsing with confidence
-        let (quantity, quantityConfidence) = extractQuantity(from: components)
-        
-        // Look for explicit serial number
-        let (serialNumber, hasExplicitSerial) = extractSerialNumber(from: line)
-        
-        // Build description from middle components
-        let descriptionEndIndex = max(1, components.count - 2)
-        let description = components[1..<descriptionEndIndex].joined(separator: " ")
-        
-        // Extract unit of issue
-        let unit = extractUnitOfIssue(from: components)
-        
-        return DA2062Item(
-            lineNumber: lineNumber,
-            stockNumber: nsn,
-            itemDescription: description,
-            quantity: quantity,
-            unitOfIssue: unit,
-            serialNumber: serialNumber,
-            condition: "Serviceable",
-            confidence: calculateItemConfidence(nsn: nsn, description: description),
-            quantityConfidence: quantityConfidence,
-            hasExplicitSerial: hasExplicitSerial
-        )
-    }
-    
-    private func extractQuantity(from components: [String.SubSequence]) -> (quantity: Int, confidence: Double) {
-        // DA-2062 typically has quantity in one of the last columns
-        // Look for numeric values near the end
-        
-        for i in (max(0, components.count - 4)..<components.count).reversed() {
-            if let qty = Int(components[i]) {
-                // Confidence based on position and value reasonableness
-                let confidence: Double
-                if qty >= 1 && qty <= 99 {
-                    confidence = 0.9 // Reasonable quantity
-                } else if qty >= 100 && qty <= 999 {
-                    confidence = 0.7 // Less common but possible
-                } else {
-                    confidence = 0.5 // Unusual quantity
-                }
-                
-                return (qty, confidence)
-            }
-        }
-        
-        // Default to 1 with low confidence if not found
-        return (1, 0.3)
-    }
-    
-    private func extractNSN(from text: String) -> String? {
-        // NSN format: 1234-56-789-0123
-        let nsnPattern = #"\d{4}-\d{2}-\d{3}-\d{4}"#
-        
-        if let regex = try? NSRegularExpression(pattern: nsnPattern),
-           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-           let range = Range(match.range, in: text) {
-            return String(text[range])
-        }
-        
-        return nil
-    }
-    
-    private func extractSerialNumber(from line: String) -> (serial: String?, hasExplicit: Bool) {
-        // Look for common serial number patterns
-        let patterns = [
-            "SN:\\s*([A-Z0-9]+)",
-            "S/N:\\s*([A-Z0-9]+)",
-            "SERIAL:\\s*([A-Z0-9]+)",
-            "SER NO:\\s*([A-Z0-9]+)"
-        ]
-        
-        for pattern in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
-               let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
-               let range = Range(match.range(at: 1), in: line) {
-                return (String(line[range]), true)
-            }
-        }
-        
-        // Check for standalone alphanumeric strings that might be serials
-        // (6-20 characters, mix of letters and numbers)
-        let components = line.split(separator: " ")
-        for component in components {
-            let str = String(component)
-            if str.count >= 6 && str.count <= 20 &&
-               str.contains(where: { $0.isLetter }) &&
-               str.contains(where: { $0.isNumber }) &&
-               !str.contains("-") { // Not an NSN
-                return (str, false) // Found but with lower confidence
-            }
-        }
-        
-        return (nil, false)
-    }
-    
-    private func extractUnitOfIssue(from components: [String.SubSequence]) -> String {
-        let commonUnits = ["EA", "PR", "SE", "BX", "RL", "FT", "YD", "LB", "OZ", "GL", "QT", "PT"]
-        
-        // Check last few components for unit
-        for i in (max(0, components.count - 3)..<components.count).reversed() {
-            let component = String(components[i]).uppercased()
-            if commonUnits.contains(component) {
-                return component
-            }
-        }
-        
-        return "EA" // Default to "each"
-    }
-    
-    private func calculateItemConfidence(nsn: String?, description: String) -> Double {
-        var confidence = 0.5 // Base confidence
-        
-        if nsn != nil && nsn!.count == 16 { // Valid NSN format (includes dashes)
-            confidence += 0.2
-        }
-        
-        if description.count > 5 && description.count < 100 { // Reasonable description length
-            confidence += 0.2
-        }
-        
-        if description.contains(where: { $0.isLetter }) { // Has letters (not just numbers)
-            confidence += 0.1
-        }
-        
-        return min(confidence, 1.0)
-    }
-    
-    // Enhanced parseItemsFromLines to use the new parsing logic
-    func parseItemsFromLinesEnhanced(_ lines: [String]) -> [DA2062Item] {
-        var items: [DA2062Item] = []
-        var lineNumber = 1
-        
-        for line in lines {
-            // Skip empty lines and headers
-            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-            if trimmedLine.isEmpty || isHeaderLine(trimmedLine) {
-                continue
-            }
-            
-            // Try to parse as item line
-            if let item = parseItemLine(trimmedLine, lineNumber: lineNumber) {
-                items.append(item)
-                lineNumber += 1
-            }
-        }
-        
-        return items
-    }
-    
-    private func isHeaderLine(_ line: String) -> Bool {
-        let headerKeywords = [
-            "HAND RECEIPT", "DA FORM", "STOCK NUMBER", "ITEM DESCRIPTION",
-            "UNIT OF ISSUE", "QUANTITY", "SERIAL NUMBER", "END ITEM",
-            "PAGE", "DODAAC", "UNIT", "DATE", "NOMENCLATURE"
-        ]
-        
-        let upperLine = line.uppercased()
-        return headerKeywords.contains { upperLine.contains($0) }
-    }
-} 
+ 
