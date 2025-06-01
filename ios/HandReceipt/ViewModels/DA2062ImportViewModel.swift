@@ -201,8 +201,8 @@ class DA2062ImportViewModel: ObservableObject {
             )
             
             do {
-                let property = buildProperty(from: item)
-                _ = try await apiService.createProperty(property, photoData: nil)
+                let propertyInput = buildProperty(from: item)
+                _ = try await apiService.createProperty(propertyInput)
                 successCount += 1
             } catch {
                 addError(ImportError(
@@ -223,36 +223,16 @@ class DA2062ImportViewModel: ObservableObject {
         print("Import complete: \(successCount) of \(items.count) items created successfully")
     }
     
-    private func buildProperty(from item: EnrichedItem) -> Property {
-        let importMetadata = ImportMetadata(
-            sourceType: "da2062_scan",
-            importDate: Date(),
-            confidence: item.validated.confidence,
-            serialSource: item.validated.parsed.serialNumber != nil ? "explicit" : "generated",
-            requiresVerification: item.validated.confidence < 0.8,
-            verificationReasons: item.validated.confidence < 0.8 ? ["Low OCR confidence"] : []
-        )
-        
-        return Property(
-            id: 0, // Will be assigned by backend
-            serialNumber: item.validated.parsed.serialNumber ?? generateSerialNumber(),
-            nsn: item.validated.parsed.nsn,
-            lin: item.validated.parsed.lin,
+    private func buildProperty(from item: EnrichedItem) -> CreatePropertyInput {
+        return CreatePropertyInput(
             name: item.officialName ?? item.validated.parsed.description,
+            serialNumber: item.validated.parsed.serialNumber ?? generateSerialNumber(),
             description: item.validated.parsed.description,
-            manufacturer: item.manufacturer,
-            imageUrl: nil,
-            status: "Active",
             currentStatus: "Active",
+            propertyModelId: nil,
             assignedToUserId: nil,
-            location: nil,
-            lastInventoryDate: Date(),
-            location_lat: nil,
-            location_lon: nil,
-            importMetadata: importMetadata,
-            sourceType: "da2062_scan",
-            quantity: item.validated.parsed.quantity,
-            unitOfIssue: item.validated.parsed.unitOfIssue
+            nsn: item.validated.parsed.nsn,
+            lin: item.validated.parsed.lin
         )
     }
     

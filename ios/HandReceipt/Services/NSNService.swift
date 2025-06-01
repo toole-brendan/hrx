@@ -11,7 +11,7 @@ class NSNService {
     
     func lookupNSN(_ nsn: String) async throws -> NSNDetails {
         // Call the backend NSN lookup endpoint
-        let response = try await apiService.lookupNSN(nsn)
+        let response = try await apiService.lookupNSN(nsn: nsn)
         return response.data
     }
     

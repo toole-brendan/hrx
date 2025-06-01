@@ -31,7 +31,7 @@ struct DA2062PropertyRequest: Codable {
 }
 
 // Import metadata structure
-struct ImportMetadata: Codable {
+public struct ImportMetadata: Codable {
     let source: String // "da2062_scan"
     let importDate: Date
     let formNumber: String?
@@ -45,7 +45,7 @@ struct ImportMetadata: Codable {
     let verificationReasons: [String]
 }
 
-enum SerialSource: String, Codable {
+public enum SerialSource: String, Codable {
     case explicit = "explicit" // Found in document
     case generated = "generated" // Auto-generated placeholder
     case manual = "manual" // User entered during review

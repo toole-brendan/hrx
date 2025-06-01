@@ -99,6 +99,8 @@ func debugPrint(_ items: Any..., function: String = #function, file: String = #f
 
 // Concrete implementation of the API service
 public class APIService: APIServiceProtocol {
+    // Shared instance for easy access
+    public static let shared = APIService()
 
     // Replace with your actual backend base URL
     private let baseURL: URL

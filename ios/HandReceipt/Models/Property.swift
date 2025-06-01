@@ -4,7 +4,7 @@ import Foundation
 // likely fetched by serial number or ID.
 // Adjust properties based on your actual backend API response for the
 // /api/property/serial/:serialNumber endpoint.
-public struct Property: Identifiable, Decodable, Equatable {
+public struct Property: Identifiable, Decodable {
     public let id: Int // Changed from UUID
     public let serialNumber: String
     public let nsn: String? // National Stock Number - Made OPTIONAL as backend doesn't return it
@@ -118,6 +118,38 @@ public struct Property: Identifiable, Decodable, Equatable {
     )
 }
 
+// MARK: - Equatable Conformance
+extension Property: Equatable {
+    public static func == (lhs: Property, rhs: Property) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.serialNumber == rhs.serialNumber &&
+               lhs.nsn == rhs.nsn &&
+               lhs.lin == rhs.lin &&
+               lhs.name == rhs.name &&
+               lhs.description == rhs.description &&
+               lhs.manufacturer == rhs.manufacturer &&
+               lhs.imageUrl == rhs.imageUrl &&
+               lhs.status == rhs.status &&
+               lhs.currentStatus == rhs.currentStatus &&
+               lhs.assignedToUserId == rhs.assignedToUserId &&
+               lhs.location == rhs.location &&
+               lhs.lastInventoryDate == rhs.lastInventoryDate &&
+               lhs.acquisitionDate == rhs.acquisitionDate &&
+               lhs.notes == rhs.notes &&
+               lhs.maintenanceDueDate == rhs.maintenanceDueDate &&
+               lhs.isSensitiveItem == rhs.isSensitiveItem &&
+               lhs.propertyModelId == rhs.propertyModelId &&
+               lhs.lastVerifiedAt == rhs.lastVerifiedAt &&
+               lhs.lastMaintenanceAt == rhs.lastMaintenanceAt &&
+               lhs.createdAt == rhs.createdAt &&
+               lhs.updatedAt == rhs.updatedAt &&
+               lhs.sourceType == rhs.sourceType &&
+               lhs.verified == rhs.verified &&
+               lhs.verifiedAt == rhs.verifiedAt
+        // Note: importMetadata comparison excluded as it may need custom comparison
+    }
+}
+
 // MARK: - Properties List with Import Indicators
 
 // Enhanced Property model to include import metadata
@@ -135,7 +167,7 @@ extension Property {
     }
     
     var isGeneratedSerial: Bool {
-        return importMetadata?.serialSource == "generated"
+        return importMetadata?.serialSource == .generated
     }
 }
 

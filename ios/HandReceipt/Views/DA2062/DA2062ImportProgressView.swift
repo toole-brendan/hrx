@@ -4,7 +4,7 @@ import Combine
 // MARK: - Progress Tracking Models
 
 struct ImportProgress {
-    let totalItems: Int
+    var totalItems: Int
     var processedItems: Int = 0
     var currentItem: String = ""
     var currentPhase: ImportPhase = .parsing

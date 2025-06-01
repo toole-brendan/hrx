@@ -198,7 +198,11 @@ class MyPropertiesViewModel: ObservableObject {
             lastVerifiedAt: nil,
             lastMaintenanceAt: nil,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            sourceType: "manual",
+            importMetadata: nil,
+            verified: false,
+            verifiedAt: nil
         )
         
         // Queue for sync
@@ -229,7 +233,7 @@ class MyPropertiesViewModel: ObservableObject {
                     Task {
                         do {
                             // Call API to update property
-                            try await apiService.updateProperty(updatedProperty)
+                            let _ = try await apiService.updateProperty(updatedProperty)
                             print("MyPropertiesViewModel: Property \(updatedProperty.id) updated successfully")
                         } catch {
                             print("MyPropertiesViewModel: Error updating property - \(error)")
