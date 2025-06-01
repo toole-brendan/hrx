@@ -75,6 +75,14 @@ public protocol APIServiceProtocol {
 
     // Add function to create a new property
     func createProperty(_ property: CreatePropertyInput) async throws -> Property
+
+    // Update a property
+    func updateProperty(_ property: Property) async throws -> Property
+
+    // Verify an imported item
+    func verifyImportedItem(id: Int, serialNumber: String, nsn: String?, notes: String) async throws -> Property
+
+    func getPropertyBySN(serialNumber: String) async throws -> Property
 }
 
 // Debug print function to avoid cluttering 
@@ -529,6 +537,62 @@ public class APIService: APIServiceProtocol {
         let createdProperty = try await performRequest(request: request) as Property
         debugPrint("Successfully created property with ID: \(createdProperty.id)")
         return createdProperty
+    }
+
+    // Update a property
+    func updateProperty(_ property: Property) async throws -> Property {
+        var request = createRequest(for: "/api/properties/\(property.id)", method: "PUT")
+        
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        request.httpBody = try encoder.encode(property)
+        
+        let (data, response) = try await performRequest(request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(Property.self, from: data)
+    }
+    
+    // Verify an imported item
+    func verifyImportedItem(id: Int, serialNumber: String, nsn: String?, notes: String) async throws -> Property {
+        var request = createRequest(for: "/api/properties/\(id)/verify", method: "POST")
+        
+        let verificationData = [
+            "serialNumber": serialNumber,
+            "nsn": nsn ?? "",
+            "notes": notes,
+            "verifiedAt": ISO8601DateFormatter().string(from: Date())
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: verificationData)
+        
+        let (data, response) = try await performRequest(request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(Property.self, from: data)
+    }
+
+    func getPropertyBySN(serialNumber: String) async throws -> Property {
+        // ... existing code ...
+        return property
     }
 
     // --- Transfer Functions (Async/Await) ---

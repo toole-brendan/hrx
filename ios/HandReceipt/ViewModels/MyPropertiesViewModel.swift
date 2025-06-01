@@ -33,6 +33,18 @@ class MyPropertiesViewModel: ObservableObject {
     private let offlineSync = OfflineSyncService.shared
     private var cancellables = Set<AnyCancellable>()
     
+    // Computed property for unverified count
+    var unverifiedCount: Int {
+        guard case .success(let properties) = loadingState else { return 0 }
+        return properties.filter { $0.needsVerification }.count
+    }
+    
+    // Properties list for direct access
+    var properties: [Property] {
+        guard case .success(let properties) = loadingState else { return [] }
+        return properties
+    }
+    
     init(apiService: APIServiceProtocol = APIService()) {
         self.apiService = apiService
         setupObservers()
@@ -203,5 +215,32 @@ class MyPropertiesViewModel: ObservableObject {
     
     func refreshData() {
         loadProperties()
+    }
+    
+    // Update a property after verification
+    func updateProperty(_ updatedProperty: Property) {
+        if case .success(var properties) = loadingState {
+            if let index = properties.firstIndex(where: { $0.id == updatedProperty.id }) {
+                properties[index] = updatedProperty
+                loadingState = .success(properties)
+                
+                // Sync the update if online
+                if offlineSync.isOnline {
+                    Task {
+                        do {
+                            // Call API to update property
+                            try await apiService.updateProperty(updatedProperty)
+                            print("MyPropertiesViewModel: Property \(updatedProperty.id) updated successfully")
+                        } catch {
+                            print("MyPropertiesViewModel: Error updating property - \(error)")
+                            // Keep the local update even if sync fails
+                        }
+                    }
+                } else {
+                    // Queue for later sync
+                    offlineSync.queuePropertyUpdate(updatedProperty)
+                }
+            }
+        }
     }
 } 

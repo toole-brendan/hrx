@@ -38,6 +38,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
 	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
+	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo)               // Add DA2062 handler
 
 	// Add NSN handler
 	logger := logrus.New()
@@ -165,5 +166,8 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 
 		// Register NSN routes
 		RegisterNSNRoutes(protected, nsnHandler, middleware.SessionAuthMiddleware())
+
+		// Register DA2062 routes
+		da2062Handler.RegisterRoutes(protected)
 	}
 }

@@ -2,6 +2,22 @@ import Foundation
 import Network
 import CryptoKit
 
+// MARK: - Sync Operation Types
+
+struct SyncOperation {
+    enum OperationType {
+        case createProperty
+        case updateProperty
+        case createTransfer
+        case approveTransfer
+        case rejectTransfer
+    }
+    
+    let type: OperationType
+    let data: [String: Any]
+    let timestamp: Date
+}
+
 class OfflineSyncService {
     static let shared = OfflineSyncService()
     
@@ -12,6 +28,9 @@ class OfflineSyncService {
     
     private var isSyncing = false
     private var syncTimer: Timer?
+    
+    // Pending sync operations queue
+    private var pendingSyncOperations: [SyncOperation] = []
     
     var isOnline = false {
         didSet {
@@ -288,45 +307,35 @@ class OfflineSyncService {
     // MARK: - Helper Methods
     
     func queuePropertyCreation(_ property: Property, photoData: Data?) {
-        let encoder = JSONEncoder()
+        print("OfflineSyncService: Queuing property creation - \(property.name)")
         
-        var payload = CreatePropertyPayload(
-            itemName: property.itemName,
-            serialNumber: property.serialNumber,
-            description: property.description,
-            nsn: property.nsn,
-            lin: property.lin
+        // TODO: Store in Core Data with pending_sync flag
+        // For now, just log
+        pendingSyncOperations.append(
+            SyncOperation(
+                type: .createProperty,
+                data: ["property": property, "photoData": photoData as Any],
+                timestamp: Date()
+            )
         )
+    }
+    
+    // Queue a property update for later sync
+    func queuePropertyUpdate(_ property: Property) {
+        print("OfflineSyncService: Queuing property update - \(property.id)")
         
-        // Handle photo if provided
-        if let photoData = photoData {
-            let hash = SHA256.hash(data: photoData)
-            let hashString = hash.compactMap { String(format: "%.2x", $0) }.joined()
-            
-            // Save photo locally
-            let photoId = UUID()
-            let _ = savePhotoLocally(photoData, id: photoId)
-            
-            // TODO: Uncomment when Core Data entities are implemented
-            // Add to photo upload queue
-            // coreDataStack.addPendingPhotoUpload(
-            //     propertyId: nil, // Will be set after property is created
-            //     localPath: localPath,
-            //     sha256Hash: hashString
-            // )
-            
-            payload.photoHash = hashString
-        }
-        
-        if (try? encoder.encode(payload)) != nil {
-            // TODO: Uncomment when Core Data entities are implemented
-            // coreDataStack.addToSyncQueue(
-            //     operationType: "CREATE",
-            //     entityType: "PROPERTY",
-            //     payload: data
-            // )
-            debugPrint("Property creation queued - Core Data entities not yet implemented")
-        }
+        pendingSyncOperations.append(
+            SyncOperation(
+                type: .updateProperty,
+                data: ["property": property],
+                timestamp: Date()
+            )
+        )
+    }
+    
+    // Queue a transfer creation for later sync
+    func queueTransferCreation(_ transfer: Transfer) {
+        // ... existing code ...
     }
     
     private func savePhotoLocally(_ data: Data, id: UUID) -> String {

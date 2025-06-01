@@ -262,11 +262,19 @@ func (h *DA2062Handler) GetUnverifiedItems(c *gin.Context) {
 		return
 	}
 
-	// Get unverified properties for the user
-	properties, err := h.Repo.GetUnverifiedProperties(userID)
+	// Get all properties for the user and filter unverified ones
+	allProperties, err := h.Repo.ListProperties(&userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch properties"})
 		return
+	}
+
+	// Filter for unverified properties
+	var properties []domain.Property
+	for _, prop := range allProperties {
+		if !prop.Verified {
+			properties = append(properties, prop)
+		}
 	}
 
 	// Group by verification reason
@@ -316,11 +324,29 @@ func (h *DA2062Handler) SearchDA2062Forms(c *gin.Context) {
 	sourceRef := c.Query("reference")
 	formNumber := c.Query("form_number")
 
-	// Search for properties with matching source references
-	properties, err := h.Repo.GetPropertiesBySourceRef(userID, sourceRef, formNumber)
+	// Get all properties for user and filter by source reference
+	allProperties, err := h.Repo.ListProperties(&userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search forms"})
 		return
+	}
+
+	// Filter properties by source reference and form number
+	var properties []domain.Property
+	for _, prop := range allProperties {
+		if prop.SourceRef != nil && (sourceRef == "" || *prop.SourceRef == sourceRef) {
+			// Check form number in metadata if provided
+			if formNumber != "" && prop.ImportMetadata != nil {
+				var metadata models.ImportMetadata
+				if err := json.Unmarshal([]byte(*prop.ImportMetadata), &metadata); err == nil {
+					if metadata.FormNumber == formNumber {
+						properties = append(properties, prop)
+					}
+				}
+			} else if formNumber == "" {
+				properties = append(properties, prop)
+			}
+		}
 	}
 
 	// Group by source reference to represent forms
@@ -352,11 +378,19 @@ func (h *DA2062Handler) GetDA2062Items(c *gin.Context) {
 		return
 	}
 
-	// Get properties for this reference
-	properties, err := h.Repo.GetPropertiesBySourceRef(userID, reference, "")
+	// Get all properties for user and filter by reference
+	allProperties, err := h.Repo.ListProperties(&userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch items"})
 		return
+	}
+
+	// Filter properties by source reference
+	var properties []domain.Property
+	for _, prop := range allProperties {
+		if prop.SourceRef != nil && *prop.SourceRef == reference {
+			properties = append(properties, prop)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -1,8 +1,14 @@
+// MARK: - Properties List with Import Indicators
+
 import SwiftUI
 import Combine
 
+// Enhanced Properties List View
 struct MyPropertiesView: View {
     @StateObject private var viewModel: MyPropertiesViewModel
+    @State private var showingUnverifiedOnly = false
+    @State private var selectedProperty: Property?
+    @State private var showingVerificationSheet = false
     @State private var searchText = ""
     @State private var selectedFilter: PropertyFilter = .all
     @State private var showingCreateProperty = false
@@ -38,40 +44,84 @@ struct MyPropertiesView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            // Main content
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
+        NavigationView {
+            VStack {
+                // Filter bar
+                HStack {
+                    Toggle("Show Unverified Only", isOn: $showingUnverifiedOnly)
+                        .toggleStyle(SwitchToggleStyle())
                     
-                    // The rest of the content
-                    contentView
+                    Spacer()
+                    
+                    if viewModel.unverifiedCount > 0 {
+                        Label("\(viewModel.unverifiedCount) need verification", 
+                              systemImage: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Main content
+                ZStack(alignment: .top) {
+                    // Main content
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // Spacer for header
+                            Color.clear
+                                .frame(height: 36)
+                            
+                            // The rest of the content
+                            contentView
+                        }
+                    }
+                    .background(AppColors.appBackground.ignoresSafeArea(.all))
+                    
+                    // Top bar that mirrors bottom tab bar
+                    headerSection
                 }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            
-            // Top bar that mirrors bottom tab bar
-            headerSection
-        }
-        .navigationTitle("")
-        .navigationBarHidden(true)
-        .sheet(isPresented: $showingCreateProperty) {
-            CreatePropertyView()
-                .onDisappear {
-                    viewModel.loadProperties()
-                }
-        }
-        .actionSheet(isPresented: $showingSortOptions) {
-            ActionSheet(
-                title: Text("Sort Properties"),
-                buttons: SortOption.allCases.map { option in
-                    .default(Text(option.rawValue)) {
-                        selectedSortOption = option
+            .navigationTitle("")
+            .navigationBarHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button(action: { showingCreateProperty = true }) {
+                            Label("Add Property", systemImage: "plus")
+                        }
+                        
+                        Button(action: { /* Navigate to DA2062 scan */ }) {
+                            Label("Import from DA-2062", systemImage: "doc.text.viewfinder")
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
                     }
-                } + [.cancel()]
-            )
+                }
+            }
+            .sheet(isPresented: $showingCreateProperty) {
+                CreatePropertyView()
+                    .onDisappear {
+                        viewModel.loadProperties()
+                    }
+            }
+            .sheet(isPresented: $showingVerificationSheet) {
+                if let property = selectedProperty {
+                    PropertyVerificationSheet(property: property) { updatedProperty in
+                        viewModel.updateProperty(updatedProperty)
+                        showingVerificationSheet = false
+                    }
+                }
+            }
+            .actionSheet(isPresented: $showingSortOptions) {
+                ActionSheet(
+                    title: Text("Sort Properties"),
+                    buttons: SortOption.allCases.map { option in
+                        .default(Text(option.rawValue)) {
+                            selectedSortOption = option
+                        }
+                    } + [.cancel()]
+                )
+            }
         }
     }
     
@@ -153,9 +203,7 @@ struct MyPropertiesView: View {
             case .idle, .loading:
                 PropertyLoadingView()
                 
-            case .success(let properties):
-                let filteredProperties = filterAndSort(properties)
-                
+            case .success(_):
                 if filteredProperties.isEmpty {
                     PropertiesEmptyStateView(
                         filter: selectedFilter,
@@ -163,11 +211,20 @@ struct MyPropertiesView: View {
                         onRefresh: viewModel.loadProperties
                     )
                 } else {
-                    PropertyListView(
-                        properties: filteredProperties,
-                        viewModel: viewModel,
-                        onRefresh: viewModel.loadProperties
-                    )
+                    List {
+                        ForEach(filteredProperties) { property in
+                            PropertyRowWithImportInfo(property: property) {
+                                if property.needsVerification {
+                                    selectedProperty = property
+                                    showingVerificationSheet = true
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                    .refreshable {
+                        viewModel.loadProperties()
+                    }
                 }
                 
             case .error(let message):
@@ -218,6 +275,11 @@ struct MyPropertiesView: View {
             }
         }
         
+        // Apply unverified filter
+        if showingUnverifiedOnly {
+            filtered = filtered.filter { $0.needsVerification }
+        }
+        
         // Apply status filter
         switch selectedFilter {
         case .all:
@@ -243,6 +305,13 @@ struct MyPropertiesView: View {
         }
         
         return filtered
+    }
+    
+    var filteredProperties: [Property] {
+        if case .success(let properties) = viewModel.loadingState {
+            return filterAndSort(properties)
+        }
+        return []
     }
 }
 
@@ -570,6 +639,334 @@ struct SyncStatusFooter: View {
         .frame(maxWidth: .infinity)
         .background(AppColors.secondaryBackground)
     }
+}
+
+// Property row with import indicators
+struct PropertyRowWithImportInfo: View {
+    let property: Property
+    let onTap: () -> Void
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(property.name)
+                        .font(.headline)
+                    
+                    if property.isImportedFromDA2062 {
+                        Image(systemName: "doc.badge.plus")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                    }
+                    
+                    if property.needsVerification {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
+                }
+                
+                HStack(spacing: 8) {
+                    if let nsn = property.nsn {
+                        Text("NSN: \(nsn)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text("S/N: \(property.serialNumber)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .strikethrough(property.isGeneratedSerial)
+                    
+                    if property.isGeneratedSerial {
+                        Text("(Generated)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+                
+                if property.needsVerification {
+                    Text(property.verificationReasons.first ?? "Needs verification")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                        .lineLimit(1)
+                }
+                
+                if let metadata = property.importMetadata,
+                   let formNumber = metadata.formNumber {
+                    Text("From DA-2062 #\(formNumber)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            if property.status == "operational" || property.currentStatus == "operational" {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            }
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+    }
+}
+
+// Verification Sheet
+struct PropertyVerificationSheet: View {
+    let property: Property
+    let onSave: (Property) -> Void
+    
+    @State private var serialNumber: String
+    @State private var nsn: String
+    @State private var notes: String = ""
+    @State private var isLoading = false
+    @Environment(\.dismiss) private var dismiss
+    
+    init(property: Property, onSave: @escaping (Property) -> Void) {
+        self.property = property
+        self.onSave = onSave
+        self._serialNumber = State(initialValue: property.serialNumber)
+        self._nsn = State(initialValue: property.nsn ?? "")
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Item Information") {
+                    Text(property.name)
+                        .font(.headline)
+                    
+                    if let metadata = property.importMetadata {
+                        LabeledContent("Import Date", 
+                                     value: metadata.importDate.formatted(date: .abbreviated, time: .omitted))
+                        
+                        LabeledContent("OCR Confidence", 
+                                     value: "\(Int(metadata.itemConfidence * 100))%")
+                    }
+                }
+                
+                Section("Verification Required") {
+                    ForEach(property.verificationReasons, id: \.self) { reason in
+                        Label(reason, systemImage: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
+                }
+                
+                Section("Update Information") {
+                    TextField("Serial Number", text: $serialNumber)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    if property.isGeneratedSerial {
+                        Text("Original: \(property.serialNumber)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    TextField("NSN", text: $nsn)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    TextField("Notes", text: $notes, axis: .vertical)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .lineLimit(3...6)
+                }
+                
+                if let metadata = property.importMetadata,
+                   let originalQty = metadata.originalQuantity,
+                   let qtyIndex = metadata.quantityIndex {
+                    Section("Multi-Item Information") {
+                        Text("This is item \(qtyIndex) of \(originalQty)")
+                            .font(.caption)
+                        
+                        Text("Other items from this set may also need verification")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Verify Property")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Verify") {
+                        verifyProperty()
+                    }
+                    .disabled(isLoading || serialNumber.isEmpty)
+                }
+            }
+            .overlay {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.2))
+                }
+            }
+        }
+    }
+    
+    private func verifyProperty() {
+        isLoading = true
+        
+        Task {
+            do {
+                var updatedProperty = property
+                updatedProperty.serialNumber = serialNumber
+                updatedProperty.nsn = nsn.isEmpty ? nil : nsn
+                updatedProperty.verified = true
+                updatedProperty.verifiedAt = Date()
+                
+                // Update via API
+                let result = try await APIService.shared.verifyImportedItem(
+                    id: property.id,
+                    serialNumber: serialNumber,
+                    nsn: nsn.isEmpty ? nil : nsn,
+                    notes: notes
+                )
+                
+                onSave(result)
+            } catch {
+                // Handle error
+                print("Verification failed: \(error)")
+            }
+            
+            isLoading = false
+        }
+    }
+}
+
+// Import Summary View (shown after successful import)
+struct DA2062ImportSummaryView: View {
+    let importResult: ImportResult
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // Success header
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
+                
+                Text("Import Successful")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                // Summary stats
+                VStack(alignment: .leading, spacing: 12) {
+                    SummaryRow(label: "Total Items Imported", 
+                             value: "\(importResult.totalItems)")
+                    
+                    SummaryRow(label: "Verified Automatically", 
+                             value: "\(importResult.verifiedCount)",
+                             color: .green)
+                    
+                    if importResult.verificationNeeded > 0 {
+                        SummaryRow(label: "Need Verification", 
+                                 value: "\(importResult.verificationNeeded)",
+                                 color: .orange)
+                    }
+                    
+                    if importResult.generatedSerials > 0 {
+                        SummaryRow(label: "Generated Serials", 
+                                 value: "\(importResult.generatedSerials)",
+                                 color: .blue)
+                    }
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
+                
+                // Category breakdown
+                if !importResult.categories.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Categories")
+                            .font(.headline)
+                        
+                        ForEach(Array(importResult.categories.keys), id: \.self) { category in
+                            HStack {
+                                Text(category)
+                                    .font(.caption)
+                                Spacer()
+                                Text("\(importResult.categories[category] ?? 0)")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(12)
+                }
+                
+                Spacer()
+                
+                // Actions
+                VStack(spacing: 12) {
+                    if importResult.verificationNeeded > 0 {
+                        Button(action: navigateToUnverified) {
+                            Label("Review Unverified Items", 
+                                  systemImage: "exclamationmark.triangle")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                    }
+                    
+                    Button(action: { dismiss() }) {
+                        Text("View My Properties")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Import Complete")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    
+    private func navigateToUnverified() {
+        dismiss()
+        // Navigate to properties view with unverified filter
+    }
+}
+
+struct SummaryRow: View {
+    let label: String
+    let value: String
+    var color: Color = .primary
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+            Spacer()
+            Text(value)
+                .font(.headline)
+                .foregroundColor(color)
+        }
+    }
+}
+
+struct ImportResult {
+    let totalItems: Int
+    let verifiedCount: Int
+    let verificationNeeded: Int
+    let generatedSerials: Int
+    let categories: [String: Int]
 }
 
 // MARK: - Preview

@@ -29,6 +29,12 @@ public struct Property: Identifiable, Decodable, Equatable {
     public let lastMaintenanceAt: Date?
     public let createdAt: Date?
     public let updatedAt: Date?
+    
+    // Import metadata fields
+    public let sourceType: String?
+    public let importMetadata: ImportMetadata?
+    public var verified: Bool = false
+    public var verifiedAt: Date?
 
     // Add other relevant fields: condition, value, calibration_due_date, etc.
 
@@ -104,8 +110,33 @@ public struct Property: Identifiable, Decodable, Equatable {
         lastVerifiedAt: nil,
         lastMaintenanceAt: nil,
         createdAt: Date(),
-        updatedAt: Date()
+        updatedAt: Date(),
+        sourceType: nil,
+        importMetadata: nil,
+        verified: true,
+        verifiedAt: Date()
     )
+}
+
+// MARK: - Properties List with Import Indicators
+
+// Enhanced Property model to include import metadata
+extension Property {
+    var isImportedFromDA2062: Bool {
+        return sourceType == "da2062_scan"
+    }
+    
+    var needsVerification: Bool {
+        return importMetadata?.requiresVerification ?? false
+    }
+    
+    var verificationReasons: [String] {
+        return importMetadata?.verificationReasons ?? []
+    }
+    
+    var isGeneratedSerial: Bool {
+        return importMetadata?.serialSource == "generated"
+    }
 }
 
 // Wrapper for responses that contain an array of properties
