@@ -4,7 +4,7 @@ import Foundation
 // likely fetched by serial number or ID.
 // Adjust properties based on your actual backend API response for the
 // /api/property/serial/:serialNumber endpoint.
-public struct Property: Identifiable, Decodable {
+public struct Property: Identifiable, Decodable, Equatable {
     public let id: Int // Changed from UUID
     public let serialNumber: String
     public let nsn: String? // National Stock Number - Made OPTIONAL as backend doesn't return it
