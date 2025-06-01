@@ -94,14 +94,58 @@ public struct TransferRequest: Codable {
     }
 }
 
-// Model for transfer offers
-public struct TransferOffer: Decodable, Identifiable {
-    public let id: Int
-    public let property: Property?
-    public let offeror: UserSummary?
-    public let offeredTo: UserSummary?
-    public let notes: String?
-    public let expiresAt: Date?
-    public let createdAt: Date?
-    public let updatedAt: Date?
+// MARK: - Extensions for Existing Models
+
+// Update Property model if needed to include new fields
+extension Property {
+    /// Check if property is available for transfer
+    public var isAvailableForTransfer: Bool {
+        return currentStatus == "AVAILABLE" || currentStatus == "IN_USE"
+    }
+    
+    /// Check if property requires maintenance
+    public var requiresMaintenance: Bool {
+        return currentStatus == "MAINTENANCE_REQUIRED"
+    }
+}
+
+// Update Transfer model if needed
+extension Transfer {
+    /// Check if transfer is pending
+    public var isPending: Bool {
+        return status == "PENDING"
+    }
+    
+    /// Check if transfer can be cancelled
+    public var canBeCancelled: Bool {
+        return status == "PENDING"
+    }
+}
+
+// MARK: - View Model Helpers
+
+/// Helper struct for grouping activities by date
+public struct ActivityGroup {
+    public let date: Date
+    public let activities: [Activity]
+    
+    public var dateString: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+}
+
+/// Helper struct for transfer statistics
+public struct TransferStats {
+    public let totalTransfers: Int
+    public let pendingTransfers: Int
+    public let completedTransfers: Int
+    public let rejectedTransfers: Int
+    
+    public var acceptanceRate: Double {
+        guard totalTransfers > 0 else { return 0 }
+        return Double(completedTransfers) / Double(totalTransfers - pendingTransfers)
+    }
 } 

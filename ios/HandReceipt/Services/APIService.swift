@@ -52,8 +52,7 @@ public protocol APIServiceProtocol {
     func approveTransfer(transferId: Int) async throws -> Transfer
     func rejectTransfer(transferId: Int) async throws -> Transfer
 
-    // --- QR Transfer Functions ---
-    func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse
+
 
     // --- User Functions ---
     func fetchUsers(searchQuery: String?) async throws -> [UserSummary] // Expect UserSummary for selection
@@ -83,6 +82,33 @@ public protocol APIServiceProtocol {
     func verifyImportedItem(id: Int, serialNumber: String, nsn: String?, notes: String) async throws -> Property
 
     func getPropertyBySN(serialNumber: String) async throws -> Property
+    
+    // MARK: - Property Status Update
+    func updatePropertyStatus(propertyId: Int, status: String) async throws -> Property
+    func getPropertyHistory(serialNumber: String) async throws -> [Activity]
+    
+    // MARK: - Transfer Offer Endpoints
+    func requestTransferBySerial(serialNumber: String, notes: String?) async throws -> Transfer
+    func createTransferOffer(propertyIds: [Int], recipientIds: [Int], notes: String?) async throws -> TransferOffer
+    func getActiveOffers() async throws -> [TransferOffer]
+    func acceptOffer(offerId: Int) async throws -> TransferOffer
+    func getTransferById(transferId: Int) async throws -> Transfer
+    
+    // MARK: - Reference Database Endpoints
+    func getPropertyTypes() async throws -> [PropertyType]
+    func getPropertyModelByNSN(nsn: String) async throws -> ReferenceProperty
+    
+    // MARK: - Bulk Operations
+    func bulkLookupNSN(nsns: [String]) async throws -> [NSNDetails]
+    
+    // MARK: - Activity Endpoints
+    func createActivity(_ activity: CreateActivityInput) async throws -> Activity
+    func getActivities(limit: Int?, offset: Int?) async throws -> [Activity]
+    func getActivitiesByUser(userId: Int) async throws -> [Activity]
+    
+    // MARK: - Ledger/Verification Endpoints
+    func verifyDatabaseLedger() async throws -> LedgerVerification
+    func getLedgerHistory(limit: Int?, offset: Int?) async throws -> [LedgerEntry]
 }
 
 // Debug print function to avoid cluttering 
@@ -610,6 +636,281 @@ public class APIService: APIServiceProtocol {
         return try await fetchPropertyBySerialNumber(serialNumber: serialNumber)
     }
 
+    // MARK: - Property Status Update
+    public func updatePropertyStatus(propertyId: Int, status: String) async throws -> Property {
+        debugPrint("Updating status for property: \(propertyId) to: \(status)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)/status")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let statusUpdate = ["status": status]
+        do {
+            request.httpBody = try encoder.encode(statusUpdate)
+            debugPrint("Successfully encoded status update")
+        } catch {
+            debugPrint("ERROR: Failed to encode status update: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let updatedProperty = try await performRequest(request: request) as Property
+        debugPrint("Successfully updated property status: \(updatedProperty.id)")
+        return updatedProperty
+    }
+    
+    public func getPropertyHistory(serialNumber: String) async throws -> [Activity] {
+        debugPrint("Fetching history for property with serial: \(serialNumber)")
+        guard let encoded = serialNumber.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+            throw APIError.invalidURL
+        }
+        
+        let endpoint = baseURL.appendingPathComponent("/api/property/history/\(encoded)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as ActivitiesResponse
+        debugPrint("Successfully fetched \(response.activities.count) history items")
+        return response.activities
+    }
+
+    // MARK: - Transfer Offer Endpoints
+    public func requestTransferBySerial(serialNumber: String, notes: String? = nil) async throws -> Transfer {
+        debugPrint("Requesting transfer by serial: \(serialNumber)")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers/request-by-serial")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody = SerialTransferRequest(
+            serialNumber: serialNumber,
+            notes: notes
+        )
+        
+        do {
+            request.httpBody = try encoder.encode(requestBody)
+            debugPrint("Successfully encoded serial transfer request")
+        } catch {
+            debugPrint("ERROR: Failed to encode request: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let transfer = try await performRequest(request: request) as Transfer
+        debugPrint("Successfully created transfer request: \(transfer.id)")
+        return transfer
+    }
+    
+    public func createTransferOffer(propertyIds: [Int], recipientIds: [Int], notes: String? = nil) async throws -> TransferOffer {
+        debugPrint("Creating transfer offer for \(propertyIds.count) items to \(recipientIds.count) recipients")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers/offer")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let offerRequest = TransferOfferRequest(
+            propertyIds: propertyIds,
+            recipientIds: recipientIds,
+            notes: notes
+        )
+        
+        do {
+            request.httpBody = try encoder.encode(offerRequest)
+            debugPrint("Successfully encoded transfer offer")
+        } catch {
+            debugPrint("ERROR: Failed to encode offer: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let offer = try await performRequest(request: request) as TransferOffer
+        debugPrint("Successfully created transfer offer: \(offer.id)")
+        return offer
+    }
+    
+    public func getActiveOffers() async throws -> [TransferOffer] {
+        debugPrint("Fetching active transfer offers")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers/offers/active")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as TransferOffersResponse
+        debugPrint("Successfully fetched \(response.offers.count) active offers")
+        return response.offers
+    }
+    
+    public func acceptOffer(offerId: Int) async throws -> TransferOffer {
+        debugPrint("Accepting transfer offer: \(offerId)")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers/offers/\(offerId)/accept")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Empty body for accept action
+        request.httpBody = try encoder.encode(EmptyRequest())
+        
+        let offer = try await performRequest(request: request) as TransferOffer
+        debugPrint("Successfully accepted offer: \(offer.id)")
+        return offer
+    }
+    
+    public func getTransferById(transferId: Int) async throws -> Transfer {
+        debugPrint("Fetching transfer with ID: \(transferId)")
+        let endpoint = baseURL.appendingPathComponent("/api/transfers/\(transferId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let transfer = try await performRequest(request: request) as Transfer
+        debugPrint("Successfully fetched transfer: \(transfer.id)")
+        return transfer
+    }
+
+    // MARK: - Reference Database Endpoints
+    public func getPropertyTypes() async throws -> [PropertyType] {
+        debugPrint("Fetching property types")
+        let endpoint = baseURL.appendingPathComponent("/api/reference/types")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as PropertyTypesResponse
+        debugPrint("Successfully fetched \(response.types.count) property types")
+        return response.types
+    }
+    
+    public func getPropertyModelByNSN(nsn: String) async throws -> ReferenceProperty {
+        debugPrint("Fetching property model by NSN: \(nsn)")
+        guard let encoded = nsn.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+            throw APIError.invalidURL
+        }
+        
+        let endpoint = baseURL.appendingPathComponent("/api/reference/models/nsn/\(encoded)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let model = try await performRequest(request: request) as ReferenceProperty
+        debugPrint("Successfully fetched property model: \(model.name)")
+        return model
+    }
+
+    // MARK: - Bulk Operations
+    public func bulkLookupNSN(nsns: [String]) async throws -> [NSNDetails] {
+        debugPrint("Performing bulk NSN lookup for \(nsns.count) items")
+        let endpoint = baseURL.appendingPathComponent("/api/nsn/bulk")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let bulkRequest = BulkNSNRequest(nsns: nsns)
+        do {
+            request.httpBody = try encoder.encode(bulkRequest)
+            debugPrint("Successfully encoded bulk NSN request")
+        } catch {
+            debugPrint("ERROR: Failed to encode bulk request: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let response = try await performRequest(request: request) as BulkNSNResponse
+        debugPrint("Successfully looked up \(response.results.count) NSNs")
+        return response.results
+    }
+
+    // MARK: - Activity Endpoints
+    public func createActivity(_ activity: CreateActivityInput) async throws -> Activity {
+        debugPrint("Creating activity: \(activity.activityType)")
+        let endpoint = baseURL.appendingPathComponent("/api/activities")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try encoder.encode(activity)
+            debugPrint("Successfully encoded activity")
+        } catch {
+            debugPrint("ERROR: Failed to encode activity: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let createdActivity = try await performRequest(request: request) as Activity
+        debugPrint("Successfully created activity: \(createdActivity.id)")
+        return createdActivity
+    }
+    
+    public func getActivities(limit: Int? = nil, offset: Int? = nil) async throws -> [Activity] {
+        debugPrint("Fetching activities")
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/activities"), resolvingAgainstBaseURL: false)!
+        var queryItems = [URLQueryItem]()
+        
+        if let limit = limit {
+            queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        if let offset = offset {
+            queryItems.append(URLQueryItem(name: "offset", value: String(offset)))
+        }
+        
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as ActivitiesResponse
+        debugPrint("Successfully fetched \(response.activities.count) activities")
+        return response.activities
+    }
+    
+    public func getActivitiesByUser(userId: Int) async throws -> [Activity] {
+        debugPrint("Fetching activities for user: \(userId)")
+        let endpoint = baseURL.appendingPathComponent("/api/activities/user/\(userId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as ActivitiesResponse
+        debugPrint("Successfully fetched \(response.activities.count) activities for user")
+        return response.activities
+    }
+
+    // MARK: - Ledger/Verification Endpoints
+    public func verifyDatabaseLedger() async throws -> LedgerVerification {
+        debugPrint("Verifying database ledger integrity")
+        let endpoint = baseURL.appendingPathComponent("/api/verification/database")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let verification = try await performRequest(request: request) as LedgerVerification
+        debugPrint("Ledger verification complete: \(verification.isValid ? "Valid" : "Invalid")")
+        return verification
+    }
+    
+    public func getLedgerHistory(limit: Int? = nil, offset: Int? = nil) async throws -> [LedgerEntry] {
+        debugPrint("Fetching ledger history")
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/ledger/history"), resolvingAgainstBaseURL: false)!
+        var queryItems = [URLQueryItem]()
+        
+        if let limit = limit {
+            queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        if let offset = offset {
+            queryItems.append(URLQueryItem(name: "offset", value: String(offset)))
+        }
+        
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as LedgerHistoryResponse
+        debugPrint("Successfully fetched \(response.entries.count) ledger entries")
+        return response.entries
+    }
+
     // --- Transfer Functions (Async/Await) ---
     
     // Fetch Transfers (with optional filters)
@@ -979,32 +1280,8 @@ public class APIService: APIServiceProtocol {
     }
 
     // --- QR Transfer Functions ---
-    public func initiateQRTransfer(qrData: [String: Any], scannedAt: String) async throws -> QRTransferResponse {
-        debugPrint("Initiating QR transfer with data: \(qrData)")
-        let endpoint = baseURL.appendingPathComponent("/api/transfers/qr-initiate")
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        addAuthHeader(to: &request)
-        
-        // Create the request body manually since we have a dictionary
-        let requestBody: [String: Any] = [
-            "qr_data": qrData,
-            "scanned_at": scannedAt
-        ]
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-            debugPrint("Successfully encoded QR transfer request body")
-        } catch {
-            debugPrint("ERROR: Failed to encode QR transfer request: \(error)")
-            throw APIError.encodingError(error)
-        }
-        
-        let response = try await performRequest(request: request) as QRTransferResponse
-        debugPrint("QR transfer initiated successfully: \(response.transferId)")
-        return response
-    }
+    // DEPRECATED: QR transfer functionality has been removed
+    // Use requestTransferBySerial() instead for serial number-based transfers
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)
@@ -1100,9 +1377,7 @@ public struct CreatePropertyInput: Codable {
     }
 }
 
-public struct QRTransferResponse: Decodable {
-    public let transferId: Int
-}
+
 
 // Connection response models
 public struct ConnectionsResponse: Decodable {
@@ -1111,4 +1386,6 @@ public struct ConnectionsResponse: Decodable {
 
 public struct UsersResponse: Decodable {
     public let users: [UserSummary]
-} 
+}
+
+ 

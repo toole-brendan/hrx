@@ -50,11 +50,6 @@ struct SerialNumberRequestView: View {
     }
     
     private func requestTransfer() {
-        // For now, just dismiss the view since TransferService is not fully implemented
-        dismiss()
-        
-        // TODO: Implement when TransferService is available
-        /*
         isLoading = true
         
         Task {
@@ -62,13 +57,10 @@ struct SerialNumberRequestView: View {
                 let trimmedSerial = serialNumber.trimmingCharacters(in: .whitespacesAndNewlines)
                 let requestNotes: String? = notes.isEmpty ? nil : notes
                 
-                let request = SerialTransferRequest(
+                try await TransferService.shared.requestBySerial(
                     serialNumber: trimmedSerial,
-                    requestedFromUserId: nil,
                     notes: requestNotes
                 )
-                
-                try await TransferService.shared.requestBySerial(request)
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription
@@ -77,6 +69,5 @@ struct SerialNumberRequestView: View {
             
             isLoading = false
         }
-        */
     }
 } 

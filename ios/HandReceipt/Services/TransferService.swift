@@ -11,57 +11,54 @@ public class TransferService: ObservableObject {
     
     // MARK: - Transfer Offers
     
+    /// Get active transfer offers
     public func getActiveOffers() async throws -> [TransferOffer] {
-        // For now, return empty array - implement when backend API is available
-        return []
+        return try await apiService.getActiveOffers()
     }
     
-    public func createOffer(_ request: TransferOfferRequest) async throws {
-        // Implement when backend API is available
-        throw APIService.APIError.serverError(statusCode: 501, message: "Feature not implemented")
+    /// Create a transfer offer (supports single property to single user)
+    public func createOffer(propertyId: Int, offeredToUserId: Int, notes: String? = nil, expiresAt: Date? = nil) async throws -> TransferOffer {
+        // Convert single property/user to arrays for bulk endpoint
+        return try await apiService.createTransferOffer(
+            propertyIds: [propertyId],
+            recipientIds: [offeredToUserId],
+            notes: notes
+        )
     }
     
-    public func acceptOffer(_ offerId: Int) async throws {
-        // Implement when backend API is available
-        throw APIService.APIError.serverError(statusCode: 501, message: "Feature not implemented")
+    /// Create a bulk transfer offer (multiple properties to multiple users)
+    public func createBulkOffer(propertyIds: [Int], recipientIds: [Int], notes: String? = nil) async throws -> TransferOffer {
+        return try await apiService.createTransferOffer(
+            propertyIds: propertyIds,
+            recipientIds: recipientIds,
+            notes: notes
+        )
     }
     
+    /// Accept a transfer offer
+    public func acceptOffer(_ offerId: Int) async throws -> TransferOffer {
+        return try await apiService.acceptOffer(offerId: offerId)
+    }
+    
+    /// Reject a transfer offer (using generic transfer status update)
     public func rejectOffer(_ offerId: Int) async throws {
-        // Implement when backend API is available
-        throw APIService.APIError.serverError(statusCode: 501, message: "Feature not implemented")
+        // Since there's no specific reject offer endpoint, we might need to use the transfer status update
+        // For now, throw not implemented
+        throw APIService.APIError.serverError(statusCode: 501, message: "Reject offer not implemented")
     }
     
     // MARK: - Transfer Requests
     
-    public func requestBySerial(_ request: SerialTransferRequest) async throws {
-        // Implement when backend API is available
-        throw APIService.APIError.serverError(statusCode: 501, message: "Feature not implemented")
+    /// Request transfer by serial number
+    public func requestBySerial(serialNumber: String, notes: String? = nil) async throws -> Transfer {
+        return try await apiService.requestTransferBySerial(
+            serialNumber: serialNumber,
+            notes: notes
+        )
     }
-}
-
-// Supporting models for TransferService
-public struct TransferOfferRequest: Codable {
-    public let propertyId: Int
-    public let offeredToUserId: Int
-    public let notes: String?
-    public let expiresAt: Date?
     
-    public init(propertyId: Int, offeredToUserId: Int, notes: String? = nil, expiresAt: Date? = nil) {
-        self.propertyId = propertyId
-        self.offeredToUserId = offeredToUserId
-        self.notes = notes
-        self.expiresAt = expiresAt
-    }
-}
-
-public struct SerialTransferRequest: Codable {
-    public let serialNumber: String
-    public let requestedFromUserId: Int?
-    public let notes: String?
-    
-    public init(serialNumber: String, requestedFromUserId: Int? = nil, notes: String? = nil) {
-        self.serialNumber = serialNumber
-        self.requestedFromUserId = requestedFromUserId
-        self.notes = notes
+    /// Get a specific transfer by ID
+    public func getTransfer(transferId: Int) async throws -> Transfer {
+        return try await apiService.getTransferById(transferId: transferId)
     }
 } 
