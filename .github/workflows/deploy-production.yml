@@ -369,6 +369,14 @@ jobs:
             
             echo "📦 Extracting deployment package..."
             cd /opt/handreceipt
+            
+            echo "🧹 Cleaning up old mock files..."
+            # Remove any existing mock files from previous deployments
+            sudo find . -name "*mock*.go" -type f -delete
+            sudo find . -name "mock_*.go" -type f -delete
+            sudo find . -name "*_mock.go" -type f -delete
+            echo "✅ Cleanup complete"
+            
             sudo tar xzf /tmp/deployment.tar.gz --strip-components=1
             
             echo "📂 Current directory structure:"
