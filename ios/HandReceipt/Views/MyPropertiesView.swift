@@ -45,59 +45,33 @@ struct MyPropertiesView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                // Filter bar
-                HStack {
-                    Toggle("Show Unverified Only", isOn: $showingUnverifiedOnly)
-                        .toggleStyle(SwitchToggleStyle())
-                    
-                    Spacer()
-                    
-                    if viewModel.unverifiedCount > 0 {
-                        Label("\(viewModel.unverifiedCount) need verification", 
-                              systemImage: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                    }
-                }
-                .padding(.horizontal)
-                
+            ZStack(alignment: .top) {
                 // Main content
-                ZStack(alignment: .top) {
-                    // Main content
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            // Spacer for header
-                            Color.clear
-                                .frame(height: 36)
-                            
-                            // The rest of the content
-                            contentView
-                        }
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Spacer for header
+                        Color.clear
+                            .frame(height: 36)
+                        
+                        // Welcome text
+                        Text("Manage Your Equipment")
+                            .font(AppFonts.largeTitle)
+                            .foregroundColor(AppColors.primaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
+                        
+                        // The rest of the content
+                        mainContent
                     }
-                    .background(AppColors.appBackground.ignoresSafeArea(.all))
-                    
-                    // Top bar that mirrors bottom tab bar
-                    headerSection
                 }
+                .background(AppColors.appBackground.ignoresSafeArea(.all))
+                
+                // Top bar that mirrors bottom tab bar
+                headerSection
             }
             .navigationTitle("")
             .navigationBarHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button(action: { showingCreateProperty = true }) {
-                            Label("Add Property", systemImage: "plus")
-                        }
-                        
-                        Button(action: { /* Navigate to DA2062 scan */ }) {
-                            Label("Import from DA-2062", systemImage: "doc.text.viewfinder")
-                        }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                    }
-                }
-            }
             .sheet(isPresented: $showingCreateProperty) {
                 CreatePropertyView()
                     .onDisappear {
@@ -126,17 +100,8 @@ struct MyPropertiesView: View {
     }
     
     @ViewBuilder
-    private var contentView: some View {
+    private var mainContent: some View {
         VStack(spacing: 0) {
-            // Welcome text
-            Text("Manage Your Equipment")
-                .font(AppFonts.largeTitle)
-                .foregroundColor(AppColors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
-                .padding(.top, 16)
-                .padding(.bottom, 8)
-            
             // Offline indicator
             if viewModel.isOffline {
                 OfflineIndicator()
@@ -179,9 +144,10 @@ struct MyPropertiesView: View {
                 }
                 .padding(.horizontal)
                 
-                // Filter pills
+                // Filter pills and unverified toggle
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
+                        // Filter pills
                         ForEach(PropertyFilter.allCases, id: \.self) { filter in
                             PropertyFilterPill(
                                 title: filter.rawValue,
@@ -191,11 +157,38 @@ struct MyPropertiesView: View {
                                 selectedFilter = filter
                             }
                         }
+                        
+                        // Divider
+                        Rectangle()
+                            .fill(AppColors.border)
+                            .frame(width: 1, height: 20)
+                        
+                        // Unverified toggle as a pill
+                        Button(action: { showingUnverifiedOnly.toggle() }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: showingUnverifiedOnly ? "checkmark.square.fill" : "square")
+                                    .font(.caption)
+                                Text("Unverified Only")
+                                    .font(AppFonts.captionBold)
+                                if viewModel.unverifiedCount > 0 {
+                                    Text("(\(viewModel.unverifiedCount))")
+                                        .font(AppFonts.caption)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .foregroundColor(showingUnverifiedOnly ? .white : AppColors.warning)
+                            .background(showingUnverifiedOnly ? AppColors.warning : AppColors.warning.opacity(0.1))
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(AppColors.warning, lineWidth: 1)
+                            )
+                        }
                     }
                     .padding(.horizontal)
                 }
             }
-            .padding(.vertical, 12)
             .background(AppColors.appBackground)
             
             // Properties list

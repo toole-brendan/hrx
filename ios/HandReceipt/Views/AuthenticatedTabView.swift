@@ -4,6 +4,8 @@ struct AuthenticatedTabView: View {
     @StateObject var authViewModel: AuthViewModel
     @State private var selectedTab = 0
     @State private var showingCreateProperty = false
+    @State private var showingDA2062Import = false
+    @State private var showingActionMenu = false
 
     init(authViewModel: AuthViewModel) {
         _authViewModel = StateObject(wrappedValue: authViewModel)
@@ -26,15 +28,6 @@ struct AuthenticatedTabView: View {
                 NavigationView {
                     MyPropertiesView()
                         .navigationTitle("Property Book")
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button(action: { showingCreateProperty = true }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(AppColors.accent)
-                                        .font(.title3)
-                                }
-                            }
-                        }
                 }
                 .tag(1)
                 .tabItem {
@@ -88,7 +81,7 @@ struct AuthenticatedTabView: View {
                         
                         FloatingActionButton(
                             icon: "plus",
-                            action: { showingCreateProperty = true }
+                            action: { showingActionMenu = true }
                         )
                         .padding(.trailing, 20)
                         .padding(.bottom, 80) // Above tab bar
@@ -98,6 +91,25 @@ struct AuthenticatedTabView: View {
         }
         .sheet(isPresented: $showingCreateProperty) {
             CreatePropertyView()
+        }
+        .sheet(isPresented: $showingDA2062Import) {
+            NavigationView {
+                DA2062ScanView()
+            }
+        }
+        .actionSheet(isPresented: $showingActionMenu) {
+            ActionSheet(
+                title: Text("Add Property"),
+                buttons: [
+                    .default(Text("Create New Property")) {
+                        showingCreateProperty = true
+                    },
+                    .default(Text("Import from DA-2062")) {
+                        showingDA2062Import = true
+                    },
+                    .cancel()
+                ]
+            )
         }
     }
 
