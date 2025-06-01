@@ -45,10 +45,7 @@ struct RequestTransferView: View {
         transferSuccess = false
         
         do {
-            // TODO: Fix target membership issue preventing access to TransferService
-            // The following code is temporarily commented out due to build errors
-            /*
-            // Create a SerialTransferRequest
+            // Create a SerialTransferRequest using the found property
             let request = SerialTransferRequest(
                 serialNumber: property.serialNumber,
                 requestedFromUserId: property.assignedToUserId,
@@ -56,10 +53,6 @@ struct RequestTransferView: View {
             )
             
             try await TransferService.shared.requestBySerial(request)
-            */
-            
-            // Temporary mock implementation
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
             
             await MainActor.run {
                 isTransferring = false
