@@ -4,34 +4,65 @@ import SwiftUI
 struct RequestTransferView: View {
     @State private var serialNumber = ""
     @State private var notes = ""
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var isSuccess = false
+    @State private var isTransferring = false
+    @State private var transferError: String?
+    @State private var transferSuccess = false
     @StateObject private var viewModel = ManualSNViewModel()
     @Environment(\.presentationMode) var presentationMode
     
+    // Computed properties to work with ManualSNViewModel's lookupState
+    private var foundProperty: Property? {
+        if case .success(let property) = viewModel.lookupState {
+            return property
+        }
+        return nil
+    }
+    
+    private var isSearching: Bool {
+        if case .loading = viewModel.lookupState {
+            return true
+        }
+        return false
+    }
+    
+    private var searchErrorMessage: String? {
+        switch viewModel.lookupState {
+        case .error(let message):
+            return message
+        case .notFound:
+            return "Property with serial number '\(serialNumber)' not found"
+        default:
+            return nil
+        }
+    }
+    
     private func requestTransfer() async {
-        guard let property = viewModel.foundProperty else { return }
+        guard let property = foundProperty else { return }
         
-        isLoading = true
-        errorMessage = nil
-        isSuccess = false
+        isTransferring = true
+        transferError = nil
+        transferSuccess = false
         
         do {
             // Create a SerialTransferRequest
             let request = SerialTransferRequest(
                 serialNumber: property.serialNumber,
-                requestedFromUserId: nil, // Will be determined by backend based on property ownership
+                requestedFromUserId: property.assignedToUserId,
                 notes: notes.isEmpty ? nil : notes
             )
             
             try await TransferService.shared.requestBySerial(request)
-            isSuccess = true
+            
+            await MainActor.run {
+                isTransferring = false
+                transferSuccess = true
+            }
         } catch {
-            errorMessage = "Failed to send transfer request: \(error.localizedDescription)"
+            await MainActor.run {
+                isTransferring = false
+                transferError = "Failed to send transfer request: \(error.localizedDescription)"
+            }
         }
-        
-        isLoading = false
     }
     
     var body: some View {
@@ -79,6 +110,10 @@ struct RequestTransferView: View {
                                         Rectangle()
                                             .stroke(serialNumber.isEmpty ? AppColors.border : AppColors.accent, lineWidth: 1)
                                     )
+                                    .onChange(of: serialNumber) { newValue in
+                                        // Update the view model's input to trigger search
+                                        viewModel.serialNumberInput = newValue
+                                    }
                             }
                             
                             VStack(alignment: .leading, spacing: 8) {
@@ -103,28 +138,32 @@ struct RequestTransferView: View {
                         
                         // Search Button
                         Button(action: {
-                            viewModel.searchProperty(serialNumber: serialNumber)
+                            // Manually trigger search if needed
+                            if !serialNumber.isEmpty {
+                                viewModel.serialNumberInput = serialNumber
+                                viewModel.findProperty()
+                            }
                         }) {
                             HStack(spacing: 12) {
-                                if viewModel.isLoading {
+                                if isSearching {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                         .scaleEffect(0.8)
                                 } else {
                                     Image(systemName: "magnifyingglass")
                                 }
-                                Text(viewModel.isLoading ? "SEARCHING..." : "FIND PROPERTY")
+                                Text(isSearching ? "SEARCHING..." : "FIND PROPERTY")
                                     .tracking(AppFonts.militaryTracking)
                             }
                             .font(AppFonts.bodyBold)
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.primary)
-                        .disabled(serialNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
+                        .disabled(serialNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSearching)
                         .padding(.horizontal, 24)
                         
                         // Property Details (if found)
-                        if let property = viewModel.foundProperty {
+                        if let property = foundProperty {
                             VStack(spacing: 16) {
                                 PropertyRequestCard(property: property)
                                 
@@ -134,41 +173,41 @@ struct RequestTransferView: View {
                                     }
                                 }) {
                                     HStack(spacing: 12) {
-                                        if isLoading {
+                                        if isTransferring {
                                             ProgressView()
                                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                                 .scaleEffect(0.8)
                                         } else {
                                             Image(systemName: "arrow.right.circle.fill")
                                         }
-                                        Text(isLoading ? "SENDING REQUEST..." : "REQUEST TRANSFER")
+                                        Text(isTransferring ? "SENDING REQUEST..." : "REQUEST TRANSFER")
                                             .tracking(AppFonts.militaryTracking)
                                     }
                                     .font(AppFonts.bodyBold)
                                     .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.secondary)
-                                .disabled(isLoading)
+                                .disabled(isTransferring)
                             }
                             .padding(.horizontal, 24)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                         
                         // Error Messages
-                        if let errorMessage = viewModel.errorMessage {
+                        if let errorMessage = searchErrorMessage {
                             ErrorMessageView(message: errorMessage)
                                 .padding(.horizontal, 24)
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                         
-                        if let transferError = errorMessage {
+                        if let transferError = transferError {
                             ErrorMessageView(message: transferError)
                                 .padding(.horizontal, 24)
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                         
                         // Success Message
-                        if isSuccess {
+                        if transferSuccess {
                             SuccessMessageView(message: "Transfer request sent successfully!")
                                 .padding(.horizontal, 24)
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -195,9 +234,13 @@ struct RequestTransferView: View {
                 }
             }
         }
-        .animation(.spring(), value: viewModel.foundProperty)
-        .animation(.spring(), value: viewModel.errorMessage)
-        .animation(.spring(), value: isSuccess)
+        .animation(.spring(), value: foundProperty)
+        .animation(.spring(), value: searchErrorMessage)
+        .animation(.spring(), value: transferSuccess)
+        .onAppear {
+            // Sync the local state with view model
+            serialNumber = viewModel.serialNumberInput
+        }
     }
 }
 
@@ -227,7 +270,7 @@ struct PropertyRequestCard: View {
             
             // Property details
             VStack(spacing: 12) {
-                PropertyDetailRow(label: "NAME", value: property.itemName.uppercased())
+                PropertyDetailRow(label: "NAME", value: property.name.uppercased())
                 Divider()
                 PropertyDetailRow(label: "SERIAL", value: property.serialNumber)
                 Divider()
