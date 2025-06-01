@@ -1,0 +1,52 @@
+# Git files
+.git
+.gitignore
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test files
+*_test.go
+*.test
+coverage.out
+coverage.html
+
+# Mock files (explicitly exclude any mock files)
+*mock*.go
+mock_*.go
+*_mock.go
+
+# Documentation
+README.md
+docs/
+
+# Scripts
+scripts/
+
+# Binaries
+bin/
+*.exe
+
+# Dependencies
+vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.env.local
+
+# Build artifacts
+dist/
+build/
+
+# Docker files we don't need in context
+docker-compose*.yml
+Dockerfile*
+.dockerignore 

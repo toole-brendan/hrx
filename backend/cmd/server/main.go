@@ -113,8 +113,8 @@ func main() {
 			}
 			log.Println("Using Azure SQL Ledger (fallback)")
 		} else {
-			log.Println("No ledger service configured - using mock/disabled mode")
-			// You might want to create a mock ledger service here
+			log.Println("No ledger service configured - ledger functionality disabled")
+			// Ledger service will be nil - routes should handle this gracefully
 		}
 	}
 

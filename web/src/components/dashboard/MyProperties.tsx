@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { inventory } from "@/lib/mockData";
-import Property from "../common/Property";
+import Property from "../common/PropertyCard";
 import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

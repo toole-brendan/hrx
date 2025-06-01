@@ -7,7 +7,7 @@ import (
 )
 
 // LedgerService defines the interface for interacting with an immutable ledger.
-// This allows for different implementations (e.g., QLDB, Azure SQL Ledger, Mock).
+// This allows for different implementations (e.g., QLDB, Azure SQL Ledger, ImmuDB).
 type LedgerService interface {
 	// LogPropertyCreation logs a property creation event.
 	LogPropertyCreation(property domain.Property, userID uint) error
@@ -31,7 +31,7 @@ type LedgerService interface {
 	GetPropertyHistory(propertyID uint) ([]map[string]interface{}, error)
 
 	// VerifyDocument checks the integrity of a ledger document (implementation specific).
-	// For mock/development, this might always return true.
+	// For development, this might always return true.
 	// For Azure SQL Ledger, this would involve calling verification stored procedures/functions.
 	VerifyDocument(documentID string, tableName string) (bool, error)
 

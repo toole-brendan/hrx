@@ -290,6 +290,9 @@ jobs:
             --exclude='web/dist' \
             --exclude='.github' \
             --exclude='*.tar.gz' \
+            --exclude='*mock*.go' \
+            --exclude='mock_*.go' \
+            --exclude='*_mock.go' \
             .
           
           # Create a minimal config.yaml without QLDB
