@@ -53,45 +53,10 @@ struct ContentView: View {
         VStack {
             // Show loading indicator while checking session
             if isLoading {
-                VStack {
-                    ProgressView {
-                        Text("Checking session...")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.primaryText)
-                    }
-                    .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                    
-                    // Display error details if there was a loading error
-                    if let error = loadingError {
-                        VStack(spacing: 10) {
-                            Text("Debug: Session check error")
-                                .font(AppFonts.headline)
-                                .foregroundColor(AppColors.destructive)
-                            
-                            Text(error.localizedDescription)
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.destructive)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                            
-                            Button("Retry") {
-                                debugPrint("Manual retry of session check")
-                                checkSessionStatus()
-                            }
-                            .buttonStyle(.primary)
-                            .padding()
-                            
-                            Button("Debug: Skip to Login") {
-                                debugPrint("Debug: Manually forcing login screen")
-                                isLoading = false
-                            }
-                            .buttonStyle(.primary)
-                            .padding()
-                        }
-                        .padding()
-                    }
-                }
-                .onAppear(perform: checkSessionStatus)
+                LoadingView()
+                    .transition(.opacity)
+                    .zIndex(1) // Ensure it's on top
+                    .onAppear(perform: checkSessionStatus)
             } else if !isAuthenticated {
                 LoginView { loginResponse in
                     debugPrint("ContentView: Login successful for user \(loginResponse.user.username)")
