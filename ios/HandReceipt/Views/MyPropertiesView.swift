@@ -44,71 +44,70 @@ struct MyPropertiesView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack(alignment: .top) {
-                // Main content
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Spacer for header
-                        Color.clear
-                            .frame(height: 36)
-                        
-                        // Welcome text
-                        Text("Manage Your Equipment")
-                            .font(AppFonts.largeTitle)
-                            .foregroundColor(AppColors.primaryText)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-                            .padding(.bottom, 8)
-                        
-                        // The rest of the content
-                        mainContent
-                    }
-                }
-                .background(AppColors.appBackground.ignoresSafeArea(.all))
-                
-                // Top bar that mirrors bottom tab bar
-                headerSection
-            }
-            .navigationTitle("")
-            .navigationBarHidden(true)
-            .sheet(isPresented: $showingCreateProperty) {
-                CreatePropertyView()
-                    .onDisappear {
-                        viewModel.loadProperties()
-                    }
-            }
-            .sheet(isPresented: $showingVerificationSheet) {
-                if let property = selectedProperty {
-                    PropertyVerificationSheet(property: property) { updatedProperty in
-                        viewModel.updateProperty(updatedProperty)
-                        showingVerificationSheet = false
-                    }
+        ZStack(alignment: .top) {
+            // Main content
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Spacer for header
+                    Color.clear
+                        .frame(height: 36)
+                    
+                    // Welcome text
+                    Text("Manage Your Equipment")
+                        .font(AppFonts.largeTitle)
+                        .foregroundColor(AppColors.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    
+                    // The rest of the content
+                    mainContent
                 }
             }
-            .actionSheet(isPresented: $showingSortOptions) {
-                ActionSheet(
-                    title: Text("Sort Properties"),
-                    buttons: SortOption.allCases.map { option in
-                        .default(Text(option.rawValue)) {
-                            selectedSortOption = option
-                        }
-                    } + [.cancel()]
-                )
+            .background(AppColors.appBackground.ignoresSafeArea(.all))
+            
+            // Top bar that mirrors bottom tab bar
+            headerSection
+        }
+        .navigationTitle("")
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingCreateProperty) {
+            CreatePropertyView()
+                .onDisappear {
+                    viewModel.loadProperties()
+                }
+        }
+        .sheet(isPresented: $showingVerificationSheet) {
+            if let property = selectedProperty {
+                PropertyVerificationSheet(property: property) { updatedProperty in
+                    viewModel.updateProperty(updatedProperty)
+                    showingVerificationSheet = false
+                }
             }
+        }
+        .actionSheet(isPresented: $showingSortOptions) {
+            ActionSheet(
+                title: Text("Sort Properties"),
+                buttons: SortOption.allCases.map { option in
+                    .default(Text(option.rawValue)) {
+                        selectedSortOption = option
+                    }
+                } + [.cancel()]
+            )
         }
     }
     
     @ViewBuilder
     private var mainContent: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 24) {
             // Offline indicator
             if viewModel.isOffline {
                 OfflineIndicator()
+                    .padding(.top, -12) // Tighten up the spacing since we already have 24pt from parent
             }
             
-            // Search and filters
-            VStack(spacing: 12) {
+            // Search and filters section
+            VStack(spacing: 16) {
                 // Search bar with sort button
                 HStack(spacing: 12) {
                     HStack {
@@ -189,47 +188,60 @@ struct MyPropertiesView: View {
                     .padding(.horizontal)
                 }
             }
-            .background(AppColors.appBackground)
             
-            // Properties list
-            switch viewModel.loadingState {
-            case .idle, .loading:
-                PropertyLoadingView()
-                
-            case .success(_):
-                if filteredProperties.isEmpty {
-                    PropertiesEmptyStateView(
-                        filter: selectedFilter,
-                        searchText: searchText,
-                        onRefresh: viewModel.loadProperties
-                    )
-                } else {
-                    List {
-                        ForEach(filteredProperties) { property in
-                            PropertyRowWithImportInfo(property: property) {
-                                if property.needsVerification {
-                                    selectedProperty = property
-                                    showingVerificationSheet = true
+            // Properties list content
+            VStack(spacing: 0) {
+                switch viewModel.loadingState {
+                case .idle, .loading:
+                    PropertyLoadingView()
+                        .padding(.vertical, 50)
+                    
+                case .success(_):
+                    if filteredProperties.isEmpty {
+                        PropertiesEmptyStateView(
+                            filter: selectedFilter,
+                            searchText: searchText,
+                            onRefresh: viewModel.loadProperties
+                        )
+                        .padding(.vertical, 50)
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(filteredProperties) { property in
+                                    PropertyRowWithImportInfo(property: property) {
+                                        if property.needsVerification {
+                                            selectedProperty = property
+                                            showingVerificationSheet = true
+                                        }
+                                    }
+                                    .padding(.horizontal)
                                 }
                             }
+                            .padding(.vertical)
+                        }
+                        .refreshable {
+                            viewModel.loadProperties()
                         }
                     }
-                    .listStyle(.plain)
-                    .refreshable {
+                    
+                case .error(let message):
+                    ErrorStateView(message: message) {
                         viewModel.loadProperties()
                     }
-                }
-                
-            case .error(let message):
-                ErrorStateView(message: message) {
-                    viewModel.loadProperties()
+                    .padding()
                 }
             }
+            .frame(maxHeight: .infinity)
             
             // Sync status footer
             if let lastSync = viewModel.lastSyncDate {
                 SyncStatusFooter(lastSync: lastSync, isSyncing: viewModel.isSyncing)
+                    .padding(.top, -24) // Pull it closer since we have the VStack spacing
             }
+            
+            // Bottom spacer for tab bar
+            Spacer()
+                .frame(height: 80)
         }
     }
     
@@ -317,15 +329,21 @@ struct OfflineIndicator: View {
                 .font(.caption)
             Text("OFFLINE MODE")
                 .font(AppFonts.captionBold)
+                .tracking(AppFonts.militaryTracking)
             Text("• Changes will sync when connected")
                 .font(AppFonts.caption)
                 .foregroundColor(AppColors.secondaryText)
         }
         .foregroundColor(AppColors.warning)
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .background(AppColors.warning.opacity(0.1))
+        .overlay(
+            Rectangle()
+                .stroke(AppColors.warning.opacity(0.3), lineWidth: 1),
+            alignment: .bottom
+        )
     }
 }
 
@@ -525,7 +543,6 @@ struct PropertyLoadingView: View {
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.secondaryText)
         }
-        .padding(.vertical, 50)
     }
 }
 
@@ -638,71 +655,173 @@ struct SyncStatusFooter: View {
 struct PropertyRowWithImportInfo: View {
     let property: Property
     let onTap: () -> Void
+    @State private var isPressed = false
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(property.name)
-                        .font(.headline)
-                    
-                    if property.isImportedFromDA2062 {
-                        Image(systemName: "doc.badge.plus")
-                            .foregroundColor(.blue)
-                            .font(.caption)
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header row with name and status icons
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(property.name)
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(AppColors.primaryText)
+                                .lineLimit(2)
+                            
+                            if property.isImportedFromDA2062 {
+                                Image(systemName: "doc.badge.plus")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.accent)
+                            }
+                            
+                            if property.needsVerification {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.warning)
+                            }
+                            
+                            if property.isSensitive {
+                                Image(systemName: "lock.shield.fill")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.warning)
+                            }
+                        }
+                        
+                        // NSN and Serial Number
+                        HStack(spacing: 12) {
+                            if let nsn = property.nsn {
+                                HStack(spacing: 4) {
+                                    Text("NSN:")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                    Text(nsn)
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.secondaryText)
+                                }
+                            }
+                            
+                            HStack(spacing: 4) {
+                                Text("S/N:")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.tertiaryText)
+                                Text(property.serialNumber)
+                                    .font(AppFonts.mono)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .strikethrough(property.isGeneratedSerial)
+                                
+                                if property.isGeneratedSerial {
+                                    Text("(Generated)")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.warning)
+                                }
+                            }
+                        }
                     }
                     
-                    if property.needsVerification {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+                    Spacer()
+                    
+                    // Status indicator
+                    VStack(alignment: .trailing, spacing: 4) {
+                        statusIndicator
+                        
+                        if let lastInventoryDate = property.lastInventoryDate {
+                            Text(formatRelativeDate(lastInventoryDate))
+                                .font(AppFonts.caption)
+                                .foregroundColor(verificationDateColor(lastInventoryDate))
+                        }
                     }
                 }
                 
-                HStack(spacing: 8) {
-                    if let nsn = property.nsn {
-                        Text("NSN: \(nsn)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                // Additional info row if needed
+                if property.needsVerification || property.importMetadata != nil {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if property.needsVerification {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.warning)
+                                Text(property.verificationReasons.first ?? "Needs verification")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.warning)
+                                    .lineLimit(1)
+                            }
+                        }
+                        
+                        if let metadata = property.importMetadata,
+                           let formNumber = metadata.formNumber {
+                            Text("Imported from DA-2062 #\(formNumber)")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
                     }
-                    
-                    Text("S/N: \(property.serialNumber)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .strikethrough(property.isGeneratedSerial)
-                    
-                    if property.isGeneratedSerial {
-                        Text("(Generated)")
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                    }
-                }
-                
-                if property.needsVerification {
-                    Text(property.verificationReasons.first ?? "Needs verification")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                        .lineLimit(1)
-                }
-                
-                if let metadata = property.importMetadata,
-                   let formNumber = metadata.formNumber {
-                    Text("From DA-2062 #\(formNumber)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                 }
             }
-            
-            Spacer()
-            
-            if property.status == "operational" || property.currentStatus == "operational" {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
+            .padding()
+            .background(AppColors.secondaryBackground)
+            .overlay(
+                Rectangle()
+                    .stroke(isPressed ? AppColors.accent : AppColors.border, lineWidth: 1)
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isPressed)
         }
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
+    }
+    
+    @ViewBuilder
+    private var statusIndicator: some View {
+        let status = property.status ?? property.currentStatus ?? "unknown"
+        let (color, icon) = statusInfo(for: status)
+        
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption2)
+            Text(status.uppercased())
+                .font(AppFonts.captionBold)
+                .tracking(AppFonts.militaryTracking)
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
+        .background(color.opacity(0.15))
+        .overlay(
+            Rectangle()
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    private func statusInfo(for status: String) -> (Color, String) {
+        switch status.lowercased() {
+        case "operational", "active":
+            return (AppColors.success, "checkmark.circle.fill")
+        case "maintenance", "non-operational":
+            return (AppColors.warning, "wrench.and.screwdriver.fill")
+        case "missing":
+            return (AppColors.destructive, "xmark.circle.fill")
+        default:
+            return (AppColors.secondaryText, "questionmark.circle.fill")
+        }
+    }
+    
+    private func verificationDateColor(_ date: Date) -> Color {
+        let daysSince = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if daysSince > 90 {
+            return AppColors.destructive
+        } else if daysSince > 30 {
+            return AppColors.warning
+        } else {
+            return AppColors.secondaryText
+        }
+    }
+    
+    private func formatRelativeDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
