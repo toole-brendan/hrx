@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to scan QR codes for property transfers, barcodes, and serial numbers on equipment, as well as to take photos of property items.</string>
+	<string>HandReceipt needs camera access to scan DA-2062 forms and equipment barcodes</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to select and attach photos to property records for documentation purposes.</string>
 	<key>UILaunchStoryboardName</key>

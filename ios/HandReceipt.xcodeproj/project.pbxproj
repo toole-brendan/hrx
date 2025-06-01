@@ -38,6 +38,13 @@
 		BF4A1C352DEC94D50066ADD9 /* TransfersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C342DEC94D50066ADD9 /* TransfersView.swift */; };
 		BF4A1C372DEC950D0066ADD9 /* TransferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C362DEC950D0066ADD9 /* TransferService.swift */; };
 		BF4A1C392DEC98480066ADD9 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C382DEC98480066ADD9 /* LoadingView.swift */; };
+		BF4A1C3E2DECC7380066ADD9 /* VisionDocumentScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C3C2DECC7380066ADD9 /* VisionDocumentScanner.swift */; };
+		BF4A1C3F2DECC7380066ADD9 /* DA2062ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C3B2DECC7380066ADD9 /* DA2062ScanView.swift */; };
+		BF4A1C402DECC7380066ADD9 /* DA2062ReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C3A2DECC7380066ADD9 /* DA2062ReviewSheet.swift */; };
+		BF4A1C432DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C412DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift */; };
+		BF4A1C442DECC74C0066ADD9 /* DA2062ScanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C422DECC74C0066ADD9 /* DA2062ScanViewModel.swift */; };
+		BF4A1C462DECC7CD0066ADD9 /* DA2062OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C452DECC7CD0066ADD9 /* DA2062OCRService.swift */; };
+		BF4A1C482DECC89A0066ADD9 /* DA2062Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C472DECC89A0066ADD9 /* DA2062Models.swift */; };
 		BF8172312DEA96A10086B2DD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8172302DEA96A10086B2DD /* SettingsView.swift */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
@@ -97,6 +104,13 @@
 		BF4A1C342DEC94D50066ADD9 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
 		BF4A1C362DEC950D0066ADD9 /* TransferService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferService.swift; sourceTree = "<group>"; };
 		BF4A1C382DEC98480066ADD9 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		BF4A1C3A2DECC7380066ADD9 /* DA2062ReviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ReviewSheet.swift; sourceTree = "<group>"; };
+		BF4A1C3B2DECC7380066ADD9 /* DA2062ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ScanView.swift; sourceTree = "<group>"; };
+		BF4A1C3C2DECC7380066ADD9 /* VisionDocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionDocumentScanner.swift; sourceTree = "<group>"; };
+		BF4A1C412DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062DocumentScannerViewModel.swift; sourceTree = "<group>"; };
+		BF4A1C422DECC74C0066ADD9 /* DA2062ScanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ScanViewModel.swift; sourceTree = "<group>"; };
+		BF4A1C452DECC7CD0066ADD9 /* DA2062OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062OCRService.swift; sourceTree = "<group>"; };
+		BF4A1C472DECC89A0066ADD9 /* DA2062Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062Models.swift; sourceTree = "<group>"; };
 		BF8172302DEA96A10086B2DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -132,6 +146,8 @@
 		09A6D80FC831C5B5CC6707D9 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C412DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift */,
+				BF4A1C422DECC74C0066ADD9 /* DA2062ScanViewModel.swift */,
 				BF4A1C322DEC879C0066ADD9 /* ConnectionsViewModel.swift */,
 				BF4A1C2E2DEC81170066ADD9 /* ReferencePropertyDetailViewModel.swift */,
 				FE7F100BCA494CB1B40A0EA9 /* AuthViewModel.swift */,
@@ -150,6 +166,7 @@
 		33080A0085219D77C59F202D /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C472DECC89A0066ADD9 /* DA2062Models.swift */,
 				BF4A1C302DEC81280066ADD9 /* ReferenceProperty.swift */,
 				BF2685572DEB497C00BFB170 /* UserConnection.swift */,
 				434D1A44E761BE2F69B0CCF0 /* AuthModels.swift */,
@@ -162,6 +179,7 @@
 		9AD52AE44496465F5F0F3B16 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C452DECC7CD0066ADD9 /* DA2062OCRService.swift */,
 				BF4A1C362DEC950D0066ADD9 /* TransferService.swift */,
 				BFA128122DEA3D3200C12800 /* AuthManager.swift */,
 				BF2DF43A2DE929D700E450D6 /* CoreDataStack.swift */,
@@ -169,6 +187,16 @@
 				B32078152333561CB10233BA /* APIService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		BF4A1C3D2DECC7380066ADD9 /* DA2062 */ = {
+			isa = PBXGroup;
+			children = (
+				BF4A1C3A2DECC7380066ADD9 /* DA2062ReviewSheet.swift */,
+				BF4A1C3B2DECC7380066ADD9 /* DA2062ScanView.swift */,
+				BF4A1C3C2DECC7380066ADD9 /* VisionDocumentScanner.swift */,
+			);
+			path = DA2062;
 			sourceTree = "<group>";
 		};
 		BFA128192DEA435900C12800 /* Frameworks */ = {
@@ -203,6 +231,7 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C3D2DECC7380066ADD9 /* DA2062 */,
 				BF4A1C382DEC98480066ADD9 /* LoadingView.swift */,
 				BF4A1C342DEC94D50066ADD9 /* TransfersView.swift */,
 				BF4A1C2C2DEC81040066ADD9 /* ReferencePropertyDetailView.swift */,
@@ -321,6 +350,9 @@
 				BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */,
 				BF4A1C352DEC94D50066ADD9 /* TransfersView.swift in Sources */,
 				BF8172312DEA96A10086B2DD /* SettingsView.swift in Sources */,
+				BF4A1C432DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift in Sources */,
+				BF4A1C442DECC74C0066ADD9 /* DA2062ScanViewModel.swift in Sources */,
+				BF4A1C462DECC7CD0066ADD9 /* DA2062OCRService.swift in Sources */,
 				F42AD7F3D920075A1FAC101E /* APIService.swift in Sources */,
 				26AA81A70A773FCEDA22BF5E /* AuthModels.swift in Sources */,
 				0DA6EB357E621AF6A54CF8F5 /* AuthViewModel.swift in Sources */,
@@ -363,8 +395,12 @@
 				BF2685562DEB41A500BFB170 /* OfferPropertyView.swift in Sources */,
 				D8EA460483AC0CF32381B58C /* ScanViewModel.swift in Sources */,
 				BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */,
+				BF4A1C482DECC89A0066ADD9 /* DA2062Models.swift in Sources */,
 				BF4A1C312DEC81280066ADD9 /* ReferenceProperty.swift in Sources */,
 				6EC03ABD395528E42D8AC7D1 /* TransfersViewModel.swift in Sources */,
+				BF4A1C3E2DECC7380066ADD9 /* VisionDocumentScanner.swift in Sources */,
+				BF4A1C3F2DECC7380066ADD9 /* DA2062ScanView.swift in Sources */,
+				BF4A1C402DECC7380066ADD9 /* DA2062ReviewSheet.swift in Sources */,
 				DE3312936DE375DAEC9A4552 /* UserSelectionView.swift in Sources */,
 				9CAA7907B48AF7D46F77FB02 /* UserSelectionViewModel.swift in Sources */,
 			);

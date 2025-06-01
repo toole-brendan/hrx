@@ -1,0 +1,408 @@
+import Foundation
+import SwiftUI
+import Combine
+
+class DA2062ScanViewModel: ObservableObject {
+    @Published var currentForm: DA2062Form?
+    @Published var recentScans: [DA2062Scan] = []
+    @Published var isProcessing = false
+    @Published var errorMessage: String?
+    @Published var processingProgress: Double = 0.0
+    @Published var processingMessage: String = ""
+    
+    private var cancellables = Set<AnyCancellable>()
+    private let ocrService = DA2062OCRService()
+    private var progressTimer: Timer?
+    
+    // MARK: - Enhanced Property Creation with Quantity Handling
+    
+    func createPropertiesFromParsedItems(_ items: [EditableDA2062Item]) -> [DA2062PropertyRequest] {
+        var propertyRequests: [DA2062PropertyRequest] = []
+        
+        for item in items where item.isSelected {
+            let quantity = Int(item.quantity) ?? 1
+            
+            if quantity > 1 && !item.hasExplicitSerial {
+                // Create multiple entries for non-serialized items
+                for index in 1...quantity {
+                    let generatedSerial = generatePlaceholderSerial(
+                        for: item,
+                        index: index,
+                        total: quantity
+                    )
+                    
+                    let metadata = createImportMetadata(
+                        for: item,
+                        serialSource: .generated,
+                        quantityIndex: index,
+                        originalQuantity: quantity
+                    )
+                    
+                    let request = DA2062PropertyRequest(
+                        name: item.description,
+                        description: buildEnhancedDescription(for: item, index: index, total: quantity),
+                        serialNumber: generatedSerial,
+                        nsn: item.nsn.isEmpty ? nil : item.nsn,
+                        quantity: 1, // Each entry represents single item
+                        unit: item.unit ?? "EA",
+                        location: nil,
+                        category: categorizeItem(item.description),
+                        da2062Reference: currentForm?.id.uuidString,
+                        importMetadata: metadata
+                    )
+                    
+                    propertyRequests.append(request)
+                }
+            } else {
+                // Single item or has explicit serial
+                let metadata = createImportMetadata(
+                    for: item,
+                    serialSource: item.hasExplicitSerial ? .explicit : .manual,
+                    quantityIndex: nil,
+                    originalQuantity: quantity
+                )
+                
+                let request = DA2062PropertyRequest(
+                    name: item.description,
+                    description: buildEnhancedDescription(for: item),
+                    serialNumber: item.serialNumber.isEmpty ? 
+                        generatePlaceholderSerial(for: item, index: 1, total: 1) : 
+                        item.serialNumber,
+                    nsn: item.nsn.isEmpty ? nil : item.nsn,
+                    quantity: quantity,
+                    unit: item.unit ?? "EA",
+                    location: nil,
+                    category: categorizeItem(item.description),
+                    da2062Reference: currentForm?.id.uuidString,
+                    importMetadata: metadata
+                )
+                
+                propertyRequests.append(request)
+            }
+        }
+        
+        return propertyRequests
+    }
+    
+    // Generate consistent placeholder serials
+    private func generatePlaceholderSerial(for item: EditableDA2062Item, index: Int, total: Int) -> String {
+        let timestamp = Date().timeIntervalSince1970
+        let baseIdentifier: String
+        
+        if !item.nsn.isEmpty {
+            // Use NSN as base if available
+            baseIdentifier = item.nsn.replacingOccurrences(of: "-", with: "")
+        } else {
+            // Use first 8 chars of description (alphanumeric only)
+            let cleanDesc = item.description
+                .uppercased()
+                .replacingOccurrences(of: " ", with: "")
+                .filter { $0.isLetter || $0.isNumber }
+            baseIdentifier = String(cleanDesc.prefix(8))
+        }
+        
+        // Format: BASE-YYMMDD-XXofYY
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyMMdd"
+        let dateStr = dateFormatter.string(from: Date())
+        
+        if total > 1 {
+            return "GEN-\(baseIdentifier)-\(dateStr)-\(String(format: "%02d", index))of\(String(format: "%02d", total))"
+        } else {
+            return "GEN-\(baseIdentifier)-\(dateStr)-\(String(format: "%04d", Int(timestamp) % 10000))"
+        }
+    }
+    
+    // Create import metadata
+    private func createImportMetadata(
+        for item: EditableDA2062Item,
+        serialSource: SerialSource,
+        quantityIndex: Int?,
+        originalQuantity: Int
+    ) -> ImportMetadata {
+        var verificationReasons: [String] = []
+        
+        // Determine if verification is needed
+        if item.confidence < 0.7 {
+            verificationReasons.append("Low OCR confidence (\(Int(item.confidence * 100))%)")
+        }
+        
+        if serialSource == .generated {
+            verificationReasons.append("Serial number was auto-generated")
+        }
+        
+        if item.quantityConfidence < 0.8 && originalQuantity > 1 {
+            verificationReasons.append("Quantity field had low confidence")
+        }
+        
+        if item.nsn.isEmpty {
+            verificationReasons.append("No NSN detected")
+        }
+        
+        return ImportMetadata(
+            source: "da2062_scan",
+            importDate: Date(),
+            formNumber: currentForm?.formNumber,
+            unitName: currentForm?.unitName,
+            scanConfidence: currentForm?.confidence ?? 0,
+            itemConfidence: item.confidence,
+            serialSource: serialSource,
+            originalQuantity: originalQuantity > 1 ? originalQuantity : nil,
+            quantityIndex: quantityIndex,
+            requiresVerification: !verificationReasons.isEmpty,
+            verificationReasons: verificationReasons
+        )
+    }
+    
+    // Enhanced description with metadata
+    private func buildEnhancedDescription(for item: EditableDA2062Item, index: Int? = nil, total: Int? = nil) -> String {
+        var parts: [String] = []
+        
+        if !item.nsn.isEmpty {
+            parts.append("NSN: \(item.nsn)")
+        }
+        
+        if !item.serialNumber.isEmpty && item.hasExplicitSerial {
+            parts.append("S/N: \(item.serialNumber)")
+        }
+        
+        if let index = index, let total = total, total > 1 {
+            parts.append("Item \(index) of \(total)")
+        }
+        
+        parts.append("Imported from DA-2062")
+        
+        if let formNumber = currentForm?.formNumber {
+            parts.append("Form: \(formNumber)")
+        }
+        
+        parts.append("Import Date: \(Date().formatted(date: .abbreviated, time: .omitted))")
+        
+        return parts.joined(separator: " | ")
+    }
+    
+    // Categorize item based on description
+    private func categorizeItem(_ description: String) -> String {
+        let desc = description.uppercased()
+        
+        if desc.contains("WEAPON") || desc.contains("RIFLE") || desc.contains("PISTOL") || desc.contains("CARBINE") {
+            return "Weapons"
+        } else if desc.contains("OPTIC") || desc.contains("SIGHT") || desc.contains("SCOPE") {
+            return "Optics"
+        } else if desc.contains("RADIO") || desc.contains("SINCGARS") || desc.contains("ASIP") {
+            return "Communications"
+        } else if desc.contains("VEST") || desc.contains("IOTV") || desc.contains("PLATE") {
+            return "Body Armor"
+        } else if desc.contains("HELMET") || desc.contains("ACH") {
+            return "Protective Gear"
+        } else if desc.contains("NVGS") || desc.contains("NIGHT VISION") {
+            return "Night Vision"
+        } else {
+            return "Equipment"
+        }
+    }
+    
+    // MARK: - Existing Methods
+    
+    // Process extracted text from OCR
+    func processExtractedText(_ text: String, pages: [UIImage], confidence: Double, completion: @escaping (Result<Void, Error>) -> Void) {
+        isProcessing = true
+        errorMessage = nil
+        
+        // Parse the extracted text to create DA2062Form
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let form = try self?.parseDA2062Text(text)
+                
+                DispatchQueue.main.async {
+                    self?.currentForm = form
+                    self?.isProcessing = false
+                    
+                    // Check if any items require verification
+                    let requiresVerification = form?.items.contains { item in
+                        item.confidence < 0.7 || item.quantityConfidence < 0.8 || !item.hasExplicitSerial
+                    } ?? false
+                    
+                    // Add to recent scans
+                    let scan = DA2062Scan(
+                        date: Date(),
+                        pageCount: pages.count,
+                        itemCount: form?.items.count ?? 0,
+                        confidence: confidence,
+                        formNumber: form?.formNumber,
+                        requiresVerification: requiresVerification
+                    )
+                    self?.recentScans.insert(scan, at: 0)
+                    
+                    // Keep only last 10 scans
+                    if self?.recentScans.count ?? 0 > 10 {
+                        self?.recentScans = Array(self?.recentScans.prefix(10) ?? [])
+                    }
+                    
+                    completion(.success(()))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self?.isProcessing = false
+                    self?.errorMessage = error.localizedDescription
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+    
+    // Process DA2062 with OCR service integration
+    func processDA2062(image: UIImage, completion: @escaping (Result<Void, Error>) -> Void) {
+        // Check device capability first
+        guard ocrService.checkRecognitionCapability() else {
+            completion(.failure(OCRError.recognitionLevelNotSupported))
+            return
+        }
+        
+        isProcessing = true
+        processingProgress = 0.1
+        
+        // Show appropriate messaging for accurate processing
+        processingMessage = "Analyzing document with high accuracy..."
+        
+        // Accurate processing takes 2-5x longer than fast
+        // Update progress incrementally
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            if self.processingProgress < 0.8 {
+                self.processingProgress += 0.1
+                
+                // Update message based on progress
+                switch self.processingProgress {
+                case 0..<0.3:
+                    self.processingMessage = "Preparing document for analysis..."
+                case 0.3..<0.5:
+                    self.processingMessage = "Detecting text regions..."
+                case 0.5..<0.7:
+                    self.processingMessage = "Recognizing military terminology..."
+                case 0.7..<0.9:
+                    self.processingMessage = "Extracting form data..."
+                default:
+                    self.processingMessage = "Finalizing results..."
+                }
+            } else {
+                timer.invalidate()
+            }
+        }
+        
+        ocrService.processImage(image) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.progressTimer?.invalidate()
+                self?.processingProgress = 1.0
+                self?.isProcessing = false
+                
+                switch result {
+                case .success(let form):
+                    self?.currentForm = form
+                    self?.processingMessage = "Processing complete!"
+                    
+                    // Add to recent scans
+                    let scan = DA2062Scan(
+                        date: Date(),
+                        pageCount: 1,
+                        itemCount: form.items.count,
+                        confidence: form.confidence,
+                        formNumber: form.formNumber,
+                        requiresVerification: false
+                    )
+                    self?.recentScans.insert(scan, at: 0)
+                    
+                    // Keep only last 10 scans
+                    if self?.recentScans.count ?? 0 > 10 {
+                        self?.recentScans = Array(self?.recentScans.prefix(10) ?? [])
+                    }
+                    
+                    completion(.success(()))
+                    
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    self?.processingMessage = "Processing failed"
+                    
+                    // Handle specific OCR errors
+                    if let ocrError = error as? OCRError {
+                        switch ocrError {
+                        case .lowConfidenceResult(let confidence):
+                            self?.processingMessage = "Low confidence result (\(Int(confidence * 100))%)"
+                            // Still show results but warn user
+                            completion(.success(()))
+                        default:
+                            completion(.failure(error))
+                        }
+                    } else {
+                        completion(.failure(error))
+                    }
+                }
+            }
+        }
+    }
+    
+    // Parse DA2062 text format (simplified for compatibility)
+    private func parseDA2062Text(_ text: String) throws -> DA2062Form {
+        // This is a simplified parser - actual implementation would be more sophisticated
+        var items: [DA2062Item] = []
+        let lines = text.components(separatedBy: .newlines)
+        
+        var unitName: String?
+        var dodaac: String?
+        
+        // Look for unit name and DODAAC in header
+        for line in lines {
+            if line.contains("UNIT:") {
+                unitName = line.replacingOccurrences(of: "UNIT:", with: "").trimmingCharacters(in: .whitespaces)
+            }
+            if line.contains("DODAAC:") {
+                dodaac = line.replacingOccurrences(of: "DODAAC:", with: "").trimmingCharacters(in: .whitespaces)
+            }
+        }
+        
+        // For now, return form with parsed header info
+        // Actual items would be parsed by the OCR service
+        return DA2062Form(
+            unitName: unitName,
+            dodaac: dodaac,
+            dateCreated: Date(),
+            items: items,
+            formNumber: "DA2062-\(Date().timeIntervalSince1970)",
+            confidence: 0.85
+        )
+    }
+    
+    // Select a recent scan
+    func selectScan(_ scan: DA2062Scan) {
+        // In a real app, you'd load the scan data from storage
+        // For now, just set a placeholder
+    }
+    
+    // Create properties from reviewed items
+    func createProperties(from items: [DA2062PropertyRequest]) {
+        // This would call your API service to create the properties
+        // For now, just print
+        print("Creating \(items.count) properties from DA2062")
+        
+        // In production, this would call the API service
+        // apiService.createBulkProperties(items) { result in ... }
+    }
+    
+    // Clean up resources
+    deinit {
+        progressTimer?.invalidate()
+    }
+}
+
+// MARK: - Debug helpers
+#if DEBUG
+extension DA2062ScanViewModel {
+    func testRecognitionLevels(with image: UIImage) {
+        ocrService.compareRecognitionLevels(image)
+    }
+}
+#endif 

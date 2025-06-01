@@ -52,16 +52,23 @@ type Property struct {
 	AssignedToUserID  *uint      `json:"assignedToUserId" gorm:"column:assigned_to_user_id"`
 	LastVerifiedAt    *time.Time `json:"lastVerifiedAt" gorm:"column:last_verified_at"`
 	LastMaintenanceAt *time.Time `json:"lastMaintenanceAt" gorm:"column:last_maintenance_at"`
-	SyncStatus        string     `json:"syncStatus" gorm:"column:sync_status;default:'synced'"` // NEW
-	LastSyncedAt      *time.Time `json:"lastSyncedAt" gorm:"column:last_synced_at"`             // NEW
-	ClientID          *string    `json:"clientId" gorm:"column:client_id"`                      // NEW
-	Version           int        `json:"version" gorm:"default:1"`                              // NEW: For conflict resolution
+	SyncStatus        string     `json:"syncStatus" gorm:"column:sync_status;default:'synced'"`   // NEW
+	LastSyncedAt      *time.Time `json:"lastSyncedAt" gorm:"column:last_synced_at"`               // NEW
+	ClientID          *string    `json:"clientId" gorm:"column:client_id"`                        // NEW
+	Version           int        `json:"version" gorm:"default:1"`                                // NEW: For conflict resolution
+	SourceType        *string    `json:"sourceType" gorm:"column:source_type"`                    // NEW: manual, da2062_scan, etc
+	SourceRef         *string    `json:"sourceRef" gorm:"column:source_ref"`                      // NEW: Reference to source document
+	ImportMetadata    *string    `json:"importMetadata" gorm:"column:import_metadata;type:jsonb"` // NEW: Import metadata as JSONB
+	Verified          bool       `json:"verified" gorm:"default:false"`                           // NEW: Whether item has been verified
+	VerifiedAt        *time.Time `json:"verifiedAt" gorm:"column:verified_at"`                    // NEW: When item was verified
+	VerifiedBy        *uint      `json:"verifiedBy" gorm:"column:verified_by"`                    // NEW: Who verified the item
 	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt         time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
 
 	// Relationships
 	PropertyModel  *PropertyModel `json:"propertyModel,omitempty" gorm:"foreignKey:PropertyModelID"`
 	AssignedToUser *User          `json:"assignedToUser,omitempty" gorm:"foreignKey:AssignedToUserID"`
+	VerifiedByUser *User          `json:"verifiedByUser,omitempty" gorm:"foreignKey:VerifiedBy"` // NEW
 }
 
 // PropertyType represents a broad category of property (e.g., Weapon, Communication)
