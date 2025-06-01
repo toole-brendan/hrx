@@ -1,0 +1,8 @@
+-- SKIPPED: QR code functionality has been removed from the application
+-- This migration is preserved for historical reference only
+-- The QR codes table is dropped in migration 008_complete_schema_alignment.sql
+
+-- Original migration content below:
+-- This migration would have created the qr_codes table
+-- but is no longer needed as the feature has been replaced
+-- with serial number-based transfers 
