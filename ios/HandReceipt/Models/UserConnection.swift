@@ -1,12 +1,14 @@
-struct UserConnection: Codable, Identifiable {
-    let id: Int
-    let userId: Int
-    let connectedUserId: Int
-    let connectionStatus: ConnectionStatus
-    let connectedUser: UserSummary?
-    let createdAt: Date
+import Foundation
+
+public struct UserConnection: Codable, Identifiable {
+    public let id: Int
+    public let userId: Int
+    public let connectedUserId: Int
+    public let connectionStatus: ConnectionStatus
+    public let connectedUser: UserSummary?
+    public let createdAt: Date
     
-    enum ConnectionStatus: String, Codable {
+    public enum ConnectionStatus: String, Codable {
         case pending = "pending"
         case accepted = "accepted"
         case blocked = "blocked"

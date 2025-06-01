@@ -4,9 +4,35 @@ import SwiftUI
 struct RequestTransferView: View {
     @State private var serialNumber = ""
     @State private var notes = ""
-    @StateObject private var transferService = TransferService()
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var isSuccess = false
     @StateObject private var viewModel = ManualSNViewModel()
     @Environment(\.presentationMode) var presentationMode
+    
+    private func requestTransfer() async {
+        guard let property = viewModel.foundProperty else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        isSuccess = false
+        
+        do {
+            // Create a SerialTransferRequest
+            let request = SerialTransferRequest(
+                serialNumber: property.serialNumber,
+                requestedFromUserId: nil, // Will be determined by backend based on property ownership
+                notes: notes.isEmpty ? nil : notes
+            )
+            
+            try await TransferService.shared.requestBySerial(request)
+            isSuccess = true
+        } catch {
+            errorMessage = "Failed to send transfer request: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+    }
     
     var body: some View {
         NavigationView {
@@ -103,27 +129,26 @@ struct RequestTransferView: View {
                                 PropertyRequestCard(property: property)
                                 
                                 Button(action: {
-                                    transferService.requestTransfer(
-                                        serialNumber: serialNumber,
-                                        notes: notes
-                                    )
+                                    Task {
+                                        await requestTransfer()
+                                    }
                                 }) {
                                     HStack(spacing: 12) {
-                                        if transferService.isLoading {
+                                        if isLoading {
                                             ProgressView()
                                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                                 .scaleEffect(0.8)
                                         } else {
                                             Image(systemName: "arrow.right.circle.fill")
                                         }
-                                        Text(transferService.isLoading ? "SENDING REQUEST..." : "REQUEST TRANSFER")
+                                        Text(isLoading ? "SENDING REQUEST..." : "REQUEST TRANSFER")
                                             .tracking(AppFonts.militaryTracking)
                                     }
                                     .font(AppFonts.bodyBold)
                                     .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.secondary)
-                                .disabled(transferService.isLoading)
+                                .disabled(isLoading)
                             }
                             .padding(.horizontal, 24)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -136,14 +161,14 @@ struct RequestTransferView: View {
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                         
-                        if let transferError = transferService.errorMessage {
+                        if let transferError = errorMessage {
                             ErrorMessageView(message: transferError)
                                 .padding(.horizontal, 24)
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                         
                         // Success Message
-                        if transferService.isSuccess {
+                        if isSuccess {
                             SuccessMessageView(message: "Transfer request sent successfully!")
                                 .padding(.horizontal, 24)
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -172,7 +197,7 @@ struct RequestTransferView: View {
         }
         .animation(.spring(), value: viewModel.foundProperty)
         .animation(.spring(), value: viewModel.errorMessage)
-        .animation(.spring(), value: transferService.isSuccess)
+        .animation(.spring(), value: isSuccess)
     }
 }
 
@@ -210,10 +235,8 @@ struct PropertyRequestCard: View {
                 Divider()
                 PropertyDetailRow(label: "STATUS", value: (property.status ?? property.currentStatus ?? "Unknown").uppercased())
                 
-                if let currentHolder = property.currentHolder {
-                    Divider()
-                    PropertyDetailRow(label: "CURRENT HOLDER", value: "\(currentHolder.rank ?? "") \(currentHolder.name ?? "Unknown")")
-                }
+                // TODO: Add current holder information when available from API
+                // Currently, Property model doesn't include currentHolder field
             }
             .padding()
         }

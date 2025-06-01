@@ -151,7 +151,7 @@ struct MyPropertiesView: View {
             // Properties list
             switch viewModel.loadingState {
             case .idle, .loading:
-                LoadingView()
+                PropertyLoadingView()
                 
             case .success(let properties):
                 let filteredProperties = filterAndSort(properties)
@@ -239,7 +239,7 @@ struct MyPropertiesView: View {
         case .lastVerification:
             filtered.sort { ($0.lastInventoryDate ?? Date.distantPast) > ($1.lastInventoryDate ?? Date.distantPast) }
         case .status:
-            filtered.sort { $0.status < $1.status }
+            filtered.sort { ($0.status ?? "") < ($1.status ?? "") }
         }
         
         return filtered
@@ -360,9 +360,11 @@ struct PropertyRowEnhanced: View {
                         .lineLimit(2)
                     
                     HStack(spacing: 12) {
-                        Label(property.nsn, systemImage: "number")
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.secondaryText)
+                        if let nsn = property.nsn {
+                            Label(nsn, systemImage: "number")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
                         
                         if let lin = property.lin {
                             Text("LIN: \(lin)")
@@ -383,7 +385,7 @@ struct PropertyRowEnhanced: View {
                     
                     // Bottom row: status and last verification
                     HStack {
-                        StatusBadge(status: property.status, type: statusBadgeType)
+                        StatusBadge(status: property.status ?? property.currentStatus ?? "Unknown", type: statusBadgeType)
                         
                         Spacer()
                         
@@ -419,7 +421,8 @@ struct PropertyRowEnhanced: View {
     }
     
     private var statusColor: Color {
-        switch property.status.lowercased() {
+        let status = (property.status ?? property.currentStatus ?? "").lowercased()
+        switch status {
         case "operational": return AppColors.success
         case "maintenance", "non-operational": return AppColors.warning
         case "missing": return AppColors.destructive
@@ -428,7 +431,8 @@ struct PropertyRowEnhanced: View {
     }
     
     private var statusBadgeType: StatusBadge.StatusType {
-        switch property.status.lowercased() {
+        let status = (property.status ?? property.currentStatus ?? "").lowercased()
+        switch status {
         case "operational": return .success
         case "maintenance", "non-operational": return .warning
         case "missing": return .error
@@ -448,7 +452,7 @@ struct PropertyRowEnhanced: View {
     }
 }
 
-struct LoadingView: View {
+struct PropertyLoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
             ProgressView()
@@ -573,7 +577,7 @@ struct MyPropertiesView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             MyPropertiesView(viewModel: {
-                let vm = MyPropertiesViewModel(apiService: MockAPIService())
+                let vm = MyPropertiesViewModel()
                 vm.loadingState = .success(Property.mockList)
                 return vm
             }())

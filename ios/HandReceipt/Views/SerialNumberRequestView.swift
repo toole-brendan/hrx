@@ -7,7 +7,7 @@ struct SerialNumberRequestView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var authService: AuthService
+    // AuthService no longer needed - authentication handled by AuthManager
     
     var body: some View {
         NavigationView {

@@ -391,12 +391,12 @@ struct TransferCard: View {
     @State private var isPressed = false
     
     private var statusColor: Color {
-        switch transfer.status {
-        case .PENDING:
+        switch transfer.status.uppercased() {
+        case "PENDING":
             return AppColors.warning
-        case .APPROVED:
+        case "APPROVED":
             return AppColors.success
-        case .REJECTED:
+        case "REJECTED":
             return AppColors.destructive
         default:
             return AppColors.secondaryText
@@ -404,12 +404,12 @@ struct TransferCard: View {
     }
     
     private var statusIcon: String {
-        switch transfer.status {
-        case .PENDING:
+        switch transfer.status.uppercased() {
+        case "PENDING":
             return "clock.fill"
-        case .APPROVED:
+        case "APPROVED":
             return "checkmark.circle.fill"
-        case .REJECTED:
+        case "REJECTED":
             return "xmark.circle.fill"
         default:
             return "questionmark.circle.fill"
@@ -429,7 +429,7 @@ struct TransferCard: View {
                                 .foregroundColor(AppColors.primaryText)
                                 .tracking(AppFonts.normalTracking)
                             
-                            Text("SN: \(transfer.propertySerialNumber)")
+                            Text("SN: \(transfer.propertySerialNumber ?? "Unknown")")
                                 .font(AppFonts.mono)
                                 .foregroundColor(AppColors.secondaryText)
                         }
@@ -440,7 +440,7 @@ struct TransferCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: statusIcon)
                                 .font(.caption)
-                            Text(transfer.status.rawValue.uppercased())
+                            Text(transfer.status.uppercased())
                                 .font(AppFonts.captionBold)
                                 .tracking(AppFonts.militaryTracking)
                         }
@@ -695,7 +695,7 @@ struct TransferDetailView: View {
         VStack(spacing: 12) {
             TransferDetailRow(label: "ITEM NAME", value: transfer.propertyName ?? "Unknown Item")
             Rectangle().fill(AppColors.border).frame(height: 1)
-            TransferDetailRow(label: "SERIAL NUMBER", value: transfer.propertySerialNumber, isMonospaced: true)
+            TransferDetailRow(label: "SERIAL NUMBER", value: transfer.propertySerialNumber ?? "Unknown", isMonospaced: true)
             Rectangle().fill(AppColors.border).frame(height: 1)
             TransferDetailRow(label: "PROPERTY ID", value: "#\(transfer.propertyId)")
         }
@@ -1082,7 +1082,7 @@ struct OfferRow: View {
 
 struct TransfersView_Previews: PreviewProvider {
     static var previews: some View {
-        TransfersView(apiService: MockAPIService())
+        TransfersView()
             .preferredColorScheme(.dark)
     }
 } 

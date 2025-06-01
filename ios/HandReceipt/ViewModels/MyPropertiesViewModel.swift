@@ -177,7 +177,7 @@ class MyPropertiesViewModel: ObservableObject {
             currentStatus: "operational",
             assignedToUserId: nil,
             location: nil,
-            lastVerificationDate: nil,
+            lastInventoryDate: nil,
             acquisitionDate: Date(),
             notes: nil,
             maintenanceDueDate: nil,

@@ -58,7 +58,7 @@ func ConnectDB() (*gorm.DB, error) {
 		&domain.Property{},
 		&domain.Transfer{},
 		&domain.Activity{},
-		&domain.QRCode{},           // Added
+		// &domain.QRCode{},           // Removed - deprecated
 		&domain.Attachment{},       // Added
 		&domain.TransferItem{},     // Added
 		&domain.OfflineSyncQueue{}, // Added
