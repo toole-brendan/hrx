@@ -377,6 +377,13 @@ jobs:
             sudo find . -name "*_mock.go" -type f -delete
             echo "✅ Cleanup complete"
             
+            echo "🧹 Cleaning up obsolete handler files..."
+            # Remove old handler files that were renamed or removed
+            sudo rm -f backend/internal/api/handlers/inventory_handler.go
+            sudo rm -f backend/internal/api/handlers/qrcode_handler.go
+            sudo rm -f backend/internal/api/handlers/report_handler.go
+            echo "✅ Handler cleanup complete"
+            
             sudo tar xzf /tmp/deployment.tar.gz --strip-components=1
             
             echo "📂 Current directory structure:"
