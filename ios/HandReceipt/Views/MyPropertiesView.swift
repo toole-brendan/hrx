@@ -739,11 +739,19 @@ struct PropertyVerificationSheet: View {
                         .font(.headline)
                     
                     if let metadata = property.importMetadata {
-                        LabeledContent("Import Date", 
-                                     value: metadata.importDate.formatted(date: .abbreviated, time: .omitted))
+                        HStack {
+                            Text("Import Date")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(metadata.importDate.formatted(date: .abbreviated, time: .omitted))
+                        }
                         
-                        LabeledContent("OCR Confidence", 
-                                     value: "\(Int(metadata.itemConfidence * 100))%")
+                        HStack {
+                            Text("OCR Confidence")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(Int(metadata.itemConfidence * 100))%")
+                        }
                     }
                 }
                 
@@ -768,9 +776,17 @@ struct PropertyVerificationSheet: View {
                     TextField("NSN", text: $nsn)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                     
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .lineLimit(3...6)
+                    VStack(alignment: .leading) {
+                        Text("Notes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextEditor(text: $notes)
+                            .frame(minHeight: 60, maxHeight: 120)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            )
+                    }
                 }
                 
                 if let metadata = property.importMetadata,
@@ -788,20 +804,15 @@ struct PropertyVerificationSheet: View {
             }
             .navigationTitle("Verify Property")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    dismiss()
+                },
+                trailing: Button("Verify") {
+                    verifyProperty()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Verify") {
-                        verifyProperty()
-                    }
-                    .disabled(isLoading || serialNumber.isEmpty)
-                }
-            }
+                .disabled(isLoading || serialNumber.isEmpty)
+            )
             .overlay {
                 if isLoading {
                     ProgressView()
@@ -817,13 +828,7 @@ struct PropertyVerificationSheet: View {
         
         Task {
             do {
-                var updatedProperty = property
-                updatedProperty.serialNumber = serialNumber
-                updatedProperty.nsn = nsn.isEmpty ? nil : nsn
-                updatedProperty.verified = true
-                updatedProperty.verifiedAt = Date()
-                
-                // Update via API
+                // Update via API - the API will return the updated property
                 let result = try await APIService.shared.verifyImportedItem(
                     id: property.id,
                     serialNumber: serialNumber,
@@ -843,7 +848,7 @@ struct PropertyVerificationSheet: View {
 }
 
 // Import Summary View (shown after successful import)
-struct DA2062ImportSummaryView: View {
+struct PropertyImportSummaryView: View {
     let importResult: ImportResult
     @Environment(\.dismiss) private var dismiss
     
@@ -1012,7 +1017,9 @@ extension Property {
             lastVerifiedAt: nil,
             lastMaintenanceAt: nil,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            sourceType: nil,
+            importMetadata: nil
         ),
         Property(
             id: 2, 
@@ -1036,7 +1043,9 @@ extension Property {
             lastVerifiedAt: nil,
             lastMaintenanceAt: nil,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            sourceType: nil,
+            importMetadata: nil
         ),
         Property(
             id: 3, 
@@ -1060,7 +1069,9 @@ extension Property {
             lastVerifiedAt: nil,
             lastMaintenanceAt: nil,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            sourceType: nil,
+            importMetadata: nil
         )
     ]
 }

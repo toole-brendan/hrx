@@ -542,31 +542,48 @@ public class APIService: APIServiceProtocol {
     }
 
     // Update a property
-    func updateProperty(_ property: Property) async throws -> Property {
-        var request = createRequest(for: "/api/properties/\(property.id)", method: "PUT")
+    public func updateProperty(_ property: Property) async throws -> Property {
+        debugPrint("Updating property with ID: \(property.id)")
+        let endpoint = baseURL.appendingPathComponent("/api/properties/\(property.id)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        request.httpBody = try encoder.encode(property)
+        // Create a dictionary with the property data we can encode
+        let propertyData: [String: Any] = [
+            "id": property.id,
+            "serialNumber": property.serialNumber,
+            "nsn": property.nsn as Any,
+            "lin": property.lin as Any,
+            "name": property.name,
+            "description": property.description as Any,
+            "manufacturer": property.manufacturer as Any,
+            "status": property.status as Any,
+            "currentStatus": property.currentStatus as Any,
+            "location": property.location as Any,
+            "notes": property.notes as Any
+        ]
         
-        let (data, response) = try await performRequest(request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: propertyData)
+            debugPrint("Successfully encoded property update data")
+        } catch {
+            debugPrint("ERROR: Failed to encode property data: \(error)")
+            throw APIError.encodingError(error)
         }
         
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw APIError.serverError(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(Property.self, from: data)
+        let updatedProperty = try await performRequest(request: request) as Property
+        debugPrint("Successfully updated property with ID: \(updatedProperty.id)")
+        return updatedProperty
     }
     
     // Verify an imported item
-    func verifyImportedItem(id: Int, serialNumber: String, nsn: String?, notes: String) async throws -> Property {
-        var request = createRequest(for: "/api/properties/\(id)/verify", method: "POST")
+    public func verifyImportedItem(id: Int, serialNumber: String, nsn: String?, notes: String) async throws -> Property {
+        debugPrint("Verifying imported item with ID: \(id)")
+        let endpoint = baseURL.appendingPathComponent("/api/properties/\(id)/verify")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let verificationData = [
             "serialNumber": serialNumber,
@@ -575,26 +592,22 @@ public class APIService: APIServiceProtocol {
             "verifiedAt": ISO8601DateFormatter().string(from: Date())
         ]
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: verificationData)
-        
-        let (data, response) = try await performRequest(request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: verificationData)
+            debugPrint("Successfully encoded verification data")
+        } catch {
+            debugPrint("ERROR: Failed to encode verification data: \(error)")
+            throw APIError.encodingError(error)
         }
         
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw APIError.serverError(httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(Property.self, from: data)
+        let verifiedProperty = try await performRequest(request: request) as Property
+        debugPrint("Successfully verified property with ID: \(verifiedProperty.id)")
+        return verifiedProperty
     }
 
-    func getPropertyBySN(serialNumber: String) async throws -> Property {
-        // ... existing code ...
-        return property
+    public func getPropertyBySN(serialNumber: String) async throws -> Property {
+        // Delegate to the existing fetchPropertyBySerialNumber method
+        return try await fetchPropertyBySerialNumber(serialNumber: serialNumber)
     }
 
     // --- Transfer Functions (Async/Await) ---

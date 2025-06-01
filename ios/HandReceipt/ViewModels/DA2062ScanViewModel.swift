@@ -348,7 +348,7 @@ class DA2062ScanViewModel: ObservableObject {
     // Parse DA2062 text format (simplified for compatibility)
     private func parseDA2062Text(_ text: String) throws -> DA2062Form {
         // This is a simplified parser - actual implementation would be more sophisticated
-        var items: [DA2062Item] = []
+        let items: [DA2062Item] = []
         let lines = text.components(separatedBy: .newlines)
         
         var unitName: String?

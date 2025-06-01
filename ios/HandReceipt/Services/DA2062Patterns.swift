@@ -226,50 +226,37 @@ struct DA2062Patterns {
             return nil
         }
         
-        var item = DA2062Item(
-            lineNumber: lineNumber,
-            stockNumber: nil,
-            itemDescription: "",
-            quantity: 1,
-            unitOfIssue: "EA",
-            serialNumber: nil,
-            condition: "Serviceable",
-            confidence: 0.0,
-            quantityConfidence: 0.8,
-            hasExplicitSerial: false
-        )
-        
         var confidence: Double = 0.0
         var componentsFound = 0
         
-        // Extract NSN
-        if let nsn = extractNSN(from: cleanedLine) {
-            item.stockNumber = nsn
+        // Extract all components first
+        let nsn = extractNSN(from: cleanedLine)
+        if nsn != nil {
             componentsFound += 1
         }
         
         // Extract LIN
+        var itemDescriptionParts: [String] = []
         if let lin = extractLIN(from: cleanedLine) {
-            // Store LIN in item description or separate field
-            item.itemDescription += "[LIN: \(lin)] "
+            itemDescriptionParts.append("[LIN: \(lin)]")
             componentsFound += 1
         }
         
         // Extract Unit of Issue
-        if let unit = extractUnitOfIssue(from: cleanedLine) {
-            item.unitOfIssue = unit
+        let unitOfIssue = extractUnitOfIssue(from: cleanedLine)
+        if unitOfIssue != nil {
             componentsFound += 1
         }
         
         // Extract quantity (look for numbers near unit of issue)
-        if let quantity = extractQuantity(from: cleanedLine, nearUnit: item.unitOfIssue) {
-            item.quantity = quantity
+        let quantity = extractQuantity(from: cleanedLine, nearUnit: unitOfIssue)
+        if quantity != nil {
             componentsFound += 1
         }
         
         // Extract item description
-        if let description = extractItemDescription(from: cleanedLine, nsn: item.stockNumber) {
-            item.itemDescription += description
+        if let description = extractItemDescription(from: cleanedLine, nsn: nsn) {
+            itemDescriptionParts.append(description)
             componentsFound += 1
             
             // Boost confidence if description contains known military terms
@@ -280,11 +267,25 @@ struct DA2062Patterns {
         
         // Calculate confidence based on components found
         confidence += Double(componentsFound) * 0.15
-        item.confidence = min(confidence, 1.0)
+        let finalConfidence = min(confidence, 1.0)
+        
+        // Build final item description
+        let finalDescription = itemDescriptionParts.joined(separator: " ")
         
         // Only return if we have minimum required data
-        if !item.itemDescription.isEmpty || item.stockNumber != nil {
-            return item
+        if !finalDescription.isEmpty || nsn != nil {
+            return DA2062Item(
+                lineNumber: lineNumber,
+                stockNumber: nsn,
+                itemDescription: finalDescription,
+                quantity: quantity ?? 1,
+                unitOfIssue: unitOfIssue ?? "EA",
+                serialNumber: nil,
+                condition: "Serviceable",
+                confidence: finalConfidence,
+                quantityConfidence: 0.8,
+                hasExplicitSerial: false
+            )
         }
         
         return nil
@@ -385,7 +386,7 @@ struct DA2062Patterns {
         var itemGroups: [[String]] = []
         var currentGroup: [String] = []
         
-        for (index, line) in lines.enumerated() {
+        for (_, line) in lines.enumerated() {
             let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
             
             // Skip empty lines and headers

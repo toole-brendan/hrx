@@ -90,7 +90,7 @@ class DA2062ImportViewModel: ObservableObject {
                 lin: extractLINFromDescription(item.itemDescription),
                 description: cleanDescription(item.itemDescription),
                 quantity: item.quantity,
-                unitOfIssue: item.unitOfIssue,
+                unitOfIssue: item.unitOfIssue ?? "EA",
                 serialNumber: item.serialNumber,
                 confidence: item.confidence
             )
@@ -98,10 +98,19 @@ class DA2062ImportViewModel: ObservableObject {
     }
     
     private func extractLINFromDescription(_ description: String) -> String? {
-        // Check if description contains LIN marker
-        if let range = description.range(of: "\\[LIN: ([A-Z][0-9A-Z]{5})\\]", options: .regularExpression) {
-            let lin = String(description[range])
-            return lin.replacingOccurrences(of: "[LIN: ", with: "").replacingOccurrences(of: "]", with: "")
+        // Check if description contains LIN marker with capture group
+        guard let regex = try? NSRegularExpression(pattern: "\\[LIN: ([A-Z][0-9A-Z]{5})\\]", options: []) else {
+            return nil
+        }
+        
+        let range = NSRange(location: 0, length: description.utf16.count)
+        
+        if let match = regex.firstMatch(in: description, options: [], range: range) {
+            let captureRange = match.range(at: 1)
+            if captureRange.location != NSNotFound,
+               let swiftRange = Range(captureRange, in: description) {
+                return String(description[swiftRange])
+            }
         }
         return nil
     }

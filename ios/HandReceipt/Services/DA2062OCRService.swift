@@ -45,14 +45,7 @@ class DA2062OCRService {
             return
         }
         
-        let request = configureTextRecognitionRequest()
-        
-        request.progressHandler = { request, progress, error in
-            // Optional: Report progress back to UI
-            print("OCR Progress: \(progress)")
-        }
-        
-        let requestHandler = { (request: VNRequest, error: Error?) in
+        let request = configureTextRecognitionRequest { [weak self] request, error in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -63,11 +56,15 @@ class DA2062OCRService {
                 return
             }
             
+            guard let self = self else { return }
             let form = self.parseDA2062(from: observations, originalImage: image)
             completion(.success(form))
         }
         
-        request.completionHandler = requestHandler
+        request.progressHandler = { request, progress, error in
+            // Optional: Report progress back to UI
+            print("OCR Progress: \(progress)")
+        }
         
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         
@@ -81,8 +78,8 @@ class DA2062OCRService {
     }
     
     // MARK: - Configuration Methods
-    private func configureTextRecognitionRequest() -> VNRecognizeTextRequest {
-        let request = VNRecognizeTextRequest()
+    private func configureTextRecognitionRequest(completionHandler: @escaping VNRequestCompletionHandler) -> VNRecognizeTextRequest {
+        let request = VNRecognizeTextRequest(completionHandler: completionHandler)
         
         // CRITICAL: Set to .accurate for static document scanning
         request.recognitionLevel = .accurate  // Maximum accuracy for static documents
@@ -97,7 +94,7 @@ class DA2062OCRService {
     }
     
     // Custom military terms to improve recognition accuracy
-    private func customMilitaryTerms() -> [String] {
+    internal func customMilitaryTerms() -> [String] {
         // Combine basic terms with enhanced military terms
         var terms = [
             // Common military abbreviations on DA-2062
@@ -191,12 +188,23 @@ class DA2062OCRService {
         let fullText = lines.joined(separator: " ")
         
         // Try to parse as single line first
-        if var item = patterns.parseItemLine(fullText, lineNumber: lineNumber) {
+        if let item = patterns.parseItemLine(fullText, lineNumber: lineNumber) {
             // Check if serial number is in subsequent lines
             if item.serialNumber == nil && lines.count > 1 {
                 if let serial = patterns.extractSerialFromLines(lines) {
-                    item.serialNumber = serial
-                    item.hasExplicitSerial = true
+                    // Create new item with updated serial
+                    return DA2062Item(
+                        lineNumber: item.lineNumber,
+                        stockNumber: item.stockNumber,
+                        itemDescription: item.itemDescription,
+                        quantity: item.quantity,
+                        unitOfIssue: item.unitOfIssue,
+                        serialNumber: serial,
+                        condition: item.condition,
+                        confidence: item.confidence,
+                        quantityConfidence: item.quantityConfidence,
+                        hasExplicitSerial: true
+                    )
                 }
             }
             return item
@@ -205,61 +213,84 @@ class DA2062OCRService {
         // If single line parsing failed, try parsing first line and enhance with subsequent lines
         guard let firstLine = lines.first else { return nil }
         
-        var item = DA2062Item(
-            lineNumber: lineNumber,
-            stockNumber: nil,
-            itemDescription: "",
-            quantity: 1,
-            unitOfIssue: "EA",
-            serialNumber: nil,
-            condition: "Serviceable",
-            confidence: 0.0,
-            quantityConfidence: 0.8,
-            hasExplicitSerial: false
-        )
+        // Extract all components first
+        var stockNumber: String?
+        var itemDescription = ""
+        var quantity = 1
+        var unitOfIssue = "EA"
+        var serialNumber: String?
+        var hasExplicitSerial = false
         
         // Extract components from first line
         if let nsn = patterns.extractNSN(from: firstLine) {
-            item.stockNumber = nsn
+            stockNumber = nsn
         }
         
         if let lin = patterns.extractLIN(from: firstLine) {
-            item.itemDescription = "[LIN: \(lin)] "
+            itemDescription = "[LIN: \(lin)] "
         }
         
         // Extract from all lines
         for line in lines {
             if let unit = patterns.extractUnitOfIssue(from: line) {
-                item.unitOfIssue = unit
+                unitOfIssue = unit
             }
             
             // Try to extract quantity from each line
             if let qty = extractQuantityFromLine(line) {
-                item.quantity = qty
+                quantity = qty
             }
         }
         
         // Extract serial from multi-line
         if let serial = patterns.extractSerialFromLines(lines) {
-            item.serialNumber = serial
-            item.hasExplicitSerial = true
+            serialNumber = serial
+            hasExplicitSerial = true
         }
         
         // Build description from remaining text
         var description = fullText
-        if let nsn = item.stockNumber {
+        if let nsn = stockNumber {
             description = description.replacingOccurrences(of: nsn, with: "")
         }
         description = description.trimmingCharacters(in: .whitespacesAndNewlines)
         
         if !description.isEmpty {
-            item.itemDescription += description
+            itemDescription += description
         }
         
-        // Calculate confidence
-        item.confidence = calculateItemConfidence(item: item)
+        // Create the item with all extracted values
+        let item = DA2062Item(
+            lineNumber: lineNumber,
+            stockNumber: stockNumber,
+            itemDescription: itemDescription,
+            quantity: quantity,
+            unitOfIssue: unitOfIssue,
+            serialNumber: serialNumber,
+            condition: "Serviceable",
+            confidence: 0.0,
+            quantityConfidence: 0.8,
+            hasExplicitSerial: hasExplicitSerial
+        )
         
-        return item.itemDescription.isEmpty && item.stockNumber == nil ? nil : item
+        // Calculate confidence
+        let finalConfidence = calculateItemConfidence(item: item)
+        
+        // Create final item with calculated confidence
+        let finalItem = DA2062Item(
+            lineNumber: item.lineNumber,
+            stockNumber: item.stockNumber,
+            itemDescription: item.itemDescription,
+            quantity: item.quantity,
+            unitOfIssue: item.unitOfIssue,
+            serialNumber: item.serialNumber,
+            condition: item.condition,
+            confidence: finalConfidence,
+            quantityConfidence: item.quantityConfidence,
+            hasExplicitSerial: item.hasExplicitSerial
+        )
+        
+        return finalItem.itemDescription.isEmpty && finalItem.stockNumber == nil ? nil : finalItem
     }
     
     private func extractValue(from text: String, after keywords: [String]) -> String? {

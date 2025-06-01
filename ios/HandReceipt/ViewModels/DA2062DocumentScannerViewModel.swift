@@ -51,17 +51,8 @@ class DA2062DocumentScannerViewModel: ObservableObject {
     private func processPage(_ image: UIImage, pageNumber: Int, completion: @escaping (ScannedPage) -> Void) {
         guard let cgImage = image.cgImage else { return }
         
-        // Use unified OCR service with static document mode
-        let request = unifiedOCRService.createTextRecognitionRequest(for: .staticDocument)
-        
-        // Add progress handler for better feedback
-        request.progressHandler = { request, progress, error in
-            DispatchQueue.main.async {
-                print("Page \(pageNumber) OCR Progress: \(progress)")
-            }
-        }
-        
-        request.completionHandler = { [weak self] request, error in
+        // Create request with completion handler
+        let request = VNRecognizeTextRequest { request, error in
             guard let observations = request.results as? [VNRecognizedTextObservation], 
                   error == nil else {
                 print("OCR Error: \(error?.localizedDescription ?? "Unknown error")")
@@ -93,6 +84,20 @@ class DA2062DocumentScannerViewModel: ObservableObject {
             )
             
             completion(scannedPage)
+        }
+        
+        // Configure request with static document settings
+        request.recognitionLevel = .accurate
+        request.minimumTextHeight = 0.0
+        request.usesLanguageCorrection = true
+        request.recognitionLanguages = ["en-US"]
+        request.customWords = DA2062OCRService().customMilitaryTerms()
+        
+        // Add progress handler for better feedback
+        request.progressHandler = { request, progress, error in
+            DispatchQueue.main.async {
+                print("Page \(pageNumber) OCR Progress: \(progress)")
+            }
         }
         
         // Perform the request
