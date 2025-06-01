@@ -24,6 +24,8 @@ const DEV_USER: User = {
   id: "RODMC01",
   username: "michael.rodriguez",
   name: "CPT Rodriguez, Michael",
+  firstName: "Michael",
+  lastName: "Rodriguez",
   rank: "Captain",
   position: "Company Commander",
   unit: "Bravo Company, 2-87 Infantry Battalion",

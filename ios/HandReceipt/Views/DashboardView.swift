@@ -4,6 +4,12 @@ struct DashboardView: View {
     // QR Scanner functionality removed
     @State private var selectedQuickAction: QuickAction? = nil
     
+    // Add state property to store current user
+    @State private var currentUser: LoginResponse.User?
+    
+    // Optional: Access AuthManager from environment if available
+    @EnvironmentObject var authManager: AuthManager
+    
     // Navigation states
     @State private var navigateToTransfers = false
     @State private var navigateToProperties = false
@@ -42,7 +48,7 @@ struct DashboardView: View {
                         .frame(height: 36)
                     
                     // Welcome text
-                    Text("Welcome, CPT Rodriguez")
+                    Text(getWelcomeMessage())
                         .font(AppFonts.largeTitle)
                         .foregroundColor(AppColors.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -389,15 +395,108 @@ struct DashboardView: View {
         }
     }
     
+    // Helper function to format welcome message
+    private func getWelcomeMessage() -> String {
+        guard let user = currentUser else {
+            return "Welcome"
+        }
+        
+        var components = ["Welcome"]
+        
+        // Add rank with abbreviation conversion
+        if !user.rank.isEmpty {
+            let rankAbbreviation = convertToRankAbbreviation(user.rank)
+            components.append(rankAbbreviation)
+        }
+        
+        // Add last name - with fallback to parsing from name field
+        if let lastName = user.lastName, !lastName.isEmpty {
+            components.append(lastName)
+        } else {
+            // Fallback: try to extract last name from the computed name property
+            let fullName = user.name
+            debugPrint("DashboardView: No lastName, trying to parse from name: '\(fullName)'")
+            
+            // Try various name formats
+            if fullName.contains(",") {
+                // Format: "LastName, FirstName" or "RANK LastName, FirstName"
+                let parts = fullName.components(separatedBy: ",")
+                if let firstPart = parts.first?.trimmingCharacters(in: .whitespaces) {
+                    // Remove rank if present at the beginning
+                    let words = firstPart.components(separatedBy: " ")
+                    if words.count > 1, convertToRankAbbreviation(words[0]) != words[0] {
+                        // First word is a rank, use the rest
+                        let lastName = words.dropFirst().joined(separator: " ")
+                        components.append(lastName)
+                    } else if words.count == 1 {
+                        // Just the last name
+                        components.append(firstPart)
+                    }
+                }
+            } else {
+                // Format: "FirstName LastName" - take the last word
+                let words = fullName.components(separatedBy: " ")
+                if let lastWord = words.last, !lastWord.isEmpty {
+                    components.append(lastWord)
+                }
+            }
+        }
+        
+        return components.joined(separator: " ")
+    }
+    
+    // Helper to convert full rank names to abbreviations
+    private func convertToRankAbbreviation(_ rank: String) -> String {
+        let rankMappings: [String: String] = [
+            "Captain": "CPT",
+            "Lieutenant": "LT",
+            "First Lieutenant": "1LT",
+            "Second Lieutenant": "2LT",
+            "Major": "MAJ",
+            "Lieutenant Colonel": "LTC",
+            "Colonel": "COL",
+            "Brigadier General": "BG",
+            "Major General": "MG",
+            "Lieutenant General": "LTG",
+            "General": "GEN",
+            "Private": "PVT",
+            "Private First Class": "PFC",
+            "Specialist": "SPC",
+            "Corporal": "CPL",
+            "Sergeant": "SGT",
+            "Staff Sergeant": "SSG",
+            "Sergeant First Class": "SFC",
+            "Master Sergeant": "MSG",
+            "First Sergeant": "1SG",
+            "Sergeant Major": "SGM",
+            "Command Sergeant Major": "CSM",
+            "Sergeant Major of the Army": "SMA"
+        ]
+        
+        return rankMappings[rank] ?? rank
+    }
+    
     // MARK: - Data Loading
     private func loadData() async {
         isLoading = true
         loadingError = nil
         
         do {
+            // Try to get current user from AuthManager
+            if currentUser == nil {
+                // First try environment object, then fall back to singleton
+                if let user = authManager.currentUser {
+                    currentUser = user
+                    debugPrint("DashboardView: Loaded user from environment - \(user.username), rank: \(user.rank), lastName: \(user.lastName ?? "nil")")
+                } else if let user = AuthManager.shared.currentUser {
+                    currentUser = user
+                    debugPrint("DashboardView: Loaded user from singleton - \(user.username), rank: \(user.rank), lastName: \(user.lastName ?? "nil")")
+                }
+            }
+            
             // Fetch user's properties
             properties = try await apiService.getMyProperties()
-                            totalProperties = properties.count
+            totalProperties = properties.count
             
             // Calculate maintenance needed
             maintenanceNeeded = properties.filter { $0.needsMaintenance }.count

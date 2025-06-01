@@ -5,8 +5,10 @@ import { LatLngExpression } from 'leaflet';
 export interface User {
   id: string;
   username: string;
-  name: string;
-  rank: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  rank?: string;
   position?: string;
   unit?: string;
   yearsOfService?: number;

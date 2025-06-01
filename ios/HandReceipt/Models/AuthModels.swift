@@ -26,7 +26,7 @@ public struct LoginResponse: Decodable {
         return accessToken ?? ""
     }
     
-    public struct User: Decodable {
+    public struct User: Codable {
         public let id: Int
         public let uuid: String?
         public let username: String

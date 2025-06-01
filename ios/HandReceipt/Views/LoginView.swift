@@ -190,6 +190,14 @@ struct LoginView: View {
             .navigationBarHidden(true)
             .onChange(of: viewModel.loginState) { newState in
                 if case .success(let response) = newState {
+                    debugPrint("LoginView: Login success - User: \(response.user.username)")
+                    debugPrint("LoginView: User data - firstName: \(response.user.firstName ?? "nil"), lastName: \(response.user.lastName ?? "nil"), rank: \(response.user.rank)")
+                    
+                    // Update AuthManager with the login response
+                    Task {
+                        await AuthManager.shared.login(response: response)
+                    }
+                    
                     onLoginSuccess(response)
                 }
             }

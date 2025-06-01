@@ -125,6 +125,53 @@ export default function Dashboard() {
     };
   }, [inventory]);
 
+  // Helper function to format welcome message
+  const getWelcomeMessage = () => {
+    if (!user) return "Welcome";
+    
+    const parts = ["Welcome"];
+    
+    // Convert common full ranks to abbreviations
+    const rankAbbreviations: Record<string, string> = {
+      "Captain": "CPT",
+      "Lieutenant": "LT", 
+      "Major": "MAJ",
+      "Colonel": "COL",
+      "Sergeant": "SGT",
+      "Private": "PVT",
+      "Specialist": "SPC",
+      "Corporal": "CPL",
+      "Staff Sergeant": "SSG",
+      "Sergeant First Class": "SFC",
+      "Master Sergeant": "MSG",
+      "First Sergeant": "1SG",
+      "Sergeant Major": "SGM"
+    };
+    
+    // Add rank if available (handle full rank names)
+    if (user.rank) {
+      const rank = rankAbbreviations[user.rank] || user.rank;
+      parts.push(rank);
+    }
+    
+    // Add last name if available
+    if (user.lastName) {
+      parts.push(user.lastName);
+    } else if (user.name) {
+      // Fallback: try to extract last name from full name
+      const nameParts = user.name.split(/[,\s]+/);
+      if (nameParts.length > 1) {
+        // Assuming format "RANK LastName, FirstName" or "FirstName LastName"
+        const possibleLastName = user.name.includes(',') ? nameParts[1] : nameParts[nameParts.length - 1];
+        if (possibleLastName && !rankAbbreviations[possibleLastName]) {
+          parts.push(possibleLastName);
+        }
+      }
+    }
+    
+    return parts.join(" ");
+  };
+
   // Effect to check for upcoming maintenance and trigger notifications
   useEffect(() => {
     if (!maintenanceCheckDone) {
@@ -193,7 +240,9 @@ export default function Dashboard() {
         {/* Main title - following typography */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-3xl font-light tracking-tight mb-1">Welcome, CPT Rodriguez</h1>
+            <h1 className="text-3xl font-light tracking-tight mb-1">
+              {getWelcomeMessage()}
+            </h1>
           </div>
           {actions}
         </div>

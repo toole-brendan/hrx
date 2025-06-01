@@ -4,6 +4,7 @@ import UIKit
 @main
 struct HandReceiptApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var authManager = AuthManager.shared
     
     init() {
         print("🚀 HandReceiptApp: init() called")
@@ -14,6 +15,11 @@ struct HandReceiptApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(authManager)
+                .task {
+                    // Check auth status on app launch
+                    await authManager.checkAuthStatus()
+                }
                 .onAppear {
                     print("🚀 ContentView appeared in WindowGroup")
                 }
@@ -51,8 +57,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Create window
         window = UIWindow(windowScene: windowScene)
         
-        // Create the SwiftUI content view
+        // Create the SwiftUI content view with AuthManager
+        let authManager = AuthManager.shared
         let contentView = ContentView()
+            .environmentObject(authManager)
         let hostingController = UIHostingController(rootView: contentView)
         
         // Ensure the window has a proper background color

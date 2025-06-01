@@ -6,10 +6,9 @@ import Darwin
 // @_exported import struct HandReceipt.PrimaryButtonStyle
 
 struct ContentView: View {
-    // Simple state to track authentication.
-    @State private var isAuthenticated: Bool = false
-    @State private var loggedInUser: LoginResponse? = nil
-    @State private var isLoading: Bool = true
+    // Use AuthManager from environment instead of local state
+    @EnvironmentObject var authManager: AuthManager
+    @State private var isLoading: Bool = false
     @State private var loadingError: Error? = nil
     @State private var showDebugOverlay: Bool = false
 
@@ -66,13 +65,12 @@ struct ContentView: View {
                 )
                 .transition(.opacity)
                 .zIndex(1) // Ensure it's on top
-                .onAppear(perform: checkSessionStatus)
-            } else if !isAuthenticated {
+            } else if !authManager.isAuthenticated {
                 LoginView { loginResponse in
                     debugPrint("ContentView: Login successful for user \(loginResponse.user.username)")
-                    Task { @MainActor in
-                        self.loggedInUser = loginResponse
-                        self.isAuthenticated = true
+                    Task {
+                        // Update AuthManager with login response
+                        await authManager.login(response: loginResponse)
                         debugPrint("ContentView: Authentication state updated - user is now authenticated")
                     }
                 }
@@ -81,18 +79,25 @@ struct ContentView: View {
                 }
             } else {
                 AuthenticatedTabView(authViewModel: AuthViewModel(
-                    currentUser: loggedInUser,
+                    currentUser: LoginResponse(
+                        accessToken: AuthManager.shared.getAccessToken(),
+                        user: authManager.currentUser ?? LoginResponse.User(
+                            id: 0,
+                            username: "unknown",
+                            rank: ""
+                        )
+                    ),
                     logoutCallback: {
                         debugPrint("ContentView: Received logout request")
-                        Task { @MainActor in
-                            self.isAuthenticated = false
-                            self.loggedInUser = nil
+                        Task {
+                            await authManager.logout()
                             debugPrint("ContentView: User logged out - authentication state reset")
                         }
                     }
                 ))
+                .environmentObject(authManager)
                 .onAppear {
-                    debugPrint("AuthenticatedTabView appeared - user is authenticated as \(loggedInUser?.user.username ?? "unknown")")
+                    debugPrint("AuthenticatedTabView appeared - user is authenticated as \(authManager.currentUser?.username ?? "unknown")")
                 }
             }
         }
@@ -127,11 +132,11 @@ struct ContentView: View {
                 Text("Loading: \(isLoading ? "Yes" : "No")")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.primaryText)
-                Text("Authenticated: \(isAuthenticated ? "Yes" : "No")")
+                Text("Authenticated: \(authManager.isAuthenticated ? "Yes" : "No")")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.primaryText)
-                if let user = loggedInUser {
-                    Text("User: \(user.user.username) (ID: \(user.userId))")
+                if let user = authManager.currentUser {
+                    Text("User: \(user.username) (ID: \(user.id))")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.primaryText)
                 }
@@ -214,65 +219,8 @@ struct ContentView: View {
 
     // Function to check session status
     private func checkSessionStatus() {
-        // Ensure we only run this check once if .onAppear fires multiple times
-        // or if we already successfully authenticated via login
-        guard isLoading, !isAuthenticated else { 
-            debugPrint("ContentView: Skipping redundant session check")
-            return 
-        }
-        
-        debugPrint("ContentView: Starting session check process")
-
-        Task {
-            do {
-                debugPrint("ContentView: Checking session status...")
-                
-                // Add delay for debugging to make sure we can see the loading state
-                #if DEBUG
-                debugPrint("DEBUG: Adding artificial delay to observe loading state")
-                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
-                #endif
-                
-                let user = try await apiService.checkSession()
-                debugPrint("ContentView: Session check successful for user \(user.user.username)")
-                
-                // Update state on the main thread
-                await MainActor.run {
-                    debugPrint("ContentView: Updating UI after successful session check")
-                    self.loggedInUser = user
-                    self.isAuthenticated = true
-                    self.isLoading = false
-                    self.loadingError = nil
-                }
-            } catch {
-                debugPrint("ContentView: Session check failed. Error: \(error)")
-                
-                // Detailed error logging
-                if let apiError = error as? APIService.APIError {
-                    switch apiError {
-                    case .unauthorized:
-                        debugPrint("ContentView: No valid session found (Unauthorized 401)")
-                    case .networkError(let underlyingError):
-                        debugPrint("ContentView: Network error during session check: \(underlyingError)")
-                    case .serverError(let statusCode, let message):
-                        debugPrint("ContentView: Server error \(statusCode) during session check: \(message ?? "No message")")
-                    default:
-                        debugPrint("ContentView: API error during session check: \(apiError)")
-                    }
-                } else {
-                    debugPrint("ContentView: Unexpected error type during session check: \(type(of: error))")
-                }
-                
-                // Update state on the main thread - stay unauthenticated
-                await MainActor.run {
-                    debugPrint("ContentView: Updating UI after failed session check")
-                    self.isAuthenticated = false
-                    self.loggedInUser = nil
-                    self.isLoading = false
-                    self.loadingError = error // Store the error for displaying debug info
-                }
-            }
-        }
+        // No longer needed - AuthManager handles session checking
+        debugPrint("ContentView: checkSessionStatus called but no longer used")
     }
     
     // MARK: - Debug Helpers
