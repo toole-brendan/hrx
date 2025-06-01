@@ -14,7 +14,7 @@ public struct SerialTransferRequest: Codable {
 }
 
 /// Transfer offer model
-public struct TransferOffer: Codable, Identifiable {
+public struct TransferOffer: Decodable, Identifiable {
     public let id: Int
     public let createdBy: Int
     public let propertyIds: [Int]
@@ -23,6 +23,11 @@ public struct TransferOffer: Codable, Identifiable {
     public let notes: String?
     public let createdAt: Date
     public let expiresAt: Date?
+    
+    // Populated fields from backend
+    public let property: Property?  // First property in propertyIds, populated by backend
+    public let offeror: UserSummary?  // User who created the offer, populated by backend
+    public let offeredTo: UserSummary?  // First recipient, populated by backend
     
     private enum CodingKeys: String, CodingKey {
         case id
@@ -33,6 +38,9 @@ public struct TransferOffer: Codable, Identifiable {
         case notes
         case createdAt = "created_at"
         case expiresAt = "expires_at"
+        case property
+        case offeror
+        case offeredTo = "offered_to"
     }
 }
 
@@ -50,7 +58,7 @@ public struct TransferOfferRequest: Codable {
 }
 
 /// Response wrapper for transfer offers
-public struct TransferOffersResponse: Codable {
+public struct TransferOffersResponse: Decodable {
     public let offers: [TransferOffer]
 }
 

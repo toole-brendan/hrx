@@ -45,14 +45,11 @@ struct RequestTransferView: View {
         transferSuccess = false
         
         do {
-            // Create a SerialTransferRequest using the found property
-            let request = SerialTransferRequest(
+            // Request transfer by serial number
+            _ = try await TransferService.shared.requestBySerial(
                 serialNumber: property.serialNumber,
-                requestedFromUserId: property.assignedToUserId,
                 notes: notes.isEmpty ? nil : notes
             )
-            
-            try await TransferService.shared.requestBySerial(request)
             
             await MainActor.run {
                 isTransferring = false

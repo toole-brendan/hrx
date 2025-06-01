@@ -57,7 +57,7 @@ struct SerialNumberRequestView: View {
                 let trimmedSerial = serialNumber.trimmingCharacters(in: .whitespacesAndNewlines)
                 let requestNotes: String? = notes.isEmpty ? nil : notes
                 
-                try await TransferService.shared.requestBySerial(
+                _ = try await TransferService.shared.requestBySerial(
                     serialNumber: trimmedSerial,
                     notes: requestNotes
                 )

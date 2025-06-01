@@ -196,7 +196,7 @@ struct OfferPropertyView: View {
                     
                     let expiresAt = Calendar.current.date(byAdding: .day, value: expiresInDays, to: Date())
                     
-                    try await TransferService.shared.createOffer(
+                    _ = try await TransferService.shared.createOffer(
                         propertyId: property.id,
                         offeredToUserId: recipientId,
                         notes: notes.isEmpty ? nil : notes,
