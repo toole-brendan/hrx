@@ -163,7 +163,7 @@ struct ConnectionRow: View {
                     .foregroundColor(AppColors.success)
                 
                 Text("CONNECTED")
-                    .font(AppFonts.micro)
+                    .font(AppFonts.caption2)
                     .foregroundColor(AppColors.success)
                     .tracking(AppFonts.militaryTracking)
             }

@@ -261,7 +261,7 @@ struct PropertyDetailView: View {
                     .tracking(1.2)
                 
                 VStack(spacing: 12) {
-                    TechnicalDataField(label: "NSN", value: property.nsn)
+                    TechnicalDataField(label: "NSN", value: property.nsn ?? "Not Available")
                     
                     if let lin = property.lin {
                         TechnicalDataField(label: "LIN", value: lin)
@@ -296,8 +296,8 @@ struct PropertyDetailView: View {
                             .foregroundColor(AppColors.tertiaryText)
                         
                         StatusBadge(
-                            status: property.status,
-                            type: statusBadgeType(for: property.status)
+                            status: property.status ?? property.currentStatus ?? "Unknown",
+                            type: statusBadgeType(for: property.status ?? property.currentStatus ?? "Unknown")
                         )
                     }
                     
@@ -571,8 +571,6 @@ struct PropertyDetailView: View {
 
 // MARK: - Supporting Views
 
-
-
 struct PropertyHistoryView: View {
     let propertyId: Int
     @Environment(\.dismiss) var dismiss
@@ -716,7 +714,7 @@ struct EditNotesView: View {
 struct PropertyDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            PropertyDetailView(propertyId: 1, apiService: MockAPIService())
+            PropertyDetailView(propertyId: 1, apiService: APIService())
         }
         .preferredColorScheme(.dark)
     }
