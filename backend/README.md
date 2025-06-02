@@ -237,3 +237,4 @@ The application exposes metrics for Prometheus at:
 
 This project is proprietary and confidential.
 ```
+# Build fix for gofpdf dependency
