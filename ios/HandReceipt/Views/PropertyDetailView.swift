@@ -1,3 +1,5 @@
+// handreceipt/ios/HandReceipt/Views/PropertyDetailView.swift
+
 import SwiftUI
 import PhotosUI
 
@@ -562,6 +564,21 @@ struct PropertyDetailView: View {
 
 // MARK: - Supporting Views with Enhanced Styling
 
+// Modifier to handle scrollContentBackground compatibility
+struct ScrollContentBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .scrollContentBackground(.hidden)
+        } else {
+            content
+                .onAppear {
+                    UITableView.appearance().backgroundColor = .clear
+                }
+        }
+    }
+}
+
 struct PropertyHistoryView: View {
     let propertyId: Int
     @Environment(\.dismiss) var dismiss
@@ -595,7 +612,7 @@ struct PropertyHistoryView: View {
                     }
                 }
                 .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .modifier(ScrollContentBackgroundModifier())
             }
             .industrialNavigation(
                 title: "Property History",

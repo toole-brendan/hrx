@@ -1,3 +1,5 @@
+// handreceipt/ios/HandReceipt/Common/AppStyles.swift
+
 import SwiftUI
 
 // MARK: - Enhanced Font System
@@ -279,38 +281,27 @@ public struct IndustrialNavigationModifier: ViewModifier {
     }
     
     public func body(content: Content) -> some View {
-        content
+        let modifiedContent = content
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(showBackButton && backButtonAction != nil)
-            .toolbar(content: {
-                ToolbarItem(placement: .principal) {
-                    Text(title.uppercased())
-                        .font(AppFonts.headlineBold)
-                        .foregroundColor(AppColors.primaryText)
-                        .compatibleKerning(AppFonts.wideTracking)
-                }
-                
-                if showBackButton, let action = backButtonAction {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        IndustrialBackButton(action: action)
-                    }
-                }
-                
-                if !trailingItems.isEmpty {
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        ForEach(trailingItems.indices, id: \.self) { index in
-                            Button(action: trailingItems[index].action) {
-                                Image(systemName: trailingItems[index].icon)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(
-                                        trailingItems[index].isDestructive ? 
-                                        AppColors.destructive : AppColors.accent
-                                    )
-                            }
+            .navigationBarItems(
+                leading: showBackButton && backButtonAction != nil ? IndustrialBackButton(action: backButtonAction!) : nil,
+                trailing: !trailingItems.isEmpty ? HStack(spacing: 16) {
+                    ForEach(trailingItems.indices, id: \.self) { index in
+                        Button(action: trailingItems[index].action) {
+                            Image(systemName: trailingItems[index].icon)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(
+                                    trailingItems[index].isDestructive ? 
+                                    AppColors.destructive : AppColors.accent
+                                )
                         }
                     }
-                }
-            })
+                } : nil
+            )
+        
+        return modifiedContent
+            .navigationTitle(title.uppercased())
     }
 }
 

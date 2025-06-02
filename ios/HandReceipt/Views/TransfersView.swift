@@ -88,7 +88,7 @@ struct TransfersView: View {
                     Text("TRANSFERS")
                         .font(.system(size: 16, weight: .medium)) // Larger font
                         .foregroundColor(AppColors.primaryText)
-                        .kerning(1.2) // Match Dashboard tracking
+                        .compatibleKerning(AppFonts.militaryTracking)
                         .frame(maxWidth: .infinity)
                     
                     // Add button aligned to trailing edge
@@ -124,7 +124,7 @@ struct TransfersView: View {
                             
                             Text(tab.title.uppercased())
                                 .font(AppFonts.bodyBold)
-                                .tracking(AppFonts.militaryTracking)
+                                .compatibleKerning(AppFonts.militaryTracking)
                         }
                         .foregroundColor(selectedTab == tab ? AppColors.accent : AppColors.secondaryText)
                         
@@ -170,7 +170,7 @@ struct TransfersView: View {
                         .font(.caption)
                     Text(viewModel.selectedStatusFilter.rawValue.uppercased())
                         .font(AppFonts.captionBold)
-                        .tracking(AppFonts.normalTracking)
+                        .compatibleKerning(AppFonts.normalTracking)
                     Image(systemName: "chevron.down")
                         .font(.caption2)
                 }
@@ -192,7 +192,7 @@ struct TransfersView: View {
                 Text("\(viewModel.filteredTransfers.count) TRANSFERS")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
-                    .tracking(AppFonts.militaryTracking)
+                    .compatibleKerning(AppFonts.militaryTracking)
             }
         }
         .padding(.horizontal)
@@ -232,20 +232,9 @@ struct TransfersView: View {
                                 }
                             }
                         } header: {
-                            HStack {
-                                Text("OFFERS FOR YOU")
-                                    .font(AppFonts.captionBold)
-                                    .foregroundColor(AppColors.secondaryText)
-                                    .tracking(AppFonts.militaryTracking)
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .padding(.vertical, 12)
-                            .background(AppColors.mutedBackground)
-                            .overlay(
-                                Rectangle()
-                                    .stroke(AppColors.border, lineWidth: 1),
-                                alignment: .bottom
+                            ModernSectionHeader(
+                                title: "Offers For You",
+                                subtitle: "Properties offered to you by your connections"
                             )
                         }
                         
@@ -290,84 +279,20 @@ struct TransfersView: View {
     
     // MARK: - Loading View
     private var loadingView: some View {
-        VStack {
-            Spacer()
-            
-            VStack(spacing: 20) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                    .scaleEffect(1.2)
-                
-                Text("LOADING TRANSFERS...")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .tracking(AppFonts.militaryTracking)
-            }
-            .padding(.bottom, 100) // Offset to appear higher
-            
-            Spacer()
-        }
+        IndustrialLoadingView(message: "LOADING TRANSFERS")
     }
     
     // MARK: - Empty State
     private var emptyStateView: some View {
-        VStack {
-            Spacer()
-            
-            VStack(spacing: 24) {
-                // Icon with industrial styling
-                ZStack {
-                    Rectangle()
-                        .fill(AppColors.tertiaryBackground)
-                        .frame(width: 100, height: 100)
-                        .overlay(
-                            Rectangle()
-                                .stroke(AppColors.border, lineWidth: 2)
-                        )
-                    
-                    Image(systemName: selectedTab == .incoming ? "arrow.down.circle" : "arrow.up.circle")
-                        .font(.system(size: 48))
-                        .foregroundColor(AppColors.accent)
-                }
-                
-                VStack(spacing: 8) {
-                    Text("NO \(selectedTab.title.uppercased()) TRANSFERS")
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.primaryText)
-                        .tracking(AppFonts.militaryTracking)
-                    
-                    Text(selectedTab == .incoming ? 
-                         "No pending transfer requests" : 
-                         "No outgoing transfer requests")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                        .multilineTextAlignment(.center)
-                }
-                
-                if selectedTab == .outgoing {
-                    VStack(spacing: 12) {
-                        Button(action: { showingTransferOptions = true }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus.circle")
-                                Text("NEW TRANSFER REQUEST")
-                                    .tracking(AppFonts.militaryTracking)
-                            }
-                            .font(AppFonts.bodyBold)
-                        }
-                        .buttonStyle(.primary)
-                        
-                        Text("Request property transfer by serial number")
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.tertiaryText)
-                    }
-                    .padding(.top, 8)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 100) // Offset to appear higher
-            
-            Spacer()
-        }
+        ModernEmptyStateView(
+            icon: selectedTab == .incoming ? "arrow.down.circle" : "arrow.up.circle",
+            title: "No \(selectedTab.title) Transfers",
+            message: selectedTab == .incoming ? 
+                "No pending transfer requests" : 
+                "No outgoing transfer requests",
+            actionTitle: selectedTab == .outgoing ? "NEW TRANSFER REQUEST" : nil,
+            action: selectedTab == .outgoing ? { showingTransferOptions = true } : nil
+        )
     }
     
     private func loadActiveOffers() async {
@@ -429,7 +354,7 @@ struct TransferCard: View {
                             Text(transfer.propertyName ?? "UNKNOWN ITEM")
                                 .font(AppFonts.bodyBold)
                                 .foregroundColor(AppColors.primaryText)
-                                .tracking(AppFonts.normalTracking)
+                                .compatibleKerning(AppFonts.normalTracking)
                             
                             Text("SN: \(transfer.propertySerialNumber ?? "Unknown")")
                                 .font(AppFonts.mono)
@@ -439,20 +364,10 @@ struct TransferCard: View {
                         Spacer()
                         
                         // Status indicator
-                        HStack(spacing: 4) {
-                            Image(systemName: statusIcon)
-                                .font(.caption)
-                            Text(transfer.status.uppercased())
-                                .font(AppFonts.captionBold)
-                                .tracking(AppFonts.militaryTracking)
-                        }
-                        .foregroundColor(statusColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(statusColor.opacity(0.15))
-                        .overlay(
-                            Rectangle()
-                                .stroke(statusColor.opacity(0.3), lineWidth: 1)
+                        StatusBadge(
+                            status: transfer.status,
+                            type: statusBadgeType(for: transfer.status),
+                            size: .medium
                         )
                     }
                     
@@ -464,7 +379,7 @@ struct TransferCard: View {
                                 Text("FROM")
                                     .font(AppFonts.caption)
                                     .foregroundColor(AppColors.tertiaryText)
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                                 
                                 if !isIncoming && isOtherUserConnected {
                                     Image(systemName: "person.2.fill")
@@ -495,7 +410,7 @@ struct TransferCard: View {
                                 Text("TO")
                                     .font(AppFonts.caption)
                                     .foregroundColor(AppColors.tertiaryText)
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                                 
                                 if isIncoming && isOtherUserConnected {
                                     Image(systemName: "person.2.fill")
@@ -532,15 +447,16 @@ struct TransferCard: View {
                 if isIncoming && transfer.status.lowercased() == "pending" {
                     HStack(spacing: 0) {
                         Button(action: onQuickReject) {
-                            HStack {
+                            HStack(spacing: 6) {
                                 Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
                                 Text("REJECT")
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                             }
                             .font(AppFonts.captionBold)
                             .foregroundColor(AppColors.destructive)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 14)
                             .background(AppColors.destructive.opacity(0.1))
                         }
                         
@@ -549,15 +465,16 @@ struct TransferCard: View {
                             .frame(width: 1)
                         
                         Button(action: onQuickApprove) {
-                            HStack {
+                            HStack(spacing: 6) {
                                 Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
                                 Text("APPROVE")
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                             }
                             .font(AppFonts.captionBold)
                             .foregroundColor(AppColors.success)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 14)
                             .background(AppColors.success.opacity(0.1))
                         }
                     }
@@ -704,7 +621,7 @@ struct TransferDetailView: View {
             Text(transfer.status.uppercased())
                 .font(AppFonts.title)
                 .foregroundColor(statusColor)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
         }
         .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
@@ -758,7 +675,7 @@ struct TransferDetailView: View {
             Text("PENDING YOUR APPROVAL")
                 .font(AppFonts.headline)
                 .foregroundColor(AppColors.warning)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
                 .padding(.top, 24)
             
             HStack(spacing: 16) {
@@ -769,7 +686,7 @@ struct TransferDetailView: View {
                     HStack {
                         Image(systemName: "xmark.circle.fill")
                         Text("REJECT")
-                            .tracking(AppFonts.militaryTracking)
+                            .compatibleKerning(AppFonts.militaryTracking)
                     }
                     .font(AppFonts.bodyBold)
                     .frame(maxWidth: .infinity)
@@ -789,7 +706,7 @@ struct TransferDetailView: View {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
                             Text("APPROVE")
-                                .tracking(AppFonts.militaryTracking)
+                                .compatibleKerning(AppFonts.militaryTracking)
                         }
                         .font(AppFonts.bodyBold)
                         .frame(maxWidth: .infinity)
@@ -811,7 +728,7 @@ struct TransferDetailView: View {
                 Text(title)
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
-                    .tracking(AppFonts.militaryTracking)
+                    .compatibleKerning(AppFonts.militaryTracking)
                 Spacer()
             }
             .padding(.horizontal)
@@ -900,7 +817,7 @@ struct TransferDetailRow: View {
             Text(label)
                 .font(AppFonts.captionBold)
                 .foregroundColor(AppColors.tertiaryText)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
                 .frame(width: 120, alignment: .leading)
             
             Text(value)
@@ -920,7 +837,7 @@ struct UserDetailRow: View {
             Text(label)
                 .font(AppFonts.captionBold)
                 .foregroundColor(AppColors.tertiaryText)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
                 .frame(width: 120, alignment: .leading)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -993,7 +910,7 @@ struct OfferRow: View {
                     Text(offer.property?.name ?? "UNKNOWN ITEM")
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.primaryText)
-                        .tracking(AppFonts.normalTracking)
+                        .compatibleKerning(AppFonts.normalTracking)
                     
                     Text("SN: \(offer.property?.serialNumber ?? "")")
                         .font(AppFonts.mono)
@@ -1008,7 +925,7 @@ struct OfferRow: View {
                         Text("EXPIRES")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.tertiaryText)
-                            .tracking(AppFonts.militaryTracking)
+                            .compatibleKerning(AppFonts.militaryTracking)
                         
                         Text(formatRelativeDate(expiresAt))
                             .font(AppFonts.captionBold)
@@ -1042,7 +959,7 @@ struct OfferRow: View {
                 Button(action: { showingRejectDialog = true }) {
                     Text("DECLINE")
                         .font(AppFonts.captionBold)
-                        .tracking(AppFonts.militaryTracking)
+                        .compatibleKerning(AppFonts.militaryTracking)
                         .foregroundColor(AppColors.destructive)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -1056,7 +973,7 @@ struct OfferRow: View {
                 Button(action: { showingAcceptDialog = true }) {
                     Text("ACCEPT")
                         .font(AppFonts.captionBold)
-                        .tracking(AppFonts.militaryTracking)
+                        .compatibleKerning(AppFonts.militaryTracking)
                         .foregroundColor(AppColors.success)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)

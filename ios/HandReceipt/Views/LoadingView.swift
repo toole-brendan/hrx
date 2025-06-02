@@ -98,7 +98,7 @@ struct LoadingView: View {
                     // App name with military stencil style
                     Text("HAND RECEIPT")
                         .font(.system(size: 36, weight: .heavy, design: .default))
-                        .tracking(4)
+                        .compatibleKerning(4)
                         .foregroundColor(AppColors.primaryText)
                         .opacity(textOpacity)
                         .animation(.easeIn(duration: 1.0), value: textOpacity)
@@ -111,7 +111,7 @@ struct LoadingView: View {
                         
                         Text("PROPERTY ACCOUNTABILITY SYSTEM")
                             .font(.system(size: 12, weight: .medium))
-                            .tracking(2)
+                            .compatibleKerning(2)
                             .foregroundColor(AppColors.secondaryText)
                         
                         Rectangle()
@@ -132,7 +132,7 @@ struct LoadingView: View {
                                 
                                 Text("AUTHENTICATION FAILED")
                                     .font(.system(size: 14, weight: .bold))
-                                    .tracking(1.5)
+                                    .compatibleKerning(1.5)
                                     .foregroundColor(AppColors.destructive)
                             }
                             
@@ -150,7 +150,7 @@ struct LoadingView: View {
                                                 .font(.system(size: 12))
                                             Text("RETRY")
                                                 .font(.system(size: 12, weight: .bold))
-                                                .tracking(1.0)
+                                                .compatibleKerning(1.0)
                                         }
                                         .foregroundColor(AppColors.primaryText)
                                         .padding(.horizontal, 20)
@@ -164,7 +164,7 @@ struct LoadingView: View {
                                     Button(action: onSkipToLogin) {
                                         Text("LOGIN")
                                             .font(.system(size: 12, weight: .bold))
-                                            .tracking(1.0)
+                                            .compatibleKerning(1.0)
                                             .foregroundColor(AppColors.accent)
                                             .padding(.horizontal, 20)
                                             .padding(.vertical, 10)
@@ -185,7 +185,7 @@ struct LoadingView: View {
                             HStack(spacing: 4) {
                                 Text("AUTHENTICATING")
                                     .font(.system(size: 14, weight: .bold))
-                                    .tracking(1.5)
+                                    .compatibleKerning(1.5)
                                     .foregroundColor(AppColors.tertiaryText)
                                 
                                 // Animated dots
@@ -275,7 +275,7 @@ struct MilitaryBadge: View {
             
             Text(text)
                 .font(.system(size: 11, weight: .bold))
-                .tracking(1.0)
+                .compatibleKerning(1.0)
         }
         .foregroundColor(AppColors.primaryText)
         .padding(.horizontal, 12)

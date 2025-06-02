@@ -146,7 +146,7 @@ struct NetworkSectionHeader: View {
                     Text(title)
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.primaryText)
-                        .tracking(AppFonts.militaryTracking)
+                        .compatibleKerning(AppFonts.militaryTracking)
                     
                     Text(subtitle)
                         .font(AppFonts.caption)
@@ -201,7 +201,7 @@ struct ConnectionRow: View {
                 Text("CONNECTED")
                     .font(AppFonts.caption2)
                     .foregroundColor(AppColors.success)
-                    .tracking(AppFonts.militaryTracking)
+                    .compatibleKerning(AppFonts.militaryTracking)
             }
         }
         .padding()
@@ -262,7 +262,7 @@ struct PendingRequestRow: View {
                     HStack {
                         Image(systemName: "xmark")
                         Text("DECLINE")
-                            .tracking(AppFonts.militaryTracking)
+                            .compatibleKerning(AppFonts.militaryTracking)
                     }
                     .font(AppFonts.captionBold)
                     .frame(maxWidth: .infinity)
@@ -273,7 +273,7 @@ struct PendingRequestRow: View {
                     HStack {
                         Image(systemName: "checkmark")
                         Text("ACCEPT")
-                            .tracking(AppFonts.militaryTracking)
+                            .compatibleKerning(AppFonts.militaryTracking)
                     }
                     .font(AppFonts.captionBold)
                     .frame(maxWidth: .infinity)
@@ -312,7 +312,7 @@ struct EmptyNetworkView: View {
                 Text("NO CONNECTIONS YET")
                     .font(AppFonts.title)
                     .foregroundColor(AppColors.primaryText)
-                    .tracking(AppFonts.militaryTracking)
+                    .compatibleKerning(AppFonts.militaryTracking)
                 
                 Text("Connect with other users to request and transfer property items")
                     .font(AppFonts.body)
@@ -326,7 +326,7 @@ struct EmptyNetworkView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "person.badge.plus")
                     Text("ADD CONNECTION")
-                        .tracking(AppFonts.militaryTracking)
+                        .compatibleKerning(AppFonts.militaryTracking)
                 }
                 .font(AppFonts.bodyBold)
                 .frame(width: 200)
@@ -353,7 +353,7 @@ struct AddConnectionView: View {
                         Text("SEARCH USERS")
                             .font(AppFonts.captionBold)
                             .foregroundColor(AppColors.tertiaryText)
-                            .tracking(AppFonts.militaryTracking)
+                            .compatibleKerning(AppFonts.militaryTracking)
                         
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -386,7 +386,7 @@ struct AddConnectionView: View {
                         Text("NO USERS FOUND")
                             .font(AppFonts.body)
                             .foregroundColor(AppColors.secondaryText)
-                            .tracking(AppFonts.militaryTracking)
+                            .compatibleKerning(AppFonts.militaryTracking)
                         Spacer()
                     } else {
                         ScrollView {
@@ -454,7 +454,7 @@ struct UserSearchResultRow: View {
                     Image(systemName: "person.badge.plus")
                         .font(.caption)
                     Text("CONNECT")
-                        .tracking(AppFonts.militaryTracking)
+                        .compatibleKerning(AppFonts.militaryTracking)
                 }
                 .font(AppFonts.captionBold)
                 .padding(.horizontal, 12)
@@ -482,7 +482,7 @@ struct ConnectionsLoadingView: View {
             Text("LOADING NETWORK...")
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.secondaryText)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
         }
     }
 }

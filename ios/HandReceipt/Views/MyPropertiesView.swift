@@ -52,13 +52,11 @@ struct MyPropertiesView: View {
                     Color.clear
                         .frame(height: 36)
                     
-                    // Welcome text
-                    Text("Manage Your Equipment")
-                        .font(AppFonts.largeTitle)
-                        .foregroundColor(AppColors.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+                    // Welcome section with modern header
+                    ModernSectionHeader(
+                        title: "Manage Your Equipment",
+                        subtitle: "Track and maintain your assigned property"
+                    )
                     
                     // The rest of the content
                     mainContent
@@ -112,7 +110,8 @@ struct MyPropertiesView: View {
                 HStack(spacing: 12) {
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(AppColors.secondaryText)
+                            .foregroundColor(AppColors.tertiaryText)
+                            .font(.system(size: 16, weight: .medium))
                         
                         TextField("Search properties...", text: $searchText)
                             .textFieldStyle(PlainTextFieldStyle())
@@ -122,14 +121,19 @@ struct MyPropertiesView: View {
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(AppColors.secondaryText)
+                                    .foregroundColor(AppColors.tertiaryText)
+                                    .font(.system(size: 14))
                             }
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
                     .background(AppColors.secondaryBackground)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
                     
                     // Sort button
                     Button(action: { showingSortOptions = true }) {
@@ -166,22 +170,29 @@ struct MyPropertiesView: View {
                         Button(action: { showingUnverifiedOnly.toggle() }) {
                             HStack(spacing: 6) {
                                 Image(systemName: showingUnverifiedOnly ? "checkmark.square.fill" : "square")
-                                    .font(.caption)
-                                Text("Unverified Only")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("UNVERIFIED")
                                     .font(AppFonts.captionBold)
+                                    .compatibleKerning(AppFonts.wideTracking)
                                 if viewModel.unverifiedCount > 0 {
                                     Text("(\(viewModel.unverifiedCount))")
-                                        .font(AppFonts.caption)
+                                        .font(AppFonts.captionBold)
+                                        .compatibleKerning(AppFonts.normalTracking)
                                 }
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .foregroundColor(showingUnverifiedOnly ? .white : AppColors.warning)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .foregroundColor(showingUnverifiedOnly ? Color.black : AppColors.warning)
                             .background(showingUnverifiedOnly ? AppColors.warning : AppColors.warning.opacity(0.1))
-                            .cornerRadius(16)
+                            .cornerRadius(4)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(AppColors.warning, lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(AppColors.warning.opacity(0.5), lineWidth: 1)
+                            )
+                            .shadow(
+                                color: showingUnverifiedOnly ? AppColors.warning.opacity(0.3) : Color.clear,
+                                radius: showingUnverifiedOnly ? 4 : 0,
+                                y: showingUnverifiedOnly ? 2 : 0
                             )
                         }
                     }
@@ -205,30 +216,28 @@ struct MyPropertiesView: View {
                         )
                         .padding(.vertical, 50)
                     } else {
-                        ScrollView {
-                            LazyVStack(spacing: 12) {
-                                ForEach(filteredProperties) { property in
-                                    PropertyRowWithImportInfo(property: property) {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredProperties) { property in
+                                NavigationLink(destination: PropertyDetailView(propertyId: property.id)) {
+                                    ModernPropertyCard(property: property) {
                                         if property.needsVerification {
                                             selectedProperty = property
                                             showingVerificationSheet = true
                                         }
                                     }
-                                    .padding(.horizontal)
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .padding(.horizontal)
                             }
-                            .padding(.vertical)
                         }
-                        .refreshable {
-                            viewModel.loadProperties()
-                        }
+                        .padding(.vertical)
                     }
                     
                 case .error(let message):
                     ErrorStateView(message: message) {
                         viewModel.loadProperties()
                     }
-                    .padding()
+                    .padding(.vertical, 50)
                 }
             }
             .frame(maxHeight: .infinity)
@@ -259,7 +268,7 @@ struct MyPropertiesView: View {
                 Text("PROPERTY BOOK")
                     .font(.system(size: 16, weight: .medium)) // Larger font
                     .foregroundColor(AppColors.primaryText)
-                    .kerning(1.2) // Match TransfersView tracking
+                    .compatibleKerning(AppFonts.militaryTracking)
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 12) // Bottom padding
             }
@@ -324,26 +333,38 @@ struct MyPropertiesView: View {
 
 struct OfflineIndicator: View {
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "wifi.slash")
-                .font(.caption)
-            Text("OFFLINE MODE")
-                .font(AppFonts.captionBold)
-                .tracking(AppFonts.militaryTracking)
-            Text("• Changes will sync when connected")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.secondaryText)
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.warning.opacity(0.2))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.warning)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("OFFLINE MODE")
+                    .font(AppFonts.captionHeavy)
+                    .foregroundColor(AppColors.warning)
+                    .compatibleKerning(AppFonts.militaryTracking)
+                
+                Text("Changes will sync when connected")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+            }
+            
+            Spacer()
         }
-        .foregroundColor(AppColors.warning)
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity)
+        .padding(12)
         .background(AppColors.warning.opacity(0.1))
+        .cornerRadius(8)
         .overlay(
-            Rectangle()
-                .stroke(AppColors.warning.opacity(0.3), lineWidth: 1),
-            alignment: .bottom
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppColors.warning.opacity(0.3), lineWidth: 1)
         )
+        .padding(.horizontal)
     }
 }
 
@@ -357,18 +378,32 @@ struct PropertyFilterPill: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.caption)
-                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title.uppercased())
                     .font(AppFonts.captionBold)
+                    .compatibleKerning(AppFonts.wideTracking)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .foregroundColor(isSelected ? .white : AppColors.secondaryText)
-            .background(isSelected ? AppColors.accent : AppColors.secondaryBackground)
-            .cornerRadius(16)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .foregroundColor(isSelected ? Color.black : AppColors.secondaryText)
+            .background(
+                Group {
+                    if isSelected {
+                        AppColors.accent
+                    } else {
+                        AppColors.secondaryBackground
+                    }
+                }
+            )
+            .cornerRadius(4)
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 4)
                     .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: 1)
+            )
+            .shadow(
+                color: isSelected ? AppColors.accent.opacity(0.3) : Color.clear,
+                radius: isSelected ? 4 : 0,
+                y: isSelected ? 2 : 0
             )
         }
     }
@@ -534,15 +569,7 @@ struct PropertyRowEnhanced: View {
 
 struct PropertyLoadingView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                .scaleEffect(1.5)
-            
-            Text("Loading property book...")
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
-        }
+        IndustrialLoadingView(message: "LOADING PROPERTY BOOK")
     }
 }
 
@@ -552,32 +579,13 @@ struct PropertiesEmptyStateView: View {
     let onRefresh: () -> Void
     
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            Image(systemName: emptyStateIcon)
-                .font(.system(size: 64))
-                .foregroundColor(AppColors.secondaryText)
-            
-            VStack(spacing: 8) {
-                Text(emptyStateTitle)
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Text(emptyStateMessage)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-            
-            Button("Refresh", action: onRefresh)
-                .buttonStyle(.primary)
-            
-            Spacer()
-            Spacer()
-        }
-        .padding()
+        ModernEmptyStateView(
+            icon: emptyStateIcon,
+            title: emptyStateTitle,
+            message: emptyStateMessage,
+            actionTitle: "REFRESH",
+            action: onRefresh
+        )
     }
     
     private var emptyStateIcon: String {
@@ -628,26 +636,40 @@ struct SyncStatusFooter: View {
     }()
     
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             if isSyncing {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                    .scaleEffect(0.8)
-                Text("Syncing...")
-                    .font(AppFonts.caption)
+                    .scaleEffect(0.7)
+                Text("SYNCING...")
+                    .font(AppFonts.captionBold)
                     .foregroundColor(AppColors.accent)
+                    .compatibleKerning(AppFonts.wideTracking)
             } else {
-                Image(systemName: "checkmark.circle")
+                Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(AppColors.success)
-                    .font(.caption)
-                Text("Last synced \(lastSync, formatter: Self.timeFormatter)")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
+                    .font(.system(size: 12, weight: .semibold))
+                HStack(spacing: 4) {
+                    Text("LAST SYNCED")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                        .compatibleKerning(AppFonts.normalTracking)
+                    Text(lastSync, formatter: Self.timeFormatter)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
         .frame(maxWidth: .infinity)
-        .background(AppColors.secondaryBackground)
+        .background(AppColors.tertiaryBackground)
+        .overlay(
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 1),
+            alignment: .top
+        )
     }
 }
 
@@ -782,7 +804,7 @@ struct PropertyRowWithImportInfo: View {
                 .font(.caption2)
             Text(status.uppercased())
                 .font(AppFonts.captionBold)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
         }
         .foregroundColor(color)
         .padding(.horizontal, 8)

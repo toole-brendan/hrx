@@ -560,7 +560,7 @@ struct FormSectionHeader: View {
             Text(title.uppercased())
                 .font(AppFonts.captionBold)
                 .foregroundColor(AppColors.secondaryText)
-                .tracking(1.2)
+                .compatibleKerning(1.2)
             
             if isRequired {
                 Text("*")
@@ -613,7 +613,7 @@ struct NSNDetailsCard: View {
                 Text("NSN FOUND")
                     .font(AppFonts.captionBold)
                     .foregroundColor(AppColors.success)
-                    .tracking(1.2)
+                    .compatibleKerning(1.2)
             }
             
             VStack(alignment: .leading, spacing: 8) {

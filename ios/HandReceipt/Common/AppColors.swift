@@ -1,3 +1,5 @@
+// handreceipt/ios/HandReceipt/Common/AppColors.swift
+
 import SwiftUI
 
 // Make the struct public so it can be accessed across the module

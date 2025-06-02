@@ -1,3 +1,5 @@
+// handreceipt/ios/HandReceipt/Views/AuthenticatedTabView.swift
+
 import SwiftUI
 
 struct AuthenticatedTabView: View {

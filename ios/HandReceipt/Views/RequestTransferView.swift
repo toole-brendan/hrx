@@ -1,3 +1,5 @@
+// handreceipt/ios/HandReceipt/Views/RequestTransferView.swift
+
 import SwiftUI
 import Foundation
 
@@ -297,7 +299,7 @@ struct PropertyRequestCard: View {
                             Text("CURRENT HOLDER:")
                                 .font(AppFonts.captionBold)
                                 .foregroundColor(AppColors.tertiaryText)
-                                .tracking(AppFonts.militaryTracking)
+                                .compatibleKerning(AppFonts.militaryTracking)
                             
                             if let owner = ownerInfo {
                                 Text("\(owner.rank ?? "") \(owner.lastName ?? owner.username)")
@@ -324,7 +326,7 @@ struct PropertyRequestCard: View {
                                         .font(.caption)
                                     Text("CONNECTED")
                                         .font(AppFonts.captionBold)
-                                        .tracking(AppFonts.militaryTracking)
+                                        .compatibleKerning(AppFonts.militaryTracking)
                                 }
                                 .foregroundColor(AppColors.success)
                                 .padding(.horizontal, 12)
@@ -352,7 +354,7 @@ struct PropertyRequestCard: View {
                                             .font(.caption)
                                         Text("CONNECT")
                                             .font(AppFonts.captionBold)
-                                            .tracking(AppFonts.militaryTracking)
+                                            .compatibleKerning(AppFonts.militaryTracking)
                                     }
                                 }
                                 .buttonStyle(.secondary)
@@ -399,7 +401,7 @@ struct PropertyDetailRow: View {
             Text("\(label):")
                 .font(AppFonts.captionBold)
                 .foregroundColor(AppColors.tertiaryText)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
                 .frame(width: 120, alignment: .leading)
             
             Text(value)
@@ -425,7 +427,7 @@ struct ErrorMessageView: View {
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.destructive)
                 .multilineTextAlignment(.center)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
         }
         .padding()
         .background(AppColors.destructive.opacity(0.1))
@@ -449,7 +451,7 @@ struct SuccessMessageView: View {
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.success)
                 .multilineTextAlignment(.center)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
         }
         .padding()
         .background(AppColors.success.opacity(0.1))

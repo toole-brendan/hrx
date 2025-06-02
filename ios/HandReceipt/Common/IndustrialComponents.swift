@@ -1,3 +1,5 @@
+// handreceipt/ios/HandReceipt/Common/IndustrialComponents.swift
+
 import SwiftUI
 
 // MARK: - Enhanced Status Badge with Glow Effect

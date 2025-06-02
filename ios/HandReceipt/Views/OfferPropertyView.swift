@@ -45,7 +45,7 @@ struct OfferPropertyView: View {
                                     Text("\(selectedFriends.count) SELECTED")
                                         .font(AppFonts.captionBold)
                                         .foregroundColor(AppColors.accent)
-                                        .tracking(AppFonts.militaryTracking)
+                                        .compatibleKerning(AppFonts.militaryTracking)
                                         .padding(.trailing)
                                 }
                             }
@@ -77,7 +77,7 @@ struct OfferPropertyView: View {
                                     Text("NOTES (OPTIONAL)")
                                         .font(AppFonts.captionBold)
                                         .foregroundColor(AppColors.tertiaryText)
-                                        .tracking(AppFonts.militaryTracking)
+                                        .compatibleKerning(AppFonts.militaryTracking)
                                     
                                     ZStack(alignment: .topLeading) {
                                         TextEditor(text: $notes)
@@ -108,7 +108,7 @@ struct OfferPropertyView: View {
                                             Text("OFFER EXPIRES IN")
                                                 .font(AppFonts.captionBold)
                                                 .foregroundColor(AppColors.tertiaryText)
-                                                .tracking(AppFonts.militaryTracking)
+                                                .compatibleKerning(AppFonts.militaryTracking)
                                             
                                             Text("\(expiresInDays) DAYS")
                                                 .font(AppFonts.headline)
@@ -137,7 +137,7 @@ struct OfferPropertyView: View {
                                     Image(systemName: "paperplane.fill")
                                 }
                                 Text(isLoading ? "SENDING OFFERS..." : "SEND OFFERS")
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                             }
                             .font(AppFonts.bodyBold)
                             .frame(maxWidth: .infinity)
@@ -224,7 +224,7 @@ struct PropertyInfoRow: View {
             Text("\(label):")
                 .font(AppFonts.captionBold)
                 .foregroundColor(AppColors.tertiaryText)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
                 .frame(width: 80, alignment: .leading)
             
             Text(value)
@@ -250,7 +250,7 @@ struct EmptyConnectionsMessage: View {
             Text("NO CONNECTIONS")
                 .font(AppFonts.bodyBold)
                 .foregroundColor(AppColors.secondaryText)
-                .tracking(AppFonts.militaryTracking)
+                .compatibleKerning(AppFonts.militaryTracking)
             
             Text("Add connections to offer property transfers")
                 .font(AppFonts.caption)
