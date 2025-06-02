@@ -883,3 +883,35 @@ func (s *NSNService) convertFromPublog(result *publogModels.SearchResult) *NSNDe
 
 	return details
 }
+
+// UniversalSearch performs a universal search across NSN, part numbers, and item names
+// using publog data when available
+func (s *NSNService) UniversalSearch(ctx context.Context, query string, limit int) ([]*NSNDetails, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	// Try publog universal search first if available
+	if s.publogService != nil {
+		publogResults, err := s.publogService.Search(query)
+		if err == nil && len(publogResults) > 0 {
+			// Convert publog results to NSNDetails
+			results := make([]*NSNDetails, 0, len(publogResults))
+			for i, publogResult := range publogResults {
+				if i >= limit {
+					break
+				}
+				if details := s.convertFromPublog(publogResult); details != nil {
+					results = append(results, details)
+				}
+			}
+			if len(results) > 0 {
+				s.logger.WithField("query", query).WithField("results", len(results)).Debug("Found results in publog data")
+				return results, nil
+			}
+		}
+	}
+
+	// Fall back to database search
+	return s.SearchNSN(ctx, query, limit)
+}

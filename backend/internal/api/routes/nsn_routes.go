@@ -11,9 +11,10 @@ func RegisterNSNRoutes(router *gin.RouterGroup, handler *handlers.NSNHandler, au
 	nsnGroup := router.Group("/nsn")
 	nsnGroup.Use(authMiddleware)
 	{
-		// Basic lookup operations
+		// Public endpoints
 		nsnGroup.GET("/:nsn", handler.LookupNSN)
 		nsnGroup.GET("/search", handler.SearchNSN)
+		nsnGroup.GET("/universal-search", handler.UniversalSearch)
 		nsnGroup.POST("/bulk", handler.BulkLookup)
 
 		// Statistics (available to all authenticated users)

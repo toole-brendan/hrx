@@ -256,3 +256,43 @@ func (h *NSNHandler) GetCacheStats(c *gin.Context) {
 		"data":    stats,
 	})
 }
+
+// UniversalSearch handles GET /api/nsn/universal-search?q=query&limit=20
+// This searches across NSN, part numbers, and item names using publog data
+func (h *NSNHandler) UniversalSearch(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Search query is required",
+		})
+		return
+	}
+
+	// Parse limit with default value
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			if parsedLimit > 100 {
+				limit = 100 // Cap at 100
+			} else {
+				limit = parsedLimit
+			}
+		}
+	}
+
+	results, err := h.service.UniversalSearch(c.Request.Context(), query, limit)
+	if err != nil {
+		h.logger.WithError(err).WithField("query", query).Error("Failed to perform universal search")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Search failed",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    results,
+		"count":   len(results),
+		"query":   query,
+	})
+}

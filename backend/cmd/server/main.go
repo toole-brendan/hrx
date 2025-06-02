@@ -138,6 +138,7 @@ func main() {
 		TimeoutSeconds: viper.GetInt("nsn.timeout_seconds"),
 		RateLimitRPS:   viper.GetInt("nsn.rate_limit_rps"),
 		BulkBatchSize:  viper.GetInt("nsn.bulk_batch_size"),
+		PubLogDataDir:  viper.GetString("nsn.publog_data_dir"),
 	}
 
 	// Set defaults if not configured
