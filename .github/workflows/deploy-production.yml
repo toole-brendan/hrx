@@ -345,6 +345,9 @@ jobs:
           
           nsn:
             enabled: true
+            publog_data_dir: "internal/publog"
+            cache_enabled: true
+            cache_ttl: "24h"
           
           logging:
             level: "info"

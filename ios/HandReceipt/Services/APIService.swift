@@ -71,6 +71,7 @@ public protocol APIServiceProtocol {
     func lookupNSN(nsn: String) async throws -> NSNLookupResponse
     func lookupLIN(lin: String) async throws -> NSNLookupResponse
     func searchNSN(query: String, limit: Int?) async throws -> NSNSearchResponse
+    func universalSearchNSN(query: String, limit: Int?) async throws -> NSNSearchResponse
 
     // Add function to create a new property
     func createProperty(_ property: CreatePropertyInput) async throws -> Property
@@ -1314,6 +1315,29 @@ public class APIService: APIServiceProtocol {
         
         let response = try await performRequest(request: request) as NSNSearchResponse
         debugPrint("NSN search returned \(response.count) results")
+        return response
+    }
+    
+    public func universalSearchNSN(query: String, limit: Int? = 20) async throws -> NSNSearchResponse {
+        debugPrint("Universal NSN search with query: \(query)")
+        
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/nsn/universal-search"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "q", value: query)
+        ]
+        if let limit = limit {
+            components.queryItems?.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as NSNSearchResponse
+        debugPrint("Universal NSN search returned \(response.count) results")
         return response
     }
 

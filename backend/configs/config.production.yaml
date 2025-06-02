@@ -69,6 +69,7 @@ nsn:
   timeout_seconds: 30
   retry_attempts: 3
   bulk_batch_size: 50
+  publog_data_dir: "internal/publog"
   enabled: true
 
 # Redis configuration (disabled for now)
