@@ -14,8 +14,10 @@ import {
   SearchX, 
   ArrowUpDown,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from "lucide-react";
+import { DA2062ExportDialog } from "../da2062/DA2062ExportDialog";
 
 // Define types for our table components
 export type DisplayItem = Property & { 
@@ -56,10 +58,15 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
   error,
   StatusBadge
 }) => {
+  const [showExportDialog, setShowExportDialog] = React.useState(false);
+  
   // Handle filtered item display
   const filtered = items;
   const allSelected = filtered.length > 0 && filtered.every(item => state.selectedItemIds.has(item.id));
   const indeterminate = filtered.some(item => state.selectedItemIds.has(item.id)) && !allSelected;
+  
+  // Get selected properties for export
+  const selectedProperties = filtered.filter(item => state.selectedItemIds.has(item.id));
   
   // Calculate the colspan based on visible columns
   const colSpanCount = 7; // Checkbox, Name, SN, Category, Date/AssignedTo, Status, Actions
@@ -172,6 +179,34 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
           </Table>
         </div>
       )}
+      
+      {/* Export Button - Show when items are selected */}
+      {state.selectedItemIds.size > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowExportDialog(true)}
+                className="shadow-lg"
+                size="lg"
+              >
+                <FileText className="h-5 w-5 mr-2" />
+                Export DA 2062 ({state.selectedItemIds.size})
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Export selected items to DA Form 2062
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+      
+      {/* DA 2062 Export Dialog */}
+      <DA2062ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        selectedProperties={selectedProperties as Property[]}
+      />
     </TooltipProvider>
   );
 };

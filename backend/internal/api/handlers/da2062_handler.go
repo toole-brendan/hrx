@@ -16,20 +16,31 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/email"
+	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"gorm.io/gorm"
 )
 
 // DA2062Handler handles DA2062-related operations
 type DA2062Handler struct {
-	Ledger ledger.LedgerService
-	Repo   repository.Repository
+	Ledger       ledger.LedgerService
+	Repo         repository.Repository
+	PDFGenerator *pdf.DA2062Generator
+	EmailService *email.DA2062EmailService
 }
 
 // NewDA2062Handler creates a new DA2062 handler
-func NewDA2062Handler(ledgerService ledger.LedgerService, repo repository.Repository) *DA2062Handler {
+func NewDA2062Handler(
+	ledgerService ledger.LedgerService,
+	repo repository.Repository,
+	pdfGenerator *pdf.DA2062Generator,
+	emailService *email.DA2062EmailService,
+) *DA2062Handler {
 	return &DA2062Handler{
-		Ledger: ledgerService,
-		Repo:   repo,
+		Ledger:       ledgerService,
+		Repo:         repo,
+		PDFGenerator: pdfGenerator,
+		EmailService: emailService,
 	}
 }
 
@@ -400,6 +411,166 @@ func (h *DA2062Handler) GetDA2062Items(c *gin.Context) {
 	})
 }
 
+// GenerateDA2062PDF generates a PDF from selected properties
+func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	var req GeneratePDFRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	// Validate required fields
+	if len(req.PropertyIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least one property ID is required"})
+		return
+	}
+
+	// Fetch properties
+	var properties []domain.Property
+	for _, id := range req.PropertyIDs {
+		property, err := h.Repo.GetPropertyByID(id)
+		if err != nil {
+			continue
+		}
+		// Verify user has access
+		if property.AssignedToUserID != nil && *property.AssignedToUserID == userID {
+			properties = append(properties, *property)
+		}
+	}
+
+	if len(properties) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid properties found"})
+		return
+	}
+
+	// Get user info for the form
+	fromUser, err := h.Repo.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
+
+	// Convert user info
+	title := "Property Book Officer"
+	if fromUser.Unit != "" {
+		title = fromUser.Unit
+	}
+
+	fromUserInfo := pdf.UserInfo{
+		Name:  fromUser.Name,
+		Rank:  fromUser.Rank,
+		Title: title,
+		Phone: fromUser.Phone,
+	}
+
+	// Set to user info (same as from for self hand receipt)
+	toUserInfo := fromUserInfo
+	if req.ToUser.Name != "" {
+		toUserInfo = req.ToUser
+	}
+
+	// Convert unit info
+	unitInfo := pdf.UnitInfo{
+		UnitName:    req.UnitInfo.UnitName,
+		DODAAC:      req.UnitInfo.DODAAC,
+		StockNumber: req.UnitInfo.StockNumber,
+		Location:    req.UnitInfo.Location,
+	}
+
+	// Generate PDF
+	options := pdf.GenerateOptions{
+		GroupByCategory:   req.GroupByCategory,
+		IncludeSignatures: true,
+		IncludeQRCodes:    req.IncludeQRCodes,
+	}
+
+	pdfBuffer, err := h.PDFGenerator.GenerateDA2062(
+		properties,
+		fromUserInfo,
+		toUserInfo,
+		unitInfo,
+		options,
+	)
+
+	if err != nil {
+		log.Printf("PDF generation failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate PDF"})
+		return
+	}
+
+	// Generate form number
+	formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), userID)
+
+	// Handle email or download
+	if req.SendEmail && len(req.Recipients) > 0 {
+		// Send email
+		senderInfo := email.UserInfo{
+			Name:  fromUserInfo.Name,
+			Rank:  fromUserInfo.Rank,
+			Title: fromUserInfo.Title,
+			Phone: fromUserInfo.Phone,
+		}
+
+		err = h.EmailService.SendDA2062Email(req.Recipients, pdfBuffer, formNumber, senderInfo)
+		if err != nil {
+			log.Printf("Email sending failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+			return
+		}
+
+		// Log to ledger (TODO: implement LogDA2062Export method)
+		// h.Ledger.LogDA2062Export(userID, len(properties), "email", strings.Join(req.Recipients, ","))
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":     "DA 2062 emailed successfully",
+			"form_number": formNumber,
+			"recipients":  req.Recipients,
+			"item_count":  len(properties),
+		})
+	} else {
+		// Return PDF for download
+		filename := fmt.Sprintf("DA2062_%s.pdf", time.Now().Format("20060102_150405"))
+
+		// Log to ledger (TODO: implement LogDA2062Export method)
+		// h.Ledger.LogDA2062Export(userID, len(properties), "download", "")
+
+		c.Header("Content-Type", "application/pdf")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		c.Data(http.StatusOK, "application/pdf", pdfBuffer.Bytes())
+	}
+}
+
+// Helper function to safely get pointer values
+func getValueOrDefault(ptr *string, defaultValue string) string {
+	if ptr != nil {
+		return *ptr
+	}
+	return defaultValue
+}
+
+// Request models for PDF generation
+type GeneratePDFRequest struct {
+	PropertyIDs     []uint       `json:"property_ids" binding:"required"`
+	GroupByCategory bool         `json:"group_by_category"`
+	IncludeQRCodes  bool         `json:"include_qr_codes"`
+	SendEmail       bool         `json:"send_email"`
+	Recipients      []string     `json:"recipients"`
+	FromUser        pdf.UserInfo `json:"from_user" binding:"required"`
+	ToUser          pdf.UserInfo `json:"to_user"`
+	UnitInfo        pdf.UnitInfo `json:"unit_info" binding:"required"`
+}
+
 // Helper functions
 
 func countVerificationNeeded(properties []domain.Property) int {
@@ -465,6 +636,7 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 	da2062 := router.Group("/da2062")
 	{
 		da2062.POST("/upload", h.UploadDA2062)
+		da2062.POST("/generate-pdf", h.GenerateDA2062PDF)
 		da2062.GET("/search", h.SearchDA2062Forms)
 		da2062.GET("/:reference/items", h.GetDA2062Items)
 		da2062.GET("/unverified", h.GetUnverifiedItems)

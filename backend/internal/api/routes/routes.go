@@ -9,7 +9,9 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/email"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
+	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
@@ -38,7 +40,10 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
 	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
-	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo)               // Add DA2062 handler
+	// Create PDF and email services for DA2062 functionality
+	pdfGenerator := pdf.NewDA2062Generator(repo)
+	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
+	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService)
 
 	// Add NSN handler
 	logger := logrus.New()
