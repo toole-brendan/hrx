@@ -30,10 +30,13 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Initialize session middleware
 	middleware.SetupSession(router)
 
+	// Add component service first (needed by transfer handler)
+	componentService := services.NewComponentService(repo)
+
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(repo)
 	propertyHandler := handlers.NewPropertyHandler(ledgerService, repo)
-	transferHandler := handlers.NewTransferHandler(ledgerService, repo)
+	transferHandler := handlers.NewTransferHandler(ledgerService, repo, componentService)
 	activityHandler := handlers.NewActivityHandler() // No ledger needed
 	verificationHandler := handlers.NewVerificationHandler(ledgerService)
 	correctionHandler := handlers.NewCorrectionHandler(ledgerService)
@@ -46,8 +49,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
 	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService)
 
-	// Add component service and handler
-	componentService := services.NewComponentService(repo)
+	// Add component handler
 	componentHandler := handlers.NewComponentHandler(componentService, ledgerService)
 
 	// Add NSN handler

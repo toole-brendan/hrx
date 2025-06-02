@@ -3,12 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { requestBySerial } from '@/services/transferService';
 import { useToast } from '@/hooks/use-toast';
+import { Link2 } from 'lucide-react';
 
 export const SerialNumberRequest: React.FC = () => {
     const [serialNumber, setSerialNumber] = useState('');
+    const [includeComponents, setIncludeComponents] = useState(false);
     const [notes, setNotes] = useState('');
     const queryClient = useQueryClient();
     const { toast } = useToast();
@@ -18,6 +21,7 @@ export const SerialNumberRequest: React.FC = () => {
         onSuccess: () => {
             // Reset form
             setSerialNumber('');
+            setIncludeComponents(false);
             setNotes('');
             
             // Invalidate transfers query
@@ -42,6 +46,7 @@ export const SerialNumberRequest: React.FC = () => {
         
         mutation.mutate({
             serialNumber: serialNumber.trim(),
+            includeComponents: includeComponents,
             notes: notes || undefined,
         });
     };
@@ -58,6 +63,19 @@ export const SerialNumberRequest: React.FC = () => {
                     required
                     className="mt-1"
                 />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+                <Checkbox
+                    id="include-components"
+                    checked={includeComponents}
+                    onCheckedChange={(checked) => setIncludeComponents(checked === true)}
+                    disabled={mutation.isPending}
+                />
+                <Label htmlFor="include-components" className="flex items-center gap-2 cursor-pointer">
+                    <Link2 className="w-4 h-4" />
+                    Include attached components (if any)
+                </Label>
             </div>
             
             <div>

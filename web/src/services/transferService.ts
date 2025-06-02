@@ -55,6 +55,7 @@ export async function fetchTransfers(): Promise<Transfer[]> {
 export async function createTransfer(transferData: {
   propertyId: number;
   toUserId: number;
+  includeComponents?: boolean;
   notes?: string;
 }): Promise<Transfer> {
   const response = await fetch(`${API_BASE_URL}/transfers`, {
@@ -62,8 +63,9 @@ export async function createTransfer(transferData: {
     headers: getAuthHeaders(),
     credentials: 'include',
     body: JSON.stringify({
-      property_id: transferData.propertyId,
-      to_user_id: transferData.toUserId,
+      propertyId: transferData.propertyId,
+      toUserId: transferData.toUserId,
+      includeComponents: transferData.includeComponents || false,
       notes: transferData.notes,
     }),
   });
@@ -150,6 +152,7 @@ export async function deleteTransfer(id: string): Promise<void> {
  */
 export async function requestBySerial(data: {
   serialNumber: string;
+  includeComponents?: boolean;
   notes?: string;
 }): Promise<Transfer> {
   const response = await fetch(`${API_BASE_URL}/transfers/request-by-serial`, {
@@ -157,7 +160,8 @@ export async function requestBySerial(data: {
     headers: getAuthHeaders(),
     credentials: 'include',
     body: JSON.stringify({
-      serial_number: data.serialNumber,
+      serialNumber: data.serialNumber,
+      includeComponents: data.includeComponents || false,
       notes: data.notes,
     }),
   });
@@ -177,6 +181,7 @@ export async function requestBySerial(data: {
 export async function createOffer(data: {
   propertyId: number;
   recipientIds: number[];
+  includeComponents?: boolean;
   notes?: string;
   expiresInDays?: number;
 }): Promise<any> {
@@ -185,10 +190,11 @@ export async function createOffer(data: {
     headers: getAuthHeaders(),
     credentials: 'include',
     body: JSON.stringify({
-      property_id: data.propertyId,
-      recipient_ids: data.recipientIds,
+      propertyId: data.propertyId,
+      recipientIds: data.recipientIds,
+      includeComponents: data.includeComponents || false,
       notes: data.notes,
-      expires_in_days: data.expiresInDays,
+      expiresInDays: data.expiresInDays,
     }),
   });
   

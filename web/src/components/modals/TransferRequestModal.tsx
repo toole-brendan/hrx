@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTransfer } from "@/services/transferService";
 import { Property } from "@/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Link2 } from "lucide-react";
 
 interface TransferRequestModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
 }) => {
   const [transferType, setTransferType] = useState<"individual" | "unit">("individual");
   const [recipient, setRecipient] = useState("");
+  const [includeComponents, setIncludeComponents] = useState(false);
   const [reason, setReason] = useState("");
   const [urgency, setUrgency] = useState("normal");
   const { toast } = useToast();
@@ -62,6 +64,7 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
       // Reset form
       setTransferType("individual");
       setRecipient("");
+      setIncludeComponents(false);
       setReason("");
       setUrgency("normal");
 
@@ -94,6 +97,7 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
     createTransferMutation.mutate({
       propertyId: parseInt(item.id),
       toUserId: recipientUserId,
+      includeComponents: includeComponents,
       notes: `${reason}\n\nUrgency: ${urgency}\nTransfer Type: ${transferType}`,
     });
   };
@@ -189,6 +193,22 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {/* Include Components Option */}
+          {item.components && item.components.length > 0 && (
+            <div className="flex items-center space-x-2">
+                             <Checkbox
+                 id="include-components"
+                 checked={includeComponents}
+                 onCheckedChange={(checked) => setIncludeComponents(checked === true)}
+                 disabled={createTransferMutation.isPending}
+               />
+              <Label htmlFor="include-components" className="flex items-center gap-2 cursor-pointer">
+                <Link2 className="w-4 h-4" />
+                Include attached components ({item.components.length})
+              </Label>
             </div>
           )}
 

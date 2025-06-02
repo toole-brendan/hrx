@@ -452,6 +452,7 @@ func (h *TransferHandler) RequestTransferBySerial(c *gin.Context) {
 		TransferType:          domain.TransferTypeRequest,
 		InitiatorID:           &requestorID,
 		RequestedSerialNumber: &req.SerialNumber,
+		IncludeComponents:     req.IncludeComponents,
 		Notes:                 req.Notes,
 		RequestDate:           time.Now(),
 	}
@@ -503,9 +504,10 @@ func (h *TransferHandler) OfferTransfer(c *gin.Context) {
 	}
 
 	var req struct {
-		PropertyID  uint    `json:"propertyId" binding:"required"`
-		RecipientID uint    `json:"recipientId" binding:"required"`
-		Notes       *string `json:"notes"`
+		PropertyID        uint    `json:"propertyId" binding:"required"`
+		RecipientID       uint    `json:"recipientId" binding:"required"`
+		IncludeComponents bool    `json:"includeComponents"`
+		Notes             *string `json:"notes"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -543,14 +545,15 @@ func (h *TransferHandler) OfferTransfer(c *gin.Context) {
 
 	// Create transfer offer
 	transfer := &domain.Transfer{
-		PropertyID:   property.ID,
-		FromUserID:   ownerID,
-		ToUserID:     req.RecipientID,
-		Status:       "pending",
-		TransferType: domain.TransferTypeOffer,
-		InitiatorID:  &ownerID,
-		Notes:        req.Notes,
-		RequestDate:  time.Now(),
+		PropertyID:        property.ID,
+		FromUserID:        ownerID,
+		ToUserID:          req.RecipientID,
+		Status:            "pending",
+		TransferType:      domain.TransferTypeOffer,
+		InitiatorID:       &ownerID,
+		IncludeComponents: req.IncludeComponents,
+		Notes:             req.Notes,
+		RequestDate:       time.Now(),
 	}
 
 	if err := h.Repo.CreateTransfer(transfer); err != nil {
@@ -619,6 +622,7 @@ func (h *TransferHandler) RequestBySerial(c *gin.Context) {
 		TransferType:          domain.TransferTypeRequest,
 		InitiatorID:           &userID,
 		RequestedSerialNumber: &input.SerialNumber,
+		IncludeComponents:     input.IncludeComponents,
 		Notes:                 input.Notes,
 	}
 
@@ -793,14 +797,15 @@ func (h *TransferHandler) AcceptOffer(c *gin.Context) {
 
 	// Create transfer record
 	transfer := &domain.Transfer{
-		PropertyID:   offer.PropertyID,
-		FromUserID:   offer.OfferingUserID,
-		ToUserID:     acceptingUserID,
-		Status:       "Approved",
-		TransferType: domain.TransferTypeOffer,
-		InitiatorID:  &offer.OfferingUserID,
-		Notes:        offer.Notes,
-		ResolvedDate: &time.Time{},
+		PropertyID:        offer.PropertyID,
+		FromUserID:        offer.OfferingUserID,
+		ToUserID:          acceptingUserID,
+		Status:            "Approved",
+		TransferType:      domain.TransferTypeOffer,
+		InitiatorID:       &offer.OfferingUserID,
+		IncludeComponents: false, // TODO: Add IncludeComponents to TransferOffer model later
+		Notes:             offer.Notes,
+		ResolvedDate:      &time.Time{},
 	}
 	*transfer.ResolvedDate = time.Now()
 
@@ -830,6 +835,16 @@ func (h *TransferHandler) AcceptOffer(c *gin.Context) {
 	if err := h.Repo.UpdateProperty(property); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update property ownership"})
 		return
+	}
+
+	// If the transfer includes components, transfer them too
+	if transfer.IncludeComponents {
+		if err := h.ComponentService.TransferComponents(c.Request.Context(), transfer.PropertyID, transfer.FromUserID, transfer.ToUserID); err != nil {
+			log.Printf("WARNING: Failed to transfer components for property %d: %v", transfer.PropertyID, err)
+			// Note: We continue with the transfer even if component transfer fails
+		} else {
+			log.Printf("Successfully transferred components for property %d from user %d to user %d", transfer.PropertyID, transfer.FromUserID, transfer.ToUserID)
+		}
 	}
 
 	// Log to ledger

@@ -90,6 +90,7 @@ export interface Transfer {
   to: string;
   date: string; // ISO 8601 date string for request date
   status: "pending" | "approved" | "rejected";
+  includeComponents?: boolean; // Whether attached components are included in transfer
   approvedDate?: string; // Optional: ISO 8601 date string for approval
   rejectedDate?: string; // Optional: ISO 8601 date string for rejection
   rejectionReason?: string; // Optional: Reason for rejection
