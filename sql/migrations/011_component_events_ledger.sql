@@ -1,180 +1,68 @@
--- Migration: Add ComponentEvents ledger table for Azure SQL Ledger
+-- Migration: Add ComponentEvents table for PostgreSQL
 -- Created: Component Association Feature Implementation
--- Description: Creates a ledger table to track component attachment/detachment events for immutable audit trail
+-- Description: Creates a table to track component attachment/detachment events for audit trail
 
--- Create ComponentEvents ledger table
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ComponentEvents' AND SCHEMA_NAME(schema_id) = 'HandReceipt')
-BEGIN
-    CREATE TABLE HandReceipt.ComponentEvents (
-        EventID UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
-        ParentPropertyID BIGINT NOT NULL,
-        ComponentPropertyID BIGINT NOT NULL,
-        AttachingUserID BIGINT NOT NULL,
-        EventType NVARCHAR(50) NOT NULL CHECK (EventType IN ('ATTACHED', 'DETACHED')),
-        Position NVARCHAR(100) NULL,
-        Notes NVARCHAR(1000) NULL,
-        EventTimestamp DATETIME2(7) NOT NULL DEFAULT SYSUTCDATETIME(),
-        
-        -- Ledger table specific columns will be automatically added by Azure SQL Ledger
-        -- No need to explicitly define them
-        
-        CONSTRAINT FK_ComponentEvents_ParentProperty 
-            FOREIGN KEY (ParentPropertyID) REFERENCES HandReceipt.Properties(ID),
-        CONSTRAINT FK_ComponentEvents_ComponentProperty 
-            FOREIGN KEY (ComponentPropertyID) REFERENCES HandReceipt.Properties(ID),
-        CONSTRAINT FK_ComponentEvents_User 
-            FOREIGN KEY (AttachingUserID) REFERENCES HandReceipt.Users(ID)
-    ) WITH (LEDGER = ON);
+-- Create ComponentEvents table (PostgreSQL compatible)
+CREATE TABLE IF NOT EXISTS component_events (
+    event_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    parent_property_id INTEGER NOT NULL,
+    component_property_id INTEGER NOT NULL,
+    attaching_user_id INTEGER NOT NULL,
+    event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('ATTACHED', 'DETACHED')),
+    position VARCHAR(100),
+    notes TEXT,
+    event_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    PRINT 'ComponentEvents ledger table created successfully';
-END
-ELSE
-BEGIN
-    PRINT 'ComponentEvents table already exists';
-END
+    CONSTRAINT fk_component_events_parent_property 
+        FOREIGN KEY (parent_property_id) REFERENCES properties(id),
+    CONSTRAINT fk_component_events_component_property 
+        FOREIGN KEY (component_property_id) REFERENCES properties(id),
+    CONSTRAINT fk_component_events_user 
+        FOREIGN KEY (attaching_user_id) REFERENCES users(id)
+);
 
 -- Create indexes for better performance
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComponentEvents_ParentPropertyID' AND object_id = OBJECT_ID('HandReceipt.ComponentEvents'))
-BEGIN
-    CREATE INDEX IX_ComponentEvents_ParentPropertyID ON HandReceipt.ComponentEvents(ParentPropertyID);
-    PRINT 'Index IX_ComponentEvents_ParentPropertyID created';
-END
+CREATE INDEX IF NOT EXISTS idx_component_events_parent_property_id 
+    ON component_events(parent_property_id);
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComponentEvents_ComponentPropertyID' AND object_id = OBJECT_ID('HandReceipt.ComponentEvents'))
-BEGIN
-    CREATE INDEX IX_ComponentEvents_ComponentPropertyID ON HandReceipt.ComponentEvents(ComponentPropertyID);
-    PRINT 'Index IX_ComponentEvents_ComponentPropertyID created';
-END
+CREATE INDEX IF NOT EXISTS idx_component_events_component_property_id 
+    ON component_events(component_property_id);
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ComponentEvents_EventTimestamp' AND object_id = OBJECT_ID('HandReceipt.ComponentEvents'))
-BEGIN
-    CREATE INDEX IX_ComponentEvents_EventTimestamp ON HandReceipt.ComponentEvents(EventTimestamp DESC);
-    PRINT 'Index IX_ComponentEvents_EventTimestamp created';
-END
+CREATE INDEX IF NOT EXISTS idx_component_events_event_timestamp 
+    ON component_events(event_timestamp DESC);
 
--- Update the general history view to include component events
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'GeneralHistory' AND SCHEMA_NAME(schema_id) = 'HandReceipt')
-BEGIN
-    -- Drop the existing view so we can recreate it with component events
-    DROP VIEW HandReceipt.GeneralHistory;
-    PRINT 'Dropped existing GeneralHistory view for recreation';
-END
+CREATE INDEX IF NOT EXISTS idx_component_events_user_id 
+    ON component_events(attaching_user_id);
 
--- Recreate the general history view with component events included
-CREATE VIEW HandReceipt.GeneralHistory AS
-WITH CombinedHistory AS (
-    -- Equipment Events
-    SELECT
-        EventID AS eventId,
-        'EquipmentEvent' AS eventType,
-        EventTimestamp AS timestamp,
-        TRY_CAST(PerformingUserID AS BIGINT) AS userId,
-        TRY_CAST(ItemID AS BIGINT) AS itemId,
-        JSON_OBJECT(
-            'eventTypeDetail', EventType,
-            'notes', Notes
-        ) AS detailsJson,
-        ledger_transaction_id AS ledgerTransactionId,
-        ledger_sequence_number AS ledgerSequenceNumber
-    FROM HandReceipt.EquipmentEvents_LedgerHistory
+-- Create a view for component event history (PostgreSQL compatible)
+CREATE OR REPLACE VIEW component_event_history AS
+SELECT
+    event_id,
+    'ComponentEvent' AS event_type,
+    event_timestamp AS timestamp,
+    attaching_user_id AS user_id,
+    parent_property_id AS item_id,
+    json_build_object(
+        'eventTypeDetail', event_type,
+        'parentPropertyId', parent_property_id,
+        'componentPropertyId', component_property_id,
+        'position', position,
+        'notes', notes
+    ) AS details_json
+FROM component_events
+ORDER BY event_timestamp DESC;
 
-    UNION ALL
+-- Add comments for documentation
+COMMENT ON TABLE component_events IS 'Tracks component attachment and detachment events for audit trail';
+COMMENT ON COLUMN component_events.event_type IS 'Type of event: ATTACHED or DETACHED';
+COMMENT ON COLUMN component_events.position IS 'Position where component was attached/detached';
+COMMENT ON COLUMN component_events.notes IS 'Additional notes about the event';
+COMMENT ON VIEW component_event_history IS 'Formatted view of component events for reporting';
 
-    -- Transfer Events
-    SELECT
-        EventID AS eventId,
-        'TransferEvent' AS eventType,
-        EventTimestamp AS timestamp,
-        TRY_CAST(InitiatingUserID AS BIGINT) AS userId,
-        TRY_CAST(ItemID AS BIGINT) AS itemId,
-        JSON_OBJECT(
-            'transferRequestId', TransferRequestID,
-            'fromUserId', FromUserID,
-            'toUserId', ToUserID,
-            'eventTypeDetail', EventType,
-            'notes', Notes
-        ) AS detailsJson,
-        ledger_transaction_id AS ledgerTransactionId,
-        ledger_sequence_number AS ledgerSequenceNumber
-    FROM HandReceipt.TransferEvents_LedgerHistory
-
-    UNION ALL
-
-    -- Verification Events
-    SELECT
-        EventID AS eventId,
-        'VerificationEvent' AS eventType,
-        VerificationTimestamp AS timestamp,
-        TRY_CAST(VerifyingUserID AS BIGINT) AS userId,
-        TRY_CAST(ItemID AS BIGINT) AS itemId,
-        JSON_OBJECT(
-            'verificationStatus', VerificationStatus,
-            'notes', Notes
-        ) AS detailsJson,
-        ledger_transaction_id AS ledgerTransactionId,
-        ledger_sequence_number AS ledgerSequenceNumber
-    FROM HandReceipt.VerificationEvents_LedgerHistory
-
-    UNION ALL
-
-    -- Maintenance Events
-    SELECT
-        EventID AS eventId,
-        'MaintenanceEvent' AS eventType,
-        EventTimestamp AS timestamp,
-        TRY_CAST(InitiatingUserID AS BIGINT) AS userId,
-        TRY_CAST(ItemID AS BIGINT) AS itemId,
-        JSON_OBJECT(
-            'maintenanceRecordId', MaintenanceRecordID,
-            'eventTypeDetail', EventType,
-            'maintenanceType', MaintenanceType,
-            'description', Description
-        ) AS detailsJson,
-        ledger_transaction_id AS ledgerTransactionId,
-        ledger_sequence_number AS ledgerSequenceNumber
-    FROM HandReceipt.MaintenanceEvents_LedgerHistory
-
-    UNION ALL
-
-    -- Status Change Events
-    SELECT
-        EventID AS eventId,
-        'StatusChangeEvent' AS eventType,
-        ChangeTimestamp AS timestamp,
-        TRY_CAST(ReportingUserID AS BIGINT) AS userId,
-        TRY_CAST(ItemID AS BIGINT) AS itemId,
-        JSON_OBJECT(
-            'previousStatus', PreviousStatus,
-            'newStatus', NewStatus,
-            'reason', Reason
-        ) AS detailsJson,
-        ledger_transaction_id AS ledgerTransactionId,
-        ledger_sequence_number AS ledgerSequenceNumber
-    FROM HandReceipt.StatusChangeEvents_LedgerHistory
-
-    UNION ALL
-
-    -- Component Events (NEW)
-    SELECT
-        EventID AS eventId,
-        'ComponentEvent' AS eventType,
-        EventTimestamp AS timestamp,
-        TRY_CAST(AttachingUserID AS BIGINT) AS userId,
-        TRY_CAST(ParentPropertyID AS BIGINT) AS itemId, -- Use parent property as the main item
-        JSON_OBJECT(
-            'eventTypeDetail', EventType,
-            'parentPropertyId', ParentPropertyID,
-            'componentPropertyId', ComponentPropertyID,
-            'position', Position,
-            'notes', Notes
-        ) AS detailsJson,
-        ledger_transaction_id AS ledgerTransactionId,
-        ledger_sequence_number AS ledgerSequenceNumber
-    FROM HandReceipt.ComponentEvents_LedgerHistory
-)
-SELECT eventId, eventType, timestamp, userId, itemId, detailsJson, ledgerTransactionId, ledgerSequenceNumber
-FROM CombinedHistory;
-
-PRINT 'GeneralHistory view recreated with ComponentEvents included';
-
-PRINT 'Component Events ledger migration completed successfully'; 
+-- Insert a test event to verify the table works
+-- This can be removed in production
+-- INSERT INTO component_events (parent_property_id, component_property_id, attaching_user_id, event_type, notes)
+-- SELECT 1, 2, 1, 'ATTACHED', 'Migration test event'
+-- WHERE EXISTS (SELECT 1 FROM properties WHERE id = 1) 
+--   AND EXISTS (SELECT 1 FROM properties WHERE id = 2)
+--   AND EXISTS (SELECT 1 FROM users WHERE id = 1); 
