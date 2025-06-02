@@ -7,6 +7,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    volumes:
+      - ./internal/publog/data:/app/internal/publog/data:ro
     environment:
       - HANDRECEIPT_DATABASE_HOST=postgres
       - HANDRECEIPT_DATABASE_PORT=5432

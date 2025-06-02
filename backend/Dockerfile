@@ -20,8 +20,10 @@ COPY . .
 # Build the application
 RUN go build -o /app/handreceipt ./cmd/server
 
-# Create directory for PUB LOG data
+# Create directory for PUB LOG data and copy data files if they exist
 RUN mkdir -p /app/internal/publog/data
+# Copy PUB LOG data files (they might not exist in CI/CD, so we use || true)
+COPY internal/publog/data/*.txt /app/internal/publog/data/ || true
 
 # Use a small alpine image for the final stage
 FROM alpine:latest
@@ -40,7 +42,7 @@ COPY --from=builder /app/handreceipt .
 # Copy the configuration file
 COPY configs/config.yaml /app/configs/
 
-# Copy PUB LOG data directory from builder
+# Copy PUB LOG data directory from builder (including any data files)
 COPY --from=builder --chown=appuser:appgroup /app/internal/publog/data /app/internal/publog/data
 
 # Use the non-root user

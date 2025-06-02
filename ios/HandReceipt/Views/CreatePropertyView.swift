@@ -841,15 +841,32 @@ class CreatePropertyViewModel: ObservableObject {
         defer { isLookingUp = false }
         
         do {
-            // Try NSN first, then LIN
-            if let response = try? await apiService.lookupNSN(nsn: nsnLinInput) {
-                applyNSNDetails(response.data)
-            } else if let response = try? await apiService.lookupLIN(lin: nsnLinInput) {
-                applyNSNDetails(response.data)
-            } else {
-                errorMessage = "NSN/LIN not found"
-                showingError = true
+            // First check if it's a valid NSN format (13 digits with or without dashes)
+            let cleanedInput = nsnLinInput.replacingOccurrences(of: "-", with: "")
+            if cleanedInput.count == 13 && cleanedInput.allSatisfy({ $0.isNumber }) {
+                // Try exact NSN lookup
+                if let response = try? await apiService.lookupNSN(nsn: nsnLinInput) {
+                    applyNSNDetails(response.data)
+                    return
+                }
             }
+            
+            // Otherwise, use universal search
+            let searchResponse = try await apiService.universalSearchNSN(query: nsnLinInput, limit: 10)
+            if searchResponse.data.isEmpty {
+                errorMessage = "No items found for '\(nsnLinInput)'"
+                showingError = true
+            } else if searchResponse.data.count == 1 {
+                // If only one result, apply it automatically
+                applyNSNDetails(searchResponse.data[0])
+            } else {
+                // TODO: Show a selection sheet with multiple results
+                // For now, just apply the first result
+                applyNSNDetails(searchResponse.data[0])
+            }
+        } catch {
+            errorMessage = "Search failed: \(error.localizedDescription)"
+            showingError = true
         }
     }
     

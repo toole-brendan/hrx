@@ -293,7 +293,18 @@ jobs:
             --exclude='*mock*.go' \
             --exclude='mock_*.go' \
             --exclude='*_mock.go' \
+            --exclude='backend/internal/publog/data/*.txt' \
             .
+          
+          # Create a separate tarball for PUB LOG data files
+          if [ -d "backend/internal/publog/data" ] && [ "$(ls -A backend/internal/publog/data/*.txt 2>/dev/null)" ]; then
+            echo "📦 Creating PUB LOG data package..."
+            tar czf /tmp/publog_data.tar.gz -C backend/internal/publog/data *.txt
+            PUBLOG_DATA_EXISTS=true
+          else
+            echo "⚠️ No PUB LOG data files found"
+            PUBLOG_DATA_EXISTS=false
+          fi
           
           # Create a minimal config.yaml without QLDB
           cat > /tmp/config.yaml << 'CONFIG_EOF'
@@ -366,6 +377,12 @@ jobs:
           scp -i ~/.ssh/lightsail_key /tmp/deployment.tar.gz ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
           scp -i ~/.ssh/lightsail_key /tmp/config.yaml ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
           
+          # Upload PUB LOG data if it exists
+          if [ "$PUBLOG_DATA_EXISTS" = "true" ]; then
+            echo "📤 Uploading PUB LOG data..."
+            scp -i ~/.ssh/lightsail_key /tmp/publog_data.tar.gz ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }}:/tmp/
+          fi
+          
           # Deploy on remote server
           ssh -i ~/.ssh/lightsail_key ubuntu@${{ env.LIGHTSAIL_INSTANCE_IP }} << 'DEPLOY_EOF'
             set -e
@@ -393,6 +410,18 @@ jobs:
             ls -la
             echo "📂 Backend directory structure:"
             ls -la backend/ || echo "Backend directory not found"
+            
+            # Extract PUB LOG data if it exists
+            if [ -f "/tmp/publog_data.tar.gz" ]; then
+              echo "📦 Extracting PUB LOG data..."
+              sudo mkdir -p backend/internal/publog/data
+              sudo tar xzf /tmp/publog_data.tar.gz -C backend/internal/publog/data/
+              echo "✅ PUB LOG data extracted"
+              echo "📊 PUB LOG data files:"
+              ls -la backend/internal/publog/data/*.txt | head -5
+            else
+              echo "⚠️ No PUB LOG data package found"
+            fi
             
             echo "🔧 Updating configurations..."
             # Ensure configs directory exists
