@@ -514,6 +514,19 @@ struct TransferCard: View {
         formatter.dateFormat = "dd MMM HH:mm"
         return formatter.string(from: date).uppercased()
     }
+    
+    private func statusBadgeType(for status: String) -> StatusBadge.StatusType {
+        switch status.lowercased() {
+        case "pending":
+            return .warning
+        case "approved", "completed":
+            return .success
+        case "rejected":
+            return .error
+        default:
+            return .neutral
+        }
+    }
 }
 
 // MARK: - Transfer Detail View
