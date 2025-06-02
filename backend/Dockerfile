@@ -20,10 +20,8 @@ COPY . .
 # Build the application
 RUN go build -o /app/handreceipt ./cmd/server
 
-# Create directory for PUB LOG data and copy data files if they exist
+# Create directory for PUB LOG data
 RUN mkdir -p /app/internal/publog/data
-# Copy PUB LOG data files (they might not exist in CI/CD, so we use || true)
-COPY internal/publog/data/*.txt /app/internal/publog/data/ || true
 
 # Use a small alpine image for the final stage
 FROM alpine:latest
