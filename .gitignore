@@ -131,7 +131,6 @@ public/build/
 *.out
 
 # Dependency directories (Go modules)
-go.sum
 vendor/
 
 # Go workspace file
