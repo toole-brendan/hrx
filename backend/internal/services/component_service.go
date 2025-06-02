@@ -17,6 +17,7 @@ type ComponentService interface {
 	GetAvailableComponents(ctx context.Context, propertyID, userID uint) ([]domain.Property, error)
 	ValidateAttachment(ctx context.Context, parentID, componentID uint, position string) error
 	UpdateComponentPosition(ctx context.Context, parentID, componentID uint, position string) error
+	TransferComponents(ctx context.Context, fromPropertyID uint, fromUserID, toUserID uint) error
 }
 
 type componentService struct {
@@ -173,6 +174,37 @@ func (s *componentService) UpdateComponentPosition(ctx context.Context, parentID
 	}
 
 	return s.repo.UpdateComponentPosition(parentID, componentID, position)
+}
+
+// TransferComponents transfers all attached components from one user to another
+func (s *componentService) TransferComponents(ctx context.Context, fromPropertyID uint, fromUserID, toUserID uint) error {
+	// Get all components attached to the property
+	components, err := s.repo.GetPropertyComponents(fromPropertyID)
+	if err != nil {
+		return fmt.Errorf("failed to get property components: %w", err)
+	}
+
+	// Transfer ownership of each component
+	for _, component := range components {
+		// Get the component property
+		componentProperty, err := s.repo.GetPropertyByID(component.ComponentPropertyID)
+		if err != nil {
+			return fmt.Errorf("failed to get component property %d: %w", component.ComponentPropertyID, err)
+		}
+
+		// Verify current ownership
+		if componentProperty.AssignedToUserID == nil || *componentProperty.AssignedToUserID != fromUserID {
+			return fmt.Errorf("component %d is not owned by user %d", component.ComponentPropertyID, fromUserID)
+		}
+
+		// Update component ownership
+		componentProperty.AssignedToUserID = &toUserID
+		if err := s.repo.UpdateProperty(componentProperty); err != nil {
+			return fmt.Errorf("failed to transfer component %d: %w", component.ComponentPropertyID, err)
+		}
+	}
+
+	return nil
 }
 
 // isCompatible checks if a component is compatible with a parent property

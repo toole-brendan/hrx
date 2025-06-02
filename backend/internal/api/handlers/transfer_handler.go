@@ -12,18 +12,24 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"gorm.io/gorm"
 )
 
 // TransferHandler handles transfer operations
 type TransferHandler struct {
-	Ledger ledger.LedgerService
-	Repo   repository.Repository
+	Ledger           ledger.LedgerService
+	Repo             repository.Repository
+	ComponentService services.ComponentService
 }
 
 // NewTransferHandler creates a new transfer handler
-func NewTransferHandler(ledgerService ledger.LedgerService, repo repository.Repository) *TransferHandler {
-	return &TransferHandler{Ledger: ledgerService, Repo: repo}
+func NewTransferHandler(ledgerService ledger.LedgerService, repo repository.Repository, componentService services.ComponentService) *TransferHandler {
+	return &TransferHandler{
+		Ledger:           ledgerService,
+		Repo:             repo,
+		ComponentService: componentService,
+	}
 }
 
 // CreateTransfer creates a new transfer record
@@ -62,13 +68,14 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 
 	// Prepare the transfer for database insertion
 	transfer := &domain.Transfer{ // Changed to pointer
-		PropertyID:   input.PropertyID,
-		FromUserID:   requestingUserID, // Set FromUserID to the authenticated user
-		ToUserID:     input.ToUserID,
-		Status:       "Requested",              // Set initial status
-		TransferType: domain.TransferTypeOffer, // Add this
-		InitiatorID:  &requestingUserID,        // Add this
-		Notes:        input.Notes,
+		PropertyID:        input.PropertyID,
+		FromUserID:        requestingUserID, // Set FromUserID to the authenticated user
+		ToUserID:          input.ToUserID,
+		Status:            "Requested",              // Set initial status
+		TransferType:      domain.TransferTypeOffer, // Add this
+		InitiatorID:       &requestingUserID,        // Add this
+		IncludeComponents: input.IncludeComponents,  // Include component transfer option
+		Notes:             input.Notes,
 		// RequestDate defaults to CURRENT_TIMESTAMP in DB
 		// ResolvedDate is null initially
 	}
@@ -249,6 +256,17 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 
 		log.Printf("Property %d ownership transferred from user %d to user %d", item.ID, transfer.FromUserID, transfer.ToUserID)
 
+		// If the transfer includes components, transfer them too
+		if transfer.IncludeComponents {
+			if err := h.ComponentService.TransferComponents(c.Request.Context(), transfer.PropertyID, transfer.FromUserID, transfer.ToUserID); err != nil {
+				log.Printf("WARNING: Failed to transfer components for property %d: %v", transfer.PropertyID, err)
+				// Note: We continue with the transfer even if component transfer fails
+				// The main property transfer has already succeeded
+			} else {
+				log.Printf("Successfully transferred components for property %d from user %d to user %d", transfer.PropertyID, transfer.FromUserID, transfer.ToUserID)
+			}
+		}
+
 		// Log successful transfer completion
 		if err := h.Ledger.LogTransferEvent(*transfer, item.SerialNumber); err != nil {
 			log.Printf("WARNING: Failed to log transfer completion to ledger: %v", err)
@@ -385,8 +403,9 @@ func (h *TransferHandler) RequestTransferBySerial(c *gin.Context) {
 	}
 
 	var req struct {
-		SerialNumber string  `json:"serialNumber" binding:"required"`
-		Notes        *string `json:"notes"`
+		SerialNumber      string  `json:"serialNumber" binding:"required"`
+		IncludeComponents bool    `json:"includeComponents"`
+		Notes             *string `json:"notes"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -133,6 +133,7 @@ type Transfer struct {
 	TransferType          string     `json:"transferType" gorm:"column:transfer_type;default:'offer';not null"` // NEW: 'request' or 'offer'
 	InitiatorID           *uint      `json:"initiatorId" gorm:"column:initiator_id"`                            // NEW: Who started the transfer
 	RequestedSerialNumber *string    `json:"requestedSerialNumber" gorm:"column:requested_serial_number"`       // NEW: For serial number-based requests
+	IncludeComponents     bool       `json:"includeComponents" gorm:"column:include_components;default:false"`  // NEW: Whether to transfer attached components
 	RequestDate           time.Time  `json:"requestDate" gorm:"column:request_date;not null;default:CURRENT_TIMESTAMP"`
 	ResolvedDate          *time.Time `json:"resolvedDate" gorm:"column:resolved_date"`
 	Notes                 *string    `json:"notes"`
@@ -319,9 +320,10 @@ type CreatePropertyInput struct {
 
 // CreateTransferInput represents input for creating a transfer request
 type CreateTransferInput struct {
-	PropertyID uint    `json:"propertyId" binding:"required"` // Renamed from ItemID
-	ToUserID   uint    `json:"toUserId" binding:"required"`
-	Notes      *string `json:"notes"`
+	PropertyID        uint    `json:"propertyId" binding:"required"` // Renamed from ItemID
+	ToUserID          uint    `json:"toUserId" binding:"required"`
+	IncludeComponents bool    `json:"includeComponents"` // Whether to transfer attached components
+	Notes             *string `json:"notes"`
 	// FromUserID and Status will likely be set by the backend logic
 }
 
@@ -364,15 +366,17 @@ type UpdateConnectionRequest struct {
 
 // Input DTOs
 type RequestBySerialInput struct {
-	SerialNumber string  `json:"serialNumber" binding:"required"`
-	Notes        *string `json:"notes"`
+	SerialNumber      string  `json:"serialNumber" binding:"required"`
+	IncludeComponents bool    `json:"includeComponents"` // Whether to request attached components too
+	Notes             *string `json:"notes"`
 }
 
 type CreateOfferInput struct {
-	PropertyID    uint    `json:"propertyId" binding:"required"`
-	RecipientIDs  []uint  `json:"recipientIds" binding:"required,min=1"`
-	Notes         *string `json:"notes"`
-	ExpiresInDays *int    `json:"expiresInDays"` // Optional expiration
+	PropertyID        uint    `json:"propertyId" binding:"required"`
+	RecipientIDs      []uint  `json:"recipientIds" binding:"required,min=1"`
+	IncludeComponents bool    `json:"includeComponents"` // Whether to offer attached components too
+	Notes             *string `json:"notes"`
+	ExpiresInDays     *int    `json:"expiresInDays"` // Optional expiration
 }
 
 type AcceptOfferInput struct {
