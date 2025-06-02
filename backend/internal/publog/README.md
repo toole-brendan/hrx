@@ -2,14 +2,32 @@
 
 This package provides integration with PUB LOG (Publication Logistics) data for military equipment lookups.
 
+## Directory Structure
+
+```
+internal/publog/
+├── README.md           # This file
+├── .gitignore         # Excludes data files from version control
+├── models/            # Data models
+├── parser/            # File parsers
+├── store/             # In-memory data store
+├── loader.go          # Data loader for extracted files
+├── service.go         # Main service interface
+└── data/              # Data files (not in version control)
+    ├── master_nsn_all.txt
+    ├── part_numbers_sample.txt
+    └── cage_addresses_sample.txt
+```
+
 ## Data Format
 
 The publog service supports two data formats:
 
 ### 1. Extracted Pipe-Delimited Format (Recommended)
-- `master_nsn_all.txt` - Master NSN file with all items
-- `part_numbers_sample.txt` - Part number cross-references
-- `cage_addresses_sample.txt` - CAGE (manufacturer) addresses
+Place these files in the `data/` subdirectory:
+- `data/master_nsn_all.txt` - Master NSN file with all items
+- `data/part_numbers_sample.txt` - Part number cross-references
+- `data/cage_addresses_sample.txt` - CAGE (manufacturer) addresses
 
 File format:
 ```

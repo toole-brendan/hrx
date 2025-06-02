@@ -32,19 +32,26 @@ func NewDataLoader(service *Service, logger *logrus.Logger) *DataLoader {
 func (dl *DataLoader) LoadExtractedData(dataDir string) error {
 	dl.logger.WithField("directory", dataDir).Info("Loading extracted PUB LOG data")
 
+	// Check if data is in a 'data' subdirectory
+	dataPath := dataDir
+	if _, err := os.Stat(filepath.Join(dataDir, "data", "master_nsn_all.txt")); err == nil {
+		dataPath = filepath.Join(dataDir, "data")
+		dl.logger.Debug("Found data in 'data' subdirectory")
+	}
+
 	// Load NSN data
-	if err := dl.loadNSNData(filepath.Join(dataDir, "master_nsn_all.txt")); err != nil {
+	if err := dl.loadNSNData(filepath.Join(dataPath, "master_nsn_all.txt")); err != nil {
 		return fmt.Errorf("failed to load NSN data: %w", err)
 	}
 
 	// Load part numbers
-	if err := dl.loadPartNumbers(filepath.Join(dataDir, "part_numbers_sample.txt")); err != nil {
+	if err := dl.loadPartNumbers(filepath.Join(dataPath, "part_numbers_sample.txt")); err != nil {
 		dl.logger.WithError(err).Warn("Failed to load part numbers")
 		// Continue even if part numbers fail
 	}
 
 	// Load CAGE addresses
-	if err := dl.loadCAGEAddresses(filepath.Join(dataDir, "cage_addresses_sample.txt")); err != nil {
+	if err := dl.loadCAGEAddresses(filepath.Join(dataPath, "cage_addresses_sample.txt")); err != nil {
 		dl.logger.WithError(err).Warn("Failed to load CAGE addresses")
 		// Continue even if CAGE addresses fail
 	}

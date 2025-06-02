@@ -46,7 +46,13 @@ func (s *Service) LoadExtractedData(dataDir string) error {
 // LoadDataFromDirectory loads all PUB LOG TAB files from a directory
 func (s *Service) LoadDataFromDirectory(dir string) error {
 	// Check if this is an extracted data directory (contains master_nsn_all.txt)
-	masterFile := filepath.Join(dir, "master_nsn_all.txt")
+	// First check in the data subdirectory, then in the main directory
+	masterFile := filepath.Join(dir, "data", "master_nsn_all.txt")
+	if _, err := os.Stat(masterFile); err != nil {
+		// Fallback to checking in the main directory
+		masterFile = filepath.Join(dir, "master_nsn_all.txt")
+	}
+
 	if _, err := os.Stat(masterFile); err == nil {
 		s.logger.Info("Detected extracted data format, using data loader")
 		return s.LoadExtractedData(dir)

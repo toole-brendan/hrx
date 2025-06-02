@@ -21,28 +21,30 @@ fi
 
 # Check for data files
 echo "Checking for PUB LOG data files..."
-if [ -f "internal/publog/master_nsn_all.txt" ]; then
+DATA_DIR="internal/publog/data"
+
+if [ -f "$DATA_DIR/master_nsn_all.txt" ]; then
     echo "✓ Found master_nsn_all.txt"
-    NSN_COUNT=$(tail -n +2 internal/publog/master_nsn_all.txt | wc -l | tr -d ' ')
+    NSN_COUNT=$(tail -n +2 "$DATA_DIR/master_nsn_all.txt" | wc -l | tr -d ' ')
     echo "  Contains $NSN_COUNT NSN records"
 else
-    echo "✗ master_nsn_all.txt not found"
+    echo "✗ master_nsn_all.txt not found in $DATA_DIR"
 fi
 
-if [ -f "internal/publog/part_numbers_sample.txt" ]; then
+if [ -f "$DATA_DIR/part_numbers_sample.txt" ]; then
     echo "✓ Found part_numbers_sample.txt"
-    PART_COUNT=$(tail -n +2 internal/publog/part_numbers_sample.txt | wc -l | tr -d ' ')
+    PART_COUNT=$(tail -n +2 "$DATA_DIR/part_numbers_sample.txt" | wc -l | tr -d ' ')
     echo "  Contains $PART_COUNT part number records"
 else
-    echo "✗ part_numbers_sample.txt not found"
+    echo "✗ part_numbers_sample.txt not found in $DATA_DIR"
 fi
 
-if [ -f "internal/publog/cage_addresses_sample.txt" ]; then
+if [ -f "$DATA_DIR/cage_addresses_sample.txt" ]; then
     echo "✓ Found cage_addresses_sample.txt"
-    CAGE_COUNT=$(tail -n +2 internal/publog/cage_addresses_sample.txt | wc -l | tr -d ' ')
+    CAGE_COUNT=$(tail -n +2 "$DATA_DIR/cage_addresses_sample.txt" | wc -l | tr -d ' ')
     echo "  Contains $CAGE_COUNT CAGE records"
 else
-    echo "✗ cage_addresses_sample.txt not found"
+    echo "✗ cage_addresses_sample.txt not found in $DATA_DIR"
 fi
 
 echo ""
@@ -74,7 +76,7 @@ echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "Next steps:"
-echo "1. Ensure your data files are in internal/publog/"
+echo "1. Ensure your data files are in internal/publog/data/"
 echo "2. Update configs/config.yaml with your settings"
 echo "3. Test the integration: ./bin/publog-test -data internal/publog"
 echo ""
