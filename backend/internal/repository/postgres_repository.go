@@ -311,3 +311,80 @@ func (r *PostgresRepository) MarkOfferViewed(offerID, userID uint) error {
 		Where("transfer_offer_id = ? AND recipient_user_id = ?", offerID, userID).
 		Update("viewed_at", now).Error
 }
+
+// Component operations
+func (r *PostgresRepository) AttachComponent(parentID, componentID, userID uint, position, notes string) (*domain.PropertyComponent, error) {
+	attachment := &domain.PropertyComponent{
+		ParentPropertyID:    parentID,
+		ComponentPropertyID: componentID,
+		AttachedByUserID:    userID,
+		Position:            &position,
+		Notes:               &notes,
+		AttachmentType:      "field",
+	}
+
+	if err := r.db.Create(attachment).Error; err != nil {
+		return nil, err
+	}
+
+	// Load the relationship data
+	if err := r.db.Preload("ParentProperty").Preload("ComponentProperty").Preload("AttachedByUser").First(attachment, attachment.ID).Error; err != nil {
+		return nil, err
+	}
+
+	return attachment, nil
+}
+
+func (r *PostgresRepository) DetachComponent(parentID, componentID uint) error {
+	return r.db.Where("parent_property_id = ? AND component_property_id = ?", parentID, componentID).
+		Delete(&domain.PropertyComponent{}).Error
+}
+
+func (r *PostgresRepository) GetPropertyComponents(propertyID uint) ([]domain.PropertyComponent, error) {
+	var components []domain.PropertyComponent
+	err := r.db.Where("parent_property_id = ?", propertyID).
+		Preload("ComponentProperty").
+		Preload("AttachedByUser").
+		Find(&components).Error
+	return components, err
+}
+
+func (r *PostgresRepository) GetAvailableComponents(propertyID, userID uint) ([]domain.Property, error) {
+	var components []domain.Property
+
+	// Find properties that:
+	// 1. Are owned by the user
+	// 2. Are not already attached to anything
+	// 3. Are not the parent property itself
+	err := r.db.Where("assigned_to_user_id = ? AND id != ?", userID, propertyID).
+		Where("id NOT IN (SELECT component_property_id FROM property_components)").
+		Find(&components).Error
+
+	return components, err
+}
+
+func (r *PostgresRepository) IsComponentAttached(componentID uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.PropertyComponent{}).
+		Where("component_property_id = ?", componentID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *PostgresRepository) IsPositionOccupied(parentID uint, position string) (bool, error) {
+	if position == "" {
+		return false, nil
+	}
+
+	var count int64
+	err := r.db.Model(&domain.PropertyComponent{}).
+		Where("parent_property_id = ? AND position = ?", parentID, position).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *PostgresRepository) UpdateComponentPosition(parentID, componentID uint, position string) error {
+	return r.db.Model(&domain.PropertyComponent{}).
+		Where("parent_property_id = ? AND component_property_id = ?", parentID, componentID).
+		Update("position", position).Error
+}
