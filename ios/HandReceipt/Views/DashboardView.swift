@@ -1,13 +1,8 @@
 import SwiftUI
 
 struct DashboardView: View {
-    // QR Scanner functionality removed
     @State private var selectedQuickAction: QuickAction? = nil
-    
-    // Add state property to store current user
     @State private var currentUser: LoginResponse.User?
-    
-    // Optional: Access AuthManager from environment if available
     @EnvironmentObject var authManager: AuthManager
     
     // Navigation states
@@ -39,314 +34,306 @@ struct DashboardView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            // Main content
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
-                    
-                    // Welcome text
-                    Text(getWelcomeMessage())
-                        .font(AppFonts.largeTitle)
-                        .foregroundColor(AppColors.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            if isLoading {
+                IndustrialLoadingView(message: "LOADING DASHBOARD")
+            } else if let error = loadingError {
+                ModernEmptyStateView(
+                    icon: "exclamationmark.triangle",
+                    title: "Error Loading Dashboard",
+                    message: error,
+                    actionTitle: "RETRY",
+                    action: { Task { await refreshData() } }
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Hero Section
+                        heroSection
+                        
+                        // Stats Overview
+                        statsSection
+                        
+                        // Quick Actions
+                        quickActionsSection
+                        
+                        // Content Sections
+                        VStack(spacing: 20) {
+                            connectionsSection
+                            recentActivitySection
+                            equipmentStatusSection
+                        }
                         .padding(.horizontal)
-                        .padding(.bottom, 8)
-                    
-                    if isLoading {
-                        loadingSection
-                    } else if let error = loadingError {
-                        errorSection(error: error)
-                    } else {
-                        mainContentSection
+                        
+                        // Bottom spacing
+                        Spacer()
+                            .frame(height: 100)
                     }
                 }
+                .refreshable {
+                    await refreshData()
+                }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            
-            // Top bar that mirrors bottom tab bar
-            headerSection
         }
         .navigationTitle("")
         .navigationBarHidden(true)
-        .refreshable {
-            await refreshData()
-        }
-        // QR Scanner sheet removed
         .background(navigationLinks)
         .task {
             await loadData()
         }
     }
     
-    // MARK: - View Sections
+    // MARK: - Enhanced View Sections
     
-    private var headerSection: some View {
-        ZStack {
-            // Background that extends to top of screen
-            AppColors.secondaryBackground
-                .ignoresSafeArea()
-            
-            // Content positioned at bottom of header
-            VStack {
-                Spacer()
-                Text("DASHBOARD")
-                    .font(.system(size: 16, weight: .medium)) // Larger font
-                    .foregroundColor(AppColors.primaryText)
-                    .kerning(1.2) // Match TransfersView tracking
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 12) // Bottom padding
-            }
-        }
-        .frame(height: 36) // Very tight header
-    }
-    
-    private var loadingSection: some View {
-        ProgressView("Loading dashboard...")
-            .padding(.vertical, 50)
-    }
-    
-    private func errorSection(error: String) -> some View {
-        ErrorView(message: error) {
-            Task { await refreshData() }
-        }
-        .padding()
-    }
-    
-    private var mainContentSection: some View {
-        VStack(spacing: 24) {
-            statsCardsSection
-            connectionsSection
-            quickActionsSection
-            recentActivitySection
-            equipmentStatusSection
-            bottomSpacerSection
-        }
-    }
-    
-    private var statsCardsSection: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 12) {
-            WebAlignedStatCard(
-                                            title: "Total Properties",
-                            value: "\(totalProperties)",
-                icon: "shippingbox.fill",
-                color: .blue
-            ) {
-                navigateToProperties = true
-            }
-            
-            WebAlignedStatCard(
-                title: "Pending Transfers", 
-                value: "\(pendingTransfers)",
-                icon: "arrow.left.arrow.right.circle.fill",
-                color: AppColors.accent
-            ) {
-                navigateToTransfers = true
-            }
-            
-            WebAlignedStatCard(
-                title: "Items Verified",
-                value: "\(verifiedItems.verified)/\(verifiedItems.total)",
-                icon: "checkmark.shield.fill",
-                color: .green
-            ) {
-                navigateToSensitiveItems = true
-            }
-            
-            WebAlignedStatCard(
-                title: "Need Maintenance",
-                value: "\(maintenanceNeeded)",
-                icon: "exclamationmark.triangle.fill",
-                color: .orange
-            ) {
-                navigateToMaintenance = true
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private var connectionsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private var heroSection: some View {
+        VStack(spacing: 16) {
+            // Header with enhanced typography
             HStack {
-                SectionHeader(title: "My Network")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("DASHBOARD")
+                        .font(AppFonts.captionHeavy)
+                        .foregroundColor(AppColors.secondaryText)
+                        .compatibleKerning(AppFonts.militaryTracking)
+                    
+                    Text(getWelcomeMessage())
+                        .font(AppFonts.largeTitleHeavy)
+                        .foregroundColor(AppColors.primaryText)
+                }
+                
                 Spacer()
-                NavigationLink(destination: ConnectionsView()) {
-                    Text("VIEW ALL")
-                        .font(AppFonts.captionBold)
+                
+                // Optional: Add profile/settings button
+                Button(action: { /* Navigate to profile */ }) {
+                    Image(systemName: "person.circle")
+                        .font(.system(size: 32))
                         .foregroundColor(AppColors.accent)
-                        .tracking(AppFonts.militaryTracking)
-                        .padding(.trailing)
                 }
             }
+            .padding(.horizontal)
+            .padding(.top, 20)
+        }
+    }
+    
+    private var statsSection: some View {
+        VStack(spacing: 16) {
+            ModernSectionHeader(
+                title: "Overview",
+                subtitle: "Your property and transfer summary"
+            )
             
-            WebAlignedCard {
-                HStack(spacing: 20) {
-                    // Connected Users
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "person.2.fill")
-                                .font(.title2)
-                                .foregroundColor(AppColors.success)
-                            Text("\(connections.count)")
-                                .font(AppFonts.largeTitle)
-                                .foregroundColor(AppColors.primaryText)
-                        }
-                        Text("CONNECTED")
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.secondaryText)
-                            .tracking(AppFonts.militaryTracking)
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    // Divider
-                    Rectangle()
-                        .fill(AppColors.border)
-                        .frame(width: 1)
-                        .padding(.vertical, 8)
-                    
-                    // Pending Requests
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "clock")
-                                .font(.title2)
-                                .foregroundColor(AppColors.warning)
-                            Text("\(pendingConnectionRequests)")
-                                .font(AppFonts.largeTitle)
-                                .foregroundColor(AppColors.primaryText)
-                        }
-                        Text("PENDING")
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.secondaryText)
-                            .tracking(AppFonts.militaryTracking)
-                    }
-                    .frame(maxWidth: .infinity)
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
+                ModernStatCard(
+                    title: "Total Properties",
+                    value: "\(totalProperties)",
+                    icon: "shippingbox.fill",
+                    color: AppColors.accent
+                ) {
+                    navigateToProperties = true
                 }
-                .padding()
+                
+                ModernStatCard(
+                    title: "Pending Transfers", 
+                    value: "\(pendingTransfers)",
+                    icon: "arrow.left.arrow.right.circle.fill",
+                    color: AppColors.warning
+                ) {
+                    navigateToTransfers = true
+                }
+                
+                ModernStatCard(
+                    title: "Items Verified",
+                    value: "\(verifiedItems.verified)/\(verifiedItems.total)",
+                    icon: "checkmark.shield.fill",
+                    color: AppColors.success
+                ) {
+                    navigateToSensitiveItems = true
+                }
+                
+                ModernStatCard(
+                    title: "Need Maintenance",
+                    value: "\(maintenanceNeeded)",
+                    icon: "exclamationmark.triangle.fill",
+                    color: AppColors.destructive
+                ) {
+                    navigateToMaintenance = true
+                }
             }
             .padding(.horizontal)
         }
     }
     
     private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader(title: "Quick Actions")
+        VStack(spacing: 16) {
+            ModernSectionHeader(
+                title: "Quick Actions",
+                subtitle: "Common tasks and operations"
+            )
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                // QR Scanner quick action removed
-                
-                WebAlignedQuickActionCard(action: .requestTransfer) {
-                    navigateToTransfers = true
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    QuickActionButton(
+                        icon: "arrow.left.arrow.right",
+                        title: "TRANSFER",
+                        color: AppColors.accent,
+                        action: { navigateToTransfers = true }
+                    )
+                    
+                    QuickActionButton(
+                        icon: "magnifyingglass",
+                        title: "SEARCH",
+                        color: AppColors.success,
+                        action: { navigateToProperties = true }
+                    )
+                    
+                    QuickActionButton(
+                        icon: "person.badge.plus",
+                        title: "CONNECT",
+                        color: AppColors.tacticalGreen,
+                        action: { /* Navigate to connections */ }
+                    )
+                    
+                    QuickActionButton(
+                        icon: "wrench.and.screwdriver",
+                        title: "MAINTENANCE",
+                        color: AppColors.warning,
+                        action: { navigateToMaintenance = true }
+                    )
                 }
-                
-                WebAlignedQuickActionCard(action: .findItem) {
-                    navigateToProperties = true
-                }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
+        }
+    }
+    
+    private var connectionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ModernSectionHeader(
+                title: "My Network",
+                subtitle: "Connected users and pending requests",
+                action: { /* Navigate to connections */ },
+                actionLabel: "View All"
+            )
+            
+            HStack(spacing: 16) {
+                // Connected Users Card
+                VStack(spacing: 12) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.2.fill")
+                            .font(.title2)
+                            .foregroundColor(AppColors.success)
+                        
+                        Text("\(connections.count)")
+                            .font(AppFonts.largeTitleHeavy)
+                            .foregroundColor(AppColors.primaryText)
+                    }
+                    
+                    Text("CONNECTED")
+                        .font(AppFonts.captionHeavy)
+                        .foregroundColor(AppColors.secondaryText)
+                        .compatibleKerning(AppFonts.militaryTracking)
+                }
+                .frame(maxWidth: .infinity)
+                .modernCard()
+                
+                // Pending Requests Card
+                VStack(spacing: 12) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock.badge.exclamationmark")
+                            .font(.title2)
+                            .foregroundColor(AppColors.warning)
+                        
+                        Text("\(pendingConnectionRequests)")
+                            .font(AppFonts.largeTitleHeavy)
+                            .foregroundColor(AppColors.primaryText)
+                    }
+                    
+                    Text("PENDING")
+                        .font(AppFonts.captionHeavy)
+                        .foregroundColor(AppColors.secondaryText)
+                        .compatibleKerning(AppFonts.militaryTracking)
+                }
+                .frame(maxWidth: .infinity)
+                .modernCard()
+            }
         }
     }
     
     private var recentActivitySection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader(
+        VStack(alignment: .leading, spacing: 16) {
+            ModernSectionHeader(
                 title: "Recent Activity",
-                action: {
-                    navigateToTransfers = true
-                },
+                subtitle: "Latest transfers and updates",
+                action: { navigateToTransfers = true },
                 actionLabel: "View All"
             )
             
             if recentTransfers.isEmpty {
-                emptyActivityCard
+                ModernEmptyStateView(
+                    icon: "clock",
+                    title: "No Recent Activity",
+                    message: "Transfer requests and property updates will appear here"
+                )
+                .frame(height: 200)
+                .modernCard()
             } else {
-                activityContentCard
-            }
-        }
-    }
-    
-    private var emptyActivityCard: some View {
-        WebAlignedCard {
-            Text("No recent activity")
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 40)
-        }
-        .padding(.horizontal)
-    }
-    
-    private var activityContentCard: some View {
-        WebAlignedCard {
-            VStack(spacing: 0) {
-                ForEach(Array(recentTransfers.prefix(3).enumerated()), id: \.element.id) { index, transfer in
-                    WebAlignedActivityRow(
-                        title: getTransferTitle(for: transfer),
-                        subtitle: getTransferSubtitle(for: transfer),
-                                                    time: RelativeDateFormatter.shared.string(from: transfer.requestDate),
-                        icon: "arrow.left.arrow.right.circle.fill",
-                        iconColor: AppColors.accent
-                    ) {
-                        selectedTransferId = String(transfer.id)
-                        navigateToTransfers = true
-                    }
-                    
-                    if index < min(2, recentTransfers.count - 1) {
-                        Divider()
-                            .background(AppColors.border)
+                VStack(spacing: 0) {
+                    ForEach(Array(recentTransfers.prefix(3).enumerated()), id: \.element.id) { index, transfer in
+                        ModernActivityRow(
+                            title: getTransferTitle(for: transfer),
+                            subtitle: getTransferSubtitle(for: transfer),
+                            time: RelativeDateFormatter.shared.string(from: transfer.requestDate),
+                            icon: "arrow.left.arrow.right.circle.fill",
+                            iconColor: AppColors.accent
+                        ) {
+                            selectedTransferId = String(transfer.id)
+                            navigateToTransfers = true
+                        }
+                        
+                        if index < min(2, recentTransfers.count - 1) {
+                            IndustrialDivider()
+                        }
                     }
                 }
+                .modernCard()
             }
         }
-        .padding(.horizontal)
     }
     
     private var equipmentStatusSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionHeader(
+        VStack(alignment: .leading, spacing: 16) {
+            ModernSectionHeader(
                 title: "Equipment Status",
-                action: {
-                    // No action needed
-                },
-                actionLabel: "View Details"
+                subtitle: "Operational readiness overview"
             )
             
-            WebAlignedCard {
-                VStack(spacing: 16) {
-                    WebAlignedStatusProgressRow(
-                        label: "Operational",
-                        value: calculateOperationalPercentage(),
-                        color: .green
-                    )
-                    
-                    WebAlignedStatusProgressRow(
-                        label: "In Maintenance",
-                        value: calculateMaintenancePercentage(),
-                        color: .orange
-                    )
-                    
-                    WebAlignedStatusProgressRow(
-                        label: "Non-operational",
-                        value: calculateNonOperationalPercentage(),
-                        color: .red
-                    )
-                }
-                .padding()
+            VStack(spacing: 16) {
+                ModernStatusProgressRow(
+                    label: "Operational",
+                    value: calculateOperationalPercentage(),
+                    color: AppColors.success,
+                    description: "Ready for use"
+                )
+                
+                ModernStatusProgressRow(
+                    label: "In Maintenance",
+                    value: calculateMaintenancePercentage(),
+                    color: AppColors.warning,
+                    description: "Scheduled or ongoing maintenance"
+                )
+                
+                ModernStatusProgressRow(
+                    label: "Non-operational",
+                    value: calculateNonOperationalPercentage(),
+                    color: AppColors.destructive,
+                    description: "Requires immediate attention"
+                )
             }
-            .padding(.horizontal)
+            .modernCard()
         }
-    }
-    
-    private var bottomSpacerSection: some View {
-        Spacer()
-            .frame(height: 100)
     }
     
     private var navigationLinks: some View {
@@ -374,6 +361,7 @@ struct DashboardView: View {
     }
     
     // MARK: - Helper Methods
+    
     private func getTransferTitle(for transfer: Transfer) -> String {
         switch transfer.status.lowercased() {
         case "pending":
@@ -395,7 +383,6 @@ struct DashboardView: View {
         }
     }
     
-    // Helper function to format welcome message
     private func getWelcomeMessage() -> String {
         guard let user = currentUser else {
             return "Welcome"
@@ -403,38 +390,29 @@ struct DashboardView: View {
         
         var components = ["Welcome"]
         
-        // Add rank with abbreviation conversion
         if !user.rank.isEmpty {
             let rankAbbreviation = convertToRankAbbreviation(user.rank)
             components.append(rankAbbreviation)
         }
         
-        // Add last name - with fallback to parsing from name field
         if let lastName = user.lastName, !lastName.isEmpty {
             components.append(lastName)
         } else {
-            // Fallback: try to extract last name from the computed name property
             let fullName = user.name
             debugPrint("DashboardView: No lastName, trying to parse from name: '\(fullName)'")
             
-            // Try various name formats
             if fullName.contains(",") {
-                // Format: "LastName, FirstName" or "RANK LastName, FirstName"
                 let parts = fullName.components(separatedBy: ",")
                 if let firstPart = parts.first?.trimmingCharacters(in: .whitespaces) {
-                    // Remove rank if present at the beginning
                     let words = firstPart.components(separatedBy: " ")
                     if words.count > 1, convertToRankAbbreviation(words[0]) != words[0] {
-                        // First word is a rank, use the rest
                         let lastName = words.dropFirst().joined(separator: " ")
                         components.append(lastName)
                     } else if words.count == 1 {
-                        // Just the last name
                         components.append(firstPart)
                     }
                 }
             } else {
-                // Format: "FirstName LastName" - take the last word
                 let words = fullName.components(separatedBy: " ")
                 if let lastWord = words.last, !lastWord.isEmpty {
                     components.append(lastWord)
@@ -445,7 +423,6 @@ struct DashboardView: View {
         return components.joined(separator: " ")
     }
     
-    // Helper to convert full rank names to abbreviations
     private func convertToRankAbbreviation(_ rank: String) -> String {
         let rankMappings: [String: String] = [
             "Captain": "CPT",
@@ -477,14 +454,13 @@ struct DashboardView: View {
     }
     
     // MARK: - Data Loading
+    
     private func loadData() async {
         isLoading = true
         loadingError = nil
         
         do {
-            // Try to get current user from AuthManager
             if currentUser == nil {
-                // First try environment object, then fall back to singleton
                 if let user = authManager.currentUser {
                     currentUser = user
                     debugPrint("DashboardView: Loaded user from environment - \(user.username), rank: \(user.rank), lastName: \(user.lastName ?? "nil")")
@@ -494,23 +470,18 @@ struct DashboardView: View {
                 }
             }
             
-            // Fetch user's properties
             properties = try await apiService.getMyProperties()
             totalProperties = properties.count
             
-            // Calculate maintenance needed
             maintenanceNeeded = properties.filter { $0.needsMaintenance }.count
             
-            // Calculate verified items (mock for now - will need actual verification data)
             let sensitiveItems = properties.filter { $0.isSensitive }
             verifiedItems = (verified: sensitiveItems.count, total: sensitiveItems.count)
             
-            // Fetch transfers
             let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
             pendingTransfers = transfers.filter { $0.status.lowercased() == "pending" }.count
             recentTransfers = transfers.sorted { $0.requestDate > $1.requestDate }
             
-            // Fetch connections
             let allConnections = try await apiService.getConnections()
             connections = allConnections.filter { $0.connectionStatus == .accepted }
             pendingConnectionRequests = allConnections.filter { $0.connectionStatus == .pending }.count
@@ -528,6 +499,7 @@ struct DashboardView: View {
     }
     
     // MARK: - Calculations
+    
     private func calculateOperationalPercentage() -> Int {
         guard totalProperties > 0 else { return 0 }
         let operational = properties.filter { $0.currentStatus == "active" || $0.currentStatus == "operational" }.count
@@ -546,160 +518,155 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Error View
-struct ErrorView: View {
-    let message: String
-    let retry: () -> Void
-    
-    var body: some View {
-        WebAlignedCard {
-            VStack(spacing: 16) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.largeTitle)
-                    .foregroundColor(.orange)
-                
-                Text("Error Loading Dashboard")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Text(message)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-                
-                Button(action: retry) {
-                    Text("Retry")
-                        .font(AppFonts.bodyBold)
-                }
-                .buttonStyle(.primary)
-            }
-            .padding()
-        }
-    }
-}
+// MARK: - Modern Component Implementations
 
-// MARK: - Legacy Component Compatibility (Remove when fully migrated)
-struct StatCard: View {
+struct ModernStatCard: View {
     let title: String
     let value: String
     let icon: String
     let color: Color
+    let onTap: (() -> Void)?
+    
+    init(title: String, value: String, icon: String, color: Color, onTap: (() -> Void)? = nil) {
+        self.title = title
+        self.value = value
+        self.icon = icon
+        self.color = color
+        self.onTap = onTap
+    }
     
     var body: some View {
-        WebAlignedStatCard(
-            title: title,
-            value: value,
-            icon: icon,
-            color: color
-        )
+        Button(action: { onTap?() }) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(color)
+                    Spacer()
+                }
+                
+                Text(value)
+                    .font(AppFonts.largeTitleHeavy)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text(title.uppercased())
+                    .font(AppFonts.captionBold)
+                    .foregroundColor(AppColors.secondaryText)
+                    .compatibleKerning(AppFonts.wideTracking)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
+        .modernCard()
     }
 }
 
-struct QuickActionCard: View {
-    let action: QuickAction
-    let onTap: () -> Void
-    
-    var body: some View {
-        WebAlignedQuickActionCard(action: action, onTap: onTap)
-    }
-}
-
-struct ActivityRow: View {
-    enum ActivityType {
-        case transfer, maintenance, verification
-        
-        var icon: String {
-            switch self {
-            case .transfer: return "arrow.left.arrow.right.circle.fill"
-            case .maintenance: return "wrench.and.screwdriver.fill"
-            case .verification: return "checkmark.shield.fill"
-            }
-        }
-        
-        var color: Color {
-            switch self {
-            case .transfer: return AppColors.accent
-            case .maintenance: return .orange
-            case .verification: return .green
-            }
-        }
-    }
-    
-    let type: ActivityType
+struct ModernActivityRow: View {
     let title: String
     let subtitle: String
     let time: String
+    let icon: String
+    let iconColor: Color
+    let onTap: (() -> Void)?
+    
+    init(title: String, subtitle: String, time: String, icon: String, iconColor: Color, onTap: (() -> Void)? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+        self.time = time
+        self.icon = icon
+        self.iconColor = iconColor
+        self.onTap = onTap
+    }
     
     var body: some View {
-        WebAlignedActivityRow(
-            title: title,
-            subtitle: subtitle,
-            time: time,
-            icon: type.icon,
-            iconColor: type.color
-        )
+        Button(action: { onTap?() }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(iconColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Text(subtitle)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
+                Spacer()
+                
+                Text(time)
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
     }
 }
 
-// MARK: - Updated Activity Row Extension
-extension ActivityRow {
-    init(transfer: Transfer, properties: [Property]) {
-        let property = properties.first { $0.id == transfer.propertyId }
-        let title: String
-        let subtitle: String
-        
-        switch transfer.status.lowercased() {
-        case "pending":
-            title = "Transfer Requested"
-        case "completed", "approved":
-            title = "Transfer Completed"
-        case "rejected":
-            title = "Transfer Rejected"
-        default:
-            title = "Transfer \(transfer.status.capitalized)"
-        }
-        
-        if let property = property {
-            subtitle = "\(property.itemName) - SN: \(property.serialNumber)"
-        } else {
-            subtitle = "Property #\(transfer.propertyId)"
-        }
-        
-        self.init(
-            type: .transfer,
-            title: title,
-            subtitle: subtitle,
-                                        time: RelativeDateFormatter.shared.string(from: transfer.requestDate)
-        )
-    }
-}
-
-struct StatusProgressRow: View {
+struct ModernStatusProgressRow: View {
     let label: String
     let value: Int
     let color: Color
+    let description: String?
+    
+    init(label: String, value: Int, color: Color, description: String? = nil) {
+        self.label = label
+        self.value = value
+        self.color = color
+        self.description = description
+    }
     
     var body: some View {
-        WebAlignedStatusProgressRow(label: label, value: value, color: color)
-    }
-}
-
-// MARK: - Button Style
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Preview
-struct DashboardView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            DashboardView()
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label.uppercased())
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .kerning(AppFonts.wideTracking)
+                    
+                    if let description = description {
+                        Text(description)
+                            .font(AppFonts.micro)
+                            .foregroundColor(AppColors.tertiaryText)
+                    }
+                }
+                
+                Spacer()
+                
+                Text("\(value)%")
+                    .font(AppFonts.headlineBold)
+                    .foregroundColor(color)
+            }
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(AppColors.tertiaryBackground)
+                        .frame(height: 8)
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color)
+                        .frame(width: geometry.size.width * CGFloat(value) / 100, height: 8)
+                }
+            }
+            .frame(height: 8)
         }
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -724,11 +691,20 @@ class RelativeDateFormatter {
         let now = Date()
         let timeInterval = now.timeIntervalSince(date)
         
-        // Use relative formatting for recent dates
         if timeInterval < 86400 { // Less than 24 hours
             return relativeFormatter.localizedString(for: date, relativeTo: now)
         } else {
             return formatter.string(from: date)
         }
+    }
+}
+
+// MARK: - Preview
+struct DashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+            DashboardView()
+        }
+        .preferredColorScheme(.dark)
     }
 } 

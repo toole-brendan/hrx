@@ -11,6 +11,7 @@ struct PropertyDetailView: View {
     @State private var showingImagePicker = false
     @State private var showingCamera = false
     @State private var selectedImage: UIImage?
+    @State private var showingMenu = false
 
     @State private var showingHistory = false
     @State private var showingMaintenanceSchedule = false
@@ -33,41 +34,19 @@ struct PropertyDetailView: View {
             AppColors.appBackground.ignoresSafeArea()
             
             content
-                .navigationTitle("Property Details")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar(content: {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        if viewModel.property != nil {
-                            Menu {
-                                Button(action: { showingHistory = true }) {
-                                    Label("View History", systemImage: "clock.arrow.circlepath")
-                                }
-                                
-                                if viewModel.property?.needsMaintenance == true {
-                                    Button(action: { showingMaintenanceSchedule = true }) {
-                                        Label("Schedule Maintenance", systemImage: "wrench.and.screwdriver")
-                                    }
-                                }
-                                
-                                Divider()
-                                
-                                Button(action: { viewModel.requestTransferClicked() }) {
-                                    Label("Request Transfer", systemImage: "arrow.left.arrow.right")
-                                }
-                                .disabled(viewModel.transferRequestState == .loading)
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                    }
-                })
+                .industrialNavigation(
+                    title: "Property Details",
+                    showBackButton: true,
+                    backButtonAction: { dismiss() },
+                    trailingItems: [
+                        .init(icon: "ellipsis", action: { showingMenu = true })
+                    ]
+                )
                 .sheet(isPresented: $viewModel.showingUserSelection) {
                     UserSelectionView(onUserSelected: { selectedUser in
                         viewModel.initiateTransfer(targetUser: selectedUser)
                     })
                 }
-
                 .sheet(isPresented: $showingHistory) {
                     if let property = viewModel.property {
                         PropertyHistoryView(propertyId: property.id)
@@ -83,6 +62,18 @@ struct PropertyDetailView: View {
                         OfferPropertyView(property: property)
                     }
                 }
+                .confirmationDialog("Property Actions", isPresented: $showingMenu) {
+                    Button("View History") { showingHistory = true }
+                    
+                    if viewModel.property?.needsMaintenance == true {
+                        Button("Schedule Maintenance") { showingMaintenanceSchedule = true }
+                    }
+                    
+                    Button("Request Transfer") { viewModel.requestTransferClicked() }
+                        .disabled(viewModel.transferRequestState == .loading)
+                    
+                    Button("Cancel", role: .cancel) { }
+                }
                 .overlay(TransferStatusMessage(state: viewModel.transferRequestState))
         }
         .onAppear {
@@ -94,91 +85,121 @@ struct PropertyDetailView: View {
     private var content: some View {
         switch viewModel.loadingState {
         case .idle, .loading:
-            ProgressView("Loading property details...")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            IndustrialLoadingView(message: "LOADING PROPERTY")
             
         case .success(let property):
             ScrollView {
-                VStack(spacing: 20) {
-                    // Photo section
-                    propertyPhotoSection(property)
+                VStack(spacing: 24) {
+                    // Hero Section
+                    heroSection(property)
                     
-                    // Primary info card
-                    primaryInfoCard(property)
+                    // Quick Actions
+                    quickActionsSection(property)
                     
-                    // Technical details
-                    technicalDetailsCard(property)
-                    
-                    // Status and location
-                    statusLocationCard(property)
-                    
-                    // Offer to friends section (if user owns the property)
-                    if let currentUserId = AuthManager.shared.getCurrentUserId(),
-                       property.assignedToUserId == currentUserId {
-                        offerToFriendsCard(property)
+                    // Details Sections with improved spacing
+                    VStack(spacing: 20) {
+                        technicalDetailsCard(property)
+                        statusLocationCard(property)
+                        auditTrailCard(property)
                     }
-                    
-                    // Maintenance info (if applicable)
-                    if property.needsMaintenance || property.maintenanceDueDate != nil {
-                        maintenanceCard(property)
-                    }
-                    
-                    // Notes section
-                    notesCard(property)
-                    
-                    // Audit trail preview
-                    auditTrailCard(property)
+                    .padding(.horizontal)
                 }
-                .padding()
             }
             
         case .error(let message):
-            ErrorStateView(message: message) {
-                viewModel.loadProperty()
-            }
+            ModernEmptyStateView(
+                icon: "exclamationmark.triangle",
+                title: "Error Loading",
+                message: message,
+                actionTitle: "RETRY",
+                action: { viewModel.loadProperty() }
+            )
         }
     }
     
-    // MARK: - Section Views
+    // MARK: - Enhanced Section Views
     
-    private func propertyPhotoSection(_ property: Property) -> some View {
-        VStack(spacing: 12) {
-            if let imageUrl = property.imageUrl, !imageUrl.isEmpty {
-                // TODO: Implement AsyncImage for loading property photos
+    private func heroSection(_ property: Property) -> some View {
+        VStack(spacing: 16) {
+            // Property Image or Placeholder with enhanced styling
+            ZStack {
                 Rectangle()
-                    .fill(AppColors.secondaryBackground)
+                    .fill(
+                        LinearGradient(
+                            colors: [AppColors.secondaryBackground, AppColors.tertiaryBackground],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(height: 200)
-                    .cornerRadius(12)
-                    .overlay(
-                        VStack {
-                            Image(systemName: "photo")
-                                .font(.system(size: 48))
-                                .foregroundColor(AppColors.tertiaryText)
-                            Text("Property Photo")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                        }
-                    )
-            } else {
-                Button(action: { showingPhotoOptions = true }) {
-                    VStack(spacing: 8) {
+                
+                if property.imageUrl == nil {
+                    VStack(spacing: 12) {
                         Image(systemName: "camera.fill")
-                            .font(.system(size: 32))
-                        Text("Add Photo")
-                            .font(AppFonts.bodyBold)
+                            .font(.system(size: 48))
+                            .foregroundColor(AppColors.tertiaryText)
+                        
+                        Text("TAP TO ADD PHOTO")
+                            .font(AppFonts.captionBold)
+                            .foregroundColor(AppColors.secondaryText)
+                            .compatibleKerning(AppFonts.militaryTracking)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 120)
-                    .foregroundColor(AppColors.accent)
-                    .background(AppColors.secondaryBackground)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                            .foregroundColor(AppColors.accent.opacity(0.5))
-                    )
                 }
             }
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+            .onTapGesture {
+                showingPhotoOptions = true
+            }
+            
+            // Property Title Section with enhanced typography
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(property.itemName)
+                            .font(AppFonts.largeTitleHeavy)
+                            .foregroundColor(AppColors.primaryText)
+                        
+                        Text(property.serialNumber)
+                            .font(AppFonts.monoLarge)
+                            .foregroundColor(AppColors.accent)
+                    }
+                    
+                    Spacer()
+                    
+                    if property.isSensitive {
+                        StatusBadge(status: "SENSITIVE", type: .warning, size: .large)
+                    }
+                }
+                
+                if let category = determineCategory(property) {
+                    HStack(spacing: 8) {
+                        Image(systemName: category.icon)
+                            .font(.system(size: 14))
+                        Text(category.name.uppercased())
+                            .font(AppFonts.captionHeavy)
+                            .compatibleKerning(AppFonts.militaryTracking)
+                    }
+                    .foregroundColor(categoryColor(for: category.name))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(categoryColor(for: category.name).opacity(0.1))
+                    .cornerRadius(4)
+                }
+                
+                // Description with better spacing
+                if let description = property.description, !description.isEmpty {
+                    Text(description)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal)
         }
         .actionSheet(isPresented: $showingPhotoOptions) {
             ActionSheet(
@@ -198,323 +219,282 @@ struct PropertyDetailView: View {
         }
     }
     
-    private func primaryInfoCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header with sensitive indicator
-                HStack {
-                    Text(property.itemName)
-                        .font(AppFonts.title)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Spacer()
-                    
-                    if property.isSensitive {
-                        HStack(spacing: 4) {
-                            Image(systemName: "lock.shield.fill")
-                            Text("SENSITIVE")
-                                .font(AppFonts.captionBold)
-                        }
-                        .foregroundColor(AppColors.warning)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(AppColors.warning.opacity(0.1))
-                        .cornerRadius(4)
-                    }
+    private func quickActionsSection(_ property: Property) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                QuickActionButton(
+                    icon: "arrow.left.arrow.right",
+                    title: "TRANSFER",
+                    color: AppColors.accent,
+                    action: { viewModel.requestTransferClicked() }
+                )
+                
+                QuickActionButton(
+                    icon: "wrench.and.screwdriver",
+                    title: "MAINTENANCE",
+                    color: AppColors.warning,
+                    action: { showingMaintenanceSchedule = true }
+                )
+                
+                QuickActionButton(
+                    icon: "clock.arrow.circlepath",
+                    title: "HISTORY",
+                    color: AppColors.success,
+                    action: { showingHistory = true }
+                )
+                
+                if let currentUserId = AuthManager.shared.getCurrentUserId(),
+                   property.assignedToUserId == currentUserId {
+                    QuickActionButton(
+                        icon: "gift",
+                        title: "OFFER",
+                        color: AppColors.tacticalGreen,
+                        action: { showingOfferSheet = true }
+                    )
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private func technicalDetailsCard(_ property: Property) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ModernSectionHeader(title: "Technical Details", subtitle: "Equipment specifications and identifiers")
+            
+            VStack(spacing: 12) {
+                TechnicalDataField(label: "NSN", value: property.nsn ?? "Not Available")
+                
+                if let lin = property.lin {
+                    TechnicalDataField(label: "LIN", value: lin)
                 }
                 
-                // Category indicator
-                if let category = determineCategory(property) {
-                    CategoryIndicator(category: category.name, iconName: category.icon)
+                TechnicalDataField(label: "Serial Number", value: property.serialNumber)
+                
+                if let acquisitionDate = property.acquisitionDate {
+                    TechnicalDataField(
+                        label: "Acquisition Date",
+                        value: dateFormatter.string(from: acquisitionDate)
+                    )
                 }
                 
-                // Description
-                if let description = property.description, !description.isEmpty {
-                    Text(description)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                
-                // Manufacturer
                 if let manufacturer = property.manufacturer {
+                    TechnicalDataField(label: "Manufacturer", value: manufacturer)
+                }
+            }
+        }
+        .modernCard(isElevated: false)
+    }
+    
+    private func statusLocationCard(_ property: Property) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ModernSectionHeader(title: "Status & Location", subtitle: "Current operational status and location")
+            
+            HStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Current Status")
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .compatibleKerning(AppFonts.wideTracking)
+                    
+                    StatusBadge(
+                        status: property.status ?? property.currentStatus ?? "Unknown",
+                        type: statusBadgeType(for: property.status ?? property.currentStatus ?? "Unknown"),
+                        size: .medium
+                    )
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Location")
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .compatibleKerning(AppFonts.wideTracking)
+                    
                     HStack {
-                        Text("Manufacturer:")
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.tertiaryText)
-                        Text(manufacturer)
+                        Image(systemName: "location.fill")
+                            .font(.caption)
+                            .foregroundColor(AppColors.accent)
+                        Text(property.location ?? "Not specified")
                             .font(AppFonts.body)
                             .foregroundColor(AppColors.primaryText)
                     }
                 }
             }
-            .padding()
-        }
-    }
-    
-    private func technicalDetailsCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("TECHNICAL DETAILS")
-                    .font(AppFonts.captionBold)
-                    .foregroundColor(AppColors.secondaryText)
-                    .tracking(1.2)
+            
+            if let lastInvDate = property.lastInventoryDate {
+                IndustrialDivider()
                 
-                VStack(spacing: 12) {
-                    TechnicalDataField(label: "NSN", value: property.nsn ?? "Not Available")
-                    
-                    if let lin = property.lin {
-                        TechnicalDataField(label: "LIN", value: lin)
-                    }
-                    
-                    TechnicalDataField(label: "Serial Number", value: property.serialNumber)
-                    
-                    if let acquisitionDate = property.acquisitionDate {
-                        TechnicalDataField(
-                            label: "Acquisition Date",
-                            value: dateFormatter.string(from: acquisitionDate)
-                        )
-                    }
-                }
-            }
-            .padding()
-        }
-    }
-    
-    private func statusLocationCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("STATUS & LOCATION")
-                    .font(AppFonts.captionBold)
-                    .foregroundColor(AppColors.secondaryText)
-                    .tracking(1.2)
-                
-                HStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Current Status")
-                            .font(AppFonts.caption)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Last Verification")
+                            .font(AppFonts.captionBold)
                             .foregroundColor(AppColors.tertiaryText)
-                        
-                        StatusBadge(
-                            status: property.status ?? property.currentStatus ?? "Unknown",
-                            type: statusBadgeType(for: property.status ?? property.currentStatus ?? "Unknown")
-                        )
+                            .compatibleKerning(AppFonts.wideTracking)
+                        Text(lastInvDate, formatter: dateFormatter)
+                            .font(AppFonts.body)
+                            .foregroundColor(verificationDateColor(lastInvDate))
                     }
                     
                     Spacer()
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Location")
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.tertiaryText)
-                        
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .font(.caption)
-                                .foregroundColor(AppColors.accent)
-                            Text(property.location ?? "Not specified")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.primaryText)
+                    Button(action: { /* Mark as inventoried */ }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle")
+                            Text("MARK INVENTORIED")
                         }
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.accent)
+                        .compatibleKerning(AppFonts.wideTracking)
                     }
                 }
+            }
+            
+            // Maintenance section if needed
+            if property.needsMaintenance || property.maintenanceDueDate != nil {
+                IndustrialDivider()
                 
-                if let lastInvDate = property.lastInventoryDate {
-                    IndustrialDivider()
-                    
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Last Verification")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.tertiaryText)
-                            Text(lastInvDate, formatter: dateFormatter)
-                                .font(AppFonts.body)
-                                .foregroundColor(verificationDateColor(lastInvDate))
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(AppColors.warning)
+                            Text("MAINTENANCE REQUIRED")
+                                .font(AppFonts.captionHeavy)
+                                .foregroundColor(AppColors.warning)
+                                .compatibleKerning(AppFonts.militaryTracking)
                         }
                         
                         Spacer()
                         
-                        Button(action: { /* Mark as inventoried */ }) {
-                            HStack {
-                                Image(systemName: "checkmark.circle")
-                                Text("Mark Inventoried")
-                            }
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.accent)
+                        Button(action: { showingMaintenanceSchedule = true }) {
+                            Text("SCHEDULE")
+                                .font(AppFonts.captionBold)
+                                .foregroundColor(AppColors.accent)
+                                .compatibleKerning(AppFonts.wideTracking)
                         }
                     }
+                    
+                    if let dueDate = property.maintenanceDueDate {
+                        TechnicalDataField(
+                            label: "Due Date",
+                            value: dateFormatter.string(from: dueDate)
+                        )
+                    }
                 }
+                .padding(12)
+                .background(AppColors.warning.opacity(0.1))
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(AppColors.warning.opacity(0.3), lineWidth: 1)
+                )
             }
-            .padding()
         }
+        .modernCard(isElevated: false)
     }
     
-    private func offerToFriendsCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(spacing: 16) {
-                HStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: "gift.fill")
-                            .foregroundColor(AppColors.accent)
-                        Text("TRANSFER OPTIONS")
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.secondaryText)
-                            .tracking(1.2)
-                    }
-                    Spacer()
-                }
-                
-                Button(action: { showingOfferSheet = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.2.fill")
-                        Text("Offer to Friends")
-                    }
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(AppColors.accent.opacity(0.1))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                
-                Text("Send transfer offers to your connections")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-            }
-            .padding()
-        }
-    }
-    
-    private func maintenanceCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: "wrench.and.screwdriver.fill")
-                            .foregroundColor(AppColors.warning)
-                        Text("MAINTENANCE REQUIRED")
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.warning)
-                            .tracking(1.2)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: { showingMaintenanceSchedule = true }) {
-                        Text("Schedule")
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(AppColors.accent)
-                    }
-                }
-                
-                if let dueDate = property.maintenanceDueDate {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Due Date")
+    private func auditTrailCard(_ property: Property) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ModernSectionHeader(
+                title: "Audit Trail",
+                subtitle: "Recent property activity",
+                action: { showingHistory = true },
+                actionLabel: "View All"
+            )
+            
+            // Show last 3 events preview with enhanced styling
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(0..<3) { index in
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(AppColors.accent.opacity(0.2))
+                                .frame(width: 24, height: 24)
+                            
+                            Circle()
+                                .fill(AppColors.accent)
+                                .frame(width: 8, height: 8)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Property created")
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Text("by SGT Johnson")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
+                        
+                        Spacer()
+                        
+                        Text("\(index + 2) hours ago")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.tertiaryText)
-                        Text(dueDate, formatter: dateFormatter)
-                            .font(AppFonts.body)
-                            .foregroundColor(maintenanceDateColor(dueDate))
+                    }
+                    
+                    if index < 2 {
+                        Divider()
+                            .background(AppColors.border)
                     }
                 }
             }
-            .padding()
-            .overlay(
-                Rectangle()
-                    .stroke(AppColors.warning.opacity(0.5), lineWidth: 2)
-            )
-        }
-    }
-    
-    private func notesCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(alignment: .leading, spacing: 12) {
+            
+            // Notes section if available
+            if let notes = property.notes, !notes.isEmpty {
+                IndustrialDivider(title: "Notes")
+                
                 HStack {
-                    Text("NOTES")
-                        .font(AppFonts.captionBold)
-                        .foregroundColor(AppColors.secondaryText)
-                        .tracking(1.2)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(notes)
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.primaryText)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     
                     Spacer()
                     
                     Button(action: {
-                        editedNotes = property.notes ?? ""
+                        editedNotes = notes
                         showingEditNotes = true
                     }) {
                         Image(systemName: "pencil")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(AppColors.accent)
                     }
                 }
+            } else {
+                IndustrialDivider(title: "Notes")
                 
-                if let notes = property.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.primaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text("No notes added")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.tertiaryText)
-                        .italic()
+                Button(action: {
+                    editedNotes = ""
+                    showingEditNotes = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle")
+                        Text("ADD NOTES")
+                            .font(AppFonts.captionBold)
+                            .compatibleKerning(AppFonts.wideTracking)
+                    }
+                    .foregroundColor(AppColors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(AppColors.accent.opacity(0.1))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
+                    )
                 }
             }
-            .padding()
         }
+        .modernCard(isElevated: false)
         .sheet(isPresented: $showingEditNotes) {
             EditNotesView(notes: $editedNotes, onSave: {
                 // TODO: Save notes via API
             })
-        }
-    }
-    
-    private func auditTrailCard(_ property: Property) -> some View {
-        WebAlignedCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("AUDIT TRAIL")
-                        .font(AppFonts.captionBold)
-                        .foregroundColor(AppColors.secondaryText)
-                        .tracking(1.2)
-                    
-                    Spacer()
-                    
-                    Button(action: { showingHistory = true }) {
-                        HStack(spacing: 4) {
-                            Text("View All")
-                            Image(systemName: "chevron.right")
-                        }
-                        .font(AppFonts.captionBold)
-                        .foregroundColor(AppColors.accent)
-                    }
-                }
-                
-                // Show last 3 events preview
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(0..<3) { _ in
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(AppColors.accent)
-                                .frame(width: 6, height: 6)
-                            
-                            Text("Property created")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.primaryText)
-                            
-                            Spacer()
-                            
-                            Text("2 hours ago")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.tertiaryText)
-                        }
-                    }
-                }
-            }
-            .padding()
         }
     }
     
@@ -536,6 +516,17 @@ struct PropertyDetailView: View {
         }
         
         return nil
+    }
+    
+    private func categoryColor(for category: String) -> Color {
+        switch category.lowercased() {
+        case "weapons": return AppColors.weaponsCategory
+        case "communications": return AppColors.communicationsCategory
+        case "optics": return AppColors.opticsCategory
+        case "vehicles": return AppColors.vehiclesCategory
+        case "electronics": return AppColors.electronicsCategory
+        default: return AppColors.secondaryText
+        }
     }
     
     private func statusBadgeType(for status: String) -> StatusBadge.StatusType {
@@ -569,7 +560,7 @@ struct PropertyDetailView: View {
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Supporting Views with Enhanced Styling
 
 struct PropertyHistoryView: View {
     let propertyId: Int
@@ -577,40 +568,40 @@ struct PropertyHistoryView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                // Placeholder for history items
-                ForEach(0..<10) { index in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Transfer Completed")
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(AppColors.primaryText)
+            ZStack {
+                AppColors.appBackground.ignoresSafeArea()
+                
+                List {
+                    ForEach(0..<10) { index in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Transfer Completed")
+                                    .font(AppFonts.bodyBold)
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                Spacer()
+                                
+                                Text("\(index + 1) days ago")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.tertiaryText)
+                            }
                             
-                            Spacer()
-                            
-                            Text("\(index + 1) days ago")
+                            Text("From: SPC Smith → To: SGT Johnson")
                                 .font(AppFonts.caption)
-                                .foregroundColor(AppColors.tertiaryText)
+                                .foregroundColor(AppColors.secondaryText)
                         }
-                        
-                        Text("From: SPC Smith → To: SGT Johnson")
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.secondaryText)
+                        .padding(.vertical, 8)
+                        .listRowBackground(AppColors.secondaryBackground)
                     }
-                    .padding(.vertical, 8)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
-            .listStyle(.plain)
-            .navigationTitle("Property History")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundColor(AppColors.accent)
-                }
-            })
+            .industrialNavigation(
+                title: "Property History",
+                showBackButton: true,
+                backButtonAction: { dismiss() }
+            )
         }
     }
 }
@@ -624,49 +615,54 @@ struct MaintenanceScheduleView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Schedule maintenance for:")
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Text(property.itemName)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    DatePicker(
-                        "Maintenance Date",
-                        selection: $selectedDate,
-                        in: Date()...,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .datePickerStyle(GraphicalDatePickerStyle())
-                    .accentColor(AppColors.accent)
-                    
-                    IndustrialTextEditor(
-                        text: $maintenanceNotes,
-                        placeholder: "Add maintenance notes (optional)"
-                    )
-                }
+            ZStack {
+                AppColors.appBackground.ignoresSafeArea()
                 
-                Spacer()
-                
-                HStack(spacing: 16) {
-                    Button("Cancel") {
-                        dismiss()
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Schedule Maintenance",
+                            subtitle: "Set up maintenance for \(property.itemName)"
+                        )
+                        
+                        DatePicker(
+                            "Maintenance Date",
+                            selection: $selectedDate,
+                            in: Date()...,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                        .datePickerStyle(GraphicalDatePickerStyle())
+                        .accentColor(AppColors.accent)
+                        .modernCard()
+                        
+                        IndustrialTextEditor(
+                            text: $maintenanceNotes,
+                            placeholder: "Add maintenance notes (optional)"
+                        )
                     }
-                    .buttonStyle(.secondary)
                     
-                    Button("Schedule") {
-                        // TODO: Schedule maintenance via API
-                        dismiss()
+                    Spacer()
+                    
+                    HStack(spacing: 16) {
+                        Button("CANCEL") {
+                            dismiss()
+                        }
+                        .buttonStyle(.secondary)
+                        
+                        Button("SCHEDULE") {
+                            // TODO: Schedule maintenance via API
+                            dismiss()
+                        }
+                        .buttonStyle(.primary)
                     }
-                    .buttonStyle(.primary)
                 }
+                .padding()
             }
-            .padding()
-            .navigationTitle("Schedule Maintenance")
-            .navigationBarTitleDisplayMode(.inline)
+            .industrialNavigation(
+                title: "Schedule Maintenance",
+                showBackButton: true,
+                backButtonAction: { dismiss() }
+            )
         }
     }
 }
@@ -678,34 +674,43 @@ struct EditNotesView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                IndustrialTextEditor(
-                    text: $notes,
-                    placeholder: "Enter notes about this property..."
-                )
+            ZStack {
+                AppColors.appBackground.ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    ModernSectionHeader(
+                        title: "Property Notes",
+                        subtitle: "Add or edit notes about this property"
+                    )
+                    
+                    IndustrialTextEditor(
+                        text: $notes,
+                        placeholder: "Enter notes about this property..."
+                    )
+                    .frame(minHeight: 200)
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 16) {
+                        Button("CANCEL") {
+                            dismiss()
+                        }
+                        .buttonStyle(.secondary)
+                        
+                        Button("SAVE") {
+                            onSave()
+                            dismiss()
+                        }
+                        .buttonStyle(.primary)
+                    }
+                }
                 .padding()
-                
-                Spacer()
             }
-            .navigationTitle("Edit Notes")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(AppColors.accent)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        onSave()
-                        dismiss()
-                    }
-                    .foregroundColor(AppColors.accent)
-                    .font(AppFonts.bodyBold)
-                }
-            })
+            .industrialNavigation(
+                title: "Edit Notes",
+                showBackButton: true,
+                backButtonAction: { dismiss() }
+            )
         }
     }
 }

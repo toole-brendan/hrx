@@ -1,18 +1,13 @@
 import SwiftUI
 
-// MARK: - Industrial UI Components
-
-// Status badge with military-inspired styling
+// MARK: - Enhanced Status Badge with Glow Effect
 public struct StatusBadge: View {
     let status: String
     let type: StatusType
+    let size: BadgeSize
     
     public enum StatusType {
-        case success
-        case warning
-        case error
-        case info
-        case neutral
+        case success, warning, error, info, neutral
         
         var color: Color {
             switch self {
@@ -23,28 +18,318 @@ public struct StatusBadge: View {
             case .neutral: return AppColors.secondaryText
             }
         }
+        
+        var dimColor: Color {
+            switch self {
+            case .success: return AppColors.successDim
+            case .warning: return AppColors.warningDim
+            case .error: return AppColors.destructiveDim
+            case .info: return AppColors.accentDim
+            case .neutral: return AppColors.tertiaryText
+            }
+        }
     }
     
-    public init(status: String, type: StatusType) {
+    public enum BadgeSize {
+        case small, medium, large
+        
+        var font: Font {
+            switch self {
+            case .small: return AppFonts.micro
+            case .medium: return AppFonts.caption
+            case .large: return AppFonts.bodySmall
+            }
+        }
+        
+        var padding: EdgeInsets {
+            switch self {
+            case .small: return EdgeInsets(top: 2, leading: 6, bottom: 2, trailing: 6)
+            case .medium: return EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
+            case .large: return EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
+            }
+        }
+    }
+    
+    public init(status: String, type: StatusType, size: BadgeSize = .medium) {
         self.status = status
         self.type = type
+        self.size = size
     }
     
     public var body: some View {
         Text(status.uppercased())
-            .font(AppFonts.smallBold)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(type.color.opacity(0.15))
+            .font(size.font.weight(.bold))
+            .compatibleKerning(AppFonts.wideTracking)
+            .padding(size.padding)
             .foregroundColor(type.color)
+            .background(type.dimColor.opacity(0.2))
             .overlay(
-                Rectangle()
+                RoundedRectangle(cornerRadius: 4)
                     .stroke(type.color.opacity(0.5), lineWidth: 1)
             )
+            .cornerRadius(4)
+            .shadow(color: type.color.opacity(0.3), radius: 4)
     }
 }
 
-// Category indicator for military equipment types
+// MARK: - Modern Property Card
+public struct ModernPropertyCard: View {
+    let property: Property
+    let onTap: () -> Void
+    
+    public init(property: Property, onTap: @escaping () -> Void) {
+        self.property = property
+        self.onTap = onTap
+    }
+    
+    public var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(property.itemName)
+                            .font(AppFonts.headlineBold)
+                            .foregroundColor(AppColors.primaryText)
+                            .lineLimit(1)
+                        
+                        Text(property.serialNumber)
+                            .font(AppFonts.monoSmall)
+                            .foregroundColor(AppColors.accent)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(AppColors.tertiaryText)
+                }
+                
+                // Status Row
+                HStack(spacing: 12) {
+                    StatusBadge(
+                        status: property.currentStatus ?? "Unknown",
+                        type: statusType(for: property.currentStatus),
+                        size: .small
+                    )
+                    
+                    if property.isSensitive {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.shield.fill")
+                                .font(.system(size: 10))
+                            Text("SENSITIVE")
+                                .font(AppFonts.microBold)
+                                .compatibleKerning(AppFonts.wideTracking)
+                        }
+                        .foregroundColor(AppColors.warning)
+                    }
+                    
+                    Spacer()
+                    
+                    if let location = property.location {
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 10))
+                            Text(location)
+                                .font(AppFonts.caption)
+                        }
+                        .foregroundColor(AppColors.secondaryText)
+                    }
+                }
+            }
+            .padding(16)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func statusType(for status: String?) -> StatusBadge.StatusType {
+        switch status?.lowercased() {
+        case "operational": return .success
+        case "maintenance", "non-operational": return .warning
+        case "missing", "damaged": return .error
+        default: return .neutral
+        }
+    }
+}
+
+// MARK: - Floating Action Button
+public struct FloatingActionButton: View {
+    let icon: String
+    let action: () -> Void
+    let isExpanded: Bool
+    
+    public init(icon: String, action: @escaping () -> Void, isExpanded: Bool = false) {
+        self.icon = icon
+        self.action = action
+        self.isExpanded = isExpanded
+    }
+    
+    public var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .bold))
+                
+                if isExpanded {
+                    Text("CREATE")
+                        .font(AppFonts.bodyBold)
+                        .compatibleKerning(AppFonts.wideTracking)
+                }
+            }
+            .foregroundColor(Color.black)
+            .padding(.horizontal, isExpanded ? 20 : 16)
+            .padding(.vertical, 16)
+            .background(AppColors.accent)
+            .cornerRadius(isExpanded ? 28 : 56)
+            .shadow(color: AppColors.accent.opacity(0.4), radius: 12, y: 4)
+        }
+    }
+}
+
+// MARK: - Empty State View
+public struct ModernEmptyStateView: View {
+    let icon: String
+    let title: String
+    let message: String
+    let actionTitle: String?
+    let action: (() -> Void)?
+    
+    public init(
+        icon: String,
+        title: String,
+        message: String,
+        actionTitle: String? = nil,
+        action: (() -> Void)? = nil
+    ) {
+        self.icon = icon
+        self.title = title
+        self.message = message
+        self.actionTitle = actionTitle
+        self.action = action
+    }
+    
+    public var body: some View {
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.accent.opacity(0.1))
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 36, weight: .medium))
+                    .foregroundColor(AppColors.accent)
+            }
+            
+            VStack(spacing: 12) {
+                Text(title.uppercased())
+                    .font(AppFonts.headlineBold)
+                    .foregroundColor(AppColors.primaryText)
+                    .compatibleKerning(AppFonts.militaryTracking)
+                
+                Text(message)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+            
+            if let actionTitle = actionTitle, let action = action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(AppFonts.bodyBold)
+                        .compatibleKerning(AppFonts.wideTracking)
+                }
+                .buttonStyle(.primary)
+            }
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Loading State with Industrial Spinner
+public struct IndustrialLoadingView: View {
+    let message: String
+    
+    public init(message: String = "LOADING") {
+        self.message = message
+    }
+    
+    public var body: some View {
+        VStack(spacing: 24) {
+            ZStack {
+                ForEach(0..<3) { index in
+                    Rectangle()
+                        .fill(AppColors.accent)
+                        .frame(width: 4, height: 20)
+                        .cornerRadius(2)
+                        .rotationEffect(.degrees(Double(index) * 120))
+                        .offset(y: -30)
+                        .rotationEffect(.degrees(Double(index) * 120))
+                        .animation(
+                            Animation.easeInOut(duration: 1.5)
+                                .repeatForever(autoreverses: false)
+                                .delay(Double(index) * 0.2),
+                            value: UUID()
+                        )
+                }
+            }
+            .frame(width: 60, height: 60)
+            
+            Text(message)
+                .font(AppFonts.captionHeavy)
+                .foregroundColor(AppColors.primaryText)
+                .compatibleKerning(AppFonts.ultraWideTracking)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.appBackground.opacity(0.95))
+    }
+}
+
+// MARK: - Quick Action Button Component
+public struct QuickActionButton: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let action: () -> Void
+    
+    public init(icon: String, title: String, color: Color, action: @escaping () -> Void) {
+        self.icon = icon
+        self.title = title
+        self.color = color
+        self.action = action
+    }
+    
+    public var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(color.opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(color)
+                }
+                
+                Text(title)
+                    .font(AppFonts.microBold)
+                    .foregroundColor(AppColors.primaryText)
+                    .compatibleKerning(AppFonts.wideTracking)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Enhanced Category Indicator
 public struct CategoryIndicator: View {
     let category: String
     let iconName: String
@@ -77,20 +362,22 @@ public struct CategoryIndicator: View {
                 .font(.system(size: 12))
             
             Text(category.uppercased())
-                .font(AppFonts.smallBold)
+                .font(AppFonts.microBold)
+                .compatibleKerning(AppFonts.wideTracking)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .foregroundColor(categoryColor)
         .background(categoryColor.opacity(0.1))
+        .cornerRadius(4)
         .overlay(
-            Rectangle()
+            RoundedRectangle(cornerRadius: 4)
                 .stroke(categoryColor.opacity(0.3), lineWidth: 1)
         )
     }
 }
 
-// Technical Data Display for serial numbers, NSNs, etc.
+// MARK: - Enhanced Technical Data Display
 public struct TechnicalDataField: View {
     let label: String
     let value: String
@@ -103,8 +390,9 @@ public struct TechnicalDataField: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label.uppercased())
-                .font(AppFonts.small)
+                .font(AppFonts.microBold)
                 .foregroundColor(AppColors.tertiaryText)
+                .compatibleKerning(AppFonts.militaryTracking)
             
             Text(value)
                 .font(AppFonts.mono)
@@ -114,7 +402,7 @@ public struct TechnicalDataField: View {
     }
 }
 
-// Industrial Section Divider
+// MARK: - Modern Industrial Divider
 public struct IndustrialDivider: View {
     let title: String?
     
@@ -126,15 +414,16 @@ public struct IndustrialDivider: View {
         HStack(spacing: 12) {
             if let title = title {
                 Text(title.uppercased())
-                    .font(AppFonts.caption)
+                    .font(AppFonts.captionBold)
                     .foregroundColor(AppColors.secondaryText)
+                    .compatibleKerning(AppFonts.militaryTracking)
                 
                 Rectangle()
-                    .fill(AppColors.divider)
+                    .fill(AppColors.border)
                     .frame(height: 1)
             } else {
                 Rectangle()
-                    .fill(AppColors.divider)
+                    .fill(AppColors.border)
                     .frame(height: 1)
             }
         }
@@ -142,7 +431,7 @@ public struct IndustrialDivider: View {
     }
 }
 
-// Industrial TextEditor
+// MARK: - Enhanced Text Editor
 public struct IndustrialTextEditor: View {
     @Binding var text: String
     let placeholder: String
@@ -159,28 +448,110 @@ public struct IndustrialTextEditor: View {
                 Text(placeholder)
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.tertiaryText)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
             }
             
             // Text Editor
             TextEditor(text: $text)
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.primaryText)
-                .padding(4) // Adjust internal TextEditor padding
+                .padding(8)
                 .background(AppColors.secondaryBackground)
         }
         .frame(minHeight: 100)
         .background(AppColors.secondaryBackground)
+        .cornerRadius(8)
         .overlay(
-            Rectangle()
+            RoundedRectangle(cornerRadius: 8)
                 .stroke(AppColors.border, lineWidth: 1)
         )
     }
 }
 
-// MARK: - Image Picker Component
+// MARK: - Enhanced List Item Component
+public struct IndustrialListItem<Trailing: View>: View {
+    let title: String
+    let subtitle: String?
+    let iconName: String?
+    let trailing: Trailing
+    
+    public init(
+        title: String,
+        subtitle: String? = nil,
+        iconName: String? = nil,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.iconName = iconName
+        self.trailing = trailing()
+    }
+    
+    public var body: some View {
+        HStack(spacing: 12) {
+            // Icon if provided
+            if let iconName = iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: 18))
+                    .foregroundColor(AppColors.accent)
+                    .frame(width: 24, height: 24)
+            }
+            
+            // Content
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.primaryText)
+                
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(AppFonts.bodySmall)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+            }
+            
+            Spacer()
+            
+            // Trailing content (chevron, status, etc.)
+            trailing
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .background(AppColors.secondaryBackground)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(AppColors.border),
+            alignment: .bottom
+        )
+    }
+}
 
+// Convenience extension for standard list item with chevron
+extension IndustrialListItem where Trailing == AnyView {
+    public static func standard(
+        title: String,
+        subtitle: String? = nil,
+        iconName: String? = nil
+    ) -> IndustrialListItem<AnyView> {
+        IndustrialListItem(
+            title: title,
+            subtitle: subtitle,
+            iconName: iconName
+        ) {
+            AnyView(
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.tertiaryText)
+            )
+        }
+    }
+}
+
+// MARK: - Legacy Components (preserved for compatibility)
+
+// MARK: - Image Picker Component
 public struct ImagePicker: UIViewControllerRepresentable {
     @Binding public var image: UIImage?
     public let sourceType: UIImagePickerController.SourceType
@@ -225,7 +596,6 @@ public struct ImagePicker: UIViewControllerRepresentable {
 }
 
 // MARK: - Transfer Status Message Component
-
 public struct TransferStatusMessage: View {
     let state: ScanViewModel.TransferRequestState
     
@@ -235,27 +605,27 @@ public struct TransferStatusMessage: View {
     
     public var body: some View {
         VStack {
-            Spacer() // Push to bottom
-             if state != .idle { // Only show if not idle
+            Spacer()
+             if state != .idle {
                  HStack(spacing: 10) {
                      if state == .loading {
                          ProgressView()
                              .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
                      } else {
                          Image(systemName: state.iconName)
-                             .foregroundColor(state.iconColor) // Use themed color from extension
+                             .foregroundColor(state.iconColor)
                      }
                      Text(state.message)
-                         .font(AppFonts.caption) // Use theme font
+                         .font(AppFonts.caption)
                          .foregroundColor(AppColors.primaryText)
                          .lineLimit(2)
                  }
                  .padding()
-                 .background(state.backgroundColor) // Use themed background from extension
-                 .cornerRadius(10)
+                 .background(state.backgroundColor)
+                 .cornerRadius(8)
                  .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
                  .transition(.move(edge: .bottom).combined(with: .opacity))
-                 .padding(.bottom, 80) // Position above ScanStatusOverlay
+                 .padding(.bottom, 80)
              }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -265,7 +635,6 @@ public struct TransferStatusMessage: View {
 }
 
 // MARK: - Transfer Request State Extensions
-
 extension ScanViewModel.TransferRequestState {
     public var message: String {
         switch self {
@@ -286,7 +655,7 @@ extension ScanViewModel.TransferRequestState {
 
     public var iconColor: Color {
         switch self {
-            case .success: return AppColors.accent // Use theme accent for success
+            case .success: return AppColors.accent
             case .error: return AppColors.destructive
             default: return .clear
         }
@@ -297,7 +666,7 @@ extension ScanViewModel.TransferRequestState {
             case .loading:
                 return AppColors.secondaryBackground.opacity(0.9)
             case .success:
-                return AppColors.accent.opacity(0.8) // Use theme accent background
+                return AppColors.accent.opacity(0.8)
             case .error:
                  return AppColors.destructive.opacity(0.8)
              case .idle:
@@ -306,7 +675,7 @@ extension ScanViewModel.TransferRequestState {
      }
 }
 
-// Error State View Component
+// MARK: - Enhanced Error State View
 public struct ErrorStateView: View {
     let message: String
     let onRetry: () -> Void
@@ -317,107 +686,12 @@ public struct ErrorStateView: View {
     }
     
     public var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 48))
-                .foregroundColor(AppColors.destructive)
-            
-            VStack(spacing: 8) {
-                Text("Error Loading Data")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Text(message)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-            
-            Button("Retry", action: onRetry)
-                .buttonStyle(.primary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-    }
-}
-
-// Industrial ListItem component
-public struct IndustrialListItem<Trailing: View>: View {
-    let title: String
-    let subtitle: String?
-    let iconName: String?
-    let trailing: Trailing
-    
-    public init(
-        title: String,
-        subtitle: String? = nil,
-        iconName: String? = nil,
-        @ViewBuilder trailing: () -> Trailing
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.iconName = iconName
-        self.trailing = trailing()
-    }
-    
-    public var body: some View {
-        HStack(spacing: 12) {
-            // Icon if provided
-            if let iconName = iconName {
-                Image(systemName: iconName)
-                    .font(.system(size: 18))
-                    .foregroundColor(AppColors.accent)
-                    .frame(width: 24, height: 24)
-            }
-            
-            // Content
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.primaryText)
-                
-                if let subtitle = subtitle {
-                    Text(subtitle)
-                        .font(AppFonts.subheadline)
-                        .foregroundColor(AppColors.secondaryText)
-                }
-            }
-            
-            Spacer()
-            
-            // Trailing content (chevron, status, etc.)
-            trailing
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .background(AppColors.secondaryBackground)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppColors.border),
-            alignment: .bottom
+        ModernEmptyStateView(
+            icon: "exclamationmark.triangle.fill",
+            title: "Error Loading Data",
+            message: message,
+            actionTitle: "RETRY",
+            action: onRetry
         )
-    }
-}
-
-// Convenience extension for standard list item with chevron
-extension IndustrialListItem where Trailing == AnyView {
-    public static func standard(
-        title: String,
-        subtitle: String? = nil,
-        iconName: String? = nil
-    ) -> IndustrialListItem<AnyView> {
-        IndustrialListItem(
-            title: title,
-            subtitle: subtitle,
-            iconName: iconName
-        ) {
-            AnyView(
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.tertiaryText)
-            )
-        }
     }
 } 

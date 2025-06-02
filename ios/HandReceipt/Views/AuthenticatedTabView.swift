@@ -427,7 +427,7 @@ struct MoreHeaderSection: View {
                 Text("MORE")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppColors.primaryText)
-                    .kerning(1.2)
+                    .compatibleKerning(1.2)
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 12)
             }
@@ -514,7 +514,7 @@ struct ProfileHeaderSection: View {
                     Text("PROFILE")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(AppColors.primaryText)
-                        .kerning(1.2)
+                        .compatibleKerning(1.2)
                     
                     Spacer()
                     
@@ -621,32 +621,8 @@ struct QRManagementHeaderSection: View {
 }
 */
 
-// MARK: - Floating Action Button
-struct FloatingActionButton: View {
-    let icon: String
-    let action: () -> Void
-    @State private var isPressed = false
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(
-                    Circle()
-                        .fill(AppColors.accent)
-                        .shadow(color: AppColors.accent.opacity(0.3), radius: isPressed ? 4 : 8, y: isPressed ? 2 : 4)
-                )
-                .scaleEffect(isPressed ? 0.95 : 1.0)
-        }
-        .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity, pressing: { pressing in
-            withAnimation(.easeInOut(duration: 0.1)) {
-                isPressed = pressing
-            }
-        }, perform: {})
-    }
-}
+// MARK: - Floating Action Button (using the one from IndustrialComponents)
+// FloatingActionButton is now defined in IndustrialComponents.swift
 
 
 
@@ -663,10 +639,10 @@ extension AppFonts {
                 case AppFonts.body: fontName = "HelveticaNeue"; finalSize = AppFonts.bodySize
                 case AppFonts.bodyBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.bodySize
                 case AppFonts.headline: fontName = "HelveticaNeue-Medium"; finalSize = AppFonts.headlineSize
-                case AppFonts.subheadline: fontName = "HelveticaNeue"; finalSize = AppFonts.subheadlineSize
-                case AppFonts.subheadlineBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.subheadlineSize
-                case AppFonts.caption: fontName = "HelveticaNeue"; finalSize = AppFonts.captionSize
-                case AppFonts.captionBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.captionSize
+                case AppFonts.subhead: fontName = "HelveticaNeue"; finalSize = AppFonts.subheadSize
+                case AppFonts.subheadBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.subheadSize
+                case AppFonts.caption: fontName = "HelveticaNeue"; finalSize = AppFonts.smallSize
+                case AppFonts.captionBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.smallSize
                 default:
                     if fontDescription.contains("weight=bold") { fontName = "HelveticaNeue-Bold" }
                     else if fontDescription.contains("weight=medium") { fontName = "HelveticaNeue-Medium" }

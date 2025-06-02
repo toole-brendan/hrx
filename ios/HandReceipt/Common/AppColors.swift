@@ -2,50 +2,60 @@ import SwiftUI
 
 // Make the struct public so it can be accessed across the module
 public struct AppColors {
-    // Background Colors (Dark, more industrial) - Web Aligned
-    public static let appBackground = Color(hex: "0A0A0A") ?? Color(.black) // Nearly black for higher contrast
-    public static let secondaryBackground = Color(hex: "1A1A1A") ?? Color(.systemGray6) // Darker gray
-    public static let tertiaryBackground = Color(hex: "252525") ?? Color(.systemGray5) // For subtle layering
+    // MARK: - Background Colors (Enhanced contrast with subtle depth)
+    public static let appBackground = Color(hex: "000000") ?? Color.black // Pure black for maximum contrast
+    public static let secondaryBackground = Color(hex: "0F0F0F") ?? Color(.systemGray6) // Slightly elevated
+    public static let tertiaryBackground = Color(hex: "1A1A1A") ?? Color(.systemGray5) // Card backgrounds
+    public static let elevatedBackground = Color(hex: "242424") ?? Color(.systemGray4) // Elevated UI elements
     
-    // Web-aligned muted backgrounds
-    public static let mutedBackground = Color(hex: "1F1F1F") ?? Color(.systemGray6) // Matches web's bg-muted/80
-    public static let cardBackground = Color(hex: "1A1A1A") ?? Color(.systemGray6) // Card backgrounds
+    // MARK: - Text Colors (Enhanced contrast hierarchy)
+    public static let primaryText = Color(hex: "FFFFFF") ?? Color.white // Pure white for maximum readability
+    public static let secondaryText = Color(hex: "B8B8B8") ?? Color(.systemGray) // Brighter secondary
+    public static let tertiaryText = Color(hex: "808080") ?? Color(.systemGray2) // Mid-tone for labels
+    public static let quaternaryText = Color(hex: "4A4A4A") ?? Color(.systemGray3) // Subtle text
     
-    // Text Colors (High contrast for military/industrial legibility)
-    public static let primaryText = Color(hex: "F5F5F5") ?? Color(.white) // Brighter white for better contrast
-    public static let secondaryText = Color(hex: "A0A0A0") ?? Color(.systemGray) // Medium gray
-    public static let tertiaryText = Color(hex: "6A6A6A") ?? Color(.systemGray2) // Darker gray for less important text
-
-    // Accent Colors (Industrial/Military palette)
-    public static let accent = Color(hex: "2A5885") ?? Color.blue // Desaturated blue - primary accent
-    public static let accentHighlight = Color(hex: "3A78B5") ?? Color.blue.opacity(0.8) // Slightly lighter for highlights
-
-    // Status Colors - Web Aligned
-    public static let destructive = Color(hex: "A02C2C") ?? Color.red // Darker desaturated red
-    public static let warning = Color(hex: "9D6E21") ?? Color.orange // Desaturated orange/amber 
-    public static let success = Color(hex: "29683F") ?? Color.green // Desaturated military green
-    public static let military = Color(hex: "4A7C59") ?? Color.green.opacity(0.8) // Military olive green
+    // MARK: - Accent Colors (Modern industrial with neon highlights)
+    public static let accent = Color(hex: "00D4FF") ?? Color.cyan // Bright cyan for primary actions
+    public static let accentDim = Color(hex: "0096B8") ?? Color.blue // Dimmed accent
+    public static let accentHighlight = Color(hex: "00F0FF") ?? Color.cyan // Ultra-bright for hover/press
+    public static let accentMuted = Color(hex: "005C73") ?? Color.blue.opacity(0.6) // Muted for backgrounds
     
-    // Web-aligned status colors
-    public static let statusGreen = Color(hex: "16A34A") ?? Color.green // green-600
-    public static let statusAmber = Color(hex: "D97706") ?? Color.orange // amber-600
-    public static let statusRed = Color(hex: "DC2626") ?? Color.red // red-600
-    public static let statusBlue = Color(hex: "2563EB") ?? Color.blue // blue-600
+    // MARK: - Status Colors (High contrast warning system)
+    public static let destructive = Color(hex: "FF3B30") ?? Color.red // Bright red for errors
+    public static let destructiveDim = Color(hex: "8B1A1A") ?? Color.red.opacity(0.6)
+    public static let warning = Color(hex: "FFB800") ?? Color.orange // Bright amber
+    public static let warningDim = Color(hex: "B37E00") ?? Color.orange.opacity(0.6)
+    public static let success = Color(hex: "32D74B") ?? Color.green // Bright green
+    public static let successDim = Color(hex: "1B7A2A") ?? Color.green.opacity(0.6)
     
-    // Military Category Colors (for different types of equipment)
-    public static let weaponsCategory = Color(hex: "8B2E2E") ?? Color.red.opacity(0.7) // Dark red
-    public static let communicationsCategory = Color(hex: "395F94") ?? Color.blue.opacity(0.7) // Navy blue
-    public static let opticsCategory = Color(hex: "3A633A") ?? Color.green.opacity(0.7) // Military green
-    public static let vehiclesCategory = Color(hex: "6B5226") ?? Color.brown.opacity(0.7) // Brown/tan
-    public static let electronicsCategory = Color(hex: "494A73") ?? Color.indigo.opacity(0.7) // Deep blue/indigo
+    // MARK: - Special Purpose Colors
+    public static let neonGlow = Color(hex: "00FFD4") ?? Color.cyan // For glowing effects
+    public static let tacticalGreen = Color(hex: "00FF41") ?? Color.green // Night vision green
+    public static let cautionYellow = Color(hex: "FFD700") ?? Color.yellow // High visibility
     
-    // Border/Divider Colors - Web Aligned
-    public static let border = Color(hex: "323232") ?? Color.gray.opacity(0.3) // Subtle border - matches web's border-border
-    public static let divider = Color(hex: "3A3A3A") ?? Color.gray.opacity(0.5) // Slightly more visible divider
-    public static let borderMuted = Color(hex: "2A2A2A") ?? Color.gray.opacity(0.2) // Even more subtle borders
+    // MARK: - Border Colors (Subtle but visible)
+    public static let border = Color(hex: "2A2A2A") ?? Color.gray.opacity(0.3)
+    public static let borderHighlight = Color(hex: "404040") ?? Color.gray.opacity(0.5)
+    public static let borderAccent = accent.opacity(0.5)
     
-    // Zinc colors to match web dashboard
-    public static let zinc900 = Color(hex: "18181B") ?? Color(.systemGray6) // Dark zinc for dark mode
+    // MARK: - Category Colors (Military equipment categories)
+    public static let weaponsCategory = Color(hex: "FF4444") ?? Color.red
+    public static let communicationsCategory = Color(hex: "4A90E2") ?? Color.blue
+    public static let opticsCategory = Color(hex: "00D97E") ?? Color.green
+    public static let vehiclesCategory = Color(hex: "F5A623") ?? Color.orange
+    public static let electronicsCategory = Color(hex: "BD10E0") ?? Color.purple
+    
+    // MARK: - Legacy/Web-aligned colors (for compatibility)
+    public static let mutedBackground = tertiaryBackground
+    public static let cardBackground = secondaryBackground
+    public static let military = tacticalGreen.opacity(0.8)
+    public static let statusGreen = success
+    public static let statusAmber = warning
+    public static let statusRed = destructive
+    public static let statusBlue = accent
+    public static let divider = border
+    public static let borderMuted = Color(hex: "1F1F1F") ?? Color.gray.opacity(0.2)
+    public static let zinc900 = Color(hex: "18181B") ?? Color(.systemGray6)
     public static let zinc800 = Color(hex: "27272A") ?? Color(.systemGray5)
     public static let zinc700 = Color(hex: "3F3F46") ?? Color(.systemGray4)
     public static let zinc600 = Color(hex: "52525B") ?? Color(.systemGray3)

@@ -80,7 +80,7 @@ struct RequestTransferView: View {
                             Text("REQUEST PROPERTY")
                                 .font(AppFonts.title)
                                 .foregroundColor(AppColors.primaryText)
-                                .tracking(AppFonts.militaryTracking)
+                                .compatibleKerning(AppFonts.militaryTracking)
                             
                             Text("Enter the serial number of the property you want to request from your network")
                                 .font(AppFonts.body)
@@ -96,7 +96,7 @@ struct RequestTransferView: View {
                                 Text("SERIAL NUMBER")
                                     .font(AppFonts.captionBold)
                                     .foregroundColor(AppColors.tertiaryText)
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                                 
                                 TextField("Enter serial number", text: $serialNumber)
                                     .textInputAutocapitalization(.characters)
@@ -118,7 +118,7 @@ struct RequestTransferView: View {
                                 Text("REQUEST NOTES (OPTIONAL)")
                                     .font(AppFonts.captionBold)
                                     .foregroundColor(AppColors.tertiaryText)
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                                 
                                 ZStack(alignment: .topLeading) {
                                     TextEditor(text: $notes)
@@ -162,7 +162,7 @@ struct RequestTransferView: View {
                                     Image(systemName: "magnifyingglass")
                                 }
                                 Text(isSearching ? "SEARCHING..." : "FIND PROPERTY")
-                                    .tracking(AppFonts.militaryTracking)
+                                    .compatibleKerning(AppFonts.militaryTracking)
                             }
                             .font(AppFonts.bodyBold)
                             .frame(maxWidth: .infinity)
@@ -190,7 +190,7 @@ struct RequestTransferView: View {
                                             Image(systemName: "arrow.right.circle.fill")
                                         }
                                         Text(isTransferring ? "SENDING REQUEST..." : "REQUEST TRANSFER")
-                                            .tracking(AppFonts.militaryTracking)
+                                            .compatibleKerning(AppFonts.militaryTracking)
                                     }
                                     .font(AppFonts.bodyBold)
                                     .frame(maxWidth: .infinity)
@@ -267,7 +267,7 @@ struct PropertyRequestCard: View {
                 Text("PROPERTY FOUND")
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.success)
-                    .tracking(AppFonts.militaryTracking)
+                    .compatibleKerning(AppFonts.militaryTracking)
                 Spacer()
             }
             .padding()
