@@ -7,12 +7,12 @@ struct DashboardView: View {
     @State private var currentUser: LoginResponse.User?
     @EnvironmentObject var authManager: AuthManager
     
-    // Navigation states
-    @State private var navigateToTransfers = false
-    @State private var navigateToProperties = false
+    // Navigation states - only for non-tab views
     @State private var navigateToMaintenance = false
     @State private var navigateToSensitiveItems = false
-    @State private var selectedTransferId: String?
+    
+    // Tab switching callback (passed from parent TabView)
+    var onTabSwitch: ((Int) -> Void)?
     
     // Real data from API
     @State private var totalProperties = 0
@@ -31,8 +31,9 @@ struct DashboardView: View {
     // Services
     private let apiService: APIServiceProtocol
     
-    init(apiService: APIServiceProtocol = APIService()) {
+    init(apiService: APIServiceProtocol = APIService(), onTabSwitch: ((Int) -> Void)? = nil) {
         self.apiService = apiService
+        self.onTabSwitch = onTabSwitch
     }
     
     var body: some View {
@@ -135,7 +136,7 @@ struct DashboardView: View {
                     icon: "shippingbox.fill",
                     color: AppColors.accent
                 ) {
-                    navigateToProperties = true
+                    onTabSwitch?(1) // Switch to Property tab (tag 1)
                 }
                 
                 ModernStatCard(
@@ -144,7 +145,7 @@ struct DashboardView: View {
                     icon: "arrow.left.arrow.right.circle.fill",
                     color: AppColors.warning
                 ) {
-                    navigateToTransfers = true
+                    onTabSwitch?(2) // Switch to Transfers tab (tag 2)
                 }
                 
                 ModernStatCard(
@@ -182,14 +183,14 @@ struct DashboardView: View {
                         icon: "arrow.left.arrow.right",
                         title: "TRANSFER",
                         color: AppColors.accent,
-                        action: { navigateToTransfers = true }
+                        action: { onTabSwitch?(2) } // Switch to Transfers tab
                     )
                     
                     QuickActionButton(
                         icon: "magnifyingglass",
                         title: "SEARCH",
                         color: AppColors.success,
-                        action: { navigateToProperties = true }
+                        action: { onTabSwitch?(1) } // Switch to Property tab
                     )
                     
                     QuickActionButton(
@@ -269,7 +270,7 @@ struct DashboardView: View {
             ModernSectionHeader(
                 title: "Recent Activity",
                 subtitle: "Latest transfers and updates",
-                action: { navigateToTransfers = true },
+                action: { onTabSwitch?(2) }, // Switch to Transfers tab
                 actionLabel: "View All"
             )
             
@@ -291,8 +292,7 @@ struct DashboardView: View {
                             icon: "arrow.left.arrow.right.circle.fill",
                             iconColor: AppColors.accent
                         ) {
-                            selectedTransferId = String(transfer.id)
-                            navigateToTransfers = true
+                            onTabSwitch?(2) // Switch to Transfers tab
                         }
                         
                         if index < min(2, recentTransfers.count - 1) {
@@ -340,16 +340,8 @@ struct DashboardView: View {
     
     private var navigationLinks: some View {
         Group {
-            NavigationLink(
-                destination: MyPropertiesView(),
-                isActive: $navigateToProperties
-            ) { EmptyView() }
-            
-            NavigationLink(
-                destination: TransfersView(),
-                isActive: $navigateToTransfers
-            ) { EmptyView() }
-            
+            // Only keep navigation links to views that are NOT tab views
+            // Remove TransfersView since it's a tab view - use tab switching instead
             NavigationLink(
                 destination: MaintenanceView(),
                 isActive: $navigateToMaintenance
@@ -705,7 +697,7 @@ class RelativeDateFormatter {
 struct DashboardView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            DashboardView()
+            DashboardView(onTabSwitch: nil)
         }
         .preferredColorScheme(.dark)
     }

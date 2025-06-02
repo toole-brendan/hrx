@@ -19,7 +19,9 @@ struct AuthenticatedTabView: View {
             TabView(selection: $selectedTab) {
                 // Dashboard Tab - NEW LANDING PAGE
                 NavigationView {
-                    DashboardView()
+                    DashboardView(onTabSwitch: { tabIndex in
+                        selectedTab = tabIndex
+                    })
                 }
                 .tag(0)
                 .tabItem {
