@@ -35,6 +35,15 @@ public struct Property: Identifiable, Decodable {
     public let importMetadata: ImportMetadata?
     public var verified: Bool = false
     public var verifiedAt: Date?
+    
+    // Component association fields
+    public let isAttachable: Bool?
+    public let attachmentPoints: [String]?
+    public let compatibleWith: [String]?
+    
+    // Component relationships
+    public let attachedComponents: [PropertyComponent]?
+    public let attachedTo: PropertyComponent?
 
     // Add other relevant fields: condition, value, calibration_due_date, etc.
 
@@ -62,6 +71,31 @@ public struct Property: Identifiable, Decodable {
     // Computed property to maintain compatibility with existing code expecting itemName
     var itemName: String {
         return name
+    }
+    
+    // Component-related computed properties
+    var canHaveComponents: Bool {
+        return isAttachable == true && !(attachmentPoints?.isEmpty ?? true)
+    }
+    
+    var isComponent: Bool {
+        return attachedTo != nil
+    }
+    
+    var availablePositions: [String] {
+        guard canHaveComponents else { return [] }
+        
+        let occupiedPositions = Set(attachedComponents?.compactMap { $0.position } ?? [])
+        return attachmentPoints?.filter { !occupiedPositions.contains($0) } ?? []
+    }
+    
+    func isCompatibleWith(_ parent: Property) -> Bool {
+        guard let compatibleWith = compatibleWith else { return true }
+        
+        return compatibleWith.contains { compatible in
+            parent.name.lowercased().contains(compatible.lowercased()) ||
+            parent.serialNumber.lowercased().contains(compatible.lowercased())
+        }
     }
 
     // Example CodingKeys if API names differ (e.g., serial_number)
@@ -114,7 +148,12 @@ public struct Property: Identifiable, Decodable {
         sourceType: nil,
         importMetadata: nil,
         verified: true,
-        verifiedAt: Date()
+        verifiedAt: Date(),
+        isAttachable: true,
+        attachmentPoints: ["rail_top", "rail_side", "barrel", "grip", "stock"],
+        compatibleWith: nil,
+        attachedComponents: [PropertyComponent.example],
+        attachedTo: nil
     )
 }
 
@@ -179,4 +218,66 @@ struct PropertyResponse: Decodable {
     var items: [Property] {
         return properties
     }
+}
+
+// MARK: - PropertyComponent Model
+
+// Represents an attachment relationship between properties
+public struct PropertyComponent: Identifiable, Decodable {
+    public let id: Int
+    public let parentPropertyId: Int
+    public let componentPropertyId: Int
+    public let attachedAt: Date
+    public let attachedByUserId: Int
+    public let notes: String?
+    public let attachmentType: String
+    public let position: String?
+    public let createdAt: Date
+    public let updatedAt: Date
+    
+    // Relationships
+    public let parentProperty: Property?
+    public let componentProperty: Property?
+    public let attachedByUser: User?
+    
+    // Custom initializer for example data
+    init(
+        id: Int,
+        parentPropertyId: Int,
+        componentPropertyId: Int,
+        attachedAt: Date = Date(),
+        attachedByUserId: Int,
+        notes: String? = nil,
+        attachmentType: String = "field",
+        position: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        parentProperty: Property? = nil,
+        componentProperty: Property? = nil,
+        attachedByUser: User? = nil
+    ) {
+        self.id = id
+        self.parentPropertyId = parentPropertyId
+        self.componentPropertyId = componentPropertyId
+        self.attachedAt = attachedAt
+        self.attachedByUserId = attachedByUserId
+        self.notes = notes
+        self.attachmentType = attachmentType
+        self.position = position
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.parentProperty = parentProperty
+        self.componentProperty = componentProperty
+        self.attachedByUser = attachedByUser
+    }
+    
+    // Example for previews
+    static let example = PropertyComponent(
+        id: 1,
+        parentPropertyId: 999,
+        componentPropertyId: 1001,
+        attachedByUserId: 101,
+        notes: "Attached for training exercise",
+        position: "rail_top"
+    )
 } 

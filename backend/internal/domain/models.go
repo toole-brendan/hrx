@@ -62,13 +62,40 @@ type Property struct {
 	Verified          bool       `json:"verified" gorm:"default:false"`                           // NEW: Whether item has been verified
 	VerifiedAt        *time.Time `json:"verifiedAt" gorm:"column:verified_at"`                    // NEW: When item was verified
 	VerifiedBy        *uint      `json:"verifiedBy" gorm:"column:verified_by"`                    // NEW: Who verified the item
-	CreatedAt         time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt         time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+
+	// Component association fields
+	IsAttachable     bool    `json:"isAttachable" gorm:"column:is_attachable;default:false"`
+	AttachmentPoints *string `json:"attachmentPoints" gorm:"column:attachment_points;type:jsonb"` // ["rail_top", "rail_side", "barrel"]
+	CompatibleWith   *string `json:"compatibleWith" gorm:"column:compatible_with;type:jsonb"`     // ["M4", "M16", "AR15"]
+
+	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
 
 	// Relationships
-	PropertyModel  *PropertyModel `json:"propertyModel,omitempty" gorm:"foreignKey:PropertyModelID"`
-	AssignedToUser *User          `json:"assignedToUser,omitempty" gorm:"foreignKey:AssignedToUserID"`
-	VerifiedByUser *User          `json:"verifiedByUser,omitempty" gorm:"foreignKey:VerifiedBy"` // NEW
+	PropertyModel      *PropertyModel      `json:"propertyModel,omitempty" gorm:"foreignKey:PropertyModelID"`
+	AssignedToUser     *User               `json:"assignedToUser,omitempty" gorm:"foreignKey:AssignedToUserID"`
+	VerifiedByUser     *User               `json:"verifiedByUser,omitempty" gorm:"foreignKey:VerifiedBy"` // NEW
+	AttachedComponents []PropertyComponent `json:"attachedComponents,omitempty" gorm:"foreignKey:ParentPropertyID"`
+	AttachedTo         *PropertyComponent  `json:"attachedTo,omitempty" gorm:"foreignKey:ComponentPropertyID"`
+}
+
+// PropertyComponent represents an attachment relationship between properties
+type PropertyComponent struct {
+	ID                  uint      `json:"id" gorm:"primaryKey"`
+	ParentPropertyID    uint      `json:"parentPropertyId" gorm:"column:parent_property_id;not null"`
+	ComponentPropertyID uint      `json:"componentPropertyId" gorm:"column:component_property_id;not null;uniqueIndex"`
+	AttachedAt          time.Time `json:"attachedAt" gorm:"column:attached_at;not null;default:CURRENT_TIMESTAMP"`
+	AttachedByUserID    uint      `json:"attachedByUserId" gorm:"column:attached_by_user_id;not null"`
+	Notes               *string   `json:"notes"`
+	AttachmentType      string    `json:"attachmentType" gorm:"column:attachment_type;default:'field'"`
+	Position            *string   `json:"position"`
+	CreatedAt           time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt           time.Time `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+
+	// Relationships
+	ParentProperty    *Property `json:"parentProperty,omitempty" gorm:"foreignKey:ParentPropertyID"`
+	ComponentProperty *Property `json:"componentProperty,omitempty" gorm:"foreignKey:ComponentPropertyID"`
+	AttachedByUser    *User     `json:"attachedByUser,omitempty" gorm:"foreignKey:AttachedByUserID"`
 }
 
 // PropertyType represents a broad category of property (e.g., Weapon, Communication)

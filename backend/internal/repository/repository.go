@@ -54,5 +54,14 @@ type Repository interface {
 	UpdateTransferOffer(offer *domain.TransferOffer) error
 	MarkOfferViewed(offerID, userID uint) error
 
+	// Component association operations
+	AttachComponent(parentID, componentID, userID uint, position, notes string) (*domain.PropertyComponent, error)
+	DetachComponent(parentID, componentID uint) error
+	GetPropertyComponents(propertyID uint) ([]domain.PropertyComponent, error)
+	GetAvailableComponents(propertyID, userID uint) ([]domain.Property, error)
+	IsComponentAttached(componentID uint) (bool, error)
+	IsPositionOccupied(parentID uint, position string) (bool, error)
+	UpdateComponentPosition(parentID, componentID uint, position string) error
+
 	// Add other data access methods as required
 }

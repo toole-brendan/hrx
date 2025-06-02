@@ -57,6 +57,10 @@ export const properties = pgTable("properties", {
   lastSyncedAt: timestamp("last_synced_at"),
   clientId: text("client_id"),
   version: integer("version").default(1),
+  // Component association fields
+  isAttachable: boolean("is_attachable").default(false),
+  attachmentPoints: jsonb("attachment_points"), // ["rail_top", "rail_side", "barrel"]
+  compatibleWith: jsonb("compatible_with"), // ["M4", "M16", "AR15"]
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -267,3 +271,21 @@ export type InsertTransferOffer = typeof transferOffers.$inferInsert;
 
 export type TransferOfferRecipient = typeof transferOfferRecipients.$inferSelect;
 export type InsertTransferOfferRecipient = typeof transferOfferRecipients.$inferInsert;
+
+// Property Component Types
+export type PropertyComponent = typeof propertyComponents.$inferSelect;
+export type InsertPropertyComponent = typeof propertyComponents.$inferInsert;
+
+// Property Components Table - For component associations
+export const propertyComponents = pgTable("property_components", {
+  id: serial("id").primaryKey(),
+  parentPropertyId: integer("parent_property_id").references(() => properties.id, { onDelete: "cascade" }).notNull(),
+  componentPropertyId: integer("component_property_id").references(() => properties.id, { onDelete: "cascade" }).notNull().unique(), // Ensure component can only be attached to one parent
+  attachedAt: timestamp("attached_at").defaultNow().notNull(),
+  attachedByUserId: integer("attached_by_user_id").references(() => users.id).notNull(),
+  notes: text("notes"),
+  attachmentType: text("attachment_type").default("field"), // 'permanent', 'temporary', 'field'
+  position: text("position"), // 'rail_top', 'rail_side', 'barrel', etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

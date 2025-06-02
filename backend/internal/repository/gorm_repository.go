@@ -329,3 +329,95 @@ func (r *gormRepository) MarkOfferViewed(offerID, userID uint) error {
 		Where("transfer_offer_id = ? AND recipient_user_id = ?", offerID, userID).
 		Update("viewed_at", now).Error
 }
+
+// --- Component Association Operations ---
+
+// AttachComponent creates a new component attachment
+func (r *gormRepository) AttachComponent(parentID, componentID, userID uint, position, notes string) (*domain.PropertyComponent, error) {
+	attachment := &domain.PropertyComponent{
+		ParentPropertyID:    parentID,
+		ComponentPropertyID: componentID,
+		AttachedByUserID:    userID,
+		Position:            &position,
+		Notes:               &notes,
+		AttachmentType:      "field",
+		AttachedAt:          time.Now(),
+	}
+
+	err := r.db.Create(attachment).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the attachment with relationships
+	err = r.db.Preload("ComponentProperty").
+		Preload("AttachedByUser").
+		First(attachment, attachment.ID).Error
+
+	return attachment, err
+}
+
+// DetachComponent removes a component attachment
+func (r *gormRepository) DetachComponent(parentID, componentID uint) error {
+	return r.db.Where("parent_property_id = ? AND component_property_id = ?", parentID, componentID).
+		Delete(&domain.PropertyComponent{}).Error
+}
+
+// GetPropertyComponents retrieves all components attached to a property
+func (r *gormRepository) GetPropertyComponents(propertyID uint) ([]domain.PropertyComponent, error) {
+	var components []domain.PropertyComponent
+	err := r.db.Where("parent_property_id = ?", propertyID).
+		Preload("ComponentProperty").
+		Preload("AttachedByUser").
+		Find(&components).Error
+	return components, err
+}
+
+// GetAvailableComponents retrieves components that can be attached to a property
+func (r *gormRepository) GetAvailableComponents(propertyID, userID uint) ([]domain.Property, error) {
+	// Get the parent property first to check compatibility
+	var parentProperty domain.Property
+	if err := r.db.First(&parentProperty, propertyID).Error; err != nil {
+		return nil, err
+	}
+
+	var components []domain.Property
+	query := r.db.Where("assigned_to_user_id = ?", userID).
+		Where("id != ?", propertyID).                                              // Exclude the parent property itself
+		Where("id NOT IN (SELECT component_property_id FROM property_components)") // Exclude already attached components
+
+	// Add compatibility filter if the parent has compatibility requirements
+	// This is a simplified version - you may want to implement more sophisticated matching
+	if parentProperty.CompatibleWith != nil && *parentProperty.CompatibleWith != "" {
+		// For now, we'll include all available components
+		// TODO: Implement proper JSON compatibility matching
+	}
+
+	err := query.Find(&components).Error
+	return components, err
+}
+
+// IsComponentAttached checks if a component is already attached to something
+func (r *gormRepository) IsComponentAttached(componentID uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.PropertyComponent{}).
+		Where("component_property_id = ?", componentID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// IsPositionOccupied checks if a position is already occupied on a parent property
+func (r *gormRepository) IsPositionOccupied(parentID uint, position string) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.PropertyComponent{}).
+		Where("parent_property_id = ? AND position = ?", parentID, position).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// UpdateComponentPosition updates the position of a component attachment
+func (r *gormRepository) UpdateComponentPosition(parentID, componentID uint, position string) error {
+	return r.db.Model(&domain.PropertyComponent{}).
+		Where("parent_property_id = ? AND component_property_id = ?", parentID, componentID).
+		Update("position", position).Error
+}

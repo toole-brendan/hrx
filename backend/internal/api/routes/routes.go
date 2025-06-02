@@ -9,6 +9,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
@@ -44,6 +45,10 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	pdfGenerator := pdf.NewDA2062Generator(repo)
 	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
 	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService)
+
+	// Add component service and handler
+	componentService := services.NewComponentService(repo)
+	componentHandler := handlers.NewComponentHandler(componentService)
 
 	// Add NSN handler
 	logger := logrus.New()
@@ -85,6 +90,13 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			property.GET("/:id", propertyHandler.GetProperty)
 			property.PATCH("/:id/status", propertyHandler.UpdatePropertyStatus)
 			property.POST("/:id/verify", propertyHandler.VerifyProperty)
+
+			// Component association routes
+			property.GET("/:id/components", componentHandler.GetPropertyComponents)
+			property.POST("/:id/components", componentHandler.AttachComponent)
+			property.DELETE("/:id/components/:componentId", componentHandler.DetachComponent)
+			property.GET("/:id/available-components", componentHandler.GetAvailableComponents)
+			property.PUT("/:id/components/:componentId/position", componentHandler.UpdateComponentPosition)
 		}
 
 		// Transfer routes

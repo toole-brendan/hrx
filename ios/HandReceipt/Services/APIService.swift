@@ -110,6 +110,13 @@ public protocol APIServiceProtocol {
     // MARK: - Ledger/Verification Endpoints
     func verifyDatabaseLedger() async throws -> LedgerVerification
     func getLedgerHistory(limit: Int?, offset: Int?) async throws -> [LedgerEntry]
+    
+    // MARK: - Component Association Endpoints
+    func getPropertyComponents(propertyId: Int) async throws -> [PropertyComponent]
+    func attachComponent(propertyId: Int, componentId: Int, position: String?, notes: String?) async throws -> PropertyComponent
+    func detachComponent(propertyId: Int, componentId: Int) async throws
+    func getAvailableComponents(propertyId: Int) async throws -> [Property]
+    func updateComponentPosition(propertyId: Int, componentId: Int, position: String) async throws
 }
 
 // Debug print function to avoid cluttering 
@@ -949,6 +956,87 @@ public class APIService: APIServiceProtocol {
         debugPrint("Successfully fetched \(response.entries.count) ledger entries")
         return response.entries
     }
+    
+    // MARK: - Component Association Endpoints
+    
+    public func getPropertyComponents(propertyId: Int) async throws -> [PropertyComponent] {
+        debugPrint("Fetching components for property: \(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)/components")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as ComponentsResponse
+        debugPrint("Successfully fetched \(response.components.count) components")
+        return response.components
+    }
+    
+    public func attachComponent(propertyId: Int, componentId: Int, position: String?, notes: String?) async throws -> PropertyComponent {
+        debugPrint("Attaching component \(componentId) to property \(propertyId) at position: \(position ?? "unspecified")")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)/components")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody = AttachComponentRequest(
+            componentId: componentId,
+            position: position,
+            notes: notes
+        )
+        
+        do {
+            request.httpBody = try encoder.encode(requestBody)
+            debugPrint("Successfully encoded attach component request")
+        } catch {
+            debugPrint("ERROR: Failed to encode attach request: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let response = try await performRequest(request: request) as AttachmentResponse
+        debugPrint("Successfully attached component: \(response.attachment.id)")
+        return response.attachment
+    }
+    
+    public func detachComponent(propertyId: Int, componentId: Int) async throws {
+        debugPrint("Detaching component \(componentId) from property \(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)/components/\(componentId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "DELETE"
+        
+        let _: EmptyResponse = try await performRequest(request: request)
+        debugPrint("Successfully detached component")
+    }
+    
+    public func getAvailableComponents(propertyId: Int) async throws -> [Property] {
+        debugPrint("Fetching available components for property: \(propertyId)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)/available-components")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as AvailableComponentsResponse
+        debugPrint("Successfully fetched \(response.availableComponents.count) available components")
+        return response.availableComponents
+    }
+    
+    public func updateComponentPosition(propertyId: Int, componentId: Int, position: String) async throws {
+        debugPrint("Updating component \(componentId) position to: \(position)")
+        let endpoint = baseURL.appendingPathComponent("/api/property/\(propertyId)/components/\(componentId)/position")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody = UpdatePositionRequest(position: position)
+        
+        do {
+            request.httpBody = try encoder.encode(requestBody)
+            debugPrint("Successfully encoded position update request")
+        } catch {
+            debugPrint("ERROR: Failed to encode position update: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let _: EmptyResponse = try await performRequest(request: request)
+        debugPrint("Successfully updated component position")
+    }
 
     // --- Transfer Functions (Async/Await) ---
     
@@ -1448,6 +1536,39 @@ public struct ConnectionsResponse: Decodable {
 
 public struct UsersResponse: Decodable {
     public let users: [UserSummary]
+}
+
+// Component association request/response models
+public struct AttachComponentRequest: Codable {
+    public let componentId: Int
+    public let position: String?
+    public let notes: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case componentId = "component_id"
+        case position
+        case notes
+    }
+}
+
+public struct ComponentsResponse: Decodable {
+    public let components: [PropertyComponent]
+}
+
+public struct AttachmentResponse: Decodable {
+    public let attachment: PropertyComponent
+}
+
+public struct AvailableComponentsResponse: Decodable {
+    public let availableComponents: [Property]
+    
+    private enum CodingKeys: String, CodingKey {
+        case availableComponents = "available_components"
+    }
+}
+
+public struct UpdatePositionRequest: Codable {
+    public let position: String
 }
 
  
