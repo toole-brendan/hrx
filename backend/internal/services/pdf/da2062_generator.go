@@ -3,6 +3,7 @@ package pdf
 import (
 	"bytes"
 	"fmt"
+	"log"
 
 	"github.com/jung-kurt/gofpdf"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
@@ -88,6 +89,9 @@ func (g *DA2062Generator) GenerateDA2062(
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate PDF: %w", err)
 	}
+
+	// Validate against official template (non-blocking)
+	g.validateGeneratedPDF(options)
 
 	return &buf, nil
 }
@@ -280,5 +284,34 @@ func (g *DA2062Generator) addPageNumbers(pdf *gofpdf.Fpdf) {
 		pdf.SetPage(i)
 		pdf.SetXY(190, 280)
 		pdf.CellFormat(0, 5, fmt.Sprintf("Page %d of %d", i, totalPages), "0", 0, "R", false, 0, "")
+	}
+}
+
+// validateGeneratedPDF performs template compliance validation (non-blocking)
+func (g *DA2062Generator) validateGeneratedPDF(options GenerateOptions) {
+	validator, err := NewDA2062Validator()
+	if err != nil {
+		log.Printf("WARNING: Failed to create DA2062 validator: %v", err)
+		return
+	}
+
+	report := validator.ValidateCompliance(options)
+
+	if !report.IsCompliant {
+		log.Printf("WARNING: Generated DA2062 PDF has %d compliance errors", len(report.Errors))
+		for _, err := range report.Errors {
+			log.Printf("  - %s: %s", err.Element, err.Description)
+		}
+	}
+
+	if len(report.Warnings) > 0 {
+		log.Printf("INFO: Generated DA2062 PDF has %d compliance warnings", len(report.Warnings))
+		for _, warning := range report.Warnings {
+			log.Printf("  - %s: %s", warning.Element, warning.Description)
+		}
+	}
+
+	if report.IsCompliant && len(report.Warnings) == 0 {
+		log.Printf("INFO: Generated DA2062 PDF is fully compliant with template %s", report.TemplateVersion)
 	}
 }

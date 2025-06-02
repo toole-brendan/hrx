@@ -529,8 +529,10 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			return
 		}
 
-		// Log to ledger (TODO: implement LogDA2062Export method)
-		// h.Ledger.LogDA2062Export(userID, len(properties), "email", strings.Join(req.Recipients, ","))
+		// Log to ledger
+		if err := h.Ledger.LogDA2062Export(userID, len(properties), "email", strings.Join(req.Recipients, ",")); err != nil {
+			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "DA 2062 emailed successfully",
@@ -542,8 +544,10 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		// Return PDF for download
 		filename := fmt.Sprintf("DA2062_%s.pdf", time.Now().Format("20060102_150405"))
 
-		// Log to ledger (TODO: implement LogDA2062Export method)
-		// h.Ledger.LogDA2062Export(userID, len(properties), "download", "")
+		// Log to ledger
+		if err := h.Ledger.LogDA2062Export(userID, len(properties), "download", ""); err != nil {
+			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
+		}
 
 		c.Header("Content-Type", "application/pdf")
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))

@@ -24,6 +24,9 @@ type LedgerService interface {
 	// LogMaintenanceEvent logs a maintenance event for a property.
 	LogMaintenanceEvent(maintenanceRecordID string, propertyID uint, initiatingUserID uint, performingUserID sql.NullInt64, eventType string, maintenanceType sql.NullString, description string) error
 
+	// LogDA2062Export logs a DA Form 2062 export event.
+	LogDA2062Export(userID uint, propertyCount int, exportType string, recipients string) error
+
 	// LogCorrectionEvent logs a correction event referencing a previous ledger event.
 	LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error
 

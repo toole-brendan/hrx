@@ -140,6 +140,23 @@ func (s *ImmuDBLedgerService) LogMaintenanceEvent(maintenanceRecordID string, it
 	return s.storeEvent(fmt.Sprintf("maintenance_%s_%d", maintenanceRecordID, time.Now().Unix()), event)
 }
 
+// LogDA2062Export logs a DA Form 2062 export event to ImmuDB
+func (s *ImmuDBLedgerService) LogDA2062Export(userID uint, propertyCount int, exportType string, recipients string) error {
+	event := map[string]interface{}{
+		"event_type":     "DA2062Export",
+		"user_id":        userID,
+		"property_count": propertyCount,
+		"export_type":    exportType,
+		"timestamp":      time.Now().UTC(),
+	}
+
+	if recipients != "" {
+		event["recipients"] = recipients
+	}
+
+	return s.storeEvent(fmt.Sprintf("da2062_export_%d_%d", userID, time.Now().Unix()), event)
+}
+
 // LogCorrectionEvent logs a correction event to ImmuDB
 func (s *ImmuDBLedgerService) LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error {
 	event := map[string]interface{}{

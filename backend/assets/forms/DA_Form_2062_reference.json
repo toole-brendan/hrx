@@ -1,0 +1,189 @@
+{
+  "form_name": "DA FORM 2062",
+  "version": "JAN 1982",
+  "page_size": "letter",
+  "dimensions": {
+    "width": 215.9,
+    "height": 279.4
+  },
+  "margins": {
+    "top": 10,
+    "bottom": 10,
+    "left": 10,
+    "right": 10
+  },
+  "sections": {
+    "header": {
+      "title": {
+        "text": "HAND RECEIPT/ANNEX NUMBER",
+        "x": 10,
+        "y": 10,
+        "font": "Arial-Bold",
+        "size": 10
+      },
+      "form_number": {
+        "text": "DA FORM 2062, JAN 1982",
+        "x": 170,
+        "y": 10,
+        "width": 30,
+        "height": 10,
+        "font": "Arial",
+        "size": 8
+      }
+    },
+    "from_to_section": {
+      "y": 30,
+      "height": 15,
+      "from_label": {
+        "x": 10,
+        "text": "FROM:"
+      },
+      "from_field": {
+        "x": 30,
+        "width": 60
+      },
+      "to_label": {
+        "x": 100,
+        "text": "TO:"
+      },
+      "to_field": {
+        "x": 115,
+        "width": 60
+      }
+    },
+    "unit_info": {
+      "y": 45,
+      "height": 10,
+      "unit_label": {
+        "x": 10,
+        "text": "UNIT, INSTALLATION AND LOCATION:"
+      },
+      "unit_field": {
+        "x": 70,
+        "width": 120
+      }
+    },
+    "table": {
+      "start_y": 60,
+      "header_height": 12,
+      "row_height": 8,
+      "columns": {
+        "stock_number": {
+          "header": "STOCK NO.",
+          "x": 0,
+          "width": 50
+        },
+        "item_description": {
+          "header": "ITEM DESCRIPTION",
+          "x": 50,
+          "width": 70
+        },
+        "sec": {
+          "header": "SEC",
+          "x": 120,
+          "width": 10
+        },
+        "ui": {
+          "header": "U/I",
+          "x": 130,
+          "width": 10
+        },
+        "qty_auth": {
+          "header": "QTY AUTH",
+          "x": 140,
+          "width": 15
+        },
+        "quantity_a": {
+          "header": "A",
+          "x": 155,
+          "width": 6.67
+        },
+        "quantity_b": {
+          "header": "B",
+          "x": 161.67,
+          "width": 6.67
+        },
+        "quantity_c": {
+          "header": "C",
+          "x": 168.34,
+          "width": 6.67
+        },
+        "quantity_d": {
+          "header": "D",
+          "x": 175.01,
+          "width": 6.67
+        },
+        "quantity_e": {
+          "header": "E",
+          "x": 181.68,
+          "width": 6.67
+        },
+        "quantity_f": {
+          "header": "F",
+          "x": 188.35,
+          "width": 6.67
+        }
+      }
+    },
+    "signature_section": {
+      "y": 220,
+      "height": 40,
+      "signatures": [
+        {
+          "label": "SIGNATURE OF HAND RECEIPT HOLDER",
+          "x": 10,
+          "y": 220,
+          "width": 85,
+          "height": 15
+        },
+        {
+          "label": "PRINTED NAME OF HAND RECEIPT HOLDER",
+          "x": 10,
+          "y": 235,
+          "width": 85,
+          "height": 15
+        },
+        {
+          "label": "SIGNATURE OF COMPANY COMMANDER OR AUTHORIZED REPRESENTATIVE",
+          "x": 105,
+          "y": 220,
+          "width": 90,
+          "height": 15
+        },
+        {
+          "label": "PRINTED NAME AND TITLE",
+          "x": 105,
+          "y": 235,
+          "width": 90,
+          "height": 15
+        }
+      ]
+    },
+    "page_number": {
+      "x": 180,
+      "y": 265,
+      "text": "PAGE ___ OF ___"
+    }
+  },
+  "fonts": {
+    "default": "Arial",
+    "header": "Arial-Bold",
+    "sizes": {
+      "title": 10,
+      "subtitle": 9,
+      "normal": 8,
+      "small": 7
+    }
+  },
+  "validation_rules": {
+    "required_text": [
+      "HAND RECEIPT/ANNEX NUMBER",
+      "DA FORM 2062, JAN 1982",
+      "STOCK NO.",
+      "ITEM DESCRIPTION",
+      "SIGNATURE OF HAND RECEIPT HOLDER"
+    ],
+    "minimum_rows": 1,
+    "maximum_rows": 20
+  }
+} 

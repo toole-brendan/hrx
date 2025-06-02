@@ -243,6 +243,44 @@ func (s *AzureSqlLedgerService) LogMaintenanceEvent(maintenanceRecordID string, 
 	return nil
 }
 
+// LogDA2062Export logs a DA Form 2062 export event to the Azure SQL Ledger.
+func (s *AzureSqlLedgerService) LogDA2062Export(userID uint, propertyCount int, exportType string, recipients string) error {
+	ctx := context.Background()
+	log.Printf("AzureSqlLedgerService: Logging DA2062 Export Event - UserID: %d, PropertyCount: %d, Type: %s", userID, propertyCount, exportType)
+
+	// Validate exportType against allowed values
+	allowedTypes := map[string]bool{"email": true, "download": true}
+	if !allowedTypes[exportType] {
+		return fmt.Errorf("invalid exportType '%s' for DA2062 export", exportType)
+	}
+
+	// Handle optional recipients (only relevant for email exports)
+	recipientsDB := sql.NullString{}
+	if recipients != "" {
+		recipientsDB.String = recipients
+		recipientsDB.Valid = true
+	}
+
+	// Insert into DA2062ExportEvents table (assumes this table exists in the schema)
+	// If the table doesn't exist, this will fail - consider adding table creation logic or using EquipmentEvents table instead
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO HandReceipt.DA2062ExportEvents (ExportingUserID, PropertyCount, ExportType, Recipients, ExportTimestamp)
+		 VALUES (@p1, @p2, @p3, @p4, SYSUTCDATETIME())`,
+		userID,
+		propertyCount,
+		exportType,
+		recipientsDB,
+	)
+
+	if err != nil {
+		log.Printf("Error logging DA2062 Export event to Azure SQL Ledger: %v", err)
+		return fmt.Errorf("failed to log DA2062 Export event: %w", err)
+	}
+
+	log.Printf("Successfully logged DA2062 Export Event - UserID: %d, Type: %s, PropertyCount: %d", userID, exportType, propertyCount)
+	return nil
+}
+
 // LogCorrectionEvent logs a correction event referencing a previous ledger event.
 // NOTE: How corrections are handled in Azure SQL Ledger needs a defined strategy.
 // Common approaches include:
