@@ -1,0 +1,6 @@
+# Ignore extracted PUB LOG data files
+data/
+*.txt
+
+# But keep the README
+!README.md 

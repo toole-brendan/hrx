@@ -95,6 +95,7 @@ type NSNConfig struct {
 	TimeoutSeconds int           `mapstructure:"timeout_seconds"`
 	RetryAttempts  int           `mapstructure:"retry_attempts"`
 	BulkBatchSize  int           `mapstructure:"bulk_batch_size"`
+	PubLogDataDir  string        `mapstructure:"publog_data_dir"`
 }
 
 // RedisConfig holds Redis configuration

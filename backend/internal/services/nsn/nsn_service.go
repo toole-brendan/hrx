@@ -15,17 +15,20 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/toole-brendan/handreceipt-go/internal/config"
 	"github.com/toole-brendan/handreceipt-go/internal/models"
+	"github.com/toole-brendan/handreceipt-go/internal/publog"
+	publogModels "github.com/toole-brendan/handreceipt-go/internal/publog/models"
 	"gorm.io/gorm"
 )
 
 // NSNService provides NSN/LIN lookup functionality
 type NSNService struct {
-	config      *config.NSNConfig
-	cache       *cache.Cache
-	db          *gorm.DB
-	logger      *logrus.Logger
-	client      *http.Client
-	rateLimiter chan struct{}
+	config        *config.NSNConfig
+	cache         *cache.Cache
+	db            *gorm.DB
+	logger        *logrus.Logger
+	client        *http.Client
+	rateLimiter   chan struct{}
+	publogService *publog.Service // Add publog service
 }
 
 // NSNRecord represents a National Stock Number record
@@ -170,13 +173,17 @@ func NewNSNService(config *config.NSNConfig, db *gorm.DB, logger *logrus.Logger)
 		}
 	}()
 
+	// Initialize publog service with logger
+	publogService := publog.NewServiceWithLogger(logger)
+
 	return &NSNService{
-		config:      config,
-		cache:       cacheInstance,
-		db:          db,
-		logger:      logger,
-		client:      client,
-		rateLimiter: rateLimiter,
+		config:        config,
+		cache:         cacheInstance,
+		db:            db,
+		logger:        logger,
+		client:        client,
+		rateLimiter:   rateLimiter,
+		publogService: publogService,
 	}
 }
 
@@ -185,6 +192,22 @@ func (s *NSNService) Initialize() error {
 	// Auto-migrate the NSN records table
 	if err := s.db.AutoMigrate(&NSNRecord{}); err != nil {
 		return fmt.Errorf("failed to migrate NSN records table: %w", err)
+	}
+
+	// Load publog data if directory is configured
+	if publogDir := s.config.PubLogDataDir; publogDir != "" {
+		s.logger.WithField("directory", publogDir).Info("Loading PUB LOG data")
+		if err := s.publogService.LoadDataFromDirectory(publogDir); err != nil {
+			s.logger.WithError(err).Warn("Failed to load PUB LOG data")
+			// Don't fail initialization, continue without publog data
+		} else {
+			stats := s.publogService.GetStats()
+			s.logger.WithFields(logrus.Fields{
+				"nsn_items":      stats["nsn_items"],
+				"part_numbers":   stats["part_numbers"],
+				"cage_addresses": stats["cage_addresses"],
+			}).Info("PUB LOG data loaded successfully")
+		}
 	}
 
 	s.logger.Info("NSN service initialized successfully")
@@ -446,6 +469,21 @@ func (s *NSNService) LookupNSN(ctx context.Context, nsn string) (*NSNDetails, er
 			s.logger.WithField("nsn", nsn).Debug("NSN found in cache")
 			details := cached.(NSNDetails)
 			return &details, nil
+		}
+	}
+
+	// Check publog data first
+	if s.publogService != nil {
+		if publogResult, err := s.publogService.SearchNSN(nsn); err == nil {
+			details := s.convertFromPublog(publogResult)
+
+			// Update cache
+			if s.config.CacheEnabled && s.cache != nil {
+				s.cache.Set(nsn, details, cache.DefaultExpiration)
+			}
+
+			s.logger.WithField("nsn", nsn).Debug("NSN found in PUB LOG data")
+			return details, nil
 		}
 	}
 
@@ -793,4 +831,55 @@ func (s *NSNService) GetCacheStats() map[string]interface{} {
 		"cache_hits":   "not_tracked", // go-cache doesn't track hits by default
 		"cache_misses": "not_tracked",
 	}
+}
+
+// convertFromPublog converts publog search result to NSNDetails
+func (s *NSNService) convertFromPublog(result *publogModels.SearchResult) *NSNDetails {
+	if result == nil || result.NSNItem == nil {
+		return nil
+	}
+
+	details := &NSNDetails{
+		NSN:          result.NSNItem.NSN,
+		Nomenclature: result.NSNItem.ItemName,
+		FSC:          result.NSNItem.FSG,
+		NIIN:         result.NSNItem.NIIN,
+		UnitPrice:    result.NSNItem.UnitPrice,
+		LastUpdated:  result.NSNItem.LastModified,
+		Specs:        make(map[string]string),
+	}
+
+	// Add management data if available
+	if result.ManagementData != nil {
+		details.Specs["Lead Time"] = fmt.Sprintf("%d days", result.ManagementData.LeadTime)
+		details.Specs["Reorder Point"] = fmt.Sprintf("%d", result.ManagementData.ReorderPoint)
+		details.Specs["Source of Supply"] = result.ManagementData.SourceOfSupply
+	}
+
+	// Add MOE rule data if available
+	if result.MOERule != nil {
+		details.Specs["Supply Code"] = result.MOERule.SupplyCode
+		details.Specs["Acquisition Code"] = result.MOERule.AcquisitionCode
+		details.Specs["Essentiality Code"] = result.MOERule.EssentialityCode
+	}
+
+	// Get manufacturer from first part number if available
+	if len(result.PartNumbers) > 0 {
+		details.PartNumber = result.PartNumbers[0].PartNumber
+		if result.CAGEInfo != nil && result.CAGEInfo.Address != nil {
+			details.Manufacturer = result.CAGEInfo.Address.CompanyName
+		}
+	}
+
+	// Add physical dimensions if available
+	if result.Characteristics != nil && result.Characteristics.PhysicalDimensions.Weight > 0 {
+		dims := result.Characteristics.PhysicalDimensions
+		details.Specs["Weight"] = fmt.Sprintf("%.2f %s", dims.Weight, dims.WeightUnit)
+		if dims.Length > 0 {
+			details.Specs["Dimensions"] = fmt.Sprintf("%.2fx%.2fx%.2f %s",
+				dims.Length, dims.Width, dims.Height, dims.LengthUnit)
+		}
+	}
+
+	return details
 }
