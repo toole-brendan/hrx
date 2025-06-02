@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -196,10 +198,35 @@ func (s *NSNService) Initialize() error {
 
 	// Load publog data if directory is configured
 	if publogDir := s.config.PubLogDataDir; publogDir != "" {
+		// If the path is not absolute, make it relative to the current working directory
+		if !filepath.IsAbs(publogDir) {
+			// Try to find the directory relative to common locations
+			possiblePaths := []string{
+				publogDir,                           // As configured
+				filepath.Join("backend", publogDir), // From repo root
+				filepath.Join("..", publogDir),      // From backend directory
+				filepath.Join(".", publogDir),       // Current directory
+			}
+
+			foundPath := ""
+			for _, path := range possiblePaths {
+				if _, err := os.Stat(path); err == nil {
+					foundPath = path
+					break
+				}
+			}
+
+			if foundPath != "" {
+				publogDir = foundPath
+			}
+		}
+
 		s.logger.WithField("directory", publogDir).Info("Loading PUB LOG data")
 		if err := s.publogService.LoadDataFromDirectory(publogDir); err != nil {
-			s.logger.WithError(err).Warn("Failed to load PUB LOG data")
+			s.logger.WithError(err).WithField("directory", publogDir).Warn("Failed to load PUB LOG data - NSN searches will use database only")
 			// Don't fail initialization, continue without publog data
+			// Set publogService to nil to indicate it's not available
+			s.publogService = nil
 		} else {
 			stats := s.publogService.GetStats()
 			s.logger.WithFields(logrus.Fields{
@@ -208,6 +235,9 @@ func (s *NSNService) Initialize() error {
 				"cage_addresses": stats["cage_addresses"],
 			}).Info("PUB LOG data loaded successfully")
 		}
+	} else {
+		s.logger.Info("No PUB LOG data directory configured")
+		s.publogService = nil
 	}
 
 	s.logger.Info("NSN service initialized successfully")
@@ -891,10 +921,16 @@ func (s *NSNService) UniversalSearch(ctx context.Context, query string, limit in
 		limit = 20
 	}
 
+	// Log the search query
+	s.logger.WithField("query", query).WithField("limit", limit).Debug("Performing universal search")
+
 	// Try publog universal search first if available
 	if s.publogService != nil {
 		publogResults, err := s.publogService.Search(query)
-		if err == nil && len(publogResults) > 0 {
+		if err != nil {
+			// Log the error but don't fail - fall back to database search
+			s.logger.WithError(err).WithField("query", query).Warn("Publog search failed, falling back to database")
+		} else if len(publogResults) > 0 {
 			// Convert publog results to NSNDetails
 			results := make([]*NSNDetails, 0, len(publogResults))
 			for i, publogResult := range publogResults {
@@ -910,8 +946,11 @@ func (s *NSNService) UniversalSearch(ctx context.Context, query string, limit in
 				return results, nil
 			}
 		}
+	} else {
+		s.logger.Debug("Publog service not available, using database search")
 	}
 
 	// Fall back to database search
+	s.logger.WithField("query", query).Debug("Using database search")
 	return s.SearchNSN(ctx, query, limit)
 }

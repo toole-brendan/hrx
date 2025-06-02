@@ -173,11 +173,19 @@ func (s *Store) SearchByName(query string) ([]*models.SearchResult, error) {
 		return nil, fmt.Errorf("invalid search query")
 	}
 
+	// Check if we have any data loaded
+	if len(s.nsnItems) == 0 {
+		return nil, fmt.Errorf("no NSN data loaded")
+	}
+
 	// Find NSNs that match all search words
 	nsnCounts := make(map[string]int)
 	for _, word := range words {
-		for _, nsn := range s.nameIndex[word] {
-			nsnCounts[nsn]++
+		// Check if this word exists in our index
+		if nsns, exists := s.nameIndex[word]; exists {
+			for _, nsn := range nsns {
+				nsnCounts[nsn]++
+			}
 		}
 	}
 
@@ -189,6 +197,11 @@ func (s *Store) SearchByName(query string) ([]*models.SearchResult, error) {
 				results = append(results, s.buildSearchResult(nsn, item))
 			}
 		}
+	}
+
+	// If no results found, return empty slice instead of nil
+	if len(results) == 0 {
+		return []*models.SearchResult{}, nil
 	}
 
 	return results, nil
