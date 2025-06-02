@@ -308,7 +308,7 @@ struct DashboardView: View {
     private var equipmentStatusSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             ModernSectionHeader(
-                title: "Equipment Status",
+                title: "Property Status",
                 subtitle: "Operational readiness overview"
             )
             

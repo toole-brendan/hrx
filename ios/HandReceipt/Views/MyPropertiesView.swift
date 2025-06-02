@@ -54,7 +54,7 @@ struct MyPropertiesView: View {
                     
                     // Welcome section with modern header
                     ModernSectionHeader(
-                        title: "Manage Your Equipment",
+                        title: "Manage Your Property",
                         subtitle: "Track and maintain your assigned property"
                     )
                     

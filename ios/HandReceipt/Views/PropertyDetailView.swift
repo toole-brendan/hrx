@@ -261,7 +261,7 @@ struct PropertyDetailView: View {
     
     private func technicalDetailsCard(_ property: Property) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            ModernSectionHeader(title: "Technical Details", subtitle: "Equipment specifications and identifiers")
+            ModernSectionHeader(title: "Technical Details", subtitle: "Property specifications and identifiers")
             
             VStack(spacing: 12) {
                 TechnicalDataField(label: "NSN", value: property.nsn ?? "Not Available")

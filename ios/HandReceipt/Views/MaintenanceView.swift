@@ -238,7 +238,7 @@ struct MaintenanceView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(AppColors.secondaryText)
                 
-                TextField("Search equipment or maintenance...", text: $searchText)
+                TextField("Search property or maintenance...", text: $searchText)
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.primaryText)
                     .autocapitalization(.none)
@@ -592,7 +592,7 @@ struct MaintenanceItemCard: View {
                                 .cornerRadius(0)
                         }
                         
-                        // Equipment Info
+                        // Property Info
                         Text(property.itemName)
                             .font(AppFonts.headline)
                             .foregroundColor(AppColors.primaryText)
@@ -679,7 +679,7 @@ struct MaintenanceFormSheet: View {
                     if let property = property {
                         WebAlignedCard {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("EQUIPMENT")
+                                Text("PROPERTY")
                                     .font(AppFonts.caption)
                                     .foregroundColor(AppColors.secondaryText)
                                     .kerning(1.2)

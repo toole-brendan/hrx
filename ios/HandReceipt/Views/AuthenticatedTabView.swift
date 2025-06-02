@@ -185,19 +185,20 @@ struct MoreView: View {
     var body: some View {
         ZStack(alignment: .top) {
             // Main content
+            AppColors.appBackground.ignoresSafeArea()
+            
             ScrollView {
                 VStack(spacing: 24) {
                     // Spacer for header
                     Color.clear
                         .frame(height: 36)
                     
-                    // Equipment Management Section
+                    // Property Management Section
                     VStack(alignment: .leading, spacing: 0) {
-                        SectionHeader(title: "Equipment Management")
                         
-                        VStack(spacing: 0) {
+                        VStack(spacing: 12) {
                             // Reference Database
-                            MoreActionRow(
+                            ModernMoreActionRow(
                                 icon: "book.closed.fill",
                                 iconColor: .blue,
                                 title: "Reference Database",
@@ -205,11 +206,8 @@ struct MoreView: View {
                                 destination: AnyView(ReferenceDatabaseBrowserView())
                             )
                             
-                            Divider()
-                                .background(AppColors.border)
-                            
-                            // My Network - NEW
-                            MoreActionRow(
+                            // My Network
+                            ModernMoreActionRow(
                                 icon: "person.2.fill",
                                 iconColor: AppColors.accent,
                                 title: "My Network",
@@ -217,70 +215,46 @@ struct MoreView: View {
                                 destination: AnyView(ConnectionsView())
                             )
                             
-                            Divider()
-                                .background(AppColors.border)
-                            
                             // Sensitive Items
-                            MoreActionRow(
+                            ModernMoreActionRow(
                                 icon: "shield.fill",
                                 iconColor: AppColors.success,
                                 title: "Sensitive Items",
-                                subtitle: "Track high-value equipment",
+                                subtitle: "Track high-value property",
                                 destination: AnyView(SensitiveItemsView())
                             )
                             
-                            Divider()
-                                .background(AppColors.border)
-                            
                             // Maintenance
-                            MoreActionRow(
+                            ModernMoreActionRow(
                                 icon: "wrench.and.screwdriver.fill",
                                 iconColor: AppColors.warning,
                                 title: "Maintenance",
-                                subtitle: "Equipment maintenance tracking",
+                                subtitle: "Property maintenance tracking",
                                 destination: AnyView(MaintenanceView())
                             )
                         }
-                        .background(AppColors.secondaryBackground)
-                        .cornerRadius(0)
-                        .overlay(
-                            Rectangle()
-                                .stroke(AppColors.border, lineWidth: 1)
-                        )
                         .padding(.horizontal)
                     }
                     
                     // Settings Section
                     VStack(alignment: .leading, spacing: 0) {
-                        SectionHeader(title: "Settings")
+                        ModernSectionHeader(
+                            title: "Settings",
+                            subtitle: "App preferences and account management"
+                        )
                         
-                        VStack(spacing: 0) {
-                            // QR Management - Removed
-                            // MoreActionRow(
-                            //     icon: "qrcode",
-                            //     iconColor: .cyan,
-                            //     title: "QR Management",
-                            //     subtitle: "Generate and manage QR codes",
-                            //     destination: AnyView(QRManagementView())
-                            // )
-                            //
-                            // Divider()
-                            //     .background(AppColors.border)
-                            
+                        VStack(spacing: 12) {
                             // Settings
-                            MoreActionRow(
+                            ModernMoreActionRow(
                                 icon: "gear",
-                                iconColor: .gray,
+                                iconColor: AppColors.secondaryText,
                                 title: "Settings",
                                 subtitle: "App preferences and sync",
                                 destination: AnyView(SettingsView(authViewModel: authViewModel))
                             )
                             
-                            Divider()
-                                .background(AppColors.border)
-                            
                             // Profile
-                            MoreActionRow(
+                            ModernMoreActionRow(
                                 icon: "person.circle.fill",
                                 iconColor: AppColors.accent,
                                 title: "Profile",
@@ -288,12 +262,6 @@ struct MoreView: View {
                                 destination: AnyView(ProfileView(authViewModel: authViewModel))
                             )
                         }
-                        .background(AppColors.secondaryBackground)
-                        .cornerRadius(0)
-                        .overlay(
-                            Rectangle()
-                                .stroke(AppColors.border, lineWidth: 1)
-                        )
                         .padding(.horizontal)
                     }
                     
@@ -304,8 +272,8 @@ struct MoreView: View {
             }
             .background(AppColors.appBackground.ignoresSafeArea(.all))
             
-            // Top bar header
-            MoreHeaderSection()
+            // Header
+            UniversalHeaderView(title: "More", showBackButton: false)
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -319,86 +287,106 @@ struct ProfileView: View {
     var body: some View {
         ZStack(alignment: .top) {
             // Main content
+            AppColors.appBackground.ignoresSafeArea()
+            
             ScrollView {
                 VStack(spacing: 24) {
                     // Spacer for header
                     Color.clear
                         .frame(height: 36)
                     
-                    // User Profile Card
-                    WebAlignedCard {
-                        if let user = authViewModel.currentUser?.user {
-                            HStack(spacing: 16) {
-                                // Profile Picture
-                                ZStack {
-                                    Circle()
-                                        .fill(AppColors.accent)
-                                        .frame(width: 80, height: 80)
+                    // User Profile Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Profile Information",
+                            subtitle: "Your account details and information"
+                        )
+                        
+                        // User Profile Card
+                        VStack(spacing: 20) {
+                            if let user = authViewModel.currentUser?.user {
+                                HStack(spacing: 20) {
+                                    // Profile Picture
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppColors.accent)
+                                            .frame(width: 80, height: 80)
+                                        
+                                        Text(user.name.prefix(1).uppercased())
+                                            .font(AppFonts.largeTitleHeavy)
+                                            .foregroundColor(.black)
+                                    }
                                     
-                                    Text(user.name.prefix(1).uppercased())
-                                        .font(.largeTitle)
-                                        .foregroundColor(.white)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("\(user.rank) \(user.name)")
+                                            .font(AppFonts.title)
+                                            .foregroundColor(AppColors.primaryText)
+                                        
+                                        Text("@\(user.username)")
+                                            .font(AppFonts.bodyBold)
+                                            .foregroundColor(AppColors.accent)
+                                        
+                                        Text("ID: #\(user.id)")
+                                            .font(AppFonts.caption)
+                                            .foregroundColor(AppColors.tertiaryText)
+                                            .compatibleKerning(AppFonts.wideTracking)
+                                    }
+                                    
+                                    Spacer()
                                 }
-                                
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("\(user.rank) \(user.name)")
-                                        .font(AppFonts.headline)
-                                        .foregroundColor(AppColors.primaryText)
-                                    
-                                    Text("@\(user.username)")
-                                        .font(AppFonts.body)
-                                        .foregroundColor(AppColors.secondaryText)
-                                    
-                                    Text("ID: #\(user.id)")
-                                        .font(AppFonts.caption)
-                                        .foregroundColor(AppColors.tertiaryText)
-                                }
-                                
-                                Spacer()
                             }
-                            .padding()
                         }
+                        .modernCard()
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                     
                     // Account Details Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        SectionHeader(title: "Account Details")
+                    VStack(alignment: .leading, spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Account Details",
+                            subtitle: "Role and organizational information"
+                        )
                         
-                        WebAlignedCard {
-                            VStack(spacing: 0) {
-                                ProfileDetailRow(label: "Role", value: "Company Commander")
-                                Divider().background(AppColors.border)
-                                ProfileDetailRow(label: "Unit", value: "A Company, 1-502 INF")
-                                Divider().background(AppColors.border)
-                                ProfileDetailRow(label: "Member Since", value: "Jan 2023")
-                            }
+                        VStack(spacing: 12) {
+                            ModernProfileDetailRow(label: "Role", value: "Company Commander")
+                            ModernProfileDetailRow(label: "Unit", value: "A Company, 1-502 INF")
+                            ModernProfileDetailRow(label: "Member Since", value: "Jan 2023")
                         }
                         .padding(.horizontal)
                     }
                     
                     // Activity Statistics Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        SectionHeader(title: "Activity Statistics")
+                    VStack(alignment: .leading, spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Activity Statistics",
+                            subtitle: "Your property management activity"
+                        )
                         
-                        WebAlignedCard {
-                            VStack(spacing: 0) {
-                                ProfileDetailRow(label: "Total Items", value: "156")
-                                Divider().background(AppColors.border)
-                                ProfileDetailRow(label: "Transfers Completed", value: "47")
-                                Divider().background(AppColors.border)
-                                ProfileDetailRow(label: "Items Verified", value: "312")
-                            }
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 12) {
+                            ProfileStatCard(title: "Total Items", value: "156", icon: "cube.box.fill", color: AppColors.accent)
+                            ProfileStatCard(title: "Transfers", value: "47", icon: "arrow.left.arrow.right.circle.fill", color: AppColors.success)
+                            ProfileStatCard(title: "Verifications", value: "312", icon: "checkmark.shield.fill", color: AppColors.warning)
+                            ProfileStatCard(title: "Maintenance", value: "23", icon: "wrench.and.screwdriver.fill", color: AppColors.destructive)
                         }
                         .padding(.horizontal)
                     }
                     
-                    // Actions
-                    Button("Sign Out", role: .destructive) {
-                        authViewModel.logout()
+                    // Actions Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Account Actions",
+                            subtitle: "Manage your account settings"
+                        )
+                        
+                        Button("Sign Out", role: .destructive) {
+                            authViewModel.logout()
+                        }
+                        .buttonStyle(.destructive)
+                        .padding(.horizontal)
                     }
-                    .buttonStyle(.destructive)
-                    .padding(.horizontal)
                     
                     // Bottom spacer
                     Spacer()
@@ -408,38 +396,21 @@ struct ProfileView: View {
             .background(AppColors.appBackground.ignoresSafeArea(.all))
             
             // Header
-            ProfileHeaderSection()
+            UniversalHeaderView(
+                title: "Profile",
+                showBackButton: true,
+                backButtonAction: nil
+            )
         }
         .navigationTitle("")
         .navigationBarHidden(true)
     }
 }
 
-// MARK: - More Header Section
-struct MoreHeaderSection: View {
-    var body: some View {
-        ZStack {
-            // Background that extends to top of screen
-            AppColors.secondaryBackground
-                .ignoresSafeArea()
-            
-            // Content positioned at bottom of header
-            VStack {
-                Spacer()
-                Text("MORE")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppColors.primaryText)
-                    .compatibleKerning(1.2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 12)
-            }
-        }
-        .frame(height: 36)
-    }
-}
 
-// MARK: - More Action Row Component
-struct MoreActionRow: View {
+
+// MARK: - Modern More Action Row Component
+struct ModernMoreActionRow: View {
     let icon: String
     let iconColor: Color
     let title: String
@@ -451,13 +422,12 @@ struct MoreActionRow: View {
             HStack(spacing: 16) {
                 // Icon
                 ZStack {
-                    Rectangle()
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(iconColor.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                        .cornerRadius(0)
+                        .frame(width: 44, height: 44)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 18))
+                        .font(.system(size: 20, weight: .medium))
                         .foregroundColor(iconColor)
                 }
                 
@@ -476,83 +446,68 @@ struct MoreActionRow: View {
                 
                 // Chevron
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(AppColors.tertiaryText)
             }
             .padding()
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
+        .modernCard(isElevated: false)
     }
 }
 
-// MARK: - Profile Header Section
-struct ProfileHeaderSection: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        ZStack {
-            AppColors.secondaryBackground
-                .ignoresSafeArea()
-            
-            VStack {
-                Spacer()
-                HStack {
-                    // Back button
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .medium))
-                            Text("Back")
-                                .font(.system(size: 16, weight: .medium))
-                        }
-                        .foregroundColor(AppColors.accent)
-                    }
-                    
-                    Spacer()
-                    
-                    Text("PROFILE")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(AppColors.primaryText)
-                        .compatibleKerning(1.2)
-                    
-                    Spacer()
-                    
-                    // Invisible placeholder for balance
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Back")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .foregroundColor(.clear)
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 12)
-            }
-        }
-        .frame(height: 36)
-    }
-}
 
-// MARK: - Profile Detail Row Component
-struct ProfileDetailRow: View {
+
+// MARK: - Modern Profile Detail Row Component
+struct ModernProfileDetailRow: View {
     let label: String
     let value: String
     
     var body: some View {
         HStack {
-            Text(label)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
-            Spacer()
+            Text(label.uppercased())
+                .font(AppFonts.captionBold)
+                .foregroundColor(AppColors.tertiaryText)
+                .compatibleKerning(AppFonts.militaryTracking)
+                .frame(width: 120, alignment: .leading)
+            
             Text(value)
                 .font(AppFonts.bodyBold)
                 .foregroundColor(AppColors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
+        .modernCard(isElevated: false)
+    }
+}
+
+// MARK: - Profile Stat Card Component
+struct ProfileStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                Spacer()
+            }
+            
+            Text(value)
+                .font(AppFonts.largeTitleHeavy)
+                .foregroundColor(AppColors.primaryText)
+            
+            Text(title.uppercased())
+                .font(AppFonts.captionBold)
+                .foregroundColor(AppColors.secondaryText)
+                .compatibleKerning(AppFonts.wideTracking)
+        }
+        .modernCard()
     }
 }
 
