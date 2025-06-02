@@ -65,6 +65,7 @@ import {
   normalizeItemStatus 
 } from "@/lib/propertyUtils";
 import CreatePropertyDialog from "@/components/property/CreatePropertyDialog";
+import { SendMaintenanceForm } from "@/components/property/SendMaintenanceForm";
 
 interface PropertyBookProps {
   id?: string;
@@ -138,6 +139,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
+  const [maintenanceFormModalOpen, setMaintenanceFormModalOpen] = useState(false);
   
   const { toast } = useToast();
   
@@ -275,6 +277,12 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       description: "Recall workflow initiated for " + item.name
     });
   }, [toast]);
+
+  // Handler for sending maintenance form
+  const handleSendMaintenanceForm = useCallback((item: Property) => {
+    setSelectedItem(item);
+    setMaintenanceFormModalOpen(true);
+  }, []);
 
   // Handler for adding a component to an item
   const handleAddComponent = async (newComponentData: Omit<Component, 'id'>) => {
@@ -591,6 +599,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             onTransferRequest={handleTransferRequest}
             onViewDetails={handleViewDetails}
             onRecallItem={handleRecallItem}
+            onSendMaintenanceForm={handleSendMaintenanceForm}
             onRequestSort={handleRequestSort}
             isLoading={state.isLoading}
             error={state.error}
@@ -683,6 +692,24 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Maintenance Form Modal */}
+      {selectedItem && (
+        <SendMaintenanceForm
+          property={{
+            id: typeof selectedItem.id === 'string' ? parseInt(selectedItem.id) : selectedItem.id,
+            name: selectedItem.name,
+            serialNumber: selectedItem.serialNumber,
+            nsn: selectedItem.nsn,
+            location: selectedItem.location,
+          }}
+          open={maintenanceFormModalOpen}
+          onClose={() => {
+            setMaintenanceFormModalOpen(false);
+            setSelectedItem(null);
+          }}
+        />
       )}
     </PageWrapper>
   );

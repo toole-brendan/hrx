@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button';
 import { FileText, User, Calendar, Paperclip, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { getDocuments, markAsRead, Document } from '@/services/documentService';
+import { DocumentViewer } from './DocumentViewer';
 
 export const DocumentsInbox: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('inbox');
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -29,17 +32,8 @@ export const DocumentsInbox: React.FC = () => {
     if (doc.status === 'unread') {
       await markReadMutation.mutateAsync(doc.id);
     }
-    // TODO: Open document viewer modal
-    openDocumentViewer(doc);
-  };
-
-  const openDocumentViewer = (doc: Document) => {
-    // For now, show a simple alert with document details
-    // In a real implementation, you'd open a modal with formatted form data
-    const formData = JSON.parse(doc.formData);
-    const attachments = doc.attachments ? JSON.parse(doc.attachments) : [];
-    
-    alert(`Document: ${doc.title}\n\nFrom: ${doc.sender?.rank} ${doc.sender?.name}\n\nDescription: ${doc.description}\n\nForm Data: ${JSON.stringify(formData, null, 2)}\n\nAttachments: ${attachments.length} file(s)`);
+    setSelectedDocument(doc);
+    setViewerOpen(true);
   };
 
   if (isLoading) {
@@ -104,6 +98,18 @@ export const DocumentsInbox: React.FC = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Document Viewer */}
+      {selectedDocument && (
+        <DocumentViewer
+          document={selectedDocument}
+          open={viewerOpen}
+          onClose={() => {
+            setViewerOpen(false);
+            setSelectedDocument(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -37,7 +37,9 @@ export const SendMaintenanceForm: React.FC<SendMaintenanceFormProps> = ({
   const [description, setDescription] = useState('');
   const [faultDescription, setFaultDescription] = useState('');
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: connections } = useQuery({
@@ -60,6 +62,7 @@ export const SendMaintenanceForm: React.FC<SendMaintenanceFormProps> = ({
       setDescription('');
       setFaultDescription('');
       setAttachments([]);
+      setSelectedFiles([]);
       onClose();
     },
     onError: (error) => {
@@ -67,8 +70,19 @@ export const SendMaintenanceForm: React.FC<SendMaintenanceFormProps> = ({
     },
   });
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!recipientId || !description.trim()) return;
+
+    // Upload photos first if any are selected
+    let photoUrls: string[] = [];
+    if (selectedFiles.length > 0) {
+      try {
+        photoUrls = await uploadPhotos(selectedFiles);
+      } catch (error) {
+        alert('Failed to upload photos. Please try again.');
+        return;
+      }
+    }
 
     const formData: CreateMaintenanceFormRequest = {
       propertyId: property.id,
@@ -76,13 +90,34 @@ export const SendMaintenanceForm: React.FC<SendMaintenanceFormProps> = ({
       formType,
       description: description.trim(),
       faultDescription: faultDescription.trim() || undefined,
-      attachments: attachments.length > 0 ? attachments : undefined,
+      attachments: photoUrls.length > 0 ? photoUrls : undefined,
     };
 
     sendFormMutation.mutate(formData);
   };
 
   const connectedUsers = connections?.filter(c => c.connectionStatus === 'accepted') || [];
+
+  // Photo upload handlers
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Upload photos and get URLs
+  const uploadPhotos = async (files: File[]): Promise<string[]> => {
+    // For now, return mock URLs - in production you'd upload to your storage service
+    return files.map((file, index) => 
+      `https://storage.example.com/maintenance/${Date.now()}_${index}_${file.name}`
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -192,25 +227,59 @@ export const SendMaintenanceForm: React.FC<SendMaintenanceFormProps> = ({
           {/* Photo Attachment */}
           <div>
             <label className="text-sm font-medium mb-2 block">Photos (Optional)</label>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-20 border-dashed"
-              onClick={() => {
-                // TODO: Implement photo upload
-                alert('Photo upload functionality will be implemented');
-              }}
-            >
-              <div className="text-center">
-                <Camera className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                <div className="text-sm text-muted-foreground">Click to add photos</div>
-                {attachments.length > 0 && (
-                  <Badge variant="secondary" className="mt-2">
-                    {attachments.length} photo(s) attached
-                  </Badge>
-                )}
-              </div>
-            </Button>
+            <div className="space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-20 border-dashed"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="text-center">
+                  <Camera className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <div className="text-sm text-muted-foreground">Click to add photos</div>
+                  {selectedFiles.length > 0 && (
+                    <Badge variant="secondary" className="mt-2">
+                      {selectedFiles.length} photo(s) selected
+                    </Badge>
+                  )}
+                </div>
+              </Button>
+              
+              {/* Photo previews */}
+              {selectedFiles.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-20 object-cover rounded border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeFile(index)}
+                      >
+                        ×
+                      </Button>
+                      <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1 rounded">
+                        {file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Actions */}

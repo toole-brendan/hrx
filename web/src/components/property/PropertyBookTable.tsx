@@ -16,7 +16,8 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
-  Link2
+  Link2,
+  Wrench
 } from "lucide-react";
 import { DA2062ExportDialog } from "../da2062/DA2062ExportDialog";
 
@@ -42,6 +43,7 @@ type PropertyBookTableProps = {
   onTransferRequest: (item: Property) => void;
   onViewDetails: (item: Property) => void;
   onRecallItem: (item: Property) => void;
+  onSendMaintenanceForm: (item: Property) => void;
   onRequestSort: (key: string) => void;
   isLoading: boolean;
   error: string | null;
@@ -59,6 +61,7 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
   onTransferRequest,
   onViewDetails,
   onRecallItem,
+  onSendMaintenanceForm,
   onRequestSort,
   isLoading,
   error,
@@ -185,6 +188,7 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
                     onTransferRequest={onTransferRequest}
                     onViewDetails={onViewDetails}
                     onRecallItem={onRecallItem}
+                    onSendMaintenanceForm={onSendMaintenanceForm}
                     StatusBadge={StatusBadge}
                   />
                 ))
@@ -235,6 +239,7 @@ type PropertyBookTableRowProps = {
   onTransferRequest: (item: Property) => void;
   onViewDetails: (item: Property) => void;
   onRecallItem: (item: Property) => void;
+  onSendMaintenanceForm: (item: Property) => void;
   StatusBadge: React.FC<{ status: string }>;
 };
 
@@ -247,6 +252,7 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
   onTransferRequest,
   onViewDetails,
   onRecallItem,
+  onSendMaintenanceForm,
   StatusBadge
 }) => {
   const itemCategory = item.category && item.category !== 'other' 
@@ -391,19 +397,34 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
         <TableCell className="text-right py-4 px-4" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-end items-center gap-1">
             {tab === 'assigned' && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => onTransferRequest(item as Property)} 
-                    className="h-8 w-8"
-                  >
-                    <ArrowLeftRight className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Request Transfer</TooltipContent>
-              </Tooltip>
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onSendMaintenanceForm(item as Property)} 
+                      className="h-8 w-8"
+                    >
+                      <Wrench className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Send Maintenance Form</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onTransferRequest(item as Property)} 
+                      className="h-8 w-8"
+                    >
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Request Transfer</TooltipContent>
+                </Tooltip>
+              </>
             )}
             {tab === 'signedout' && (
               <Tooltip>

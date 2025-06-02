@@ -25,6 +25,7 @@ import {
   Bell,
   FileText,
 } from "lucide-react";
+import { useUnreadDocumentCount } from "@/hooks/useDocuments";
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -46,6 +47,7 @@ const Sidebar = ({
   const { user } = useAuth();
   const { theme, toggleTheme: contextToggleTheme, sidebarCollapsed, toggleSidebar: contextToggleSidebar } = useApp();
   const { unreadCount } = useNotifications();
+  const { data: unreadDocumentCount = 0 } = useUnreadDocumentCount();
 
   // Use the functions from context directly if they're not passed as props
   const toggleTheme = () => {
@@ -112,7 +114,12 @@ const Sidebar = ({
       label: "Transfers"
     },
     { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" },
-    { path: "/documents", icon: <FileText className="sidebar-item-icon" />, label: "Documents" }
+    { 
+      path: "/documents", 
+      icon: <FileText className="sidebar-item-icon" />, 
+      label: "Documents",
+      notificationCount: unreadDocumentCount > 0 ? unreadDocumentCount : undefined
+    }
   ];
   
   // Footer actions
