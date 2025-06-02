@@ -190,6 +190,20 @@ func (s *ImmuDBLedgerService) LogComponentDetached(parentPropertyID uint, compon
 	return s.storeEvent(fmt.Sprintf("component_detached_%d_%d_%d", parentPropertyID, componentPropertyID, time.Now().Unix()), event)
 }
 
+// LogDocumentEvent logs a document event (creation, read, etc.) to ImmuDB
+func (s *ImmuDBLedgerService) LogDocumentEvent(documentID uint, eventType string, senderUserID uint, recipientUserID uint) error {
+	event := map[string]interface{}{
+		"event_type":        "DocumentEvent",
+		"document_id":       documentID,
+		"document_event":    eventType,
+		"sender_user_id":    senderUserID,
+		"recipient_user_id": recipientUserID,
+		"timestamp":         time.Now().UTC(),
+	}
+
+	return s.storeEvent(fmt.Sprintf("document_%s_%d_%d", eventType, documentID, time.Now().Unix()), event)
+}
+
 // LogCorrectionEvent logs a correction event to ImmuDB
 func (s *ImmuDBLedgerService) LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error {
 	event := map[string]interface{}{

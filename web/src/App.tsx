@@ -15,6 +15,7 @@ import PropertyBook from "./pages/PropertyBook";
 import Profile from "./pages/Profile";
 import SensitiveItems from "./pages/SensitiveItems";
 import Maintenance from "./pages/Maintenance";
+import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UserManagement from "./pages/UserManagement";
@@ -59,6 +60,7 @@ function Router() {
         <Route path="/maintenance/:id">
           {(params) => <Maintenance id={params.id} />}
         </Route>
+        <Route path="/documents" component={() => <Documents />} />
         <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/audit-log" component={() => <AuditLog />} />
         <Route path="/correction-log" component={() => <CorrectionLogPage />} />

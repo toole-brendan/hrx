@@ -33,6 +33,9 @@ type LedgerService interface {
 	// LogComponentDetached logs when a component is detached from a parent property.
 	LogComponentDetached(parentPropertyID uint, componentPropertyID uint, userID uint) error
 
+	// LogDocumentEvent logs a document event (creation, read, etc.).
+	LogDocumentEvent(documentID uint, eventType string, senderUserID uint, recipientUserID uint) error
+
 	// LogCorrectionEvent logs a correction event referencing a previous ledger event.
 	LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error
 

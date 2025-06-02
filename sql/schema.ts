@@ -272,9 +272,32 @@ export type InsertTransferOffer = typeof transferOffers.$inferInsert;
 export type TransferOfferRecipient = typeof transferOfferRecipients.$inferSelect;
 export type InsertTransferOfferRecipient = typeof transferOfferRecipients.$inferInsert;
 
+// Document Types
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = typeof documents.$inferInsert;
+
 // Property Component Types
 export type PropertyComponent = typeof propertyComponents.$inferSelect;
 export type InsertPropertyComponent = typeof propertyComponents.$inferInsert;
+
+// Documents Table - For maintenance forms and other documents
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // 'maintenance_form', 'transfer_form', etc.
+  subtype: text("subtype"), // 'DA2404', 'DA5988E', etc.
+  title: text("title").notNull(),
+  senderUserId: integer("sender_user_id").references(() => users.id).notNull(),
+  recipientUserId: integer("recipient_user_id").references(() => users.id).notNull(),
+  propertyId: integer("property_id").references(() => properties.id),
+  formData: jsonb("form_data").notNull(), // Complete form data
+  description: text("description"),
+  attachments: jsonb("attachments"), // Array of photo URLs
+  status: text("status").default("unread").notNull(), // unread, read, archived
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // Property Components Table - For component associations
 export const propertyComponents = pgTable("property_components", {

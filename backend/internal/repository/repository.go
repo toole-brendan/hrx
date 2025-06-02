@@ -63,5 +63,15 @@ type Repository interface {
 	IsPositionOccupied(parentID uint, position string) (bool, error)
 	UpdateComponentPosition(parentID, componentID uint, position string) error
 
+	// Document operations
+	CreateDocument(document *domain.Document) error
+	GetDocumentByID(id uint) (*domain.Document, error)
+	GetDocumentsByRecipient(userID uint, status, docType *string) ([]domain.Document, error)
+	GetDocumentsBySender(userID uint, status, docType *string) ([]domain.Document, error)
+	GetDocumentsForUser(userID uint, status, docType *string) ([]domain.Document, error)
+	UpdateDocument(document *domain.Document) error
+	GetUnreadDocumentCount(userID uint) (int64, error)
+	CheckUserConnection(userID1, userID2 uint) (bool, error)
+
 	// Add other data access methods as required
 }

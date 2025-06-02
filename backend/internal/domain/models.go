@@ -396,6 +396,78 @@ type CorrectionEvent struct {
 	LedgerSequenceNumber *int64 `json:"ledgerSequenceNumber,omitempty"`
 }
 
+// Document represents a document (like maintenance forms) sent between users
+type Document struct {
+	ID              uint       `json:"id" gorm:"primaryKey"`
+	Type            string     `json:"type" gorm:"not null"`          // 'maintenance_form', 'transfer_form', etc.
+	Subtype         *string    `json:"subtype" gorm:"column:subtype"` // 'DA2404', 'DA5988E', etc.
+	Title           string     `json:"title" gorm:"not null"`
+	SenderUserID    uint       `json:"senderUserId" gorm:"column:sender_user_id;not null"`
+	RecipientUserID uint       `json:"recipientUserId" gorm:"column:recipient_user_id;not null"`
+	PropertyID      *uint      `json:"propertyId" gorm:"column:property_id"`
+	FormData        string     `json:"formData" gorm:"column:form_data;type:jsonb;not null"` // Complete form data
+	Description     *string    `json:"description"`
+	Attachments     *string    `json:"attachments" gorm:"type:jsonb"` // Array of photo URLs
+	Status          string     `json:"status" gorm:"default:'unread';not null"`
+	SentAt          time.Time  `json:"sentAt" gorm:"column:sent_at;not null;default:CURRENT_TIMESTAMP"`
+	ReadAt          *time.Time `json:"readAt" gorm:"column:read_at"`
+	CreatedAt       time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt       time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+
+	// Relationships
+	Sender    *User     `json:"sender,omitempty" gorm:"foreignKey:SenderUserID"`
+	Recipient *User     `json:"recipient,omitempty" gorm:"foreignKey:RecipientUserID"`
+	Property  *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+}
+
+// MaintenanceFormData represents the data for maintenance forms
+type MaintenanceFormData struct {
+	FormType         string                 `json:"form_type"` // DA2404, DA5988E
+	EquipmentName    string                 `json:"equipment_name"`
+	SerialNumber     string                 `json:"serial_number"`
+	NSN              string                 `json:"nsn"`
+	Location         string                 `json:"location"`
+	Description      string                 `json:"description"`
+	FaultDescription string                 `json:"fault_description"`
+	RequestDate      time.Time              `json:"request_date"`
+	FormFields       map[string]interface{} `json:"form_fields"` // Form-specific fields
+}
+
+// Constants for document types
+const (
+	DocumentTypeMaintenanceForm = "maintenance_form"
+	DocumentTypeTransferForm    = "transfer_form"
+)
+
+// Constants for document status
+const (
+	DocumentStatusUnread   = "unread"
+	DocumentStatusRead     = "read"
+	DocumentStatusArchived = "archived"
+)
+
+// CreateDocumentInput represents input for creating a document
+type CreateDocumentInput struct {
+	Type            string    `json:"type" binding:"required"`
+	Subtype         *string   `json:"subtype"`
+	Title           string    `json:"title" binding:"required"`
+	RecipientUserID uint      `json:"recipientUserId" binding:"required"`
+	PropertyID      *uint     `json:"propertyId"`
+	FormData        string    `json:"formData" binding:"required"`
+	Description     *string   `json:"description"`
+	Attachments     *[]string `json:"attachments"`
+}
+
+// CreateMaintenanceFormInput represents input for creating a maintenance form
+type CreateMaintenanceFormInput struct {
+	PropertyID       uint     `json:"propertyId" binding:"required"`
+	RecipientUserID  uint     `json:"recipientUserId" binding:"required"`
+	FormType         string   `json:"formType" binding:"required"` // DA2404, DA5988E
+	Description      string   `json:"description" binding:"required"`
+	FaultDescription *string  `json:"faultDescription"`
+	Attachments      []string `json:"attachments"` // Photo URLs
+}
+
 // GeneralLedgerEvent represents a consolidated event from any ledger table,
 // structured for frontend display.
 // NOTE: This struct corresponds to the output of the LedgerService.GetGeneralHistory method.

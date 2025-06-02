@@ -23,6 +23,7 @@ import {
   Wrench,
   User,
   Bell,
+  FileText,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -110,7 +111,8 @@ const Sidebar = ({
       icon: <Send className="sidebar-item-icon" />, 
       label: "Transfers"
     },
-    { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" }
+    { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" },
+    { path: "/documents", icon: <FileText className="sidebar-item-icon" />, label: "Documents" }
   ];
   
   // Footer actions

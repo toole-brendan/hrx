@@ -52,6 +52,9 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Add component handler
 	componentHandler := handlers.NewComponentHandler(componentService, ledgerService)
 
+	// Add document handler for maintenance forms
+	documentHandler := handlers.NewDocumentHandler(repo, ledgerService)
+
 	// Add NSN handler
 	logger := logrus.New()
 	nsnHandler := handlers.NewNSNHandler(nsnService, logger)
@@ -181,6 +184,15 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			photos.POST("/property/:propertyId", photoHandler.UploadPropertyPhoto)
 			photos.GET("/property/:propertyId/verify", photoHandler.VerifyPhotoHash)
 			photos.DELETE("/property/:propertyId", photoHandler.DeletePropertyPhoto)
+		}
+
+		// Document routes for maintenance forms
+		documents := protected.Group("/documents")
+		{
+			documents.GET("", documentHandler.GetDocuments)
+			documents.POST("/maintenance-form", documentHandler.CreateMaintenanceForm)
+			documents.GET("/:id", documentHandler.GetDocument)
+			documents.PUT("/:id/read", documentHandler.MarkDocumentRead)
 		}
 
 		// Register NSN routes

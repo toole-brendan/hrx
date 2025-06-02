@@ -421,3 +421,108 @@ func (r *gormRepository) UpdateComponentPosition(parentID, componentID uint, pos
 		Where("parent_property_id = ? AND component_property_id = ?", parentID, componentID).
 		Update("position", position).Error
 }
+
+// --- Document Operations ---
+
+// CreateDocument creates a new document
+func (r *gormRepository) CreateDocument(document *domain.Document) error {
+	return r.db.Create(document).Error
+}
+
+// GetDocumentByID retrieves a document by ID with relationships
+func (r *gormRepository) GetDocumentByID(id uint) (*domain.Document, error) {
+	var document domain.Document
+	err := r.db.Preload("Sender").
+		Preload("Recipient").
+		Preload("Property").
+		First(&document, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("document with ID %d not found", id)
+		}
+		return nil, err
+	}
+	return &document, nil
+}
+
+// GetDocumentsByRecipient retrieves documents received by a user
+func (r *gormRepository) GetDocumentsByRecipient(userID uint, status, docType *string) ([]domain.Document, error) {
+	var documents []domain.Document
+	query := r.db.Where("recipient_user_id = ?", userID)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+	if docType != nil {
+		query = query.Where("type = ?", *docType)
+	}
+
+	err := query.Preload("Sender").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+// GetDocumentsBySender retrieves documents sent by a user
+func (r *gormRepository) GetDocumentsBySender(userID uint, status, docType *string) ([]domain.Document, error) {
+	var documents []domain.Document
+	query := r.db.Where("sender_user_id = ?", userID)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+	if docType != nil {
+		query = query.Where("type = ?", *docType)
+	}
+
+	err := query.Preload("Recipient").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+// GetDocumentsForUser retrieves all documents for a user (sent or received)
+func (r *gormRepository) GetDocumentsForUser(userID uint, status, docType *string) ([]domain.Document, error) {
+	var documents []domain.Document
+	query := r.db.Where("sender_user_id = ? OR recipient_user_id = ?", userID, userID)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+	if docType != nil {
+		query = query.Where("type = ?", *docType)
+	}
+
+	err := query.Preload("Sender").
+		Preload("Recipient").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+// UpdateDocument updates an existing document
+func (r *gormRepository) UpdateDocument(document *domain.Document) error {
+	return r.db.Save(document).Error
+}
+
+// GetUnreadDocumentCount returns the count of unread documents for a user
+func (r *gormRepository) GetUnreadDocumentCount(userID uint) (int64, error) {
+	var count int64
+	err := r.db.Model(&domain.Document{}).
+		Where("recipient_user_id = ? AND status = ?", userID, domain.DocumentStatusUnread).
+		Count(&count).Error
+	return count, err
+}
+
+// CheckUserConnection checks if two users are connected
+func (r *gormRepository) CheckUserConnection(userID1, userID2 uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.UserConnection{}).
+		Where("((user_id = ? AND connected_user_id = ?) OR (user_id = ? AND connected_user_id = ?)) AND connection_status = ?",
+			userID1, userID2, userID2, userID1, domain.ConnectionStatusAccepted).
+		Count(&count).Error
+	return count > 0, err
+}

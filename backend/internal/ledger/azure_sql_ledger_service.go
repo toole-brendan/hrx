@@ -346,6 +346,32 @@ func (s *AzureSqlLedgerService) LogComponentDetached(parentPropertyID uint, comp
 	return nil
 }
 
+// LogDocumentEvent logs a document event (creation, read, etc.) to Azure SQL Ledger.
+func (s *AzureSqlLedgerService) LogDocumentEvent(documentID uint, eventType string, senderUserID uint, recipientUserID uint) error {
+	ctx := context.Background()
+	log.Printf("AzureSqlLedgerService: Logging Document Event - ID: %d, Type: %s, Sender: %d, Recipient: %d",
+		documentID, eventType, senderUserID, recipientUserID)
+
+	// For now, create a DocumentEvents table if it doesn't exist, or use a generic events table
+	// This implementation assumes you have a DocumentEvents table with appropriate structure
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO HandReceipt.DocumentEvents (DocumentID, EventType, SenderUserID, RecipientUserID, EventTimestamp)
+		 VALUES (@p1, @p2, @p3, @p4, SYSUTCDATETIME())`,
+		documentID,
+		eventType,
+		senderUserID,
+		recipientUserID,
+	)
+
+	if err != nil {
+		log.Printf("Error logging Document event to Azure SQL Ledger: %v", err)
+		return fmt.Errorf("failed to log Document event: %w", err)
+	}
+
+	log.Printf("Successfully logged Document Event - ID: %d, Type: %s", documentID, eventType)
+	return nil
+}
+
 // LogCorrectionEvent logs a correction event referencing a previous ledger event.
 // NOTE: How corrections are handled in Azure SQL Ledger needs a defined strategy.
 // Common approaches include:
