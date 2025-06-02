@@ -11,6 +11,7 @@ struct DA2062ScanView: View {
     @State private var showingImportProgress = false
     @State private var showingImportSummary = false
     @State private var scannerAvailable = VNDocumentCameraViewController.isSupported
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationView {
@@ -83,6 +84,22 @@ struct DA2062ScanView: View {
                 }
             }
             .navigationBarTitle("", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .font(AppFonts.bodyBold)
+                    .foregroundColor(AppColors.accent)
+                }
+                
+                ToolbarItem(placement: .principal) {
+                    Text("IMPORT DA-2062")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(AppColors.primaryText)
+                        .compatibleKerning(1.2)
+                }
+            }
             .fullScreenCover(isPresented: $showingScanner) {
                 VisionDocumentScanner(
                     onCompletion: { images in

@@ -696,4 +696,109 @@ public struct ErrorStateView: View {
             action: onRetry
         )
     }
+}
+
+// MARK: - Enhanced Back Button Component
+public struct EnhancedBackButton: View {
+    let label: String
+    let action: (() -> Void)?
+    @Environment(\.dismiss) private var dismiss
+    
+    public init(label: String = "Back", action: (() -> Void)? = nil) {
+        self.label = label
+        self.action = action
+    }
+    
+    public var body: some View {
+        Button(action: {
+            if let customAction = action {
+                customAction()
+            } else {
+                dismiss()
+            }
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .medium))
+                Text(label)
+                    .font(.system(size: 16, weight: .medium))
+            }
+            .foregroundColor(AppColors.accent)
+        }
+    }
+}
+
+// MARK: - Universal Header with Back Navigation
+public struct UniversalHeaderView: View {
+    let title: String
+    let showBackButton: Bool
+    let backButtonLabel: String
+    let backButtonAction: (() -> Void)?
+    let trailingButton: (() -> AnyView)?
+    
+    public init(
+        title: String,
+        showBackButton: Bool = true,
+        backButtonLabel: String = "Back",
+        backButtonAction: (() -> Void)? = nil,
+        trailingButton: (() -> AnyView)? = nil
+    ) {
+        self.title = title
+        self.showBackButton = showBackButton
+        self.backButtonLabel = backButtonLabel
+        self.backButtonAction = backButtonAction
+        self.trailingButton = trailingButton
+    }
+    
+    public var body: some View {
+        ZStack {
+            AppColors.secondaryBackground
+                .ignoresSafeArea()
+            
+            VStack {
+                Spacer()
+                HStack {
+                    // Back button
+                    if showBackButton {
+                        EnhancedBackButton(label: backButtonLabel, action: backButtonAction)
+                    } else {
+                        // Invisible placeholder for balance
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .medium))
+                            Text(backButtonLabel)
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(.clear)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(title.uppercased())
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(AppColors.primaryText)
+                        .compatibleKerning(1.2)
+                    
+                    Spacer()
+                    
+                    // Trailing button or placeholder
+                    if let trailingButton = trailingButton {
+                        trailingButton()
+                    } else {
+                        // Invisible placeholder for balance
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .medium))
+                            Text(backButtonLabel)
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(.clear)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 12)
+            }
+        }
+        .frame(height: 36)
+    }
 } 

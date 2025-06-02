@@ -4,6 +4,7 @@ import SwiftUI
 struct ConnectionsView: View {
     @StateObject private var viewModel = ConnectionsViewModel()
     @State private var showingAddConnection = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -80,7 +81,18 @@ struct ConnectionsView: View {
             }
             
             // Top bar header
-            headerSection
+            UniversalHeaderView(
+                title: "Network",
+                trailingButton: {
+                    AnyView(
+                        Button(action: { showingAddConnection = true }) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 18))
+                                .foregroundColor(AppColors.accent)
+                        }
+                    )
+                }
+            )
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -90,42 +102,6 @@ struct ConnectionsView: View {
         .onAppear {
             viewModel.loadConnections()
         }
-    }
-    
-    // MARK: - Header Section
-    
-    private var headerSection: some View {
-        ZStack {
-            // Background that extends to top of screen
-            AppColors.secondaryBackground
-                .ignoresSafeArea()
-            
-            // Content positioned at bottom of header
-            VStack {
-                Spacer()
-                ZStack {
-                    // Center the title
-                    Text("NETWORK")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(AppColors.primaryText)
-                        .kerning(1.2)
-                        .frame(maxWidth: .infinity)
-                    
-                    // Add button aligned to trailing edge
-                    HStack {
-                        Spacer()
-                        Button(action: { showingAddConnection = true }) {
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 18))
-                                .foregroundColor(AppColors.accent)
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 12)
-            }
-        }
-        .frame(height: 36)
     }
 }
 

@@ -11,6 +11,7 @@ struct MaintenanceView: View {
     @State private var showingMaintenanceForm = false
     @State private var selectedProperty: Property?
     @State private var selectedMaintenanceItem: MaintenanceItem?
+    @Environment(\.dismiss) private var dismiss
     
     // Services
     private let apiService: APIServiceProtocol
@@ -87,7 +88,7 @@ struct MaintenanceView: View {
             .background(AppColors.appBackground.ignoresSafeArea(.all))
             
             // Header
-            MaintenanceHeaderSection()
+            UniversalHeaderView(title: "Maintenance")
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -497,26 +498,7 @@ enum MaintenancePriority: String, CaseIterable {
     }
 }
 
-// MARK: - Header Section
-struct MaintenanceHeaderSection: View {
-    var body: some View {
-        ZStack {
-            AppColors.secondaryBackground
-                .ignoresSafeArea()
-            
-            VStack {
-                Spacer()
-                Text("MAINTENANCE")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppColors.primaryText)
-                    .kerning(1.2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 12)
-            }
-        }
-        .frame(height: 36)
-    }
-}
+
 
 // MARK: - Maintenance Stat Card
 struct MaintenanceStatCard: View {
