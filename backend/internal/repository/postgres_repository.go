@@ -388,3 +388,100 @@ func (r *PostgresRepository) UpdateComponentPosition(parentID, componentID uint,
 		Where("parent_property_id = ? AND component_property_id = ?", parentID, componentID).
 		Update("position", position).Error
 }
+
+// CheckUserConnection checks if two users are connected (same as AreUsersConnected)
+func (r *PostgresRepository) CheckUserConnection(userID1, userID2 uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.UserConnection{}).
+		Where("((user_id = ? AND connected_user_id = ?) OR (user_id = ? AND connected_user_id = ?)) AND connection_status = ?",
+			userID1, userID2, userID2, userID1, domain.ConnectionStatusAccepted).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// Document operations
+func (r *PostgresRepository) CreateDocument(document *domain.Document) error {
+	return r.db.Create(document).Error
+}
+
+func (r *PostgresRepository) GetDocumentByID(id uint) (*domain.Document, error) {
+	var document domain.Document
+	err := r.db.Preload("Sender").
+		Preload("Recipient").
+		Preload("Property").
+		First(&document, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (r *PostgresRepository) GetDocumentsByRecipient(userID uint, status, docType *string) ([]domain.Document, error) {
+	var documents []domain.Document
+	query := r.db.Where("recipient_user_id = ?", userID)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+	if docType != nil {
+		query = query.Where("type = ?", *docType)
+	}
+
+	err := query.Preload("Sender").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+func (r *PostgresRepository) GetDocumentsBySender(userID uint, status, docType *string) ([]domain.Document, error) {
+	var documents []domain.Document
+	query := r.db.Where("sender_user_id = ?", userID)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+	if docType != nil {
+		query = query.Where("type = ?", *docType)
+	}
+
+	err := query.Preload("Recipient").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+func (r *PostgresRepository) GetDocumentsForUser(userID uint, status, docType *string) ([]domain.Document, error) {
+	var documents []domain.Document
+	query := r.db.Where("sender_user_id = ? OR recipient_user_id = ?", userID, userID)
+
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+	if docType != nil {
+		query = query.Where("type = ?", *docType)
+	}
+
+	err := query.Preload("Sender").
+		Preload("Recipient").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	return documents, err
+}
+
+func (r *PostgresRepository) UpdateDocument(document *domain.Document) error {
+	return r.db.Save(document).Error
+}
+
+func (r *PostgresRepository) GetUnreadDocumentCount(userID uint) (int64, error) {
+	var count int64
+	err := r.db.Model(&domain.Document{}).
+		Where("recipient_user_id = ? AND status = ?", userID, domain.DocumentStatusUnread).
+		Count(&count).Error
+	return count, err
+}
