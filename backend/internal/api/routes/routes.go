@@ -48,7 +48,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 
 	// Add component service and handler
 	componentService := services.NewComponentService(repo)
-	componentHandler := handlers.NewComponentHandler(componentService)
+	componentHandler := handlers.NewComponentHandler(componentService, ledgerService)
 
 	// Add NSN handler
 	logger := logrus.New()

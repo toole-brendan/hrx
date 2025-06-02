@@ -15,14 +15,20 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronRight,
-  FileText
+  FileText,
+  Link2
 } from "lucide-react";
 import { DA2062ExportDialog } from "../da2062/DA2062ExportDialog";
 
 // Define types for our table components
 export type DisplayItem = Property & { 
   assignedTo?: string; 
-  transferDate?: string; 
+  transferDate?: string;
+  attached_components?: Array<{
+    id: number;
+    componentProperty: { name: string; serialNumber: string; };
+    position?: string;
+  }>;
 };
 
 type PropertyBookTableProps = {
@@ -69,7 +75,7 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
   const selectedProperties = filtered.filter(item => state.selectedItemIds.has(item.id));
   
   // Calculate the colspan based on visible columns
-  const colSpanCount = 7; // Checkbox, Name, SN, Category, Date/AssignedTo, Status, Actions
+  const colSpanCount = 8; // Checkbox, Name, SN, Category, Components, Date/AssignedTo, Status, Actions
   
   // Log expandable items for debugging
   console.log('Expandable items:', items.filter(item => item.components && item.components.length > 0)
@@ -99,13 +105,14 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
     <TooltipProvider>
       {isLoading ? (
         <div className="space-y-2 p-4">
-          {/* Loading skeleton - kept same as original */}
+          {/* Loading skeleton - updated for new Components column */}
           <div className="flex items-center space-x-4">
             <div className="h-5 w-5 rounded-none bg-muted animate-pulse" /> 
             <div className="h-4 flex-1 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-32 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-32 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-24 rounded-none bg-muted animate-pulse" />
+            <div className="h-4 w-20 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-20 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-16 rounded-none bg-muted animate-pulse" />
           </div>
@@ -115,6 +122,7 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
             <div className="h-4 w-32 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-32 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-24 rounded-none bg-muted animate-pulse" />
+            <div className="h-4 w-20 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-20 rounded-none bg-muted animate-pulse" />
             <div className="h-4 w-16 rounded-none bg-muted animate-pulse" />
           </div>
@@ -138,6 +146,12 @@ const PropertyBookTable: React.FC<PropertyBookTableProps> = ({
                 <SortableHeader columnKey="name">Item Name</SortableHeader>
                 <SortableHeader columnKey="serialNumber">Serial Number</SortableHeader>
                 <SortableHeader columnKey="category">Category</SortableHeader>
+                <TableHead className="py-4 px-4 text-black dark:text-white min-w-[120px] w-auto">
+                  <div className="flex items-center">
+                    <Link2 className="mr-2 h-3 w-3" />
+                    Components
+                  </div>
+                </TableHead>
                 {tab === 'assigned' ? (
                   <SortableHeader columnKey="assignedDate">Assigned Date</SortableHeader>
                 ) : (
@@ -328,6 +342,35 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
             </Tooltip>
           </div>
         </TableCell>
+        <TableCell className="py-4 px-4">
+          {item.attached_components?.length ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 text-sm text-blue-600">
+                  <Link2 className="w-4 h-4" />
+                  <span>{item.attached_components.length}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-1">
+                  {item.attached_components.slice(0, 3).map((comp, idx) => (
+                    <p key={idx} className="text-xs">
+                      {comp.componentProperty.name}
+                      {comp.position && ` (${comp.position.replace('_', ' ')})`}
+                    </p>
+                  ))}
+                  {item.attached_components.length > 3 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{item.attached_components.length - 3} more
+                    </p>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          )}
+        </TableCell>
         {tab === 'assigned' ? (
           <TableCell className="py-4 px-4 text-xs text-muted-foreground dark:text-gray-400">
             {item.assignedDate}
@@ -400,7 +443,7 @@ const PropertyBookTableRow: React.FC<PropertyBookTableRowProps> = React.memo(({
         <ComponentsRow
           itemId={item.id}
           components={components}
-          colSpanCount={7} // Make sure this matches the number of columns in the table
+          colSpanCount={8} // Make sure this matches the number of columns in the table
         />
       )}
     </Fragment>

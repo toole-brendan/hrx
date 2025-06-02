@@ -187,6 +187,106 @@ async function verifyProperty(
 }
 
 /**
+ * Get components attached to a property
+ */
+async function fetchPropertyComponents(propertyId: string): Promise<any[]> {
+  const response = await fetch(`${API_BASE_URL}/property/${propertyId}/components`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch property components: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.components || [];
+}
+
+/**
+ * Attach a component to a property
+ */
+async function attachComponent(input: {
+  propertyId: string;
+  componentId: number;
+  position?: string;
+  notes?: string;
+}): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/property/${input.propertyId}/components`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({
+      componentId: input.componentId,
+      position: input.position,
+      notes: input.notes,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to attach component: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.attachment;
+}
+
+/**
+ * Detach a component from a property
+ */
+async function detachComponent(propertyId: string, componentId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/property/${propertyId}/components/${componentId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to detach component: ${response.statusText}`);
+  }
+}
+
+/**
+ * Get available components for attachment to a property
+ */
+async function fetchAvailableComponents(propertyId: string): Promise<Property[]> {
+  const response = await fetch(`${API_BASE_URL}/property/${propertyId}/available-components`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch available components: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return (data.availableComponents || []).map(mapPropertyToProperty);
+}
+
+/**
+ * Update component position
+ */
+async function updateComponentPosition(input: {
+  propertyId: string;
+  componentId: number;
+  position: string;
+}): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/property/${input.propertyId}/components/${input.componentId}/position`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ position: input.position }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update component position: ${response.statusText}`);
+  }
+}
+
+/**
  * Sync queue for offline operations
  */
 interface QueuedOperation {
@@ -257,6 +357,8 @@ export const propertyKeys = {
   details: () => [...propertyKeys.all, 'detail'] as const,
   detail: (id: string) => [...propertyKeys.details(), id] as const,
   history: (serialNumber: string) => [...propertyKeys.all, 'history', serialNumber] as const,
+  components: (propertyId: string) => [...propertyKeys.all, 'components', propertyId] as const,
+  availableComponents: (propertyId: string) => [...propertyKeys.all, 'available-components', propertyId] as const,
 };
 
 // Fetch all properties
@@ -510,4 +612,114 @@ export function useOfflineSync() {
   }
 
   return processQueue;
+}
+
+// Component-related hooks
+
+// Fetch property components
+export function usePropertyComponents(propertyId: string) {
+  return useQuery({
+    queryKey: propertyKeys.components(propertyId),
+    queryFn: () => fetchPropertyComponents(propertyId),
+    enabled: !!propertyId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+// Fetch available components for attachment
+export function useAvailableComponents(propertyId: string) {
+  return useQuery({
+    queryKey: propertyKeys.availableComponents(propertyId),
+    queryFn: () => fetchAvailableComponents(propertyId),
+    enabled: !!propertyId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
+// Attach component mutation
+export function useAttachComponent() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: attachComponent,
+    onSuccess: (attachment, variables) => {
+      // Invalidate and refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: propertyKeys.components(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.availableComponents(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
+      
+      toast({
+        title: 'Component Attached',
+        description: 'Component has been successfully attached to the property',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to attach component',
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+// Detach component mutation
+export function useDetachComponent() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ propertyId, componentId }: { propertyId: string; componentId: number }) =>
+      detachComponent(propertyId, componentId),
+    onSuccess: (_, variables) => {
+      // Invalidate and refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: propertyKeys.components(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.availableComponents(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
+      
+      toast({
+        title: 'Component Detached',
+        description: 'Component has been successfully detached from the property',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to detach component',
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+// Update component position mutation
+export function useUpdateComponentPosition() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: updateComponentPosition,
+    onSuccess: (_, variables) => {
+      // Invalidate and refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: propertyKeys.components(variables.propertyId) });
+      queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.propertyId) });
+      
+      toast({
+        title: 'Position Updated',
+        description: 'Component position has been updated successfully',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to update component position',
+        variant: 'destructive',
+      });
+    },
+  });
 } 

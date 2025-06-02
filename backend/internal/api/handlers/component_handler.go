@@ -5,18 +5,21 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 )
 
 // ComponentHandler handles component association operations
 type ComponentHandler struct {
 	componentService services.ComponentService
+	ledgerService    ledger.LedgerService
 }
 
 // NewComponentHandler creates a new component handler
-func NewComponentHandler(componentService services.ComponentService) *ComponentHandler {
+func NewComponentHandler(componentService services.ComponentService, ledgerService ledger.LedgerService) *ComponentHandler {
 	return &ComponentHandler{
 		componentService: componentService,
+		ledgerService:    ledgerService,
 	}
 }
 
@@ -100,6 +103,21 @@ func (h *ComponentHandler) AttachComponent(c *gin.Context) {
 		return
 	}
 
+	// Log to immutable ledger
+	if err := h.ledgerService.LogComponentAttached(
+		uint(propertyID),
+		req.ComponentID,
+		userID,
+		req.Position,
+		req.Notes,
+	); err != nil {
+		// Log error but don't fail the request
+		// The attachment was successful, but logging failed
+		// In production, you might want to implement retry logic or alerts
+		// For now, we'll just log the error and continue
+		c.Header("X-Ledger-Warning", "Failed to log to immutable ledger")
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"attachment": attachment})
 }
 
@@ -150,6 +168,16 @@ func (h *ComponentHandler) DetachComponent(c *gin.Context) {
 	); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Log to immutable ledger
+	if err := h.ledgerService.LogComponentDetached(
+		uint(propertyID),
+		uint(componentID),
+		userID,
+	); err != nil {
+		// Log error but don't fail the request
+		c.Header("X-Ledger-Warning", "Failed to log to immutable ledger")
 	}
 
 	c.Status(http.StatusNoContent)

@@ -27,6 +27,12 @@ type LedgerService interface {
 	// LogDA2062Export logs a DA Form 2062 export event.
 	LogDA2062Export(userID uint, propertyCount int, exportType string, recipients string) error
 
+	// LogComponentAttached logs when a component is attached to a parent property.
+	LogComponentAttached(parentPropertyID uint, componentPropertyID uint, userID uint, position string, notes string) error
+
+	// LogComponentDetached logs when a component is detached from a parent property.
+	LogComponentDetached(parentPropertyID uint, componentPropertyID uint, userID uint) error
+
 	// LogCorrectionEvent logs a correction event referencing a previous ledger event.
 	LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error
 

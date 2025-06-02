@@ -281,6 +281,71 @@ func (s *AzureSqlLedgerService) LogDA2062Export(userID uint, propertyCount int, 
 	return nil
 }
 
+// LogComponentAttached logs when a component is attached to a parent property.
+func (s *AzureSqlLedgerService) LogComponentAttached(parentPropertyID uint, componentPropertyID uint, userID uint, position string, notes string) error {
+	ctx := context.Background()
+	log.Printf("AzureSqlLedgerService: Logging Component Attached Event - Parent: %d, Component: %d, User: %d, Position: %s",
+		parentPropertyID, componentPropertyID, userID, position)
+
+	// Handle optional fields
+	positionDB := sql.NullString{}
+	if position != "" {
+		positionDB.String = position
+		positionDB.Valid = true
+	}
+
+	notesDB := sql.NullString{}
+	if notes != "" {
+		notesDB.String = notes
+		notesDB.Valid = true
+	}
+
+	// Insert into ComponentEvents table (assumes this table exists in the schema)
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO HandReceipt.ComponentEvents (ParentPropertyID, ComponentPropertyID, AttachingUserID, EventType, Position, Notes, EventTimestamp)
+		 VALUES (@p1, @p2, @p3, @p4, @p5, @p6, SYSUTCDATETIME())`,
+		parentPropertyID,
+		componentPropertyID,
+		userID,
+		"ATTACHED",
+		positionDB,
+		notesDB,
+	)
+
+	if err != nil {
+		log.Printf("Error logging Component Attached event to Azure SQL Ledger: %v", err)
+		return fmt.Errorf("failed to log Component Attached event: %w", err)
+	}
+
+	log.Printf("Successfully logged Component Attached Event - Parent: %d, Component: %d", parentPropertyID, componentPropertyID)
+	return nil
+}
+
+// LogComponentDetached logs when a component is detached from a parent property.
+func (s *AzureSqlLedgerService) LogComponentDetached(parentPropertyID uint, componentPropertyID uint, userID uint) error {
+	ctx := context.Background()
+	log.Printf("AzureSqlLedgerService: Logging Component Detached Event - Parent: %d, Component: %d, User: %d",
+		parentPropertyID, componentPropertyID, userID)
+
+	// Insert into ComponentEvents table
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO HandReceipt.ComponentEvents (ParentPropertyID, ComponentPropertyID, AttachingUserID, EventType, EventTimestamp)
+		 VALUES (@p1, @p2, @p3, @p4, SYSUTCDATETIME())`,
+		parentPropertyID,
+		componentPropertyID,
+		userID,
+		"DETACHED",
+	)
+
+	if err != nil {
+		log.Printf("Error logging Component Detached event to Azure SQL Ledger: %v", err)
+		return fmt.Errorf("failed to log Component Detached event: %w", err)
+	}
+
+	log.Printf("Successfully logged Component Detached Event - Parent: %d, Component: %d", parentPropertyID, componentPropertyID)
+	return nil
+}
+
 // LogCorrectionEvent logs a correction event referencing a previous ledger event.
 // NOTE: How corrections are handled in Azure SQL Ledger needs a defined strategy.
 // Common approaches include:

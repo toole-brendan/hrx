@@ -157,6 +157,39 @@ func (s *ImmuDBLedgerService) LogDA2062Export(userID uint, propertyCount int, ex
 	return s.storeEvent(fmt.Sprintf("da2062_export_%d_%d", userID, time.Now().Unix()), event)
 }
 
+// LogComponentAttached logs when a component is attached to a parent property to ImmuDB
+func (s *ImmuDBLedgerService) LogComponentAttached(parentPropertyID uint, componentPropertyID uint, userID uint, position string, notes string) error {
+	event := map[string]interface{}{
+		"event_type":            "ComponentAttached",
+		"parent_property_id":    parentPropertyID,
+		"component_property_id": componentPropertyID,
+		"user_id":               userID,
+		"timestamp":             time.Now().UTC(),
+	}
+
+	if position != "" {
+		event["position"] = position
+	}
+	if notes != "" {
+		event["notes"] = notes
+	}
+
+	return s.storeEvent(fmt.Sprintf("component_attached_%d_%d_%d", parentPropertyID, componentPropertyID, time.Now().Unix()), event)
+}
+
+// LogComponentDetached logs when a component is detached from a parent property to ImmuDB
+func (s *ImmuDBLedgerService) LogComponentDetached(parentPropertyID uint, componentPropertyID uint, userID uint) error {
+	event := map[string]interface{}{
+		"event_type":            "ComponentDetached",
+		"parent_property_id":    parentPropertyID,
+		"component_property_id": componentPropertyID,
+		"user_id":               userID,
+		"timestamp":             time.Now().UTC(),
+	}
+
+	return s.storeEvent(fmt.Sprintf("component_detached_%d_%d_%d", parentPropertyID, componentPropertyID, time.Now().Unix()), event)
+}
+
 // LogCorrectionEvent logs a correction event to ImmuDB
 func (s *ImmuDBLedgerService) LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error {
 	event := map[string]interface{}{
