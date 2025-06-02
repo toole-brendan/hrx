@@ -124,7 +124,7 @@ struct ManualSNEntryView: View {
                     
                     HStack {
                         TextField("13-digit NSN", text: $nsn)
-                            .textFieldStyle(IndustrialTextFieldStyle())
+                            .textFieldStyle(MinimalTextFieldStyle())
                             .autocapitalization(.none)
                             .onChange(of: nsn) { newValue in
                                 // Format NSN as user types (####-##-###-####)
@@ -149,7 +149,7 @@ struct ManualSNEntryView: View {
                     
                     HStack {
                         TextField("6-character LIN", text: $lin)
-                            .textFieldStyle(IndustrialTextFieldStyle())
+                            .textFieldStyle(MinimalTextFieldStyle())
                             .autocapitalization(.allCharacters)
                             .onChange(of: lin) { newValue in
                                 lin = String(newValue.prefix(6)).uppercased()

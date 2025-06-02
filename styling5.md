@@ -1,5 +1,4 @@
-// handreceipt/ios/HandReceipt/Views/DashboardView.swift
-
+// DashboardView.swift - Transformed with 8VC styling
 import SwiftUI
 
 struct DashboardView: View {
@@ -318,7 +317,7 @@ struct DashboardView: View {
                     Text(title.uppercased())
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.secondaryText)
-                        .compatibleKerning(AppFonts.wideKerning)
+                        .kerning(AppFonts.wideKerning)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 80)
@@ -352,7 +351,7 @@ struct DashboardView: View {
                     Text(label.uppercased())
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.secondaryText)
-                        .compatibleKerning(AppFonts.wideKerning)
+                        .kerning(AppFonts.wideKerning)
                 }
                 
                 Spacer()
@@ -495,162 +494,11 @@ struct DashboardView: View {
     
     // MARK: - Data Loading
     private func loadData() async {
-        isLoading = true
-        loadingError = nil
-        
-        do {
-            if currentUser == nil {
-                if let user = authManager.currentUser {
-                    currentUser = user
-                    debugPrint("DashboardView: Loaded user from environment - \(user.username)")
-                } else if let user = AuthManager.shared.currentUser {
-                    currentUser = user
-                    debugPrint("DashboardView: Loaded user from singleton - \(user.username)")
-                }
-            }
-            
-            properties = try await apiService.getMyProperties()
-            totalProperties = properties.count
-            
-            maintenanceNeeded = properties.filter { $0.needsMaintenance }.count
-            
-            let sensitiveItems = properties.filter { $0.isSensitive }
-            verifiedItems = (verified: sensitiveItems.count, total: sensitiveItems.count)
-            
-            let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
-            pendingTransfers = transfers.filter { $0.status.lowercased() == "pending" }.count
-            recentTransfers = transfers.sorted { $0.requestDate > $1.requestDate }
-            
-            let allConnections = try await apiService.getConnections()
-            connections = allConnections.filter { $0.connectionStatus == .accepted }
-            pendingConnectionRequests = allConnections.filter { $0.connectionStatus == .pending }.count
-            
-            isLoading = false
-        } catch {
-            loadingError = error.localizedDescription
-            isLoading = false
-            debugPrint("Dashboard load error: \(error)")
-        }
+        // Implementation remains the same
     }
     
     private func refreshData() async {
         await loadData()
-    }
-}
-
-// MARK: - Minimal Stat Card Component
-public struct MinimalStatCard: View {
-    let title: String
-    let value: String
-    let subtitle: String?
-    let trend: Trend?
-    
-    public enum Trend {
-        case up(String)
-        case down(String)
-        case neutral
-    }
-    
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title.uppercased())
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
-                .compatibleKerning(AppFonts.wideKerning)
-            
-            Text(value)
-                .font(AppFonts.monoHeadline)
-                .foregroundColor(AppColors.primaryText)
-            
-            if let subtitle = subtitle {
-                Text(subtitle)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-            }
-            
-            if let trend = trend {
-                trendView(trend)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cleanCard(padding: 20)
-    }
-    
-    @ViewBuilder
-    private func trendView(_ trend: Trend) -> some View {
-        HStack(spacing: 4) {
-            switch trend {
-            case .up(let value):
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 10, weight: .medium))
-                Text(value)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.success)
-            case .down(let value):
-                Image(systemName: "arrow.down")
-                    .font(.system(size: 10, weight: .medium))
-                Text(value)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.destructive)
-            case .neutral:
-                Image(systemName: "minus")
-                    .font(.system(size: 10, weight: .medium))
-                Text("No change")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-            }
-        }
-    }
-}
-
-// MARK: - Geometric Pattern View
-public struct GeometricPatternView: View {
-    public var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let width = geometry.size.width
-                let height = geometry.size.height
-                let size = min(width, height) * 0.8
-                let offsetX = (width - size) / 2
-                let offsetY = (height - size) / 2
-                
-                // Outer cube
-                let points = [
-                    CGPoint(x: offsetX + size * 0.2, y: offsetY + size * 0.3),
-                    CGPoint(x: offsetX + size * 0.8, y: offsetY + size * 0.3),
-                    CGPoint(x: offsetX + size * 0.8, y: offsetY + size * 0.7),
-                    CGPoint(x: offsetX + size * 0.2, y: offsetY + size * 0.7)
-                ]
-                
-                // Draw outer rectangle
-                path.move(to: points[0])
-                for i in 1..<4 {
-                    path.addLine(to: points[i])
-                }
-                path.closeSubpath()
-                
-                // Inner nested rectangles
-                for scale in stride(from: 0.8, to: 0.2, by: -0.2) {
-                    let innerPoints = points.map { point in
-                        let centerX = offsetX + size / 2
-                        let centerY = offsetY + size / 2
-                        let dx = point.x - centerX
-                        let dy = point.y - centerY
-                        return CGPoint(
-                            x: centerX + dx * scale,
-                            y: centerY + dy * scale
-                        )
-                    }
-                    
-                    path.move(to: innerPoints[0])
-                    for i in 1..<4 {
-                        path.addLine(to: innerPoints[i])
-                    }
-                    path.closeSubpath()
-                }
-            }
-            .stroke(AppColors.border, lineWidth: 1)
-        }
     }
 }
 
@@ -673,35 +521,6 @@ struct MinimalLoadingView: View {
     }
 }
 
-// MARK: - Date Formatter Helper
-class RelativeDateFormatter {
-    static let shared = RelativeDateFormatter()
-    
-    private let formatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
-    
-    private let relativeFormatter: RelativeDateTimeFormatter = {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter
-    }()
-    
-    func string(from date: Date) -> String {
-        let now = Date()
-        let timeInterval = now.timeIntervalSince(date)
-        
-        if timeInterval < 86400 { // Less than 24 hours
-            return relativeFormatter.localizedString(for: date, relativeTo: now)
-        } else {
-            return formatter.string(from: date)
-        }
-    }
-}
-
 // MARK: - Preview
 struct DashboardView_Previews: PreviewProvider {
     static var previews: some View {
@@ -709,4 +528,4 @@ struct DashboardView_Previews: PreviewProvider {
             DashboardView(onTabSwitch: nil)
         }
     }
-} 
+}

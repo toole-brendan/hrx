@@ -17,7 +17,7 @@ struct AuthenticatedTabView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                // Dashboard Tab - NEW LANDING PAGE
+                // Dashboard Tab
                 NavigationView {
                     DashboardView(onTabSwitch: { tabIndex in
                         selectedTab = tabIndex
@@ -25,17 +25,17 @@ struct AuthenticatedTabView: View {
                 }
                 .tag(0)
                 .tabItem {
-                    Label("Dashboard", systemImage: "house.fill")
+                    Label("Home", systemImage: "house")
                 }
 
-                // Property Book Tab (renamed from "Properties")
+                // Property Book Tab
                 NavigationView {
                     MyPropertiesView()
                         .navigationTitle("Property Book")
                 }
                 .tag(1)
                 .tabItem {
-                    Label("Property", systemImage: "book.closed.fill")
+                    Label("Property", systemImage: "shippingbox")
                 }
 
                 // Transfers Tab
@@ -47,37 +47,28 @@ struct AuthenticatedTabView: View {
                     Label("Transfers", systemImage: "arrow.left.arrow.right")
                 }
 
-                // Connections Tab - NEW
+                // Connections Tab
                 NavigationView {
                     ConnectionsView()
                 }
                 .tag(3)
                 .tabItem {
-                    Label("Network", systemImage: "person.2.fill")
+                    Label("Network", systemImage: "person.2")
                 }
 
-                // QR Scan functionality has been removed
-                // NavigationView {
-                //     ScanTabPlaceholderView()
-                // }
-                // .tag(3)
-                // .tabItem {
-                //     Label("Scan", systemImage: "qrcode.viewfinder")
-                // }
-
-                // More Tab - Contains additional pages
+                // More Tab
                 NavigationView {
                     MoreView(authViewModel: authViewModel)
                 }
                 .tag(4)
                 .tabItem {
-                    Label("More", systemImage: "ellipsis.circle.fill")
+                    Label("More", systemImage: "ellipsis")
                 }
             }
             .accentColor(AppColors.accent)
             
             // Floating Action Button for Quick Actions (only on Property Book tab)
-            if selectedTab == 1 { // Show only on Property Book tab
+            if selectedTab == 1 {
                 VStack {
                     Spacer()
                     HStack {
@@ -88,7 +79,7 @@ struct AuthenticatedTabView: View {
                             action: { showingActionMenu = true }
                         )
                         .padding(.trailing, 20)
-                        .padding(.bottom, 80) // Above tab bar
+                        .padding(.bottom, 80)
                     }
                 }
             }
@@ -119,56 +110,66 @@ struct AuthenticatedTabView: View {
 
     // Helper function to configure global UI element appearances
     private func configureGlobalAppearance() {
-        // Tab Bar Appearance
+        // Tab Bar Appearance - 8VC Style
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.backgroundColor = UIColor(AppColors.secondaryBackground)
-
-        // Configure item colors and fonts - use smaller caption font
-        let itemAppearance = UITabBarItemAppearance()
-        let normalFont = UIFont.systemFont(ofSize: 10, weight: .regular)
-        let selectedFont = UIFont.systemFont(ofSize: 10, weight: .medium)
+        tabBarAppearance.backgroundColor = UIColor(AppColors.appBackground)
         
-        // Configure icon and title positioning for better spacing
-        itemAppearance.selected.iconColor = UIColor(AppColors.accent)
+        // Minimal tab bar styling
+        let itemAppearance = UITabBarItemAppearance()
+        let normalFont = UIFont.systemFont(ofSize: 11, weight: .medium)
+        let selectedFont = UIFont.systemFont(ofSize: 11, weight: .medium)
+        
+        // Light theme icons and text
+        itemAppearance.selected.iconColor = UIColor(AppColors.primaryText)
         itemAppearance.selected.titleTextAttributes = [
-            .foregroundColor: UIColor(AppColors.accent), 
+            .foregroundColor: UIColor(AppColors.primaryText),
             .font: selectedFont
         ]
-        itemAppearance.normal.iconColor = UIColor(AppColors.secondaryText)
+        itemAppearance.normal.iconColor = UIColor(AppColors.tertiaryText)
         itemAppearance.normal.titleTextAttributes = [
-            .foregroundColor: UIColor(AppColors.secondaryText), 
+            .foregroundColor: UIColor(AppColors.tertiaryText),
             .font: normalFont
         ]
         
-        // Adjust title position to reduce crowding
-        itemAppearance.selected.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: -2)
-        itemAppearance.normal.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: -2)
-
         tabBarAppearance.stackedLayoutAppearance = itemAppearance
         tabBarAppearance.inlineLayoutAppearance = itemAppearance
         tabBarAppearance.compactInlineLayoutAppearance = itemAppearance
 
+        // Add subtle shadow instead of hard border
+        tabBarAppearance.shadowColor = UIColor.black.withAlphaComponent(0.08)
+        
         UITabBar.appearance().standardAppearance = tabBarAppearance
         if #available(iOS 15.0, *) {
             UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
         }
 
-        // Navigation Bar Appearance
+        // Navigation Bar Appearance - 8VC Style
         let navigationBarAppearance = UINavigationBarAppearance()
         navigationBarAppearance.configureWithOpaqueBackground()
-        navigationBarAppearance.backgroundColor = UIColor(AppColors.secondaryBackground)
+        navigationBarAppearance.backgroundColor = UIColor(AppColors.appBackground)
+        navigationBarAppearance.shadowColor = UIColor.clear
         
-        let titleFont = AppFonts.uiFont(from: AppFonts.headline) ?? .systemFont(ofSize: 18, weight: .semibold)
-        let largeTitleFont = AppFonts.uiFont(from: AppFonts.body.weight(.bold), size: 34) ?? .systemFont(ofSize: 34, weight: .bold)
+        // Serif fonts for navigation titles
+        let titleFont = UIFont.systemFont(ofSize: 18, weight: .regular)
+        let largeTitleFont = UIFont.systemFont(ofSize: 34, weight: .regular, design: .serif)
         
-        navigationBarAppearance.titleTextAttributes = [.foregroundColor: UIColor(AppColors.primaryText), .font: titleFont]
-        navigationBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor(AppColors.primaryText), .font: largeTitleFont]
+        navigationBarAppearance.titleTextAttributes = [
+            .foregroundColor: UIColor(AppColors.primaryText),
+            .font: titleFont
+        ]
+        navigationBarAppearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(AppColors.primaryText),
+            .font: largeTitleFont
+        ]
 
-        // Configure button colors and fonts
+        // Minimal button styling
         let barButtonItemAppearance = UIBarButtonItemAppearance()
-        let buttonFont = AppFonts.uiFont(from: AppFonts.body) ?? .systemFont(ofSize: 17)
-        barButtonItemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(AppColors.accent), .font: buttonFont]
+        let buttonFont = UIFont.systemFont(ofSize: 17, weight: .regular)
+        barButtonItemAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor(AppColors.accent),
+            .font: buttonFont
+        ]
         
         navigationBarAppearance.buttonAppearance = barButtonItemAppearance
         navigationBarAppearance.doneButtonAppearance = barButtonItemAppearance
@@ -180,241 +181,253 @@ struct AuthenticatedTabView: View {
     }
 }
 
-// MARK: - More View (Updated)
+// MARK: - More View (8VC Styled)
 struct MoreView: View {
     @ObservedObject var authViewModel: AuthViewModel
     
     var body: some View {
         ZStack(alignment: .top) {
-            // Main content
             AppColors.appBackground.ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 24) {
-                    // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
+                VStack(spacing: 40) {
+                    // Header section
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("More")
+                                .font(AppFonts.serifTitle)
+                                .foregroundColor(AppColors.primaryText)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+                        
+                        Divider()
+                            .background(AppColors.divider)
+                    }
                     
                     // Property Management Section
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(
+                            title: "Property Management",
+                            subtitle: "Tools and utilities",
+                            style: .uppercase
+                        )
+                        .padding(.horizontal, 24)
                         
-                        VStack(spacing: 12) {
-                            // Reference Database
-                            ModernMoreActionRow(
-                                icon: "book.closed.fill",
-                                iconColor: .blue,
+                        VStack(spacing: 16) {
+                            MinimalMoreActionRow(
+                                icon: "book.closed",
                                 title: "Reference Database",
                                 subtitle: "Browse NSN/LIN catalog",
                                 destination: AnyView(ReferenceDatabaseBrowserView())
                             )
                             
-                            // My Network
-                            ModernMoreActionRow(
-                                icon: "person.2.fill",
-                                iconColor: AppColors.accent,
+                            MinimalMoreActionRow(
+                                icon: "person.2",
                                 title: "My Network",
                                 subtitle: "Manage connections",
                                 destination: AnyView(ConnectionsView())
                             )
                             
-                            // Sensitive Items
-                            ModernMoreActionRow(
-                                icon: "shield.fill",
-                                iconColor: AppColors.success,
+                            MinimalMoreActionRow(
+                                icon: "shield",
                                 title: "Sensitive Items",
                                 subtitle: "Track high-value property",
                                 destination: AnyView(SensitiveItemsView())
                             )
                             
-                            // Maintenance
-                            ModernMoreActionRow(
-                                icon: "wrench.and.screwdriver.fill",
-                                iconColor: AppColors.warning,
+                            MinimalMoreActionRow(
+                                icon: "wrench",
                                 title: "Maintenance",
                                 subtitle: "Property maintenance tracking",
                                 destination: AnyView(MaintenanceView())
                             )
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 24)
                     }
                     
                     // Settings Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        ModernSectionHeader(
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(
                             title: "Settings",
-                            subtitle: "App preferences and account management"
+                            subtitle: "App preferences and account",
+                            style: .uppercase
                         )
+                        .padding(.horizontal, 24)
                         
-                        VStack(spacing: 12) {
-                            // Settings
-                            ModernMoreActionRow(
+                        VStack(spacing: 16) {
+                            MinimalMoreActionRow(
                                 icon: "gear",
-                                iconColor: AppColors.secondaryText,
                                 title: "Settings",
                                 subtitle: "App preferences and sync",
                                 destination: AnyView(SettingsView(authViewModel: authViewModel))
                             )
                             
-                            // Profile
-                            ModernMoreActionRow(
-                                icon: "person.circle.fill",
-                                iconColor: AppColors.accent,
+                            MinimalMoreActionRow(
+                                icon: "person.circle",
                                 title: "Profile",
                                 subtitle: "Account information",
                                 destination: AnyView(ProfileView(authViewModel: authViewModel))
                             )
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 24)
                     }
                     
-                    // Bottom spacer
-                    Spacer()
-                        .frame(height: 100)
+                    // Bottom padding
+                    Color.clear.frame(height: 80)
                 }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            
-            // Header
-            UniversalHeaderView(title: "More", showBackButton: false)
         }
         .navigationTitle("")
         .navigationBarHidden(true)
     }
 }
 
-// MARK: - Profile View (Updated)
+// MARK: - Profile View (8VC Styled)
 struct ProfileView: View {
     @ObservedObject var authViewModel: AuthViewModel
     
     var body: some View {
         ZStack(alignment: .top) {
-            // Main content
             AppColors.appBackground.ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 24) {
-                    // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
+                VStack(spacing: 40) {
+                    // Header with back button
+                    VStack(spacing: 0) {
+                        HStack {
+                            MinimalBackButton(action: {
+                                // Handle back navigation
+                            })
+                            
+                            Spacer()
+                            
+                            Text("Profile")
+                                .font(AppFonts.serifTitle)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+                        
+                        Divider()
+                            .background(AppColors.divider)
+                    }
                     
                     // User Profile Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ModernSectionHeader(
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(
                             title: "Profile Information",
-                            subtitle: "Your account details and information"
+                            subtitle: "Your account details",
+                            style: .serif
                         )
+                        .padding(.horizontal, 24)
                         
-                        // User Profile Card
-                        VStack(spacing: 20) {
-                            if let user = authViewModel.currentUser?.user {
+                        if let user = authViewModel.currentUser?.user {
+                            VStack(spacing: 20) {
                                 HStack(spacing: 20) {
                                     // Profile Picture
-                                    ZStack {
-                                        Circle()
-                                            .fill(AppColors.accent)
-                                            .frame(width: 80, height: 80)
-                                        
-                                        Text(user.name.prefix(1).uppercased())
-                                            .font(AppFonts.largeTitleHeavy)
-                                            .foregroundColor(.black)
-                                    }
+                                    Circle()
+                                        .fill(AppColors.tertiaryBackground)
+                                        .frame(width: 80, height: 80)
+                                        .overlay(
+                                            Text(user.name.prefix(1).uppercased())
+                                                .font(AppFonts.title)
+                                                .foregroundColor(AppColors.secondaryText)
+                                        )
                                     
                                     VStack(alignment: .leading, spacing: 8) {
-                                        Text("\(user.rank) \(user.name)")
-                                            .font(AppFonts.title)
+                                        Text(user.name)
+                                            .font(AppFonts.serifHeadline)
                                             .foregroundColor(AppColors.primaryText)
                                         
                                         Text("@\(user.username)")
-                                            .font(AppFonts.bodyBold)
+                                            .font(AppFonts.monoBody)
                                             .foregroundColor(AppColors.accent)
                                         
                                         Text("ID: #\(user.id)")
                                             .font(AppFonts.caption)
                                             .foregroundColor(AppColors.tertiaryText)
-                                            .compatibleKerning(AppFonts.wideTracking)
                                     }
                                     
                                     Spacer()
                                 }
                             }
+                            .cleanCard()
+                            .padding(.horizontal, 24)
                         }
-                        .modernCard()
-                        .padding(.horizontal)
-                    }
-                    
-                    // Account Details Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ModernSectionHeader(
-                            title: "Account Details",
-                            subtitle: "Role and organizational information"
-                        )
-                        
-                        VStack(spacing: 12) {
-                            ModernProfileDetailRow(label: "Role", value: "Company Commander")
-                            ModernProfileDetailRow(label: "Unit", value: "A Company, 1-502 INF")
-                            ModernProfileDetailRow(label: "Member Since", value: "Jan 2023")
-                        }
-                        .padding(.horizontal)
                     }
                     
                     // Activity Statistics Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ModernSectionHeader(
-                            title: "Activity Statistics",
-                            subtitle: "Your property management activity"
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(
+                            title: "Activity",
+                            subtitle: "Your property management stats",
+                            style: .uppercase
                         )
+                        .padding(.horizontal, 24)
                         
                         LazyVGrid(columns: [
                             GridItem(.flexible()),
                             GridItem(.flexible())
-                        ], spacing: 12) {
-                            ProfileStatCard(title: "Total Items", value: "156", icon: "cube.box.fill", color: AppColors.accent)
-                            ProfileStatCard(title: "Transfers", value: "47", icon: "arrow.left.arrow.right.circle.fill", color: AppColors.success)
-                            ProfileStatCard(title: "Verifications", value: "312", icon: "checkmark.shield.fill", color: AppColors.warning)
-                            ProfileStatCard(title: "Maintenance", value: "23", icon: "wrench.and.screwdriver.fill", color: AppColors.destructive)
+                        ], spacing: 16) {
+                            MinimalStatCard(
+                                title: "Total Items",
+                                value: "156",
+                                subtitle: "Equipment tracked"
+                            )
+                            
+                            MinimalStatCard(
+                                title: "Transfers",
+                                value: "47",
+                                subtitle: "Completed"
+                            )
+                            
+                            MinimalStatCard(
+                                title: "Verifications",
+                                value: "312",
+                                subtitle: "Items verified"
+                            )
+                            
+                            MinimalStatCard(
+                                title: "Maintenance",
+                                value: "23",
+                                subtitle: "Items serviced"
+                            )
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 24)
                     }
                     
                     // Actions Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ModernSectionHeader(
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(
                             title: "Account Actions",
-                            subtitle: "Manage your account settings"
+                            style: .uppercase
                         )
+                        .padding(.horizontal, 24)
                         
-                        Button("Sign Out", role: .destructive) {
+                        Button("Sign Out") {
                             authViewModel.logout()
                         }
-                        .buttonStyle(.destructive)
-                        .padding(.horizontal)
+                        .buttonStyle(MinimalSecondaryButtonStyle())
+                        .padding(.horizontal, 24)
                     }
                     
-                    // Bottom spacer
-                    Spacer()
-                        .frame(height: 100)
+                    // Bottom padding
+                    Color.clear.frame(height: 80)
                 }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            
-            // Header
-            UniversalHeaderView(
-                title: "Profile",
-                showBackButton: true,
-                backButtonAction: nil
-            )
         }
         .navigationTitle("")
         .navigationBarHidden(true)
     }
 }
 
-
-
-// MARK: - Modern More Action Row Component
-struct ModernMoreActionRow: View {
+// MARK: - Minimal More Action Row Component
+struct MinimalMoreActionRow: View {
     let icon: String
-    let iconColor: Color
     let title: String
     let subtitle: String
     let destination: AnyView
@@ -423,20 +436,15 @@ struct ModernMoreActionRow: View {
         NavigationLink(destination: destination) {
             HStack(spacing: 16) {
                 // Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(iconColor.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(iconColor)
-                }
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .light))
+                    .foregroundColor(AppColors.primaryText)
+                    .frame(width: 32, height: 32)
                 
                 // Text content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(AppFonts.bodyBold)
+                        .font(AppFonts.bodyMedium)
                         .foregroundColor(AppColors.primaryText)
                     
                     Text(subtitle)
@@ -448,177 +456,51 @@ struct ModernMoreActionRow: View {
                 
                 // Chevron
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .light))
                     .foregroundColor(AppColors.tertiaryText)
             }
-            .padding()
+            .padding(20)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
-        .modernCard(isElevated: false)
+        .cleanCard(showShadow: false)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(AppColors.border, lineWidth: 1)
+        )
     }
 }
 
-
-
-// MARK: - Modern Profile Detail Row Component
-struct ModernProfileDetailRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label.uppercased())
-                .font(AppFonts.captionBold)
-                .foregroundColor(AppColors.tertiaryText)
-                .compatibleKerning(AppFonts.militaryTracking)
-                .frame(width: 120, alignment: .leading)
-            
-            Text(value)
-                .font(AppFonts.bodyBold)
-                .foregroundColor(AppColors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding()
-        .modernCard(isElevated: false)
-    }
-}
-
-// MARK: - Profile Stat Card Component
-struct ProfileStatCard: View {
-    let title: String
-    let value: String
+// MARK: - Floating Action Button (Minimal Style)
+public struct FloatingActionButton: View {
     let icon: String
-    let color: Color
+    let action: () -> Void
+    let isExpanded: Bool
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-                Spacer()
-            }
-            
-            Text(value)
-                .font(AppFonts.largeTitleHeavy)
-                .foregroundColor(AppColors.primaryText)
-            
-            Text(title.uppercased())
-                .font(AppFonts.captionBold)
-                .foregroundColor(AppColors.secondaryText)
-                .compatibleKerning(AppFonts.wideTracking)
-        }
-        .modernCard()
+    public init(icon: String, action: @escaping () -> Void, isExpanded: Bool = false) {
+        self.icon = icon
+        self.action = action
+        self.isExpanded = isExpanded
     }
-}
-
-// MARK: - QR Management View (DEPRECATED - Removed)
-/*
-struct QRManagementView: View {
-    var body: some View {
-        ZStack(alignment: .top) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    Color.clear.frame(height: 36)
-                    
-                    Text("QR Code Management")
-                        .font(AppFonts.largeTitle)
-                        .foregroundColor(AppColors.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                    
-                    WebAlignedCard {
-                        VStack(spacing: 16) {
-                            Image(systemName: "qrcode")
-                                .font(.system(size: 60))
-                                .foregroundColor(AppColors.secondaryText)
-                            
-                            Text("QR Management Coming Soon")
-                                .font(AppFonts.headline)
-                                .foregroundColor(AppColors.primaryText)
-                            
-                            Text("This feature will allow you to generate and manage QR codes for your equipment.")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.secondaryText)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding()
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer().frame(height: 100)
+    
+    public var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .light))
+                
+                if isExpanded {
+                    Text("CREATE")
+                        .font(AppFonts.bodyMedium)
+                        .compatibleKerning(AppFonts.wideKerning)
                 }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            
-            QRManagementHeaderSection()
-        }
-        .navigationTitle("")
-        .navigationBarHidden(true)
-    }
-}
-
-struct QRManagementHeaderSection: View {
-    var body: some View {
-        ZStack {
-            AppColors.secondaryBackground
-                .ignoresSafeArea()
-            
-            VStack {
-                Spacer()
-                Text("QR MANAGEMENT")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppColors.primaryText)
-                    .kerning(1.2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 12)
-            }
-        }
-        .frame(height: 36)
-    }
-}
-*/
-
-// MARK: - Floating Action Button (using the one from IndustrialComponents)
-// FloatingActionButton is now defined in IndustrialComponents.swift
-
-
-
-// MARK: - Helper Extension for UIFont conversion
-extension AppFonts {
-    static func uiFont(from font: Font, size: CGFloat? = nil) -> UIFont? {
-        let fontDescription = String(describing: font)
-        
-        if fontDescription.contains("CustomFontProvider") {
-            var fontName = "HelveticaNeue"
-            var finalSize: CGFloat
-            
-            switch font {
-                case AppFonts.body: fontName = "HelveticaNeue"; finalSize = AppFonts.bodySize
-                case AppFonts.bodyBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.bodySize
-                case AppFonts.headline: fontName = "HelveticaNeue-Medium"; finalSize = AppFonts.headlineSize
-                case AppFonts.subhead: fontName = "HelveticaNeue"; finalSize = AppFonts.subheadSize
-                case AppFonts.subheadBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.subheadSize
-                case AppFonts.caption: fontName = "HelveticaNeue"; finalSize = AppFonts.smallSize
-                case AppFonts.captionBold: fontName = "HelveticaNeue-Bold"; finalSize = AppFonts.smallSize
-                default:
-                    if fontDescription.contains("weight=bold") { fontName = "HelveticaNeue-Bold" }
-                    else if fontDescription.contains("weight=medium") { fontName = "HelveticaNeue-Medium" }
-                    finalSize = AppFonts.bodySize
-            }
-            
-            if let explicitSize = size {
-                finalSize = explicitSize
-            }
-            
-            return UIFont(name: fontName, size: finalSize)
-        } else {
-            print("Warning: Attempting UIFont conversion for non-custom font: \(fontDescription)")
-            if font == .headline { return UIFont.preferredFont(forTextStyle: .headline) }
-            if font == .body { return UIFont.preferredFont(forTextStyle: .body) }
-            if font == .caption { return UIFont.preferredFont(forTextStyle: .caption1) }
-            return UIFont.preferredFont(forTextStyle: .body)
+            .foregroundColor(.white)
+            .padding(.horizontal, isExpanded ? 20 : 16)
+            .padding(.vertical, 16)
+            .background(AppColors.primaryText)
+            .cornerRadius(isExpanded ? 28 : 56)
+            .shadow(color: AppColors.shadowColor, radius: 8, y: 4)
         }
     }
 }
@@ -627,6 +509,5 @@ extension AppFonts {
 struct AuthenticatedTabView_Previews: PreviewProvider {
     static var previews: some View {
         AuthenticatedTabView(authViewModel: AuthViewModel())
-            .preferredColorScheme(.dark)
     }
 }

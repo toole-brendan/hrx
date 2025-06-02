@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Maintenance View
 struct MaintenanceView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var documentService = DocumentService()
+    @ObservedObject private var documentService = DocumentService.shared
     
     var body: some View {
         ZStack(alignment: .top) {

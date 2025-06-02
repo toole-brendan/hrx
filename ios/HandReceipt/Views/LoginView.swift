@@ -26,8 +26,8 @@ struct LoginView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Black background to match web
-                Color.black
+                // Light background to match 8VC style
+                AppColors.appBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -39,7 +39,7 @@ struct LoginView: View {
                                 Image("hr_logo")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(height: 350) // Approximate h-96 from web
+                                    .frame(height: 200) // Reduced for cleaner look
                                     .onTapGesture {
                                         handleLogoTap()
                                     }
@@ -47,55 +47,53 @@ struct LoginView: View {
                                 // Dev login progress indicator
                                 if logoTapCount > 0 && logoTapCount < 5 {
                                     Circle()
-                                        .strokeBorder(Color.gray.opacity(0.2), lineWidth: 2)
-                                        .frame(width: 200, height: 200)
+                                        .strokeBorder(AppColors.border, lineWidth: 2)
+                                        .frame(width: 120, height: 120)
                                         .scaleEffect(1 + (CGFloat(logoTapCount) * 0.05))
                                         .animation(.easeOut(duration: 0.2), value: logoTapCount)
                                     
                                     Text("\(logoTapCount)")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(Color.gray.opacity(0.5))
-                                        .offset(y: -120)
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                        .offset(y: -80)
                                 }
                             }
-                            .padding(.bottom, 16)
+                            .padding(.bottom, 24)
                             
-                            Text("Military Supply Chain Management")
-                                .font(.custom("DIN Alternate", size: 16))
-                                .italic()
-                                .foregroundColor(Color.gray)
-                                .padding(.bottom, 24)
+                            Text("Property Management System")
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.secondaryText)
+                                .padding(.bottom, 40)
                         }
-                        .padding(.top, 8)
+                        .padding(.top, 60)
                         
                         // Login Card
                         VStack(spacing: 0) {
                             // Card Header
-                            VStack(spacing: 8) {
-                                Text("Sign In")
-                                    .font(.custom("DIN Alternate", size: 24))
-                                    .foregroundColor(.white)
-                                    .compatibleKerning(1.0)
+                            VStack(spacing: 16) {
+                                Text("Welcome Back")
+                                    .font(AppFonts.serifTitle)
+                                    .foregroundColor(AppColors.primaryText)
                                 
                                 Text("Enter your credentials to access your account")
-                                    .font(.custom("DIN Alternate", size: 14))
-                                    .foregroundColor(Color.gray)
+                                    .font(AppFonts.body)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
+                            .padding(.vertical, 32)
                             .padding(.horizontal, 24)
                             
                             // Card Content
-                            VStack(spacing: 16) {
+                            VStack(spacing: 24) {
                                 // Username Field
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("USERNAME")
-                                        .font(.custom("DIN Alternate", size: 11))
-                                        .foregroundColor(Color(white: 0.8))
-                                        .compatibleKerning(1.5)
+                                    Text("Username")
+                                        .font(AppFonts.captionMedium)
+                                        .foregroundColor(AppColors.tertiaryText)
                                     
-                                    TextField("", text: $viewModel.username)
-                                        .textFieldStyle(WebStyleTextField())
+                                    TextField("Enter your username", text: $viewModel.username)
+                                        .textFieldStyle(MinimalTextFieldStyle())
                                         .textContentType(.username)
                                         .keyboardType(.asciiCapable)
                                         .autocapitalization(.none)
@@ -104,34 +102,33 @@ struct LoginView: View {
                                 
                                 // Password Field
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("PASSWORD")
-                                        .font(.custom("DIN Alternate", size: 11))
-                                        .foregroundColor(Color(white: 0.8))
-                                        .compatibleKerning(1.5)
+                                    Text("Password")
+                                        .font(AppFonts.captionMedium)
+                                        .foregroundColor(AppColors.tertiaryText)
                                     
-                                    SecureField("", text: $viewModel.password)
-                                        .textFieldStyle(WebStyleTextField())
+                                    SecureField("Enter your password", text: $viewModel.password)
+                                        .textFieldStyle(MinimalTextFieldStyle())
                                         .textContentType(.password)
                                 }
                                 
                                 // Error Message
                                 if !errorMessage.isEmpty {
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: 12) {
                                         Image(systemName: "exclamationmark.triangle.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.red)
+                                            .font(.system(size: 16, weight: .light))
+                                            .foregroundColor(AppColors.destructive)
                                         
                                         Text(errorMessage)
-                                            .font(.custom("DIN Alternate", size: 13))
-                                            .foregroundColor(.red)
+                                            .font(AppFonts.body)
+                                            .foregroundColor(AppColors.destructive)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(Color.red.opacity(0.1))
+                                    .padding(16)
+                                    .background(AppColors.destructive.opacity(0.05))
+                                    .cornerRadius(4)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 4)
-                                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                            .stroke(AppColors.destructive.opacity(0.2), lineWidth: 1)
                                     )
                                 }
                                 
@@ -139,51 +136,32 @@ struct LoginView: View {
                                 Button {
                                     viewModel.attemptLogin()
                                 } label: {
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: 12) {
                                         if case .loading = viewModel.loginState {
                                             ProgressView()
                                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                                 .scaleEffect(0.8)
                                         } else {
-                                            Image(systemName: "arrow.right.circle.fill")
-                                                .font(.system(size: 16))
+                                            Image(systemName: "arrow.right")
+                                                .font(.system(size: 16, weight: .light))
                                         }
                                         
-                                        Text("SIGN IN")
-                                            .font(.custom("DIN Alternate", size: 11))
-                                            .compatibleKerning(1.5)
+                                        Text("Sign In")
+                                            .font(AppFonts.bodyMedium)
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: 44)
-                                    .foregroundColor(.white)
-                                    .background(Color(red: 59/255, green: 130/255, blue: 246/255).opacity(0.7))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 0)
-                                            .stroke(Color.clear, lineWidth: 0)
-                                    )
+                                    .frame(height: 48)
                                 }
+                                .buttonStyle(MinimalPrimaryButtonStyle())
                                 .disabled(!viewModel.canAttemptLogin || viewModel.loginState == .loading)
-                                .opacity((!viewModel.canAttemptLogin || viewModel.loginState == .loading) ? 0.6 : 1.0)
-                                .onHover { isHovered in
-                                    // This will only work on macOS/iPad with mouse
-                                }
                             }
-                            .padding(24)
-                            
-                            // Card Footer
-                            VStack(spacing: 8) {
-                                // Empty footer to match web design
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .padding(32)
                         }
-                        .background(Color(white: 0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 0)
-                                .stroke(Color(white: 0.2), lineWidth: 1)
-                        )
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(4)
+                        .shadow(color: AppColors.shadowColor, radius: 8, y: 4)
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 60)
                     }
                 }
             }
@@ -320,11 +298,6 @@ struct LoginView_Previews: PreviewProvider {
         LoginView { loginResponse in
             debugPrint("Preview Login Success: User \(loginResponse.user.username)")
         }
-        .preferredColorScheme(.dark)
-        .previewDisplayName("Dark Mode")
-
-        LoginView { _ in }
-            .preferredColorScheme(.light)
-            .previewDisplayName("Light Mode")
+        .previewDisplayName("8VC Style Login")
     }
 } 

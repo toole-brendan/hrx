@@ -2,62 +2,66 @@
 
 import SwiftUI
 
-// MARK: - Enhanced Font System
+// MARK: - 8VC-Inspired Typography System
 public struct AppFonts {
-    // Size definitions with better hierarchy
-    static let microSize: CGFloat = 10      // New: For badges and labels
-    static let smallSize: CGFloat = 12      // Captions
-    static let bodySmallSize: CGFloat = 14  // Secondary body text
-    static let bodySize: CGFloat = 16       // Primary body
-    static let subheadSize: CGFloat = 18    // Subheadings
-    static let headlineSize: CGFloat = 20   // Headlines
-    static let titleSize: CGFloat = 24      // Titles
-    static let largeTitleSize: CGFloat = 32 // Large titles
-    static let heroSize: CGFloat = 40       // New: Hero text
+    // Size scale (refined for elegance)
+    static let microSize: CGFloat = 11
+    static let captionSize: CGFloat = 13
+    static let bodySize: CGFloat = 16
+    static let subheadSize: CGFloat = 18
+    static let headlineSize: CGFloat = 24
+    static let titleSize: CGFloat = 32
+    static let heroSize: CGFloat = 48
     
-    // Tracking for industrial feel
-    static let tightTracking: CGFloat = -0.5
-    static let normalTracking: CGFloat = 0
-    static let wideTracking: CGFloat = 0.8
-    static let ultraWideTracking: CGFloat = 1.5
-    static let militaryTracking: CGFloat = 2.0
+    // Letter spacing (reduced from military style)
+    static let tightKerning: CGFloat = -0.5
+    static let normalKerning: CGFloat = 0
+    static let wideKerning: CGFloat = 1.0
+    static let ultraWideKerning: CGFloat = 2.0
     
-    // Font definitions with improved hierarchy
+    // MARK: - Sans-serif fonts (Primary)
+    public static let body = Font.system(size: bodySize, weight: .regular)
+    public static let bodyMedium = Font.system(size: bodySize, weight: .medium)
+    public static let bodySemibold = Font.system(size: bodySize, weight: .semibold)
+    public static let caption = Font.system(size: captionSize, weight: .regular)
+    public static let captionMedium = Font.system(size: captionSize, weight: .medium)
+    public static let headline = Font.system(size: headlineSize, weight: .semibold)
+    public static let title = Font.system(size: titleSize, weight: .bold)
+    public static let hero = Font.system(size: heroSize, weight: .bold)
+    
+    // MARK: - Serif fonts (For elegant headers)
+    public static let serifHeadline = Font.system(size: headlineSize, weight: .semibold, design: .serif)
+    public static let serifTitle = Font.system(size: titleSize, weight: .bold, design: .serif)
+    public static let serifHero = Font.system(size: heroSize, weight: .bold, design: .serif)
+    
+    // MARK: - Monospace fonts (For technical content)
+    public static let monoCaption = Font.system(size: captionSize, design: .monospaced)
+    public static let monoBody = Font.system(size: bodySize, design: .monospaced)
+    public static let monoHeadline = Font.system(size: headlineSize, design: .monospaced).weight(.medium)
+    
+    // MARK: - Special styles
+    public static let uppercaseLabel = Font.system(size: captionSize, weight: .semibold)
+    public static let metadata = Font.system(size: captionSize, weight: .regular)
+    
+    // MARK: - Legacy compatibility (mapped to new system)
     public static let micro = Font.system(size: microSize, weight: .medium)
     public static let microBold = Font.system(size: microSize, weight: .bold)
-    
-    public static let caption = Font.system(size: smallSize, weight: .regular)
-    public static let captionBold = Font.system(size: smallSize, weight: .semibold)
-    public static let captionHeavy = Font.system(size: smallSize, weight: .heavy)
-    
-    public static let bodySmall = Font.system(size: bodySmallSize, weight: .regular)
-    public static let bodySmallBold = Font.system(size: bodySmallSize, weight: .semibold)
-    
-    public static let body = Font.system(size: bodySize, weight: .regular)
-    public static let bodyBold = Font.system(size: bodySize, weight: .semibold)
-    public static let bodyHeavy = Font.system(size: bodySize, weight: .bold)
-    
+    public static let captionBold = captionMedium
+    public static let captionHeavy = Font.system(size: captionSize, weight: .semibold)
+    public static let bodySmall = body
+    public static let bodySmallBold = bodyMedium
+    public static let bodyBold = bodyMedium
+    public static let bodyHeavy = bodySemibold
     public static let subhead = Font.system(size: subheadSize, weight: .regular)
     public static let subheadBold = Font.system(size: subheadSize, weight: .semibold)
-    
-    public static let headline = Font.system(size: headlineSize, weight: .semibold)
-    public static let headlineBold = Font.system(size: headlineSize, weight: .bold)
-    
-    public static let title = Font.system(size: titleSize, weight: .bold)
-    public static let titleHeavy = Font.system(size: titleSize, weight: .heavy)
-    
-    public static let largeTitle = Font.system(size: largeTitleSize, weight: .bold)
-    public static let largeTitleHeavy = Font.system(size: largeTitleSize, weight: .heavy)
-    
-    public static let hero = Font.system(size: heroSize, weight: .heavy)
-    
-    // Technical/Monospace fonts
+    public static let headlineBold = headline
+    public static let titleHeavy = title
+    public static let largeTitle = title
+    public static let largeTitleHeavy = title
     public static let monoMicro = Font.system(size: microSize, design: .monospaced)
-    public static let monoSmall = Font.system(size: smallSize, design: .monospaced)
-    public static let mono = Font.system(size: bodySize, design: .monospaced)
-    public static let monoLarge = Font.system(size: subheadSize, design: .monospaced)
-    
-    // Legacy compatibility
+    public static let monoSmall = monoCaption
+    public static let mono = monoBody
+    public static let monoLarge = monoHeadline
     public static let small = micro
     public static let smallBold = microBold
     public static let caption2 = micro
@@ -65,10 +69,270 @@ public struct AppFonts {
     public static let subheadlineBold = bodySmallBold
     public static let militaryHeading = headline
     public static let militaryTitle = title
+    
+    // Legacy tracking values (kept for compatibility)
+    static let tightTracking: CGFloat = tightKerning
+    static let normalTracking: CGFloat = normalKerning
+    static let wideTracking: CGFloat = wideKerning
+    static let ultraWideTracking: CGFloat = ultraWideKerning
+    static let militaryTracking: CGFloat = ultraWideKerning
 }
 
-// MARK: - Industrial Back Button Style
-public struct IndustrialBackButton: View {
+// MARK: - Minimal Button Styles
+public struct MinimalPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFonts.bodyMedium)
+            .foregroundColor(.white)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 14)
+            .background(
+                Group {
+                    if !isEnabled {
+                        AppColors.primaryText.opacity(0.3)
+                    } else if configuration.isPressed {
+                        AppColors.primaryText.opacity(0.8)
+                    } else {
+                        AppColors.primaryText
+                    }
+                }
+            )
+            .cornerRadius(4)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+public struct MinimalSecondaryButtonStyle: ButtonStyle {
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFonts.bodyMedium)
+            .foregroundColor(configuration.isPressed ? AppColors.secondaryText : AppColors.primaryText)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 14)
+            .background(Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(configuration.isPressed ? AppColors.border : AppColors.borderStrong, lineWidth: 1)
+            )
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+public struct TextLinkButtonStyle: ButtonStyle {
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFonts.body)
+            .foregroundColor(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
+            .underline(configuration.isPressed)
+    }
+}
+
+// Legacy button styles (updated to use minimal design)
+public struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        MinimalPrimaryButtonStyle().makeBody(configuration: configuration)
+    }
+}
+
+public struct SecondaryButtonStyle: ButtonStyle {
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        MinimalSecondaryButtonStyle().makeBody(configuration: configuration)
+    }
+}
+
+public struct DestructiveButtonStyle: ButtonStyle {
+    public init() {}
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFonts.bodyMedium)
+            .foregroundColor(.white)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 14)
+            .background(configuration.isPressed ? AppColors.destructive.opacity(0.8) : AppColors.destructive)
+            .cornerRadius(4)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Clean Card Styles
+public struct CleanCardModifier: ViewModifier {
+    let padding: CGFloat
+    let showShadow: Bool
+    
+    public init(padding: CGFloat = 24, showShadow: Bool = true) {
+        self.padding = padding
+        self.showShadow = showShadow
+    }
+    
+    public func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .shadow(
+                color: showShadow ? AppColors.shadowColor : Color.clear,
+                radius: showShadow ? 4 : 0,
+                x: 0,
+                y: showShadow ? 2 : 0
+            )
+    }
+}
+
+// MARK: - Elegant Section Headers
+public struct ElegantSectionHeader: View {
+    let title: String
+    let subtitle: String?
+    let style: HeaderStyle
+    let action: (() -> Void)?
+    let actionLabel: String?
+    
+    public enum HeaderStyle {
+        case serif
+        case sans
+        case mono
+        case uppercase
+    }
+    
+    public init(
+        title: String,
+        subtitle: String? = nil,
+        style: HeaderStyle = .sans,
+        action: (() -> Void)? = nil,
+        actionLabel: String? = nil
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.style = style
+        self.action = action
+        self.actionLabel = actionLabel
+    }
+    
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    titleView
+                    
+                    if let subtitle = subtitle {
+                        Text(subtitle)
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                    }
+                }
+                
+                Spacer()
+                
+                if let action = action, let label = actionLabel {
+                    Button(action: action) {
+                        Text(label)
+                            .font(AppFonts.captionMedium)
+                            .foregroundColor(AppColors.accent)
+                    }
+                }
+            }
+            
+            Divider()
+                .background(AppColors.divider)
+                .padding(.top, 8)
+        }
+        .padding(.bottom, 16)
+    }
+    
+    @ViewBuilder
+    private var titleView: some View {
+        switch style {
+        case .serif:
+            Text(title)
+                .font(AppFonts.serifHeadline)
+                .foregroundColor(AppColors.primaryText)
+        case .sans:
+            Text(title)
+                .font(AppFonts.headline)
+                .foregroundColor(AppColors.primaryText)
+        case .mono:
+            Text(title)
+                .font(AppFonts.monoHeadline)
+                .foregroundColor(AppColors.primaryText)
+        case .uppercase:
+            Text(title.uppercased())
+                .font(AppFonts.captionMedium)
+                .foregroundColor(AppColors.secondaryText)
+                .compatibleKerning(AppFonts.ultraWideKerning)
+        }
+    }
+}
+
+// MARK: - Minimal Empty State
+public struct MinimalEmptyState: View {
+    let icon: String?
+    let title: String
+    let message: String
+    let action: (() -> Void)?
+    let actionLabel: String?
+    
+    public init(
+        icon: String? = nil,
+        title: String,
+        message: String,
+        action: (() -> Void)? = nil,
+        actionLabel: String? = nil
+    ) {
+        self.icon = icon
+        self.title = title
+        self.message = message
+        self.action = action
+        self.actionLabel = actionLabel
+    }
+    
+    public var body: some View {
+        VStack(spacing: 32) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.system(size: 48, weight: .thin))
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+            
+            VStack(spacing: 12) {
+                Text(title)
+                    .font(AppFonts.headline)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text(message)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            if let action = action, let label = actionLabel {
+                Button(action: action) {
+                    Text(label)
+                }
+                .buttonStyle(MinimalPrimaryButtonStyle())
+            }
+        }
+        .padding(48)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Minimal Back Button
+public struct MinimalBackButton: View {
     let action: () -> Void
     let label: String
     
@@ -81,96 +345,31 @@ public struct IndustrialBackButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 14, weight: .regular))
                 Text(label)
-                    .font(AppFonts.bodyBold)
+                    .font(AppFonts.body)
             }
-            .foregroundColor(AppColors.accent)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(AppColors.accent.opacity(0.1))
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
-            )
+            .foregroundColor(AppColors.secondaryText)
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Enhanced Button Styles with Better Contrast
-public struct PrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
+// MARK: - Legacy Compatibility Components (Updated Styles)
+public struct IndustrialBackButton: View {
+    let action: () -> Void
+    let label: String
     
-    public init() {}
+    public init(label: String = "Back", action: @escaping () -> Void) {
+        self.label = label
+        self.action = action
+    }
     
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .frame(minHeight: 48)
-            .font(AppFonts.bodyBold)
-            .foregroundColor(Color.black)
-            .background(
-                Group {
-                    if !isEnabled {
-                        AppColors.accent.opacity(0.3)
-                    } else if configuration.isPressed {
-                        AppColors.accentHighlight
-                    } else {
-                        AppColors.accent
-                    }
-                }
-            )
-            .cornerRadius(4)
-            .shadow(color: AppColors.accent.opacity(isEnabled ? 0.3 : 0), radius: 8, y: 2)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    public var body: some View {
+        MinimalBackButton(label: label, action: action)
     }
 }
 
-// Secondary button - outlined style with modern styling
-public struct SecondaryButtonStyle: ButtonStyle {
-    public init() {}
-    
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .frame(minHeight: 48)
-            .font(AppFonts.bodyBold)
-            .foregroundColor(AppColors.accent)
-            .background(Color.clear)
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(AppColors.accent, lineWidth: 2)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-// Destructive button with enhanced styling
-public struct DestructiveButtonStyle: ButtonStyle {
-    public init() {}
-    
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .frame(minHeight: 48)
-            .font(AppFonts.bodyBold)
-            .foregroundColor(.white)
-            .background(configuration.isPressed ? AppColors.destructive.opacity(0.8) : AppColors.destructive)
-            .cornerRadius(4)
-            .shadow(color: AppColors.destructive.opacity(0.3), radius: 8, y: 2)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Modern Card Style with Depth
 public struct ModernCardModifier: ViewModifier {
     let isElevated: Bool
     
@@ -180,18 +379,18 @@ public struct ModernCardModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         content
-            .padding(16)
-            .background(isElevated ? AppColors.elevatedBackground : AppColors.secondaryBackground)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AppColors.border, lineWidth: 1)
+            .padding(20)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .shadow(
+                color: AppColors.shadowColor,
+                radius: isElevated ? 8 : 4,
+                x: 0,
+                y: isElevated ? 4 : 2
             )
-            .shadow(color: Color.black.opacity(0.3), radius: isElevated ? 12 : 4, y: isElevated ? 6 : 2)
     }
 }
 
-// MARK: - Section Header with Better Typography
 public struct ModernSectionHeader: View {
     let title: String
     let subtitle: String?
@@ -206,46 +405,77 @@ public struct ModernSectionHeader: View {
     }
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title.uppercased())
-                        .font(AppFonts.captionHeavy)
-                        .foregroundColor(AppColors.primaryText)
-                        .compatibleKerning(AppFonts.militaryTracking)
-                    
-                    if let subtitle = subtitle {
-                        Text(subtitle)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.tertiaryText)
-                    }
-                }
-                
-                Spacer()
-                
-                if let action = action, let label = actionLabel {
-                    Button(action: action) {
-                        HStack(spacing: 4) {
-                            Text(label.uppercased())
-                                .font(AppFonts.captionBold)
-                                .foregroundColor(AppColors.accent)
-                                .compatibleKerning(AppFonts.wideTracking)
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(AppColors.accent)
-                        }
-                    }
-                }
-            }
-            
-            // Section divider line
-            Rectangle()
-                .fill(AppColors.accent.opacity(0.3))
-                .frame(height: 1)
-                .padding(.top, 8)
-        }
-        .padding(.horizontal)
-        .padding(.bottom, 12)
+        ElegantSectionHeader(
+            title: title,
+            subtitle: subtitle,
+            style: .uppercase,
+            action: action,
+            actionLabel: actionLabel
+        )
+    }
+}
+
+// MARK: - Minimal Text Field Style
+public struct MinimalTextFieldStyle: TextFieldStyle {
+    public init() {}
+
+    public func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .font(AppFonts.body)
+            .foregroundColor(AppColors.primaryText)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+    }
+}
+
+// MARK: - Enhanced Text Field Style
+public struct IndustrialTextFieldStyle: TextFieldStyle {
+    public init() {}
+
+    public func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .font(AppFonts.body)
+            .foregroundColor(AppColors.primaryText)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+    }
+}
+
+// MARK: - Legacy Card Style (Updated)
+public struct IndustrialCardModifier: ViewModifier {
+    public init() {}
+    
+    public func body(content: Content) -> some View {
+        content
+            .modifier(CleanCardModifier(padding: 20))
+    }
+}
+
+// MARK: - Section Header Style (Legacy)
+public struct IndustrialSectionHeaderModifier: ViewModifier {
+    public init() {}
+    
+    public func body(content: Content) -> some View {
+        content
+            .font(AppFonts.headline)
+            .foregroundColor(AppColors.primaryText)
+            .textCase(.uppercase)
+            .compatibleKerning(AppFonts.wideKerning)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 24)
     }
 }
 
@@ -290,7 +520,7 @@ public struct IndustrialNavigationModifier: ViewModifier {
                     ForEach(trailingItems.indices, id: \.self) { index in
                         Button(action: trailingItems[index].action) {
                             Image(systemName: trailingItems[index].icon)
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.system(size: 18, weight: .regular))
                                 .foregroundColor(
                                     trailingItems[index].isDestructive ? 
                                     AppColors.destructive : AppColors.accent
@@ -301,69 +531,29 @@ public struct IndustrialNavigationModifier: ViewModifier {
             )
         
         return modifiedContent
-            .navigationTitle(title.uppercased())
-    }
-}
-
-// MARK: - Enhanced Text Field Style
-public struct IndustrialTextFieldStyle: TextFieldStyle {
-    public init() {}
-
-    public func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
-            .padding(.vertical, 14)
-            .padding(.horizontal, 16)
-            .font(AppFonts.body)
-            .foregroundColor(AppColors.primaryText)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
-    }
-}
-
-// MARK: - Legacy Card Style (for compatibility)
-public struct IndustrialCardModifier: ViewModifier {
-    public init() {}
-    
-    public func body(content: Content) -> some View {
-        content
-            .padding(16)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
-    }
-}
-
-// MARK: - Section Header Style (legacy)
-public struct IndustrialSectionHeaderModifier: ViewModifier {
-    public init() {}
-    
-    public func body(content: Content) -> some View {
-        content
-            .font(AppFonts.headlineBold)
-            .foregroundColor(AppColors.primaryText)
-            .textCase(.uppercase)
-            .compatibleKerning(AppFonts.militaryTracking)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(AppColors.tertiaryBackground)
-            .overlay(
-                Rectangle()
-                    .frame(width: 4, height: nil, alignment: .leading)
-                    .foregroundColor(AppColors.accent),
-                alignment: .leading
-            )
+            .navigationTitle(title)
     }
 }
 
 // MARK: - Button Style Extensions
+extension ButtonStyle where Self == MinimalPrimaryButtonStyle {
+    public static var minimalPrimary: MinimalPrimaryButtonStyle {
+        MinimalPrimaryButtonStyle()
+    }
+}
+
+extension ButtonStyle where Self == MinimalSecondaryButtonStyle {
+    public static var minimalSecondary: MinimalSecondaryButtonStyle {
+        MinimalSecondaryButtonStyle()
+    }
+}
+
+extension ButtonStyle where Self == TextLinkButtonStyle {
+    public static var textLink: TextLinkButtonStyle {
+        TextLinkButtonStyle()
+    }
+}
+
 extension ButtonStyle where Self == PrimaryButtonStyle {
     public static var primary: PrimaryButtonStyle {
         PrimaryButtonStyle()
@@ -382,6 +572,12 @@ extension ButtonStyle where Self == DestructiveButtonStyle {
     }
 }
 
+extension TextFieldStyle where Self == MinimalTextFieldStyle {
+    public static var minimal: MinimalTextFieldStyle {
+        MinimalTextFieldStyle()
+    }
+}
+
 extension TextFieldStyle where Self == IndustrialTextFieldStyle {
     public static var industrial: IndustrialTextFieldStyle {
         IndustrialTextFieldStyle()
@@ -390,6 +586,10 @@ extension TextFieldStyle where Self == IndustrialTextFieldStyle {
 
 // MARK: - View Extensions
 extension View {
+    public func cleanCard(padding: CGFloat = 24, showShadow: Bool = true) -> some View {
+        self.modifier(CleanCardModifier(padding: padding, showShadow: showShadow))
+    }
+    
     public func modernCard(isElevated: Bool = false) -> some View {
         self.modifier(ModernCardModifier(isElevated: isElevated))
     }
@@ -410,7 +610,6 @@ extension View {
         )
     }
     
-    // Legacy compatibility
     public func industrialCard() -> some View {
         self.modifier(IndustrialCardModifier())
     }
@@ -420,23 +619,21 @@ extension View {
     }
     
     public func standardContainerPadding() -> some View {
-        self.padding(.horizontal, 16)
-            .padding(.vertical, 12)
+        self.padding(.horizontal, 24)
+            .padding(.vertical, 16)
     }
     
-    // Kerning compatibility - applies kerning on iOS 16+ or returns unchanged on older versions
     @ViewBuilder
     public func compatibleKerning(_ value: CGFloat) -> some View {
         if #available(iOS 16.0, *) {
             self.kerning(value)
         } else {
-            // On older iOS versions, just return the view unchanged
             self
         }
     }
 }
 
-// MARK: - Legacy Web-Aligned Components (preserved for compatibility)
+// MARK: - Legacy Web-Aligned Components (Updated)
 public struct WebAlignedCard<Content: View>: View {
     let content: Content
     
@@ -448,12 +645,7 @@ public struct WebAlignedCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             content
         }
-        .background(AppColors.secondaryBackground)
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AppColors.border, lineWidth: 1)
-        )
+        .cleanCard()
     }
 }
 
@@ -469,7 +661,7 @@ public struct SectionHeader: View {
     }
     
     public var body: some View {
-        ModernSectionHeader(title: title, action: action, actionLabel: actionLabel)
+        ElegantSectionHeader(title: title, action: action, actionLabel: actionLabel)
     }
 }
 

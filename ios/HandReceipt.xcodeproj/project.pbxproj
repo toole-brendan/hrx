@@ -54,6 +54,13 @@
 		BF4A1C572DECFCDD0066ADD9 /* ReferenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C532DECFCDD0066ADD9 /* ReferenceModels.swift */; };
 		BF4A1C582DECFCDD0066ADD9 /* LedgerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C522DECFCDD0066ADD9 /* LedgerModels.swift */; };
 		BF4A1C5C2DED3C0E0066ADD9 /* hr_logo6.png in Resources */ = {isa = PBXBuildFile; fileRef = BF4A1C5B2DED3C0E0066ADD9 /* hr_logo6.png */; };
+		BF4A1C5E2DEE70BA0066ADD9 /* DocumentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C5D2DEE70BA0066ADD9 /* DocumentModels.swift */; };
+		BF4A1C602DEE70C20066ADD9 /* DocumentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C5F2DEE70C20066ADD9 /* DocumentService.swift */; };
+		BF4A1C622DEE70CA0066ADD9 /* DA2062ExportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C612DEE70CA0066ADD9 /* DA2062ExportViewModel.swift */; };
+		BF4A1C642DEE70D50066ADD9 /* DA2062ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C632DEE70D50066ADD9 /* DA2062ExportView.swift */; };
+		BF4A1C682DEE70EF0066ADD9 /* ComponentManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C652DEE70EF0066ADD9 /* ComponentManagementView.swift */; };
+		BF4A1C692DEE70EF0066ADD9 /* DocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C662DEE70EF0066ADD9 /* DocumentsView.swift */; };
+		BF4A1C6A2DEE70EF0066ADD9 /* SendMaintenanceFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C672DEE70EF0066ADD9 /* SendMaintenanceFormView.swift */; };
 		BF8172312DEA96A10086B2DD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8172302DEA96A10086B2DD /* SettingsView.swift */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
@@ -129,6 +136,13 @@
 		BF4A1C532DECFCDD0066ADD9 /* ReferenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceModels.swift; sourceTree = "<group>"; };
 		BF4A1C542DECFCDD0066ADD9 /* TransferModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferModels.swift; sourceTree = "<group>"; };
 		BF4A1C5B2DED3C0E0066ADD9 /* hr_logo6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hr_logo6.png; sourceTree = "<group>"; };
+		BF4A1C5D2DEE70BA0066ADD9 /* DocumentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentModels.swift; sourceTree = "<group>"; };
+		BF4A1C5F2DEE70C20066ADD9 /* DocumentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentService.swift; sourceTree = "<group>"; };
+		BF4A1C612DEE70CA0066ADD9 /* DA2062ExportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ExportViewModel.swift; sourceTree = "<group>"; };
+		BF4A1C632DEE70D50066ADD9 /* DA2062ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DA2062ExportView.swift; sourceTree = "<group>"; };
+		BF4A1C652DEE70EF0066ADD9 /* ComponentManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentManagementView.swift; sourceTree = "<group>"; };
+		BF4A1C662DEE70EF0066ADD9 /* DocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentsView.swift; sourceTree = "<group>"; };
+		BF4A1C672DEE70EF0066ADD9 /* SendMaintenanceFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendMaintenanceFormView.swift; sourceTree = "<group>"; };
 		BF8172302DEA96A10086B2DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -164,6 +178,7 @@
 		09A6D80FC831C5B5CC6707D9 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C612DEE70CA0066ADD9 /* DA2062ExportViewModel.swift */,
 				BF4A1C4D2DECD03E0066ADD9 /* DA2062ImportViewModel.swift */,
 				BF4A1C412DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift */,
 				BF4A1C422DECC74C0066ADD9 /* DA2062ScanViewModel.swift */,
@@ -185,6 +200,7 @@
 		33080A0085219D77C59F202D /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C5D2DEE70BA0066ADD9 /* DocumentModels.swift */,
 				BF4A1C512DECFCDD0066ADD9 /* ActivityModels.swift */,
 				BF4A1C522DECFCDD0066ADD9 /* LedgerModels.swift */,
 				BF4A1C532DECFCDD0066ADD9 /* ReferenceModels.swift */,
@@ -202,6 +218,7 @@
 		9AD52AE44496465F5F0F3B16 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C5F2DEE70C20066ADD9 /* DocumentService.swift */,
 				BF4A1C4F2DECD0A40066ADD9 /* NSNService.swift */,
 				BF4A1C492DECCFA10066ADD9 /* DA2062Patterns.swift */,
 				BF4A1C452DECC7CD0066ADD9 /* DA2062OCRService.swift */,
@@ -217,6 +234,7 @@
 		BF4A1C3D2DECC7380066ADD9 /* DA2062 */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C632DEE70D50066ADD9 /* DA2062ExportView.swift */,
 				BF4A1C4B2DECD01B0066ADD9 /* DA2062ImportProgressView.swift */,
 				BF4A1C3A2DECC7380066ADD9 /* DA2062ReviewSheet.swift */,
 				BF4A1C3B2DECC7380066ADD9 /* DA2062ScanView.swift */,
@@ -257,6 +275,9 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C652DEE70EF0066ADD9 /* ComponentManagementView.swift */,
+				BF4A1C662DEE70EF0066ADD9 /* DocumentsView.swift */,
+				BF4A1C672DEE70EF0066ADD9 /* SendMaintenanceFormView.swift */,
 				BF4A1C3D2DECC7380066ADD9 /* DA2062 */,
 				BF4A1C382DEC98480066ADD9 /* LoadingView.swift */,
 				BF4A1C342DEC94D50066ADD9 /* TransfersView.swift */,
@@ -377,12 +398,14 @@
 			files = (
 				BFC223CA2DAABB1800ACF884 /* HandReceiptApp.swift in Sources */,
 				BF4A1C352DEC94D50066ADD9 /* TransfersView.swift in Sources */,
+				BF4A1C602DEE70C20066ADD9 /* DocumentService.swift in Sources */,
 				BF8172312DEA96A10086B2DD /* SettingsView.swift in Sources */,
 				BF4A1C432DECC74C0066ADD9 /* DA2062DocumentScannerViewModel.swift in Sources */,
 				BF4A1C442DECC74C0066ADD9 /* DA2062ScanViewModel.swift in Sources */,
 				BF4A1C462DECC7CD0066ADD9 /* DA2062OCRService.swift in Sources */,
 				F42AD7F3D920075A1FAC101E /* APIService.swift in Sources */,
 				26AA81A70A773FCEDA22BF5E /* AuthModels.swift in Sources */,
+				BF4A1C642DEE70D50066ADD9 /* DA2062ExportView.swift in Sources */,
 				0DA6EB357E621AF6A54CF8F5 /* AuthViewModel.swift in Sources */,
 				BF4A1C4A2DECCFA10066ADD9 /* DA2062Patterns.swift in Sources */,
 				BF4A1C372DEC950D0066ADD9 /* TransferService.swift in Sources */,
@@ -400,6 +423,9 @@
 				49D619D92A060D750592E785 /* ManualSNViewModel.swift in Sources */,
 				586DE93C3BC5E7C648DCAAA9 /* Models.swift in Sources */,
 				1BFC98364CE8F60E5B9A4E34 /* MyPropertiesView.swift in Sources */,
+				BF4A1C682DEE70EF0066ADD9 /* ComponentManagementView.swift in Sources */,
+				BF4A1C692DEE70EF0066ADD9 /* DocumentsView.swift in Sources */,
+				BF4A1C6A2DEE70EF0066ADD9 /* SendMaintenanceFormView.swift in Sources */,
 				E72C88303B7CA9353FCA5BC1 /* MyPropertiesViewModel.swift in Sources */,
 				C526252D6D118A5CBCF1BF28 /* Property.swift in Sources */,
 				BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */,
@@ -411,6 +437,7 @@
 				BF2DF4422DE929E700E450D6 /* CreatePropertyView.swift in Sources */,
 				BFA1280F2DEA2F4300C12800 /* MaintenanceView.swift in Sources */,
 				BFA128102DEA2F4300C12800 /* SensitiveItemsView.swift in Sources */,
+				BF4A1C622DEE70CA0066ADD9 /* DA2062ExportViewModel.swift in Sources */,
 				BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */,
 				BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */,
 				BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */,
@@ -424,6 +451,7 @@
 				BF2DF4392DE929C800E450D6 /* IndustrialComponents.swift in Sources */,
 				BF2685552DEB41A500BFB170 /* SerialNumberRequestView.swift in Sources */,
 				BF2685562DEB41A500BFB170 /* OfferPropertyView.swift in Sources */,
+				BF4A1C5E2DEE70BA0066ADD9 /* DocumentModels.swift in Sources */,
 				D8EA460483AC0CF32381B58C /* ScanViewModel.swift in Sources */,
 				BF2DF4462DE92A0600E450D6 /* HandReceipt.xcdatamodeld in Sources */,
 				BF4A1C482DECC89A0066ADD9 /* DA2062Models.swift in Sources */,

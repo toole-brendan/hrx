@@ -14,165 +14,106 @@ struct LoadingView: View {
     
     var body: some View {
         ZStack {
-            // Background
+            // Light background
             AppColors.appBackground.ignoresSafeArea()
             
-            // Subtle grid pattern overlay
+            // Subtle geometric pattern overlay
             GeometryReader { geometry in
                 Path { path in
-                    let gridSize: CGFloat = 50
+                    let gridSize: CGFloat = 80
                     let width = geometry.size.width
                     let height = geometry.size.height
                     
-                    // Vertical lines
+                    // Create a minimal grid pattern
                     for x in stride(from: 0, through: width, by: gridSize) {
                         path.move(to: CGPoint(x: x, y: 0))
                         path.addLine(to: CGPoint(x: x, y: height))
                     }
                     
-                    // Horizontal lines
                     for y in stride(from: 0, through: height, by: gridSize) {
                         path.move(to: CGPoint(x: 0, y: y))
                         path.addLine(to: CGPoint(x: width, y: y))
                     }
                 }
-                .stroke(AppColors.border.opacity(0.1), lineWidth: 0.5)
+                .stroke(AppColors.border.opacity(0.05), lineWidth: 0.5)
             }
             .ignoresSafeArea()
             
-            VStack(spacing: 48) {
-                // Logo and spinning element
+            VStack(spacing: 60) {
+                // Elegant loading animation
                 ZStack {
-                    // Outer rotating ring
+                    // Single minimal loading ring
                     Circle()
-                        .stroke(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    AppColors.accent,
-                                    AppColors.accent.opacity(0.3),
-                                    AppColors.accent.opacity(0.1)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 3
-                        )
-                        .frame(width: 120, height: 120)
+                        .stroke(AppColors.border, lineWidth: 2)
+                        .frame(width: 60, height: 60)
+                    
+                    Circle()
+                        .trim(from: 0, to: 0.3)
+                        .stroke(AppColors.primaryText, lineWidth: 2)
+                        .frame(width: 60, height: 60)
                         .rotationEffect(.degrees(isRotating))
-                        .animation(.linear(duration: 4).repeatForever(autoreverses: false), value: isRotating)
+                        .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: isRotating)
                     
-                    // Inner rotating ring (opposite direction)
+                    // Center dot
                     Circle()
-                        .stroke(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    AppColors.accent.opacity(0.1),
-                                    AppColors.accent.opacity(0.3),
-                                    AppColors.accent
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
-                        .frame(width: 90, height: 90)
-                        .rotationEffect(.degrees(-isRotating * 1.5))
-                        .animation(.linear(duration: 3).repeatForever(autoreverses: false), value: isRotating)
-                    
-                    // Center icon
-                    VStack(spacing: 4) {
-                        Image(systemName: "doc.text.fill")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(AppColors.accent)
-                            .scaleEffect(isScaling ? 1.1 : 1.0)
-                            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isScaling)
-                        
-                        Image(systemName: "checkmark.shield.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(AppColors.success)
-                            .offset(y: -5)
-                    }
+                        .fill(AppColors.primaryText)
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(isScaling ? 1.2 : 0.8)
+                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isScaling)
                 }
                 
-                VStack(spacing: 16) {
-                    // App name with military stencil style
-                    Text("HAND RECEIPT")
-                        .font(.system(size: 36, weight: .heavy, design: .default))
-                        .compatibleKerning(4)
+                VStack(spacing: 24) {
+                    // App name with elegant serif
+                    Text("HandReceipt")
+                        .font(AppFonts.serifHero)
                         .foregroundColor(AppColors.primaryText)
                         .opacity(textOpacity)
                         .animation(.easeIn(duration: 1.0), value: textOpacity)
                     
-                    // Subtitle
-                    HStack(spacing: 8) {
-                        Rectangle()
-                            .fill(AppColors.accent)
-                            .frame(width: 30, height: 2)
-                        
-                        Text("PROPERTY ACCOUNTABILITY SYSTEM")
-                            .font(.system(size: 12, weight: .medium))
-                            .compatibleKerning(2)
-                            .foregroundColor(AppColors.secondaryText)
-                        
-                        Rectangle()
-                            .fill(AppColors.accent)
-                            .frame(width: 30, height: 2)
-                    }
-                    .opacity(textOpacity)
-                    .animation(.easeIn(duration: 1.0).delay(0.3), value: textOpacity)
+                    // Minimal subtitle
+                    Text("Property Management System")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                        .opacity(textOpacity)
+                        .animation(.easeIn(duration: 1.0).delay(0.3), value: textOpacity)
                     
                     // Loading status or error state
                     if let error = error {
-                        // Error state
-                        VStack(spacing: 16) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 20))
+                        // Minimal error state
+                        VStack(spacing: 20) {
+                            VStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 24, weight: .light))
                                     .foregroundColor(AppColors.destructive)
                                 
-                                Text("AUTHENTICATION FAILED")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .compatibleKerning(1.5)
-                                    .foregroundColor(AppColors.destructive)
+                                Text("Connection Error")
+                                    .font(AppFonts.headline)
+                                    .foregroundColor(AppColors.primaryText)
                             }
                             
                             Text(error.localizedDescription)
-                                .font(.system(size: 12))
-                                .foregroundColor(AppColors.tertiaryText)
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.secondaryText)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 32)
+                                .padding(.horizontal, 40)
                             
                             HStack(spacing: 16) {
                                 if let onRetry = onRetry {
                                     Button(action: onRetry) {
-                                        HStack(spacing: 4) {
+                                        HStack(spacing: 8) {
                                             Image(systemName: "arrow.clockwise")
-                                                .font(.system(size: 12))
-                                            Text("RETRY")
-                                                .font(.system(size: 12, weight: .bold))
-                                                .compatibleKerning(1.0)
+                                                .font(.system(size: 14, weight: .light))
+                                            Text("Retry")
                                         }
-                                        .foregroundColor(AppColors.primaryText)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 10)
-                                        .background(AppColors.accent)
-                                        .cornerRadius(4)
                                     }
+                                    .buttonStyle(MinimalPrimaryButtonStyle())
                                 }
                                 
                                 if let onSkipToLogin = onSkipToLogin {
                                     Button(action: onSkipToLogin) {
-                                        Text("LOGIN")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .compatibleKerning(1.0)
-                                            .foregroundColor(AppColors.accent)
-                                            .padding(.horizontal, 20)
-                                            .padding(.vertical, 10)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .stroke(AppColors.accent, lineWidth: 1)
-                                            )
+                                        Text("Continue to Login")
                                     }
+                                    .buttonStyle(MinimalSecondaryButtonStyle())
                                 }
                             }
                         }
@@ -180,56 +121,23 @@ struct LoadingView: View {
                         .opacity(textOpacity)
                         .animation(.easeIn(duration: 1.0).delay(0.6), value: textOpacity)
                     } else {
-                        // Loading state
-                        VStack(spacing: 8) {
+                        // Minimal loading state
+                        VStack(spacing: 12) {
                             HStack(spacing: 4) {
-                                Text("AUTHENTICATING")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .compatibleKerning(1.5)
-                                    .foregroundColor(AppColors.tertiaryText)
+                                Text("Loading")
+                                    .font(AppFonts.body)
+                                    .foregroundColor(AppColors.secondaryText)
                                 
-                                // Animated dots
-                                HStack(spacing: 2) {
+                                // Subtle animated dots
+                                HStack(spacing: 4) {
                                     ForEach(0..<3) { index in
-                                        Text(".")
-                                            .font(.system(size: 16, weight: .bold))
-                                            .foregroundColor(AppColors.accent)
+                                        Circle()
+                                            .fill(AppColors.secondaryText)
+                                            .frame(width: 4, height: 4)
                                             .opacity(dotCount > index ? 1.0 : 0.3)
                                     }
                                 }
                             }
-                            
-                            // Progress bar
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    // Background
-                                    Rectangle()
-                                        .fill(AppColors.secondaryBackground)
-                                        .frame(height: 4)
-                                        .overlay(
-                                            Rectangle()
-                                                .stroke(AppColors.border, lineWidth: 1)
-                                        )
-                                    
-                                    // Animated fill
-                                    Rectangle()
-                                        .fill(
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [
-                                                    AppColors.accent,
-                                                    AppColors.accent.opacity(0.7)
-                                                ]),
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                        .frame(width: geometry.size.width * 0.7, height: 4)
-                                        .scaleEffect(x: isScaling ? 1.0 : 0.3, y: 1.0, anchor: .leading)
-                                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isScaling)
-                                }
-                            }
-                            .frame(height: 4)
-                            .frame(maxWidth: 200)
                         }
                         .padding(.top, 32)
                         .opacity(textOpacity)
@@ -237,12 +145,12 @@ struct LoadingView: View {
                     }
                 }
                 
-                // Version info
+                // Minimal version info
                 if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                    Text("v\(version) (\(build))")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(AppColors.tertiaryText.opacity(0.5))
+                    Text("Version \(version) (\(build))")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText.opacity(0.7))
                         .opacity(textOpacity)
                         .animation(.easeIn(duration: 1.0).delay(0.9), value: textOpacity)
                 }
@@ -263,37 +171,12 @@ struct LoadingView: View {
     }
 }
 
-// Military-style badge component
-struct MilitaryBadge: View {
-    let text: String
-    let icon: String
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-            
-            Text(text)
-                .font(.system(size: 11, weight: .bold))
-                .compatibleKerning(1.0)
-        }
-        .foregroundColor(AppColors.primaryText)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(AppColors.accent.opacity(0.2))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(AppColors.accent, lineWidth: 1)
-                )
-        )
-    }
-}
-
 struct LoadingView_Previews: PreviewProvider {
     static var previews: some View {
         LoadingView()
-            .preferredColorScheme(.dark)
+            .previewDisplayName("8VC Style Loading")
+        
+        LoadingView(error: NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Network connection failed"]))
+            .previewDisplayName("Error State")
     }
 } 
