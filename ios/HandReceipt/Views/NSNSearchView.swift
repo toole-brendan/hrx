@@ -105,7 +105,7 @@ struct NSNSearchView: View {
         
         Task {
             do {
-                let response = try await apiService.searchNSN(query: searchQuery, limit: 50)
+                let response = try await apiService.universalSearchNSN(query: searchQuery, limit: 50)
                 await MainActor.run {
                     searchResults = response.data
                     isSearching = false
