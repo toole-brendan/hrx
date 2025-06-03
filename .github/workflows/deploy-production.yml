@@ -568,6 +568,10 @@ jobs:
               fi
             done
             
+            echo "🗑️ Clearing existing users to fix email migration issue..."
+            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "DELETE FROM users;" || echo "No users table or already empty"
+            echo "✅ Users table cleared"
+            
             echo "⏳ Waiting for MinIO to be ready..."
             for i in {1..30}; do
               if curl -s -f http://localhost:9000/minio/health/live > /dev/null 2>&1; then
