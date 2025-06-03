@@ -1,0 +1,28 @@
+# HandReceipt Azure Configuration Override
+# This file overrides settings in config.yaml for Azure deployment
+
+# Server configuration
+server:
+  environment: "production"
+
+# Storage Configuration - Use Azure Blob instead of MinIO
+storage:
+  type: "azure_blob"
+  container_name: "handreceipt-photos"
+
+# Disable MinIO
+minio:
+  enabled: false
+
+# Disable ImmuDB temporarily (until we fix the connection)
+immudb:
+  enabled: false
+
+# Security - Azure-specific CORS
+security:
+  cors_allowed_origins:
+    - "https://handreceipt.com"
+    - "https://www.handreceipt.com"
+    - "https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io"
+    - "capacitor://localhost"
+    - "http://localhost:8100" 

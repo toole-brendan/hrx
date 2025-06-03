@@ -244,8 +244,14 @@ func main() {
 
 // setupConfig loads application configuration from config.yaml
 func setupConfig() error {
+	// Check for custom config name from environment
+	configName := os.Getenv("HANDRECEIPT_CONFIG_NAME")
+	if configName == "" {
+		configName = "config"
+	}
+
 	// Set configuration name
-	viper.SetConfigName("config")
+	viper.SetConfigName(configName)
 	viper.SetConfigType("yaml")
 
 	// Get executable path

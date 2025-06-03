@@ -37,11 +37,9 @@ WORKDIR /app
 # Copy the binary from the builder stage
 COPY --from=builder /app/handreceipt .
 
-# Copy the configuration file
+# Copy the configuration files
 COPY configs/config.yaml /app/configs/
-
-# Copy Azure-specific config if it exists
-COPY configs/config.azure.yaml* /app/configs/
+COPY configs/config.azure.yaml /app/configs/
 
 # Copy PUB LOG data directory from builder (including any data files)
 COPY --from=builder --chown=appuser:appgroup /app/internal/publog/data /app/internal/publog/data
@@ -51,6 +49,9 @@ USER appuser
 
 # Expose the port
 EXPOSE 8080
+
+# Set environment variable to use Azure config when deployed to Azure
+ENV HANDRECEIPT_CONFIG_NAME=config.azure
 
 # Run the application
 CMD ["./handreceipt"] 
