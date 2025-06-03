@@ -27,7 +27,7 @@ struct EditProfileView: View {
                 title: "EDIT PROFILE",
                 titleStyle: .mono,
                 showBackButton: true,
-                onBackTap: { dismiss() }
+                backAction: { dismiss() }
             )
             
             ScrollView {

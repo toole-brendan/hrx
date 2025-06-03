@@ -32,7 +32,7 @@ struct ChangePasswordView: View {
                 title: "CHANGE PASSWORD",
                 titleStyle: .mono,
                 showBackButton: true,
-                onBackTap: { dismiss() }
+                backAction: { dismiss() }
             )
             
             ScrollView {
