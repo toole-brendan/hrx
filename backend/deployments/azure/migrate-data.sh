@@ -66,6 +66,10 @@ check_prerequisites() {
         fi
     done
     
+    # Set Azure subscription
+    print_status "Setting Azure subscription..."
+    az account set --subscription "98b9185a-60b8-4df4-b8a4-73e6d35b176f"
+    
     # Test SSH connection to Lightsail
     if ! ssh -i "$LIGHTSAIL_SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" "echo 'SSH connection successful'" &> /dev/null; then
         print_error "Cannot connect to Lightsail instance via SSH."

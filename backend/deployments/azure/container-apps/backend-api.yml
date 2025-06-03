@@ -2,7 +2,7 @@ apiVersion: 2024-03-01
 location: eastus
 name: handreceipt-backend-api
 properties:
-  managedEnvironmentId: /subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.App/managedEnvironments/handreceipt-prod-cae
+  managedEnvironmentId: /subscriptions/98b9185a-60b8-4df4-b8a4-73e6d35b176f/resourceGroups/handreceipt-prod-rg/providers/Microsoft.App/managedEnvironments/handreceipt-prod-cae
   configuration:
     activeRevisionsMode: Single
     ingress:

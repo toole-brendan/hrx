@@ -27,7 +27,7 @@ on:
 env:
   # Azure Configuration
   AZURE_RESOURCE_GROUP: handreceipt-${{ github.event.inputs.environment }}-rg
-  AZURE_LOCATION: eastus
+  AZURE_LOCATION: eastus2
   AZURE_BASE_NAME: handreceipt
   AZURE_ENVIRONMENT: ${{ github.event.inputs.environment }}
   
@@ -63,7 +63,7 @@ jobs:
 
       - name: Set Azure Subscription
         run: |
-          # Use the Azure subscription 1 ID from the screenshot
+          # Use the Azure subscription 1 ID
           az account set --subscription "98b9185a-60b8-4df4-b8a4-73e6d35b176f"
 
       - name: Check Resource Group

@@ -63,9 +63,20 @@ print_status "Setting up GitHub secrets for Azure deployment..."
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 print_status "Repository: $REPO"
 
-# Get Azure subscription information
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-TENANT_ID=$(az account show --query tenantId -o tsv)
+# Set and verify Azure subscription information
+SUBSCRIPTION_ID="98b9185a-60b8-4df4-b8a4-73e6d35b176f"
+TENANT_ID="7d69778a-2fe3-4d8b-be48-6e66a0db4640"
+
+# Ensure we're using the correct subscription
+az account set --subscription "$SUBSCRIPTION_ID"
+
+# Verify subscription is correctly set
+CURRENT_SUB=$(az account show --query id -o tsv)
+if [ "$CURRENT_SUB" != "$SUBSCRIPTION_ID" ]; then
+    print_error "Failed to set correct subscription. Current: $CURRENT_SUB, Expected: $SUBSCRIPTION_ID"
+    exit 1
+fi
+
 print_status "Azure Subscription ID: $SUBSCRIPTION_ID"
 print_status "Azure Tenant ID: $TENANT_ID"
 

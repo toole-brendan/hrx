@@ -14,10 +14,10 @@ NC='\033[0m' # No Color
 
 # Configuration
 RESOURCE_GROUP="${RESOURCE_GROUP:-handreceipt-prod-rg}"
-LOCATION="${LOCATION:-eastus}"
+LOCATION="${LOCATION:-eastus2}"
 ENVIRONMENT="${ENVIRONMENT:-prod}"
 BASE_NAME="${BASE_NAME:-handreceipt}"
-SUBSCRIPTION_ID="${SUBSCRIPTION_ID}"
+SUBSCRIPTION_ID="${SUBSCRIPTION_ID:-98b9185a-60b8-4df4-b8a4-73e6d35b176f}"
 POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD}"
 
 # Derived variables
@@ -83,20 +83,34 @@ check_prerequisites() {
 set_subscription() {
     print_status "Setting Azure subscription to $SUBSCRIPTION_ID..."
     az account set --subscription "$SUBSCRIPTION_ID"
+    
+    # Verify the subscription is set correctly
+    CURRENT_SUB=$(az account show --query id --output tsv)
+    if [ "$CURRENT_SUB" != "$SUBSCRIPTION_ID" ]; then
+        print_error "Failed to set subscription. Current: $CURRENT_SUB, Expected: $SUBSCRIPTION_ID"
+        exit 1
+    fi
     print_success "Subscription set successfully."
 }
 
 # Function to create resource group
 create_resource_group() {
-    print_status "Creating resource group $RESOURCE_GROUP..."
+    print_status "Creating resource group $RESOURCE_GROUP in $LOCATION..."
     
     if az group show --name "$RESOURCE_GROUP" &> /dev/null; then
         print_warning "Resource group $RESOURCE_GROUP already exists."
+        # Check if it's in the right location
+        EXISTING_LOCATION=$(az group show --name "$RESOURCE_GROUP" --query location --output tsv)
+        if [ "$EXISTING_LOCATION" != "$LOCATION" ]; then
+            print_warning "Resource group is in $EXISTING_LOCATION, but deployment expects $LOCATION"
+            print_status "Continuing with existing resource group location: $EXISTING_LOCATION"
+            LOCATION="$EXISTING_LOCATION"
+        fi
     else
         az group create \
             --name "$RESOURCE_GROUP" \
             --location "$LOCATION" \
-            --tags Environment="$ENVIRONMENT" Application="$BASE_NAME"
+            --tags Environment="$ENVIRONMENT" Application="$BASE_NAME" Owner="toole.brendan@gmail.com"
         print_success "Resource group created successfully."
     fi
 }
@@ -304,7 +318,7 @@ show_help() {
     echo "Options:"
     echo "  -h, --help                   Show this help message"
     echo "  --resource-group NAME        Resource group name (default: handreceipt-prod-rg)"
-    echo "  --location LOCATION          Azure region (default: eastus)"
+    echo "  --location LOCATION          Azure region (default: eastus2)"
     echo "  --environment ENV            Environment name (default: prod)"
     echo "  --base-name NAME             Base name for resources (default: handreceipt)"
     echo ""

@@ -2,7 +2,7 @@
 param environment string = 'prod'
 
 @description('The Azure region for all resources')
-param location string = resourceGroup().location
+param location string = 'eastus2'
 
 @description('The base name for all resources')
 param baseName string = 'handreceipt'
@@ -20,35 +20,14 @@ param containerRegistryName string = '${baseName}${environment}acr'
 @description('The custom domain name (optional)')
 param customDomain string = ''
 
-@description('Use existing PostgreSQL server (optional)')
-param useExistingPostgres bool = false
-
-@description('Existing PostgreSQL server name')
-param existingPostgresServerName string = 'ptchampion-db'
-
-@description('Existing PostgreSQL resource group')
-param existingPostgresResourceGroup string = 'ptchampion-rg'
-
-@description('Use existing storage account (optional)')
-param useExistingStorage bool = false
-
-@description('Existing storage account name')
-param existingStorageAccountName string = 'ptchampionweb'
-
-@description('Use existing key vault (optional)')
-param useExistingKeyVault bool = false
-
-@description('Existing key vault name')
-param existingKeyVaultName string = 'ptchampion-kv'
-
 // Variables
 var resourcePrefix = '${baseName}-${environment}'
 var containerAppsEnvironmentName = '${resourcePrefix}-cae'
 var logAnalyticsWorkspaceName = '${resourcePrefix}-logs'
 var appInsightsName = '${resourcePrefix}-ai'
-var keyVaultName = useExistingKeyVault ? existingKeyVaultName : '${resourcePrefix}-kv'
-var postgresServerName = useExistingPostgres ? existingPostgresServerName : '${resourcePrefix}-postgres'
-var storageAccountName = useExistingStorage ? existingStorageAccountName : '${baseName}${environment}storage'
+var keyVaultName = '${resourcePrefix}-kv'
+var postgresServerName = '${resourcePrefix}-postgres'
+var storageAccountName = '${baseName}${environment}storage'
 var fileShareName = 'immudb-data'
 var blobContainerName = 'handreceipt-documents'
 
