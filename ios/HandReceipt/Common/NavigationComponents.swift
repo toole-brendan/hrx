@@ -85,10 +85,9 @@ public struct MinimalNavigationBar: View {
                 .frame(minWidth: 60, alignment: .trailing)
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 16)
+            .padding(.vertical, 10)
             .background(
-                Rectangle()
-                    .fill(AppColors.appBackground)
+                AppColors.secondaryBackground
                     .ignoresSafeArea(.container, edges: .top)
             )
             
@@ -97,6 +96,7 @@ public struct MinimalNavigationBar: View {
                 .fill(AppColors.divider)
                 .frame(height: 1)
         }
+        .background(AppColors.secondaryBackground)
     }
     
     @ViewBuilder

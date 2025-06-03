@@ -20,12 +20,12 @@ struct ProfileView: View {
             )
             
             ScrollView {
-                VStack(spacing: 32) {
+                VStack(spacing: 24) {
                     // Top padding
-                    Color.clear.frame(height: 24)
+                    Color.clear.frame(height: 4)
                     
                     // Profile Information Section
-                    VStack(spacing: 24) {
+                    VStack(spacing: 12) {
                         ElegantSectionHeader(title: "Profile", style: .serif)
                             .padding(.horizontal, 24)
                         
@@ -74,7 +74,7 @@ struct ProfileView: View {
                     }
                     
                     // Quick Actions Section
-                    VStack(spacing: 24) {
+                    VStack(spacing: 12) {
                         ElegantSectionHeader(title: "Quick Actions", style: .serif)
                             .padding(.horizontal, 24)
                         
@@ -119,7 +119,7 @@ struct ProfileView: View {
                     }
                     
                     // Account Actions Section
-                    VStack(spacing: 24) {
+                    VStack(spacing: 12) {
                         ElegantSectionHeader(title: "Account", style: .serif)
                             .padding(.horizontal, 24)
                         

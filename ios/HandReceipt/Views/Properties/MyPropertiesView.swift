@@ -45,17 +45,24 @@ struct MyPropertiesView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom minimal navigation bar
-            MinimalNavigationBar(
-                title: "PROPERTY",
-                titleStyle: .mono,
-                trailingItems: [
-                    .init(icon: "magnifyingglass", action: { showingSearch = true }),
-                    .init(icon: "plus", action: { showingCreateProperty = true }),
-                    .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
-                ]
-            )
+        ZStack {
+            // Opaque background
+            AppColors.appBackground
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom minimal navigation bar
+                MinimalNavigationBar(
+                    title: "PROPERTY",
+                    titleStyle: .mono,
+                    trailingItems: [
+                        .init(icon: "magnifyingglass", action: { showingSearch = true }),
+                        .init(icon: "plus", action: { showingCreateProperty = true }),
+                        .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
+                    ]
+                )
+                .background(AppColors.secondaryBackground)
+                .zIndex(1)
             
             ScrollView {
                 VStack(spacing: 24) {
@@ -93,15 +100,17 @@ struct MyPropertiesView: View {
                     Color.clear.frame(height: 80)
                 }
             }
+            .background(AppColors.appBackground)
             .minimalRefreshable {
                 await MainActor.run {
                     viewModel.loadProperties()
                 }
             }
         }
-        .background(AppColors.appBackground)
+        }
         .navigationTitle("")
         .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $showingCreateProperty) {
             CreatePropertyView()
                 .onDisappear {

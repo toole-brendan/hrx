@@ -264,9 +264,9 @@ public struct ElegantSectionHeader: View {
             
             Divider()
                 .background(AppColors.divider)
-                .padding(.top, 8)
+                .padding(.top, 4)
         }
-        .padding(.bottom, 16)
+        .padding(.bottom, 8)
     }
     
     @ViewBuilder

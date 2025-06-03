@@ -25,11 +25,12 @@ struct SettingsView: View {
             VStack(spacing: 24) {
                 // Spacer for header
                 Color.clear
-                    .frame(height: 36)
+                    .frame(height: 4)
                 
                 // Preferences Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Preferences", style: .uppercase)
+                VStack(alignment: .leading, spacing: 12) {
+                    ElegantSectionHeader(title: "Preferences", style: .serif)
+                        .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
                         SettingsToggleRow(
@@ -58,12 +59,13 @@ struct SettingsView: View {
                         )
                     }
                     .cleanCard()
-                    .padding(.horizontal)
+                    .padding(.horizontal, 24)
                 }
                 
                 // Data & Storage Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Data & Storage", style: .uppercase)
+                VStack(alignment: .leading, spacing: 12) {
+                    ElegantSectionHeader(title: "Data & Storage", style: .serif)
+                        .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
                         SettingsActionRow(
@@ -93,12 +95,13 @@ struct SettingsView: View {
                         )
                     }
                     .cleanCard()
-                    .padding(.horizontal)
+                    .padding(.horizontal, 24)
                 }
                 
                 // Application Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Application", style: .uppercase)
+                VStack(alignment: .leading, spacing: 12) {
+                    ElegantSectionHeader(title: "Application", style: .serif)
+                        .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
                         SettingsInfoRow(
@@ -132,12 +135,13 @@ struct SettingsView: View {
                         )
                     }
                     .cleanCard()
-                    .padding(.horizontal)
+                    .padding(.horizontal, 24)
                 }
                 
                 // Support Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Support", style: .uppercase)
+                VStack(alignment: .leading, spacing: 12) {
+                    ElegantSectionHeader(title: "Support", style: .serif)
+                        .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
                         SettingsNavigationRow(
@@ -163,18 +167,18 @@ struct SettingsView: View {
                         )
                     }
                     .cleanCard()
-                    .padding(.horizontal)
+                    .padding(.horizontal, 24)
                 }
                 
                 // Bottom spacer
                 Spacer()
-                    .frame(height: 100)
+                    .frame(height: 80)
             }
         }
         .background(AppColors.appBackground.ignoresSafeArea(.all))
         .minimalNavigation(
-            title: "Settings",
-            titleStyle: .minimal,
+            title: "SETTINGS",
+            titleStyle: .mono,
             showBackButton: true,
             backAction: { dismiss() }
         )
