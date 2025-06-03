@@ -111,7 +111,7 @@ struct MinimalLoadingButton: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, 2)
         }
         .buttonStyle(MinimalPrimaryButtonStyle())
         .disabled(isLoading)
