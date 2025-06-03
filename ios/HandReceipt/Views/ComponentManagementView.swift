@@ -8,7 +8,7 @@ struct ComponentManagementView: View {
     @State private var showDetachConfirmation = false
     @State private var componentToDetach: PropertyComponent?
     
-    var property: Property { viewModel.property }
+    var property: Property? { viewModel.property }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -20,7 +20,8 @@ struct ComponentManagementView: View {
             )
             
             // Visual Attachment Diagram (for weapons/equipment with positions)
-            if let attachmentPoints = property.attachmentPoints, !attachmentPoints.isEmpty {
+            if let property = property,
+               let attachmentPoints = property.attachmentPoints, !attachmentPoints.isEmpty {
                 AttachmentDiagramView(
                     category: property.name,
                     attachmentPoints: attachmentPoints,
@@ -43,7 +44,9 @@ struct ComponentManagementView: View {
                                     showDetachConfirmation = true
                                 },
                                 onPositionChange: { newPosition in
-                                    viewModel.updateComponentPosition(component, position: newPosition)
+                                    Task {
+                                        await viewModel.updateComponentPosition(component, position: newPosition)
+                                    }
                                 }
                             )
                         }
@@ -59,11 +62,16 @@ struct ComponentManagementView: View {
             Button("Cancel", role: .cancel) {}
             Button("Detach", role: .destructive) {
                 if let component = componentToDetach {
-                    viewModel.detachComponent(component)
+                    Task {
+                        await viewModel.detachComponent(component)
+                    }
                 }
             }
         } message: {
-            Text("Are you sure you want to detach \(componentToDetach?.componentProperty?.name ?? "this component")?")
+            Text("Are you sure you want to detach this component?")
+        }
+        .task {
+            await viewModel.loadComponents()
         }
     }
 }
@@ -79,7 +87,6 @@ struct ComponentHeaderView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Attached Components", systemImage: "link.circle.fill")
                     .font(.title2)
-                    .fontWeight(.semibold)
                     .foregroundColor(.primary)
                 
                 Text("\(componentCount) component\(componentCount == 1 ? "" : "s") attached")
@@ -182,8 +189,8 @@ struct AttachmentPointIndicator: View {
                         .font(.system(size: 14, weight: .bold))
                 )
             
-            if let componentName = component?.componentProperty?.name {
-                Text(componentName)
+            if let component = component {
+                Text("Component \(component.componentPropertyId)")
                     .font(.caption2)
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -214,14 +221,14 @@ struct ComponentRowView: View {
                     .fill(Color.accentColor.opacity(0.1))
                     .frame(width: 50, height: 50)
                 
-                Image(systemName: iconForCategory(component.componentProperty?.name))
+                Image(systemName: iconForCategory(nil))
                     .font(.title3)
                     .foregroundColor(.accentColor)
             }
             
             // Component Details
             VStack(alignment: .leading, spacing: 6) {
-                Text(component.componentProperty?.name ?? "Unknown Component")
+                Text("Component \(component.componentPropertyId)")
                     .font(.headline)
                     .foregroundColor(.primary)
                 
@@ -242,12 +249,10 @@ struct ComponentRowView: View {
                         }
                     }
                     
-                    // Serial Number
-                    if let serial = component.componentProperty?.serialNumber {
-                        Text("SN: \(serial)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    // Component ID
+                    Text("ID: \(component.componentPropertyId)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 // Attachment Info
@@ -429,7 +434,8 @@ struct AttachComponentSheet: View {
                         .padding(.horizontal)
                         
                         // Position Selection
-                        if let attachmentPoints = viewModel.property.attachmentPoints {
+                        if let property = viewModel.property,
+                           let attachmentPoints = property.attachmentPoints {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Attachment Position")
                                     .font(.subheadline)
@@ -471,13 +477,16 @@ struct AttachComponentSheet: View {
                         .padding(.horizontal)
                         
                         // Attach Button
-                        Button(action: attachComponent) {
+                        Button(action: {
+                            Task {
+                                await attachComponent()
+                            }
+                        }) {
                             if isLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Text("Attach Component")
-                                    .fontWeight(.semibold)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -493,28 +502,22 @@ struct AttachComponentSheet: View {
             }
             .navigationTitle("Attach Component")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
+            .navigationBarBackButtonHidden(true)
+            .navigationBarItems(leading: Button("Cancel") { dismiss() })
         }
     }
     
-    func attachComponent() {
+    func attachComponent() async {
         guard let component = selectedComponent else { return }
         
         isLoading = true
-        viewModel.attachComponent(
-            componentId: component.id,
-            position: selectedPosition,
-            notes: notes
-        ) { success in
-            isLoading = false
-            if success {
-                dismiss()
-            }
-        }
+        await viewModel.attachComponent(
+            component,
+            position: selectedPosition.isEmpty ? nil : selectedPosition,
+            notes: notes.isEmpty ? nil : notes
+        )
+        isLoading = false
+        dismiss()
     }
 }
 

@@ -202,7 +202,10 @@ class MyPropertiesViewModel: ObservableObject {
             sourceType: "manual",
             importMetadata: nil,
             verified: false,
-            verifiedAt: nil
+            verifiedAt: nil,
+            isAttachable: false,
+            attachmentPoints: nil,
+            compatibleWith: nil
         )
         
         // Queue for sync

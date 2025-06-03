@@ -9,12 +9,29 @@ public struct UserSummary: Codable, Identifiable, Hashable {
     public let username: String
     public let rank: String?
     public let lastName: String?
+    public let firstName: String?
+    public let unit: String?
     
-    public init(id: Int, username: String, rank: String? = nil, lastName: String? = nil) {
+    public init(id: Int, username: String, rank: String? = nil, lastName: String? = nil, firstName: String? = nil, unit: String? = nil) {
         self.id = id
         self.username = username
         self.rank = rank
         self.lastName = lastName
+        self.firstName = firstName
+        self.unit = unit
+    }
+    
+    // Computed property for full name compatibility with User
+    public var name: String {
+        if let firstName = firstName, let lastName = lastName {
+            return "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+        } else if let firstName = firstName {
+            return firstName
+        } else if let lastName = lastName {
+            return lastName
+        } else {
+            return username
+        }
     }
 }
 

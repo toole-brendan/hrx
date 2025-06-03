@@ -5,22 +5,40 @@ typealias User = LoginResponse.User
 
 // MARK: - Document Models
 
-struct Document: Codable, Identifiable {
-    let id: Int
-    let type: String
-    let subtype: String?
-    let title: String
-    let senderUserId: Int
-    let recipientUserId: Int
-    let propertyId: Int?
-    let formData: String
-    let description: String?
-    let attachments: String?
-    let status: DocumentStatus
-    let sentAt: Date
-    let readAt: Date?
-    let createdAt: Date
-    let updatedAt: Date
+public struct Document: Codable, Identifiable {
+    public let id: Int
+    public let type: String
+    public let subtype: String?
+    public let title: String
+    public let senderUserId: Int
+    public let recipientUserId: Int
+    public let propertyId: Int?
+    public let formData: String
+    public let description: String?
+    public let attachments: String?
+    public let status: DocumentStatus
+    public let sentAt: Date
+    public let readAt: Date?
+    public let createdAt: Date
+    public let updatedAt: Date
+    
+    public init(id: Int, type: String, subtype: String?, title: String, senderUserId: Int, recipientUserId: Int, propertyId: Int?, formData: String, description: String?, attachments: String?, status: DocumentStatus, sentAt: Date, readAt: Date?, createdAt: Date, updatedAt: Date) {
+        self.id = id
+        self.type = type
+        self.subtype = subtype
+        self.title = title
+        self.senderUserId = senderUserId
+        self.recipientUserId = recipientUserId
+        self.propertyId = propertyId
+        self.formData = formData
+        self.description = description
+        self.attachments = attachments
+        self.status = status
+        self.sentAt = sentAt
+        self.readAt = readAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -41,12 +59,12 @@ struct Document: Codable, Identifiable {
     }
 }
 
-enum DocumentStatus: String, Codable, CaseIterable {
+public enum DocumentStatus: String, Codable, CaseIterable {
     case unread = "unread"
     case read = "read"
     case archived = "archived"
     
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .unread: return "Unread"
         case .read: return "Read"
@@ -55,11 +73,11 @@ enum DocumentStatus: String, Codable, CaseIterable {
     }
 }
 
-enum DocumentType: String, Codable, CaseIterable {
+public enum DocumentType: String, Codable, CaseIterable {
     case maintenanceForm = "maintenance_form"
     case transferForm = "transfer_form"
     
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .maintenanceForm: return "Maintenance Form"
         case .transferForm: return "Transfer Form"
@@ -69,29 +87,41 @@ enum DocumentType: String, Codable, CaseIterable {
 
 // MARK: - Maintenance Form Models
 
-struct MaintenanceFormData: Codable {
-    let formType: FormType
-    let equipmentName: String
-    let serialNumber: String
-    let nsn: String
-    let location: String
-    let description: String
-    let faultDescription: String
-    let requestDate: Date
-    let formFields: [String: String] // Simplified to avoid Any type issues
+public struct MaintenanceFormData: Codable {
+    public let formType: FormType
+    public let equipmentName: String
+    public let serialNumber: String
+    public let nsn: String
+    public let location: String
+    public let description: String
+    public let faultDescription: String
+    public let requestDate: Date
+    public let formFields: [String: String] // Simplified to avoid Any type issues
     
-    enum FormType: String, Codable, CaseIterable {
+    public init(formType: FormType, equipmentName: String, serialNumber: String, nsn: String, location: String, description: String, faultDescription: String, requestDate: Date, formFields: [String: String]) {
+        self.formType = formType
+        self.equipmentName = equipmentName
+        self.serialNumber = serialNumber
+        self.nsn = nsn
+        self.location = location
+        self.description = description
+        self.faultDescription = faultDescription
+        self.requestDate = requestDate
+        self.formFields = formFields
+    }
+    
+    public enum FormType: String, Codable, CaseIterable {
         case da2404 = "DA2404"
         case da5988e = "DA5988E"
         
-        var displayName: String {
+        public var displayName: String {
             switch self {
             case .da2404: return "DA Form 2404 - Equipment Inspection"
             case .da5988e: return "DA Form 5988-E - Equipment Maintenance"
             }
         }
         
-        var description: String {
+        public var description: String {
             switch self {
             case .da2404: return "Equipment Inspection and Maintenance Worksheet"
             case .da5988e: return "Equipment Maintenance Request"
@@ -117,13 +147,22 @@ struct MaintenanceFormData: Codable {
 
 // MARK: - Request/Response Models
 
-struct CreateMaintenanceFormRequest: Codable {
-    let propertyId: Int
-    let recipientUserId: Int
-    let formType: String
-    let description: String
-    let faultDescription: String?
-    let attachments: [String]?
+public struct CreateMaintenanceFormRequest: Codable {
+    public let propertyId: Int
+    public let recipientUserId: Int
+    public let formType: String
+    public let description: String
+    public let faultDescription: String?
+    public let attachments: [String]?
+    
+    public init(propertyId: Int, recipientUserId: Int, formType: String, description: String, faultDescription: String? = nil, attachments: [String]? = nil) {
+        self.propertyId = propertyId
+        self.recipientUserId = recipientUserId
+        self.formType = formType
+        self.description = description
+        self.faultDescription = faultDescription
+        self.attachments = attachments
+    }
     
     enum CodingKeys: String, CodingKey {
         case propertyId
@@ -135,10 +174,16 @@ struct CreateMaintenanceFormRequest: Codable {
     }
 }
 
-struct DocumentsResponse: Codable {
-    let documents: [Document]
-    let count: Int
-    let unreadCount: Int
+public struct DocumentsResponse: Codable {
+    public let documents: [Document]
+    public let count: Int
+    public let unreadCount: Int
+    
+    public init(documents: [Document], count: Int, unreadCount: Int) {
+        self.documents = documents
+        self.count = count
+        self.unreadCount = unreadCount
+    }
     
     enum CodingKeys: String, CodingKey {
         case documents
@@ -147,13 +192,22 @@ struct DocumentsResponse: Codable {
     }
 }
 
-struct DocumentResponse: Codable {
-    let document: Document
+public struct DocumentResponse: Codable {
+    public let document: Document
+    
+    public init(document: Document) {
+        self.document = document
+    }
 }
 
-struct SendMaintenanceFormResponse: Codable {
-    let document: Document
-    let message: String
+public struct SendMaintenanceFormResponse: Codable {
+    public let document: Document
+    public let message: String
+    
+    public init(document: Document, message: String) {
+        self.document = document
+        self.message = message
+    }
 }
 
 // MARK: - Document Relationships (Non-Codable)
@@ -224,12 +278,12 @@ extension Document {
 // MARK: - Extensions
 
 extension Document {
-    var formDataDecoded: MaintenanceFormData? {
+    public var formDataDecoded: MaintenanceFormData? {
         guard let data = formData.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(MaintenanceFormData.self, from: data)
     }
     
-    var attachmentsArray: [String] {
+    public var attachmentsArray: [String] {
         guard let attachments = attachments,
               let data = attachments.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [String] else {
@@ -238,18 +292,18 @@ extension Document {
         return array
     }
     
-    var isUnread: Bool {
+    public var isUnread: Bool {
         return status == .unread
     }
     
-    var formattedSentDate: String {
+    public var formattedSentDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: sentAt)
     }
     
-    var shortFormattedSentDate: String {
+    public var shortFormattedSentDate: String {
         let formatter = DateFormatter()
         let calendar = Calendar.current
         
@@ -267,7 +321,7 @@ extension Document {
 }
 
 extension MaintenanceFormData.FormType {
-    var icon: String {
+    public var icon: String {
         switch self {
         case .da2404: return "doc.text"
         case .da5988e: return "wrench.and.screwdriver"

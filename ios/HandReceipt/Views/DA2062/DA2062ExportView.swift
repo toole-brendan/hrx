@@ -369,21 +369,7 @@ struct PropertySelectionRow: View {
     }
 }
 
-struct InfoRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label + ":")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.subheadline)
-            Spacer()
-        }
-    }
-}
+// InfoRow is imported from DocumentsView
 
 struct LoadingOverlay: View {
     let message: String

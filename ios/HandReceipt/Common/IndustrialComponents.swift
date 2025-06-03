@@ -642,7 +642,7 @@ extension ScanViewModel.TransferRequestState {
         switch self {
             case .idle: return ""
             case .loading: return "Requesting Transfer..."
-            case .success(let transfer): return "Transfer #\(transfer.id) Requested!"
+            case .success(let transferId): return "Transfer #\(transferId) Requested!"
             case .error(let msg): return "Transfer Error: \(msg)"
         }
     }

@@ -1,11 +1,13 @@
 import Foundation
 
 @MainActor
-class ConnectionService: ObservableObject {
-    @Published var connections: [UserConnection] = []
-    @Published var isLoading: Bool = false
+public class ConnectionService: ObservableObject {
+    @Published public var connections: [UserConnection] = []
+    @Published public var isLoading: Bool = false
     
-    func loadConnections() async {
+    public init() {}
+    
+    public func loadConnections() async {
         isLoading = true
         
         do {
@@ -18,21 +20,21 @@ class ConnectionService: ObservableObject {
         isLoading = false
     }
     
-    func refreshConnections() async {
+    public func refreshConnections() async {
         await loadConnections()
     }
     
-    func sendConnectionRequest(to user: User) async throws {
+    public func sendConnectionRequest(to user: User) async throws {
         _ = try await APIService.shared.sendConnectionRequest(userId: user.id)
         await loadConnections()
     }
     
-    func acceptConnectionRequest(_ connection: UserConnection) async throws {
+    public func acceptConnectionRequest(_ connection: UserConnection) async throws {
         _ = try await APIService.shared.acceptConnectionRequest(connectionId: connection.id)
         await loadConnections()
     }
     
-    func rejectConnectionRequest(_ connection: UserConnection) async throws {
+    public func rejectConnectionRequest(_ connection: UserConnection) async throws {
         _ = try await APIService.shared.rejectConnectionRequest(connectionId: connection.id)
         await loadConnections()
     }

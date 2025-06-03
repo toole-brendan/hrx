@@ -128,10 +128,18 @@ public struct TextLinkButtonStyle: ButtonStyle {
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(AppFonts.body)
-            .foregroundColor(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
-            .underline(configuration.isPressed)
+        VStack(spacing: 1) {
+            configuration.label
+                .font(AppFonts.body)
+                .foregroundColor(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
+            
+            // Custom underline for backwards compatibility
+            if configuration.isPressed {
+                Rectangle()
+                    .fill(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
+                    .frame(height: 1)
+            }
+        }
     }
 }
 

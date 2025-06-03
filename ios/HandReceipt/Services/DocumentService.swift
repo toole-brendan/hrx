@@ -66,7 +66,7 @@ class DocumentService: ObservableObject {
             // Update counts
             if document.isUnread {
                 unreadCount = max(0, unreadCount - 1)
-                if document.type == Document.DocumentType.maintenanceForm.rawValue {
+                if document.type == DocumentType.maintenanceForm.rawValue {
                     unreadMaintenanceCount = max(0, unreadMaintenanceCount - 1)
                 }
             }
@@ -87,26 +87,9 @@ class DocumentService: ObservableObject {
     
     private func calculateUnreadMaintenanceCount() {
         unreadMaintenanceCount = documents.filter { 
-            $0.isUnread && $0.type == Document.DocumentType.maintenanceForm.rawValue 
+            $0.isUnread && $0.type == DocumentType.maintenanceForm.rawValue 
         }.count
     }
 }
 
-// MARK: - API Extensions
-
-extension APIService {
-    func getDocuments() async throws -> DocumentsResponse {
-        let endpoint = "/api/documents"
-        return try await makeRequest(endpoint: endpoint, method: .GET)
-    }
-    
-    func markDocumentAsRead(documentId: Int) async throws -> DocumentResponse {
-        let endpoint = "/api/documents/\(documentId)/read"
-        return try await makeRequest(endpoint: endpoint, method: .POST)
-    }
-    
-    func sendMaintenanceForm(_ request: CreateMaintenanceFormRequest) async throws -> SendMaintenanceFormResponse {
-        let endpoint = "/api/documents/maintenance-forms"
-        return try await makeRequest(endpoint: endpoint, method: .POST, body: request)
-    }
-} 
+ 

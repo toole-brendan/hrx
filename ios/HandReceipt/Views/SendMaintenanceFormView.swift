@@ -6,13 +6,14 @@ struct SendMaintenanceFormView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = SendMaintenanceFormViewModel()
     @State private var selectedForm: MaintenanceFormData.FormType = .da2404
-    @State private var selectedRecipient: User?
+    @State private var selectedRecipient: UserSummary?
     @State private var description = ""
     @State private var faultDescription = ""
     @State private var selectedPhoto: UIImage?
     @State private var showingPhotoPicker = false
     @State private var showingConnectionPicker = false
-    @StateObject private var connectionService = ConnectionService()
+    @State private var connections: [UserConnection] = []
+    @State private var isLoadingConnections = false
     
     var body: some View {
         NavigationView {
@@ -56,7 +57,7 @@ struct SendMaintenanceFormView: View {
         }
         .sheet(isPresented: $showingConnectionPicker) {
             ConnectionPickerView(
-                connections: connectionService.connections.filter { $0.connectionStatus == .accepted },
+                connections: connections.filter { $0.connectionStatus == .accepted },
                 onSelect: { user in
                     selectedRecipient = user
                     showingConnectionPicker = false
@@ -67,7 +68,7 @@ struct SendMaintenanceFormView: View {
                                         MaintenanceImagePicker(image: $selectedPhoto)
         }
         .task {
-            await connectionService.loadConnections()
+            await loadConnections()
         }
         .alert("Success", isPresented: .constant(viewModel.showSuccessMessage)) {
             Button("OK") { dismiss() }
@@ -226,15 +227,19 @@ struct SendMaintenanceFormView: View {
                 .foregroundColor(AppColors.secondaryText)
                 .kerning(1.2)
             
-            TextEditor(text: $description)
-                .frame(minHeight: 100)
-                .padding(8)
-                .background(AppColors.secondaryBackground)
-                .overlay(
-                    Rectangle()
-                        .stroke(AppColors.border, lineWidth: 1)
-                )
-                .scrollContentBackground(.hidden)
+            ZStack(alignment: .topLeading) {
+                // Background color
+                AppColors.secondaryBackground
+                
+                TextEditor(text: $description)
+                    .frame(minHeight: 100)
+                    .padding(8)
+                    .background(Color.clear)
+                    .overlay(
+                        Rectangle()
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+            }
         }
     }
     
@@ -245,15 +250,19 @@ struct SendMaintenanceFormView: View {
                 .foregroundColor(AppColors.secondaryText)
                 .kerning(1.2)
             
-            TextEditor(text: $faultDescription)
-                .frame(minHeight: 80)
-                .padding(8)
-                .background(AppColors.secondaryBackground)
-                .overlay(
-                    Rectangle()
-                        .stroke(AppColors.border, lineWidth: 1)
-                )
-                .scrollContentBackground(.hidden)
+            ZStack(alignment: .topLeading) {
+                // Background color
+                AppColors.secondaryBackground
+                
+                TextEditor(text: $faultDescription)
+                    .frame(minHeight: 80)
+                    .padding(8)
+                    .background(Color.clear)
+                    .overlay(
+                        Rectangle()
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+            }
         }
     }
     
@@ -303,7 +312,7 @@ struct SendMaintenanceFormView: View {
                     .background(AppColors.secondaryBackground)
                     .overlay(
                         Rectangle()
-                            .stroke(AppColors.border, lineWidth: 2, dash: [5])
+                            .stroke(AppColors.border, lineWidth: 2)
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -327,13 +336,25 @@ struct SendMaintenanceFormView: View {
             photo: selectedPhoto
         )
     }
+    
+    private func loadConnections() async {
+        isLoadingConnections = true
+        
+        do {
+            connections = try await APIService.shared.getConnections()
+        } catch {
+            print("Failed to load connections: \(error)")
+        }
+        
+        isLoadingConnections = false
+    }
 }
 
 // MARK: - Supporting Views
 
 struct ConnectionPickerView: View {
     let connections: [UserConnection]
-    let onSelect: (User) -> Void
+    let onSelect: (UserSummary) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -372,7 +393,7 @@ struct ConnectionPickerView: View {
 }
 
 struct UserAvatarView: View {
-    let user: User
+    let user: UserSummary
     let size: CGFloat
     
     var body: some View {
@@ -436,7 +457,7 @@ class SendMaintenanceFormViewModel: ObservableObject {
     
     func sendMaintenanceForm(
         property: Property,
-        recipient: User,
+        recipient: UserSummary,
         formType: MaintenanceFormData.FormType,
         description: String,
         faultDescription: String?,
@@ -454,7 +475,7 @@ class SendMaintenanceFormViewModel: ObservableObject {
                 attachments: photo != nil ? ["photo_placeholder_url"] : nil
             )
             
-            let response = try await DocumentService.shared.sendMaintenanceForm(request)
+            _ = try await DocumentService.shared.sendMaintenanceForm(request)
             
             successMessage = "Maintenance form sent to \(recipient.rank ?? "") \(recipient.name)"
             showSuccessMessage = true

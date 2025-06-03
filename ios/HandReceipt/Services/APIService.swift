@@ -117,6 +117,11 @@ public protocol APIServiceProtocol {
     func detachComponent(propertyId: Int, componentId: Int) async throws
     func getAvailableComponents(propertyId: Int) async throws -> [Property]
     func updateComponentPosition(propertyId: Int, componentId: Int, position: String) async throws
+    
+    // MARK: - Document Endpoints
+    func getDocuments() async throws -> DocumentsResponse
+    func markDocumentAsRead(documentId: Int) async throws -> DocumentResponse
+    func sendMaintenanceForm(_ formRequest: CreateMaintenanceFormRequest) async throws -> SendMaintenanceFormResponse
 }
 
 // Debug print function to avoid cluttering 
@@ -993,7 +998,22 @@ public class APIService: APIServiceProtocol {
         
         let response = try await performRequest(request: request) as AttachmentResponse
         debugPrint("Successfully attached component: \(response.attachment.id)")
-        return response.attachment
+        
+        // Convert AttachmentSummary to PropertyComponent
+        let propertyComponent = PropertyComponent(
+            id: response.attachment.id,
+            parentPropertyId: response.attachment.parentPropertyId,
+            componentPropertyId: response.attachment.componentPropertyId,
+            attachedAt: response.attachment.attachedAt,
+            attachedByUserId: response.attachment.attachedByUserId,
+            notes: response.attachment.notes,
+            attachmentType: response.attachment.attachmentType,
+            position: response.attachment.position,
+            createdAt: response.attachment.createdAt,
+            updatedAt: response.attachment.updatedAt
+        )
+        
+        return propertyComponent
     }
     
     public func detachComponent(propertyId: Int, componentId: Int) async throws {
@@ -1432,6 +1452,51 @@ public class APIService: APIServiceProtocol {
     // --- QR Transfer Functions ---
     // DEPRECATED: QR transfer functionality has been removed
     // Use requestTransferBySerial() instead for serial number-based transfers
+
+    // --- Document Functions ---
+    
+    public func getDocuments() async throws -> DocumentsResponse {
+        debugPrint("Fetching documents")
+        let endpoint = baseURL.appendingPathComponent("/api/documents")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET"
+        
+        let response = try await performRequest(request: request) as DocumentsResponse
+        debugPrint("Successfully fetched \(response.documents.count) documents")
+        return response
+    }
+    
+    public func markDocumentAsRead(documentId: Int) async throws -> DocumentResponse {
+        debugPrint("Marking document \(documentId) as read")
+        let endpoint = baseURL.appendingPathComponent("/api/documents/\(documentId)/read")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let response = try await performRequest(request: request) as DocumentResponse
+        debugPrint("Successfully marked document as read")
+        return response
+    }
+    
+    public func sendMaintenanceForm(_ formRequest: CreateMaintenanceFormRequest) async throws -> SendMaintenanceFormResponse {
+        debugPrint("Sending maintenance form")
+        let endpoint = baseURL.appendingPathComponent("/api/documents/maintenance-forms")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try encoder.encode(formRequest)
+            debugPrint("Successfully encoded maintenance form request")
+        } catch {
+            debugPrint("ERROR: Failed to encode maintenance form: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let response = try await performRequest(request: request) as SendMaintenanceFormResponse
+        debugPrint("Successfully sent maintenance form")
+        return response
+    }
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)

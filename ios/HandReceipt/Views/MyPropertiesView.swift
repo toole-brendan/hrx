@@ -685,8 +685,8 @@ struct PropertyVerificationSheet: View {
                                         Text("Notes")
                                             .font(AppFonts.caption)
                                             .foregroundColor(AppColors.tertiaryText)
-                                        TextField("Additional notes...", text: $notes, axis: .vertical)
-                                            .lineLimit(3...6)
+                                        TextField("Additional notes...", text: $notes)
+                                            .lineLimit(6)
                                             .textFieldStyle(MinimalTextFieldStyle())
                                     }
                                 }

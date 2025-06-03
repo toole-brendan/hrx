@@ -37,6 +37,18 @@ class PropertyDetailViewModel: ObservableObject {
     
     // State for transfer request initiated from this view
     @Published var transferRequestState: TransferRequestState = .idle
+    
+    // Component management state
+    @Published var attachedComponents: [PropertyComponent] = []
+    @Published var availableComponents: [Property] = []
+    @Published var isLoadingComponents = false
+    @Published var componentError: String?
+    
+    // Computed properties for component management
+    var canAttachComponents: Bool {
+        guard let property = property else { return false }
+        return property.canHaveComponents && !availableComponents.isEmpty
+    }
 
     private let apiService: APIServiceProtocol
     private let propertyId: Int
@@ -108,7 +120,7 @@ class PropertyDetailViewModel: ObservableObject {
              do {
                  let newTransfer = try await apiService.requestTransfer(propertyId: propertyToTransfer.id, targetUserId: targetUser.id)
                  print("PropertyDetailVM: Transfer request successful - ID \(newTransfer.id)")
-                 self.transferRequestState = .success(newTransfer)
+                 self.transferRequestState = .success(transferId: newTransfer.id)
                  // Schedule state reset
                  self.scheduleTransferStateReset(delay: 3.0)
                  // TODO: Optionally refresh property details or navigate away
@@ -129,6 +141,110 @@ class PropertyDetailViewModel: ObservableObject {
             .sink { [weak self] _ in
                 self?.transferRequestState = .idle
             }
+    }
+    
+    // MARK: - Component Management Methods
+    
+    func loadComponents() async {
+        guard let property = property else { return }
+        isLoadingComponents = true
+        componentError = nil
+        
+        do {
+            async let attachedTask = apiService.getPropertyComponents(propertyId: property.id)
+            async let availableTask = apiService.getAvailableComponents(propertyId: property.id)
+            
+            let (attached, available) = try await (attachedTask, availableTask)
+            
+            self.attachedComponents = attached
+            self.availableComponents = available
+        } catch {
+            componentError = "Failed to load components: \(error.localizedDescription)"
+        }
+        
+        isLoadingComponents = false
+    }
+    
+    func attachComponent(_ component: Property, position: String? = nil, notes: String? = nil) async {
+        guard let property = property else { return }
+        
+        do {
+            let attached = try await apiService.attachComponent(
+                propertyId: property.id,
+                componentId: component.id,
+                position: position,
+                notes: notes
+            )
+            
+            // Update local state
+            attachedComponents.append(attached)
+            availableComponents.removeAll { $0.id == component.id }
+        } catch {
+            componentError = "Failed to attach component: \(error.localizedDescription)"
+        }
+    }
+    
+    func detachComponent(_ component: PropertyComponent) async {
+        guard let property = property else { return }
+        
+        do {
+            try await apiService.detachComponent(
+                propertyId: property.id,
+                componentId: component.componentPropertyId
+            )
+            
+            // Update local state
+            attachedComponents.removeAll { $0.id == component.id }
+            // Optionally reload available components to add the detached one back
+            await loadAvailableComponents()
+        } catch {
+            componentError = "Failed to detach component: \(error.localizedDescription)"
+        }
+    }
+    
+    func updateComponentPosition(_ component: PropertyComponent, position: String) async {
+        guard let property = property else { return }
+        
+        do {
+            try await apiService.updateComponentPosition(
+                propertyId: property.id,
+                componentId: component.componentPropertyId,
+                position: position
+            )
+            
+            // Update local state
+            if let index = attachedComponents.firstIndex(where: { $0.id == component.id }) {
+                attachedComponents[index] = PropertyComponent(
+                    id: component.id,
+                    parentPropertyId: component.parentPropertyId,
+                    componentPropertyId: component.componentPropertyId,
+                    attachedAt: component.attachedAt,
+                    attachedByUserId: component.attachedByUserId,
+                    notes: component.notes,
+                    attachmentType: component.attachmentType,
+                    position: position,
+                    createdAt: component.createdAt,
+                    updatedAt: Date()
+                )
+            }
+        } catch {
+            componentError = "Failed to update component position: \(error.localizedDescription)"
+        }
+    }
+    
+    func isPositionOccupied(_ position: String) -> Bool {
+        return attachedComponents.contains { $0.position == position }
+    }
+    
+    private func loadAvailableComponents() async {
+        guard let property = property else { return }
+        
+        do {
+            let available = try await apiService.getAvailableComponents(propertyId: property.id)
+            self.availableComponents = available
+        } catch {
+            componentError = "Failed to reload available components: \(error.localizedDescription)"
+        }
     }
      
     deinit {

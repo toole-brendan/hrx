@@ -143,7 +143,7 @@ struct DocumentsView: View {
             return documentService.documents.filter { $0.isUnread }
         case .maintenance:
             return documentService.documents.filter { 
-                $0.type == Document.DocumentType.maintenanceForm.rawValue 
+                $0.type == DocumentType.maintenanceForm.rawValue 
             }
         case .archived:
             return documentService.documents.filter { $0.status == .archived }
@@ -222,9 +222,9 @@ struct DocumentRowView: View {
     
     private var documentTypeIcon: String {
         switch document.type {
-        case Document.DocumentType.maintenanceForm.rawValue:
+        case DocumentType.maintenanceForm.rawValue:
             return "wrench.and.screwdriver"
-        case Document.DocumentType.transferForm.rawValue:
+        case DocumentType.transferForm.rawValue:
             return "arrow.triangle.2.circlepath"
         default:
             return "doc.text"
@@ -233,9 +233,9 @@ struct DocumentRowView: View {
     
     private var documentTypeColor: Color {
         switch document.type {
-        case Document.DocumentType.maintenanceForm.rawValue:
+        case DocumentType.maintenanceForm.rawValue:
             return .orange
-        case Document.DocumentType.transferForm.rawValue:
+        case DocumentType.transferForm.rawValue:
             return .blue
         default:
             return AppColors.accent
@@ -318,12 +318,12 @@ struct DocumentDetailView: View {
                     // Document header
                     documentHeader
                     
-                    // Content based on document type
-                    if document.type == Document.DocumentType.maintenanceForm.rawValue {
-                        maintenanceFormContent
-                    } else {
-                        genericDocumentContent
-                    }
+                                // Content based on document type
+            if document.type == DocumentType.maintenanceForm.rawValue {
+                maintenanceFormContent
+            } else {
+                genericDocumentContent
+            }
                 }
                 .padding()
             }
@@ -379,7 +379,7 @@ struct DocumentDetailView: View {
                 VStack(spacing: 12) {
                     InfoRow(label: "From", value: document.sender?.name ?? "Unknown")
                     InfoRow(label: "Sent", value: document.formattedSentDate)
-                    InfoRow(label: "Type", value: Document.DocumentType(rawValue: document.type)?.displayName ?? document.type)
+                    InfoRow(label: "Type", value: DocumentType(rawValue: document.type)?.displayName ?? document.type)
                     
                     if let description = document.description {
                         InfoRow(label: "Description", value: description)

@@ -53,7 +53,7 @@ public struct Property: Identifiable, Codable {
     // Add other relevant fields: condition, value, calibration_due_date, etc.
 
     // Computed properties
-    var needsMaintenance: Bool {
+    public var needsMaintenance: Bool {
         // Check if maintenance is due based on status or date
         if let dueDate = maintenanceDueDate {
             return dueDate <= Date()
@@ -63,7 +63,7 @@ public struct Property: Identifiable, Codable {
                currentStatus?.lowercased().contains("maintenance") ?? false
     }
     
-    var isSensitive: Bool {
+    public var isSensitive: Bool {
         // Check if item is marked as sensitive or based on certain NSN/LIN patterns
         if let sensitive = isSensitiveItem {
             return sensitive
@@ -74,16 +74,16 @@ public struct Property: Identifiable, Codable {
     }
     
     // Computed property to maintain compatibility with existing code expecting itemName
-    var itemName: String {
+    public var itemName: String {
         return name
     }
     
     // Component-related computed properties
-    var canHaveComponents: Bool {
+    public var canHaveComponents: Bool {
         return isAttachable == true && !(attachmentPoints?.isEmpty ?? true)
     }
     
-    func isCompatibleWith(_ parent: Property) -> Bool {
+    public func isCompatibleWith(_ parent: Property) -> Bool {
         guard let compatibleWith = compatibleWith else { return true }
         
         return compatibleWith.contains { compatible in
@@ -164,19 +164,19 @@ extension Property: Equatable {
 
 // Enhanced Property model to include import metadata
 extension Property {
-    var isImportedFromDA2062: Bool {
+    public var isImportedFromDA2062: Bool {
         return sourceType == "da2062_scan"
     }
     
-    var needsVerification: Bool {
+    public var needsVerification: Bool {
         return importMetadata?.requiresVerification ?? false
     }
     
-    var verificationReasons: [String] {
+    public var verificationReasons: [String] {
         return importMetadata?.verificationReasons ?? []
     }
     
-    var isGeneratedSerial: Bool {
+    public var isGeneratedSerial: Bool {
         return importMetadata?.serialSource == .generated
     }
 }
@@ -276,11 +276,11 @@ extension Property {
     }
     
     // Computed properties that were removed from the main struct
-    var isComponent: Bool {
+    public var isComponent: Bool {
         return attachedTo != nil
     }
     
-    var availablePositions: [String] {
+    public var availablePositions: [String] {
         guard canHaveComponents else { return [] }
         
         let occupiedPositions = Set(attachedComponents.compactMap { $0.position })

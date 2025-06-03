@@ -152,7 +152,7 @@ struct AuthenticatedTabView: View {
         
         // Serif fonts for navigation titles
         let titleFont = UIFont.systemFont(ofSize: 18, weight: .regular)
-        let largeTitleFont = UIFont.systemFont(ofSize: 34, weight: .regular, design: .serif)
+        let largeTitleFont = UIFont.systemFont(ofSize: 34, weight: .regular)
         
         navigationBarAppearance.titleTextAttributes = [
             .foregroundColor: UIColor(AppColors.primaryText),
@@ -376,25 +376,29 @@ struct ProfileView: View {
                             MinimalStatCard(
                                 title: "Total Items",
                                 value: "156",
-                                subtitle: "Equipment tracked"
+                                subtitle: "Equipment tracked",
+                                trend: nil
                             )
                             
                             MinimalStatCard(
                                 title: "Transfers",
                                 value: "47",
-                                subtitle: "Completed"
+                                subtitle: "Completed",
+                                trend: nil
                             )
                             
                             MinimalStatCard(
                                 title: "Verifications",
                                 value: "312",
-                                subtitle: "Items verified"
+                                subtitle: "Items verified",
+                                trend: nil
                             )
                             
                             MinimalStatCard(
                                 title: "Maintenance",
                                 value: "23",
-                                subtitle: "Items serviced"
+                                subtitle: "Items serviced",
+                                trend: nil
                             )
                         }
                         .padding(.horizontal, 24)
@@ -471,39 +475,7 @@ struct MinimalMoreActionRow: View {
     }
 }
 
-// MARK: - Floating Action Button (Minimal Style)
-public struct FloatingActionButton: View {
-    let icon: String
-    let action: () -> Void
-    let isExpanded: Bool
-    
-    public init(icon: String, action: @escaping () -> Void, isExpanded: Bool = false) {
-        self.icon = icon
-        self.action = action
-        self.isExpanded = isExpanded
-    }
-    
-    public var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .light))
-                
-                if isExpanded {
-                    Text("CREATE")
-                        .font(AppFonts.bodyMedium)
-                        .compatibleKerning(AppFonts.wideKerning)
-                }
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, isExpanded ? 20 : 16)
-            .padding(.vertical, 16)
-            .background(AppColors.primaryText)
-            .cornerRadius(isExpanded ? 28 : 56)
-            .shadow(color: AppColors.shadowColor, radius: 8, y: 4)
-        }
-    }
-}
+// FloatingActionButton is now imported from IndustrialComponents
 
 // MARK: - Preview
 struct AuthenticatedTabView_Previews: PreviewProvider {

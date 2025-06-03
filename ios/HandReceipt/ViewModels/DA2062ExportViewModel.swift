@@ -68,9 +68,9 @@ class DA2062ExportViewModel: ObservableObject {
         clearSelection()
         switch category {
         case "weapons":
-            selectedPropertyIDs = Set(properties.filter { $0.category?.lowercased().contains("weapon") == true }.map { $0.id })
+            selectedPropertyIDs = Set(properties.filter { $0.name.lowercased().contains("weapon") || $0.description?.lowercased().contains("weapon") == true }.map { $0.id })
         case "equipment":
-            selectedPropertyIDs = Set(properties.filter { $0.category?.lowercased().contains("equipment") == true }.map { $0.id })
+            selectedPropertyIDs = Set(properties.filter { $0.name.lowercased().contains("equipment") || $0.description?.lowercased().contains("equipment") == true }.map { $0.id })
         default:
             break
         }
@@ -188,30 +188,24 @@ struct PDFUnitInfo: Codable {
 }
 
 // MARK: - Property Extensions
-
-extension Property {
-    var isSensitive: Bool {
-        // Define what makes an item sensitive
-        // This could be based on NSN patterns, categories, or specific flags
-        return category?.lowercased().contains("weapon") == true ||
-               category?.lowercased().contains("night vision") == true ||
-               category?.lowercased().contains("encryption") == true ||
-               category?.lowercased().contains("controlled") == true
-    }
-}
+// isSensitive property is now defined in Property.swift
 
 // MARK: - API Service Extensions
 
 extension APIService {
     func generateDA2062PDF(request: GeneratePDFRequest) async throws -> Data {
-        guard let url = URL(string: "\(baseURL)/api/da2062/generate-pdf") else {
+        guard let url = URL(string: "\(baseURLString)/api/da2062/generate-pdf") else {
             throw APIError.invalidURL
         }
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.addValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        
+        // Add authorization header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            urlRequest.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
         
         let requestData = try JSONEncoder().encode(request)
         urlRequest.httpBody = requestData
@@ -224,23 +218,27 @@ extension APIService {
         
         guard httpResponse.statusCode == 200 else {
             if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
-                throw APIError.serverError(errorData.error)
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
             }
-            throw APIError.serverError("Failed to generate PDF")
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to generate PDF")
         }
         
         return data
     }
     
     func emailDA2062PDF(request: GeneratePDFRequest) async throws {
-        guard let url = URL(string: "\(baseURL)/api/da2062/generate-pdf") else {
+        guard let url = URL(string: "\(baseURLString)/api/da2062/generate-pdf") else {
             throw APIError.invalidURL
         }
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.addValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        
+        // Add authorization header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            urlRequest.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
         
         let requestData = try JSONEncoder().encode(request)
         urlRequest.httpBody = requestData
@@ -253,19 +251,23 @@ extension APIService {
         
         guard httpResponse.statusCode == 200 else {
             if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
-                throw APIError.serverError(errorData.error)
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
             }
-            throw APIError.serverError("Failed to send email")
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to send email")
         }
     }
     
     func getUserProperties() async throws -> [Property] {
-        guard let url = URL(string: "\(baseURL)/api/property") else {
+        guard let url = URL(string: "\(baseURLString)/api/property") else {
             throw APIError.invalidURL
         }
         
         var urlRequest = URLRequest(url: url)
-        urlRequest.addValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        
+        // Add authorization header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            urlRequest.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
         
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         
@@ -274,7 +276,7 @@ extension APIService {
         }
         
         guard httpResponse.statusCode == 200 else {
-            throw APIError.serverError("Failed to fetch properties")
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to fetch properties")
         }
         
         return try JSONDecoder().decode([Property].self, from: data)
