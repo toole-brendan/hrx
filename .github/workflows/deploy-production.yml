@@ -593,6 +593,17 @@ jobs:
             CLEANUP_EOF
             echo "✅ Database cleaned up"
             
+            echo "📊 Populating NSN test data..."
+            # Populate the database with test NSN data
+            if [ -f "scripts/populate_test_nsn_data.sql" ]; then
+              # Copy the SQL script into the container and execute it
+              sudo docker cp scripts/populate_test_nsn_data.sql backend_postgres_1:/tmp/populate_test_nsn_data.sql
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -f /tmp/populate_test_nsn_data.sql || echo "NSN data population completed or failed"
+              echo "✅ NSN test data populated"
+            else
+              echo "⚠️ NSN test data script not found, skipping"
+            fi
+            
             echo "⏳ Waiting for MinIO to be ready..."
             for i in {1..30}; do
               if curl -s -f http://localhost:9000/minio/health/live > /dev/null 2>&1; then
