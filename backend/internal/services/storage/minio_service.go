@@ -76,7 +76,7 @@ func (s *MinIOService) UploadFile(ctx context.Context, objectName string, reader
 }
 
 // DownloadFile downloads a file from MinIO storage
-func (s *MinIOService) DownloadFile(ctx context.Context, objectName string) (*minio.Object, error) {
+func (s *MinIOService) DownloadFile(ctx context.Context, objectName string) (io.ReadCloser, error) {
 	object, err := s.client.GetObject(ctx, s.bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to download file %s: %w", objectName, err)

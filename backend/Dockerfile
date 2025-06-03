@@ -40,6 +40,9 @@ COPY --from=builder /app/handreceipt .
 # Copy the configuration file
 COPY configs/config.yaml /app/configs/
 
+# Copy Azure-specific config if it exists
+COPY configs/config.azure.yaml* /app/configs/
+
 # Copy PUB LOG data directory from builder (including any data files)
 COPY --from=builder --chown=appuser:appgroup /app/internal/publog/data /app/internal/publog/data
 

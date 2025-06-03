@@ -50,13 +50,20 @@ immudb:
 
 # MinIO configuration for document storage
 minio:
-  endpoint: "minio:9000"  # Using Docker service name
-  access_key_id: "handreceipt-minio"
-  secret_access_key: "XQ/rycTvT6EbYfVLNQKEU1wk+GE="
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
   use_ssl: false
-  bucket_name: "handreceipt"
-  region: "us-east-1"
+  bucket: "handreceipt-photos"
   enabled: true
+
+# Storage Configuration (for Azure Blob Storage)
+storage:
+  type: "minio"  # Can be "minio" or "azure_blob"
+  # Azure Blob Storage settings (used when type is "azure_blob")
+  connection_string: ""  # Set via HANDRECEIPT_STORAGE_CONNECTION_STRING env var
+  container_name: "documents"  # Default container name
+  account_name: ""  # Parsed from connection string
 
 nsn:
   api_endpoint: ""

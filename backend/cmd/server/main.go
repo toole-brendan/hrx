@@ -56,33 +56,78 @@ func main() {
 	// Initialize Repository
 	repo := repository.NewPostgresRepository(db)
 
-	// Initialize MinIO Storage Service
-	minioEndpoint := viper.GetString("minio.endpoint")
-	if minioEndpoint == "" {
-		minioEndpoint = "localhost:9000" // Default for development
-	}
-	minioAccessKey := viper.GetString("minio.access_key")
-	if minioAccessKey == "" {
-		minioAccessKey = os.Getenv("MINIO_ACCESS_KEY")
-	}
-	minioSecretKey := viper.GetString("minio.secret_key")
-	if minioSecretKey == "" {
-		minioSecretKey = os.Getenv("MINIO_SECRET_KEY")
-	}
-	minioBucket := viper.GetString("minio.bucket")
-	if minioBucket == "" {
-		minioBucket = "handreceipt-photos"
-	}
-	minioUseSSL := viper.GetBool("minio.use_ssl")
+	// Initialize Storage Service (MinIO or Azure Blob)
+	var storageService storage.StorageService
 
-	storageService, err := storage.NewMinIOService(minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, minioUseSSL)
-	if err != nil {
-		log.Printf("WARNING: Failed to initialize MinIO storage service: %v", err)
-		// Storage is not critical for basic operations, so we'll continue
-		// but photo uploads won't work
-		storageService = nil
-	} else {
-		log.Printf("MinIO storage service initialized successfully")
+	// Check storage type configuration
+	storageType := viper.GetString("storage.type")
+	if storageType == "" {
+		storageType = os.Getenv("HANDRECEIPT_STORAGE_TYPE")
+	}
+
+	// Default to MinIO if not specified
+	if storageType == "" {
+		storageType = "minio"
+	}
+
+	switch storageType {
+	case "azure_blob":
+		// Initialize Azure Blob Storage
+		connectionString := viper.GetString("storage.connection_string")
+		if connectionString == "" {
+			connectionString = os.Getenv("HANDRECEIPT_STORAGE_CONNECTION_STRING")
+		}
+		containerName := viper.GetString("storage.container_name")
+		if containerName == "" {
+			containerName = os.Getenv("HANDRECEIPT_STORAGE_CONTAINER_NAME")
+		}
+		if containerName == "" {
+			containerName = "documents" // Default container name
+		}
+
+		if connectionString != "" {
+			azureService, err := storage.NewAzureBlobService(connectionString, containerName)
+			if err != nil {
+				log.Printf("WARNING: Failed to initialize Azure Blob storage service: %v", err)
+			} else {
+				storageService = azureService
+				log.Printf("Azure Blob Storage service initialized successfully")
+			}
+		} else {
+			log.Printf("WARNING: Azure Blob Storage connection string not provided")
+		}
+
+	default: // "minio" or any other value defaults to MinIO
+		// Initialize MinIO Storage Service
+		minioEndpoint := viper.GetString("minio.endpoint")
+		if minioEndpoint == "" {
+			minioEndpoint = "localhost:9000" // Default for development
+		}
+		minioAccessKey := viper.GetString("minio.access_key")
+		if minioAccessKey == "" {
+			minioAccessKey = os.Getenv("MINIO_ACCESS_KEY")
+		}
+		minioSecretKey := viper.GetString("minio.secret_key")
+		if minioSecretKey == "" {
+			minioSecretKey = os.Getenv("MINIO_SECRET_KEY")
+		}
+		minioBucket := viper.GetString("minio.bucket")
+		if minioBucket == "" {
+			minioBucket = "handreceipt-photos"
+		}
+		minioUseSSL := viper.GetBool("minio.use_ssl")
+
+		minioService, err := storage.NewMinIOService(minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, minioUseSSL)
+		if err != nil {
+			log.Printf("WARNING: Failed to initialize MinIO storage service: %v", err)
+		} else {
+			storageService = minioService
+			log.Printf("MinIO storage service initialized successfully")
+		}
+	}
+
+	if storageService == nil {
+		log.Printf("WARNING: No storage service initialized - photo uploads will not work")
 	}
 
 	// Initialize Ledger Service based on configuration

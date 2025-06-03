@@ -1,0 +1,156 @@
+apiVersion: 2024-03-01
+location: eastus
+name: handreceipt-worker
+properties:
+  managedEnvironmentId: /subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.App/managedEnvironments/handreceipt-prod-cae
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false  # Worker doesn't need external access
+    secrets:
+      - name: postgres-password
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/postgres-password/
+        identity: system
+      - name: storage-connection-string
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/storage-connection-string/
+        identity: system
+      - name: immudb-password
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/immudb-password/
+        identity: system
+    registries:
+      - server: handreceiptprodacr.azurecr.io
+        identity: system
+    dapr:
+      enabled: false
+  template:
+    containers:
+      - image: handreceiptprodacr.azurecr.io/handreceipt-worker:latest
+        name: handreceipt-worker
+        env:
+          # Server Configuration
+          - name: HANDRECEIPT_SERVER_ENVIRONMENT
+            value: "production"
+          
+          # Database Configuration
+          - name: HANDRECEIPT_DATABASE_HOST
+            value: "handreceipt-prod-postgres.postgres.database.azure.com"
+          - name: HANDRECEIPT_DATABASE_PORT
+            value: "5432"
+          - name: HANDRECEIPT_DATABASE_USER
+            value: "hradmin"
+          - name: HANDRECEIPT_DATABASE_NAME
+            value: "handreceipt"
+          - name: HANDRECEIPT_DATABASE_PASSWORD
+            secretRef: postgres-password
+          
+          # ImmuDB Configuration
+          - name: HANDRECEIPT_IMMUDB_HOST
+            value: "immudb"
+          - name: HANDRECEIPT_IMMUDB_PORT
+            value: "3322"
+          - name: HANDRECEIPT_IMMUDB_USERNAME
+            value: "immudb"
+          - name: HANDRECEIPT_IMMUDB_DATABASE
+            value: "defaultdb"
+          - name: HANDRECEIPT_IMMUDB_ENABLED
+            value: "true"
+          - name: HANDRECEIPT_IMMUDB_PASSWORD
+            secretRef: immudb-password
+          
+          # Storage Configuration
+          - name: HANDRECEIPT_STORAGE_TYPE
+            value: "azure_blob"
+          - name: HANDRECEIPT_STORAGE_ACCOUNT_NAME
+            value: "handreceiptprodstorage"
+          - name: HANDRECEIPT_STORAGE_CONTAINER_NAME
+            value: "documents"
+          - name: HANDRECEIPT_STORAGE_CONNECTION_STRING
+            secretRef: storage-connection-string
+          - name: HANDRECEIPT_STORAGE_ENABLED
+            value: "true"
+          
+          # Legacy MinIO (disabled)
+          - name: HANDRECEIPT_MINIO_ENABLED
+            value: "false"
+          
+          # Worker Configuration
+          - name: WORKER_ENABLED
+            value: "true"
+          - name: WORKER_INTERVAL
+            value: "300"  # 5 minutes
+          - name: WORKER_MODE
+            value: "background"
+          
+          # Monitoring
+          - name: LOG_LEVEL
+            value: "info"
+          - name: METRICS_ENABLED
+            value: "true"
+          
+          # Background Tasks Configuration
+          - name: TASK_CLEANUP_ENABLED
+            value: "true"
+          - name: TASK_CLEANUP_INTERVAL
+            value: "3600"  # 1 hour
+          
+          - name: TASK_BACKUP_ENABLED
+            value: "true"
+          - name: TASK_BACKUP_INTERVAL
+            value: "86400"  # 24 hours
+          
+          - name: TASK_MAINTENANCE_ENABLED
+            value: "true"
+          - name: TASK_MAINTENANCE_INTERVAL
+            value: "21600"  # 6 hours
+          
+          - name: TASK_REPORTS_ENABLED
+            value: "true"
+          - name: TASK_REPORTS_INTERVAL
+            value: "43200"  # 12 hours
+          
+          # Notification Configuration
+          - name: NOTIFICATIONS_ENABLED
+            value: "true"
+          - name: EMAIL_NOTIFICATIONS_ENABLED
+            value: "true"
+          
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        
+        probes:
+          - type: Liveness
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep handreceipt-worker"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          - type: Startup
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep handreceipt-worker"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+    
+    scale:
+      minReplicas: 1
+      maxReplicas: 1  # Worker should typically run as single instance to avoid duplicate tasks
+    
+    revisionSuffix: ""
+  
+  identity:
+    type: SystemAssigned
+  
+  tags:
+    Environment: production
+    Application: handreceipt
+    Component: worker 

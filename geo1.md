@@ -1,303 +1,262 @@
-Got it. I’ll analyze the `handreceipt/backend` and `handreceipt/ios` modules in your `toole-brendan/hrx` repository to identify all inline TODOs, stubbed-out functions, and placeholder code. I’ll also highlight the most pressing ones and suggest concrete implementation strategies tailored to their context.
+Thanks for the context! I’ll dive into how to migrate your Docker-based `hrx` application from AWS Lightsail to Azure, keeping ImmuDB and switching the rest of the infrastructure to well-suited Azure alternatives. I’ll also recommend the right Azure services for hosting your containers and databases.
 
-I’ll let you know once I have a detailed report ready.
+I’ll let you know once the migration strategy and service recommendations are ready.
 
 
-## 1. Full List of TODOs and Stub Implementations (Backend & iOS)
+# Migrating a Docker-Compose Application from AWS Lightsail to Azure
 
-* **`backend/internal/api/routes/routes.go:48`** – `emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service`
-  &#x20;– *Placeholder email service used for DA Form 2062 emails. A real email service (SMTP or API-based) should be injected here instead of the dummy instance.*
+## Introduction
 
-* **`backend/internal/api/routes/routes.go:62`** – `// TODO: Update other handlers to use repository when needed`
-  &#x20;– *Comment indicating some handlers should utilize the repository layer. Likely intended to refactor handlers to use the `repo` for data access where applicable.*
+Migrating from AWS Lightsail to Microsoft Azure involves mapping your current Docker-based stack to Azure's equivalent services. In the current setup, an AWS Lightsail instance runs a Docker Compose deployment with the following components:
 
-* **`backend/internal/api/routes/routes.go:135`** – `// TODO: Add route for full cryptographic document verification`
-  &#x20;– *A route for end-to-end cryptographic ledger/document verification is not yet implemented. This suggests a future endpoint to verify data integrity (perhaps using ImmuDB’s proofs).*
+* **PostgreSQL** – Relational database (running in a container)
+* **ImmuDB** – Immutable ledger database (running in a container)
+* **MinIO** – S3-compatible object storage (running in a container)
+* **Nginx** – Reverse proxy handling HTTP/HTTPS and routing (containerized)
+* **Go Application** – The main backend API server (containerized)
 
-* **`backend/internal/api/routes/routes.go:145`** – `// TODO: Add routes for querying/viewing correction events?`
-  &#x20;– *No endpoint exists yet for retrieving or viewing correction events in the audit log. Intended for querying correction history of ledger events.*
+The goal is to use Azure-managed services for PostgreSQL and object storage while continuing to run ImmuDB in containers. We will also choose an appropriate Azure service to host the Docker containers (for the application, ImmuDB, and possibly Nginx if needed). This guide provides recommendations on Azure services, a step-by-step migration strategy, and best practices to ensure a smooth transition.
 
-* **`backend/internal/api/routes/routes.go:152`** – `// TODO: Add route for item-specific history (/ledger/item/:itemId/history) ?`
-  &#x20;– *No specific route for fetching ledger history of a single item. Likely meant to retrieve all ledger events related to a given item ID.*
+## Service Comparison: AWS Lightsail vs Azure Equivalents
 
-* **`backend/internal/api/routes/nsn_routes.go:25`** – `// TODO: Implement role-based access control middleware`
-  &#x20;– *Admin NSN routes (import/refresh) currently have no RBAC protection. The comment and commented-out code suggest adding a middleware (e.g. `RequireRole("admin")`) to restrict these endpoints to admin users.*
+| **Service Component**   | **Current (AWS Lightsail)**                       | **Azure Equivalent / Recommendation**                                                                                                                                                                         |
+| ----------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Container Hosting**   | Lightsail instance with Docker Compose (VM-based) | **Azure Container Apps** (serverless containers) or **Azure App Service** (Web App for Containers) for simple deployments, or **Azure Kubernetes Service (AKS)** for full orchestration.                      |
+| **Relational Database** | PostgreSQL (containerized on Lightsail)           | **Azure Database for PostgreSQL** – Managed PostgreSQL service with high availability and backups.                                                                                                            |
+| **Object Storage**      | MinIO (S3-compatible storage in a container)      | **Azure Blob Storage** – Durable, scalable object storage service.                                                                                                                                            |
+| **Immutable Ledger DB** | ImmuDB (containerized on Lightsail)               | **ImmuDB in Azure** – Continue running ImmuDB in a container on Azure (no fully-managed equivalent; alternative Azure ledger services exist but ImmuDB will be self-hosted).                                  |
+| **Reverse Proxy / TLS** | Nginx (containerized, handling SSL termination)   | **Azure-managed ingress** – e.g. built-in HTTP/S endpoints in App Service or Container Apps (custom domains and TLS certificates provided by Azure), or an Azure Application Gateway/Front Door if using AKS. |
 
-* **`backend/internal/api/middleware/auth.go:146`** – `secret = "your-secret-key" // TODO: Use actual secure secret`
-  &#x20;– *A hard-coded JWT secret is used as fallback. In production this should be replaced by a secure secret from config or env. (Also appears again at line 179 for token validation.)*
+*Table: Current Lightsail stack vs. Azure alternatives.*
 
-* **`backend/internal/ledger/ledger_service.go:54`** – `// TODO: Add filtering/pagination parameters (e.g., time range, event type, user ID, property ID).`
-  &#x20;– *The `GetGeneralHistory()` interface method lacks filters. The comment notes plans to support query parameters (date range, event type, etc.) for retrieving ledger history.*
+In the next sections, we’ll explore the Azure services in detail and then outline a migration plan.
 
-* **`backend/internal/ledger/azure_sql_ledger_service.go:27`** – `// TODO: Make sure the correct Azure SQL driver is imported above`
-  &#x20;– *Reminder to ensure the proper database driver is in use. Likely a check because the code uses `"sqlserver"` in `sql.Open`, and this TODO notes verifying the import for Azure SQL.*
+## Choosing Azure Services for Containers, Database, and Storage
 
-* **`backend/internal/ledger/azure_sql_ledger_service.go:52`** – `// TODO: Optionally, check if required ledger tables exist and create/configure if needed.`
-  &#x20;– *Initialization stub: the `Initialize()` method currently does nothing except log. Ideally, it would verify or create ledger-enabled tables (using `CREATE TABLE ... WITH LEDGER`), especially if running for the first time.*
+### Azure Container Hosting Options
 
-* **`backend/internal/ledger/immudb_ledger_service.go:227`** – *(Placeholder return in `GetPropertyHistory`)* – The implementation simply returns a dummy entry: e.g. a map with a message `"ImmuDB history retrieval for item X is being implemented"`, appended to history and returned. *This indicates `GetPropertyHistory` is not yet fully implemented; it doesn’t actually fetch real history from ImmuDB.*
+**Azure Container Apps (ACA)** – Azure Container Apps is a fully managed platform for running containerized applications without needing to manage Kubernetes clusters or VMs. It is ideal for deploying your Docker containers (the application and ImmuDB) as microservices. Container Apps supports internal service discovery and ingress within a Container Apps Environment, so your app and ImmuDB can communicate privately. It provides built-in HTTP endpoints with load balancing, automatic scaling (down to zero) based on HTTP requests or events, integrated monitoring, and versioned deployments. This option offloads all orchestration concerns to Azure and is well-suited for modern microservice or containerized workloads.
 
-* **`backend/internal/ledger/immudb_ledger_service.go:254`** – `// Placeholder implementation` in `GetAllCorrectionEvents` returning an empty list. *No real retrieval of correction events from the ledger – just returns an empty slice.*
+**Azure Kubernetes Service (AKS)** – AKS is a managed Kubernetes service, giving you full control over orchestration. It’s the most flexible option, allowing custom configurations and use of Kubernetes add-ons. AKS is appropriate if you require complex deployments or need to run many containers/services with custom networking, but it does introduce more management overhead (cluster maintenance, scaling configuration, etc.). Given that your current setup is relatively small, AKS may be more than you need unless you anticipate significant growth or complexity.
 
-* **`backend/internal/ledger/immudb_ledger_service.go:260`** – `// Placeholder implementation` in `GetCorrectionEventsByOriginalID` (also returns empty list).
+**Azure App Service (Web App for Containers)** – App Service is a PaaS offering for hosting web applications, including the ability to deploy Docker containers. **Web App for Containers** provides a fully managed hosting environment with built-in infrastructure maintenance, security patching, and straightforward scaling for containerized web apps. This service is ideal if your application is primarily a web/API service. It supports single-container deployments easily, and also supports multi-container deployments using Docker Compose configurations in a limited way. App Service gives you built-in CI/CD integration and handles TLS certificates and custom domain mappings out-of-the-box, which can simplify the replacement of Nginx. For a two-container scenario (app + ImmuDB), you can use App Service's multi-container feature (by providing a Compose file) or run the ImmuDB container as a sidecar. Keep in mind that volumes for persistent storage can be mounted in App Service via Azure Storage if needed.
 
-* **`backend/internal/ledger/immudb_ledger_service.go:266`** – `// Placeholder implementation` in `GetCorrectionEventByID` returning a “not found” error always.
+**Azure Container Instances (ACI)** – ACI allows you to run standalone containers on demand. It’s a lightweight option but is typically used for single containers or ephemeral workloads. For a long-running application with multiple services, ACI alone is not sufficient (it has no built-in orchestration for multiple containers beyond simple container groups). It could be used for running ImmuDB as a single container, but you would still need to wire up networking and persistence manually. In most cases, ACA or App Service will be preferable for your scenario.
 
-* **`backend/internal/ledger/immudb_ledger_service.go:272`** – `// Placeholder implementation` in `GetGeneralHistory` returning an empty slice.
-  **(The above five methods in ImmuDBLedgerService are stubs; they do not query actual data yet.)**
+**Recommendation:** For most cases like yours, **Azure Container Apps** provides an excellent balance – it can run both your application and ImmuDB containers in the same environment, giving them internal network access to each other, and it spares you from managing any servers or Kubernetes. Azure Container Apps also supports mounting Azure Files volumes for persistent storage, which you can use to persist ImmuDB’s data files. If your application is straightforward (a web API) and you want the simplest deployment, you could also consider **Azure App Service**; it will manage the web front-end aspects (HTTP(S) endpoints, SSL) very easily. However, App Service’s multi-container support is slightly more constrained than ACA. AKS should only be chosen if you need the full flexibility of Kubernetes or plan to scale out to many services.
 
-* **`backend/internal/api/handlers/nsn_handler.go:179`** – `// This is a placeholder - implement your actual authorization logic`
-  &#x20;– *In the `ImportCSV` handler for NSN, the admin privilege check is rudimentary. It simply reads a `user_role` from context and denies access if not “admin”. This placeholder implies a more robust auth check (or middleware) should replace it.*
+### Managed PostgreSQL on Azure
 
-* **`backend/internal/services/nsn/nsn_service.go:364`** – `// This is a placeholder for the actual implementation`
-  &#x20;– *In `RefreshCachedNSNData`, no real refresh happens. The method logs start/end but does not fetch or update anything. It’s a stub; actual logic to call an external NSN data source and update the local DB is missing.*
+For PostgreSQL, the best route is to use **Azure Database for PostgreSQL**, which is Azure’s fully managed PostgreSQL service. This service takes care of running PostgreSQL server for you, with built-in high availability (99.99% uptime SLA), automated backups, point-in-time restore, and scaling of compute/storage on demand. There are two deployment options: **Flexible Server** (recommended for most new deployments) and **Single Server** (older). Flexible Server offers more control (custom maintenance windows, stop/start, zone-redundant high availability, VNet integration for private access, etc.) and is generally the preferred choice.
 
-* **`backend/internal/services/nsn/nsn_service.go:419`** – `// This is a placeholder for external API integration`
-  &#x20;– *In the helper `fetchFromExternalAPI`, the code simply logs and returns “not implemented”. This function is a stub for actually querying an external NSN API to retrieve item details.*
+Using Azure’s managed PostgreSQL means you won’t have to maintain the database container anymore, and you can offload patching and backups to Azure. Key considerations when migrating PostgreSQL to Azure:
 
-* **`ios/HandReceipt/Services/TransferService.swift:44`** – `// For now, throw not implemented`
-  &#x20;– *The `rejectOffer(_:)` function is not implemented; it immediately throws a 501 “Not implemented” error. This indicates no backend endpoint exists for rejecting a transfer offer, and the app is handling it as unimplemented.*
+* **Sizing:** Choose a tier (compute and storage size) that matches your workload. Start with a smaller tier for testing and scale up as needed. Azure allows scaling up the CPU/Memory and storage with minimal downtime.
+* **Security:** By default, Azure PostgreSQL requires SSL connections and can be configured to allow access only from certain IPs or Azure services. You should plan to **enable SSL in your application’s PostgreSQL connection string** (Azure’s default is to enforce SSL). For example, you may need to add `sslmode=require` in the connection string or config. Alternatively, you can disable the enforcement in the server settings, but using SSL is best practice.
+* **Networking:** If you deploy your application in Azure Container Apps or App Service, you have two main ways to connect to the PostgreSQL server:
 
-* **`ios/HandReceipt/Services/CoreDataStack.swift:54`** – `// TODO: Implement these methods when Core Data entities are created`
-  &#x20;– *A note preceding several commented-out Core Data methods. It indicates that offline-sync Core Data entities (like `SyncQueueItem`, `CachedProperty`, etc.) are planned but not yet added to the model, so the related functions are left unimplemented.*
+  * **Public endpoint with firewall rules:** You can allow Azure services to access the database (there’s an option "Allow access to Azure services" which effectively allows any service in your subscription to connect), or specify the outbound IP address of your App Service/Container environment in the PostgreSQL firewall. *This is the simpler approach* for initial migration and testing.
+  * **Private endpoint/VNet integration:** For stronger security, you can deploy the PostgreSQL Flexible Server in a private Azure Virtual Network and use VNet integration on your Container App or App Service to allow direct private access. This avoids exposing the DB to the internet at all. This approach requires more network setup (creating a delegated subnet for the DB and enabling regional VNet integration for the app). It’s a best practice for production if you need a locked-down environment.
+* **Migration of Data:** You’ll need to copy your data from the Lightsail PostgreSQL to Azure. The typical method is using **pg\_dump/pg\_restore**. For example, create a backup on Lightsail:
 
-* **`ios/HandReceipt/Services/CoreDataStack.swift:110`** – `// TODO: Implement when CachedProperty entity is created`
-  &#x20;– *Placeholder for a `cacheProperty(_:)` method (currently commented out). Without a `CachedProperty` Core Data entity, this method remains unimplemented.*
-
-* **`ios/HandReceipt/Services/CoreDataStack.swift:159`** – `// TODO: Implement when CachedTransfer entity is created`
-  &#x20;– *Placeholder for a `cacheTransfer(_:)` method (commented out) to store transfer info offline. Depends on adding a `CachedTransfer` entity.*
-
-* **`ios/HandReceipt/Services/CoreDataStack.swift:209`** – `// TODO: Implement when PendingPhotoUpload entity is created`
-  &#x20;– *Stub for a `queuePhotoUpload` method (commented out) to enqueue photo uploads in Core Data. Requires a `PendingPhotoUpload` entity.*
-
-* **`ios/HandReceipt/Services/CoreDataStack.swift:244`** – `// TODO: Implement when SyncQueueItem entity is created`
-  &#x20;– *Marks an unimplemented section for cleaning up completed sync queue items. The code to delete or manage `SyncQueueItem` entries is commented out pending the entity’s creation.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:89`** – `// TODO: Uncomment when Core Data entities are implemented`
-  &#x20;– *In `syncAll()`, step 1 (processing the sync queue) is commented out entirely. It should be enabled once offline sync entities (like SyncQueueItem) are in place.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:108`** – `// TODO: Implement when SyncQueueItem entity is created`
-  &#x20;– *The `processSyncQueue()` function is fully commented out (stub). It’s intended to asynchronously process pending sync items from Core Data (once they exist).*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:172`** – `propertyModelId: nil, // TODO: Link to property model if NSN/LIN is provided`
-  &#x20;– *In creating a new property via sync, the code leaves `propertyModelId` as nil. The TODO suggests linking the property to a model record if NSN/LIN info is available (likely after implementing reference data lookup).*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:181`** – `// TODO: Uncomment when Core Data entities are implemented` (cacheProperty call) – *After creating a property on the server, caching it locally is commented out. It should be activated once the `cacheProperty` Core Data method/entity is ready.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:186`** – `// TODO: Uncomment when Core Data entities are implemented` (pending photo updates) – *Intended to update any pending photo-upload records with the new property’s ID. This logic is on hold until offline photo upload entities exist.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:202`** – `// TODO: Uncomment when Core Data entities are implemented`
-  &#x20;– *In the catch block after creating a property, there’s a commented-out cache of the property. Also pending the Core Data integration.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:220`** – `// TODO: Uncomment when Core Data entities are implemented` (caching transfer) – *After creating a transfer offer, the code would cache it locally; currently commented out.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:226`** – `// TODO: Uncomment when Core Data entities are implemented` (caching transfer) – *Another point where caching a transfer locally is skipped due to missing Core Data support.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:232`** – `// TODO: Uncomment when Core Data entities are implemented` (caching transfer) – *Similarly, caching transfer data after a different operation is disabled for now.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:242`** – `// TODO: Uncomment when PendingPhotoUpload entity is implemented`
-  &#x20;– *In `uploadPendingPhotos()`, the code to fetch pending photos from Core Data and upload each is commented out. A placeholder `debugPrint` indicates this will be implemented once the `PendingPhotoUpload` entity and `uploadPhoto` logic are in place.*
-
-* **`ios/HandReceipt/Services/OfflineSyncService.swift:311`** – `// TODO: Store in Core Data with pending_sync flag`
-  &#x20;– *In `queuePropertyCreation`, instead of persisting the queued operation, the code currently just logs to an in-memory array. The comment notes that it should save to Core Data (marking the property as pending sync) once offline persistence is set up.*
-
-* **`ios/HandReceipt/Views/Settings/SettingsView.swift:226`** – `// TODO: Implement actual cache clearing`
-  &#x20;– *The `clearCache()` action simply prints a message. The real implementation should purge cached app data (e.g. stored Core Data or file caches).*
-
-* **`ios/HandReceipt/Views/Settings/SettingsView.swift:231`** – `// TODO: Calculate actual storage`
-  &#x20;– *The `calculateStorageUsed()` function returns a hard-coded “42.3 MB”. It should compute the real storage usage of the app’s data (perhaps by checking file sizes, database sizes, etc.).*
-
-* **`ios/HandReceipt/Views/Settings/SettingsView.swift:244`** – `// TODO: Get actual last sync time`
-  &#x20;– *The UI for “Last Sync Time” is using a placeholder “2 minutes ago”. This should be replaced with the actual timestamp of the last successful sync (likely stored in user defaults or Core Data once offline sync is implemented).*
-
-* **`ios/HandReceipt/ViewModels/TransfersViewModel.swift:61`** – `// TODO: We need access to the current user's ID to implement direction filtering correctly...`
-  &#x20;– *The view-model currently ignores the “Incoming/Outgoing” filter for transfers because it doesn’t have the current user’s ID. This comment indicates the design to inject or determine the user’s ID (via an Auth model or session) so that it can filter transfers by whether the user is sender or recipient.*
-
-* **`ios/HandReceipt/ViewModels/TransfersViewModel.swift:110`** – `// TODO: Update API call if backend supports server-side filtering for status/direction`
-  &#x20;– *The `fetchTransfers()` method always fetches all transfers and filters on the client. This note suggests that if the backend can query transfers by status or direction, the API call should be adjusted to pass those parameters instead of fetching everything.*
-
-*(Any occurrences of `pass` or `return None` were not found in this codebase – the placeholders above are indicated via comments, dummy returns, or throwing not-implemented errors.)*
-
-## 2. Implementation Suggestions for Key TODOs/Stubs
-
-### **Offline Sync & Core Data Integration (iOS)**
-
-The offline sync system is largely stubbed out. To implement it:
-
-1. **Define Core Data Entities:** Add the missing entities (`SyncQueueItem`, `CachedProperty`, `CachedTransfer`, `PendingPhotoUpload`, etc.) to the `.xcdatamodeld`. For example, `SyncQueueItem` might have fields like `id (UUID)`, `action` (e.g. "CREATE\_PROPERTY"), `endpoint`/`payload` (for the request data), `status` (`pending/failed/completed`), timestamps, etc. Similarly, define `CachedProperty` and `CachedTransfer` to mirror the server’s `Property` and `Transfer` models for offline storage, and `PendingPhotoUpload` to store photo data and a hash/status.
-2. **Implement CoreDataStack Methods:** Un-comment and flesh out the methods in **CoreDataStack.swift**. For instance:
-
-   * `addToSyncQueue(action:endpoint:payload:)`: Create a `SyncQueueItem` object in a background context, set its fields (use `JSONSerialization` to store payload dictionaries as Data), mark status as "pending", then save the context.
-   * `getPendingSyncItems(limit:)`: Fetch `SyncQueueItem` objects with status `"pending"`, sorted by priority or creation date.
-   * `updateSyncItemStatus(item:status:errorMessage:)`: Mark a given `SyncQueueItem` as "completed" or "failed" with timestamp and error info, increment retry count if failed.
-   * Similarly, implement `cacheProperty(_:)` and `cacheTransfer(_:)` to save or update `CachedProperty/Transfer` entries (perhaps upsert by ID) so the app can quickly access recently viewed items offline. Use a background context, fetch existing object by ID, update or insert accordingly, then save.
-   * `getCachedProperties()` / `getCachedTransfers()`: fetch from Core Data for display in UI when offline.
-   * In `queuePhotoUpload(propertyId:imageData:)`: create a `PendingPhotoUpload` object with a generated UUID, store the image binary (or file path) and property ID, plus a calculated SHA-256 hash of the image for integrity.
-   * A method to fetch pending photo uploads (`getPendingPhotoUploads`) can retrieve all `PendingPhotoUpload` with status "pending".
-3. **OfflineSyncService Logic:** With Core Data support in place, integrate it in **OfflineSyncService.swift**:
-
-   * Enable and implement `processSyncQueue()`. For example, fetch pending sync items from CoreDataStack (`coreDataStack.getPendingSyncItems()`), then for each item:
-
-     * Inspect the `action/endpoint` to determine which API call to make (e.g. if action == "CREATE\_PROPERTY", call `apiService.createProperty` with the stored payload). This can be done in an async loop.
-     * On success, remove the item or mark it completed. On failure, update its status and perhaps leave it for retry (increment `retryCount`). You might use a maximum retry policy and if exceeded, mark as failed.
-     * Save changes via CoreDataStack. Optionally, after processing, call a CoreDataStack method to clean up all "completed" items (the commented-out code hints at using `NSBatchDeleteRequest` to delete processed items).
-   * In `syncAll()`, un-comment the call to `processSyncQueue()` so that whenever the app regains connectivity, it will flush queued operations to the server.
-   * Implement `uploadPendingPhotos()`: retrieve pending photo uploads from Core Data (e.g. `coreDataStack.getPendingPhotoUploads()`), log how many, and iterate through them. For each:
-
-     * Read the image file or data, verify its SHA-256 hash matches the saved hash (to ensure the file wasn’t corrupted).
-     * Call an API endpoint to upload the photo. *(This requires adding a corresponding endpoint in APIService; for example, an `uploadPhoto(propertyId:imageData:hash:)` method.)*.
-     * On success, mark the `PendingPhotoUpload` status as "COMPLETED" and possibly remove the local file to save space. On failure, increment `retryCount` and if too many retries, mark it "FAILED". Save these changes.
-     * You may perform photo uploads in parallel or sequentially; since this is within a `Task`, using `await` sequentially is acceptable if the number is small, or use `TaskGroup` for parallel uploads if needed.
-   * In `queuePropertyCreation(_ property, photoData)`: instead of just logging to `pendingSyncOperations`, actually persist this intent. For example, create a new `SyncQueueItem` with action "CREATE\_PROPERTY", endpoint "/property", payload containing the property data (and perhaps a reference to photo if available), and status "pending". Save it via CoreDataStack (this will be picked up by the next sync). This way, if the app is closed, the queued creation isn’t lost.
-   * The same approach can be applied to other queuing functions (e.g., if `queueTransferCreation` exists, queue a "CREATE\_TRANSFER" action with needed details).
-4. **Last Sync Time:** Once the above is in place, each sync cycle could update a timestamp in UserDefaults or a small Core Data record for “lastSyncTime”. The `SettingsView.getLastSyncTime()` can then pull that real value instead of a placeholder.
-5. **Testing:** After implementing, test by putting the device offline, performing an action (create property, etc.), then coming online to ensure the sync queue processes correctly, the data gets to the server, and local caches update. Also ensure the UI (e.g., “My Properties” list) uses cached data when offline (using `CachedProperty` objects).
-
-Overall, this turns the placeholders into a robust offline mode: the app will accumulate changes in Core Data while offline and flush them when connectivity is restored. The coding style in the project favors using Core Data on background threads (`context.perform`) and printing debug logs on success/failure, so follow that pattern. Make sure to handle errors gracefully (update statuses, etc.) rather than using `fatalError` so that the app continues running even if a sync item fails.
-
-### **NSN Data Refresh & External API Integration (Backend)**
-
-The NSN service is intended to fetch and cache National Stock Number data, but the refresh function is a stub. To implement the TODOs in **NSNService**:
-
-1. **Configure Data Source:** Determine the external source of NSN data. The code references a `config.NSNConfig.APIEndpoint` – presumably a URL for a government NSN API or an internal service. Ensure this is set in configuration. If an official API exists (or a CSV dataset), use that. For example, an endpoint might return JSON for a given NSN or allow bulk retrieval.
-2. **Implement `RefreshCachedNSNData`:** This function should call the external API to update the local NSN database:
-
-   * If an **official API**: perform an HTTP GET (using `s.client`, which is an `http.Client` already in NSNService). Possibly the service returns all updates since last fetch or the entire dataset. Stream the response if it’s large (e.g., if it’s a big JSON or CSV dump).
-   * If the data is provided via **files (CSV)**: the function could download the latest NSN catalog file and then reuse the CSV parsing logic that is already in `ImportFromCSV`.
-   * In either case, parse the incoming data. For example, if JSON, unmarshal into appropriate structs (`NSNDetails` or a list of them). If CSV, you might reuse the CSV reader approach similar to `ImportFromCSV` (which reads line by line and batches inserts).
-   * Update the database: use the GORM `db` field to upsert records. Likely:
-
-     * Find existing NSN by key and update, or insert new. You might use `nsnRepository.BulkSave(...)` if provided, or perform a loop of create/update.
-     * If the data source is complete (full list of NSNs), you might also remove entries that are no longer present. There is a `DeleteOld(ctx, olderThan…)` in `NSNRepository` – perhaps you set a timestamp on each NSN and then remove those not updated in the refresh window.
-   * Consider wrapping the refresh in a transaction if possible, or mark new data as it comes. Given potential size, batch the updates (the existing code batches 100 records for CSV imports for efficiency).
-   * Use locking or a mutex if concurrent calls are possible, since `RefreshCachedNSNData` may be triggered by an admin endpoint. The `NSNService` has a `rateLimiter` channel and cache; ensure refresh doesn’t conflict with read operations. You might set a flag or acquire a write lock during refresh.
-   * Finally, update in-memory cache if used. The struct has `cache *cache.Cache` (from “patrickmn/go-cache”). If this cache is used for NSN lookups, the refresh should either clear and repopulate it, or at least invalidate stale entries. For example, after updating the DB, you could do `s.cache.Flush()` and maybe pre-load some frequently used NSNs.
-   * Log the outcome: number of records fetched/updated, etc., then log “NSN data refresh completed” (as already in code).
-3. **Implement `fetchFromExternalAPI(nsn)`:** This helper is called when a specific NSN isn’t found in the local DB (presumably to live-fetch it). Replace the placeholder by actually performing the request:
-
-   * Construct the external API URL using the NSN (the `NSNConfig` may include a base URL). For example: `GET https://api.nsn.example.com/nsn/1234-00-ABC-...`.
-   * Send the request via `s.client`. Handle errors or non-200 responses (return an error if the item can’t be fetched).
-   * Parse the JSON (or XML, etc.) from the response into an `NSNRecord` or `NSNDetails`. The code defines an `NSNDetails` struct for external data which includes nomenclature, price, manufacturer, etc. Map the API response into this structure.
-   * Save the data: You can convert `NSNDetails` into your `models.NSNData` (which likely corresponds to the GORM model for NSN records) and either save to the database via `NSNRepository.Save`, or directly insert with GORM. This ensures the NSN will be available next time without another API call.
-   * Update the in-memory cache: e.g., `s.cache.Set(nsn, details, defaultExpiration)` so future lookups use the cached value.
-   * Return the populated `NSNRecord/Details`. If nothing is found (API returns 404 or empty), return a not-found error so the caller (NSNHandler) can respond accordingly.
-4. **NSN Import/Cache Stats:** The admin import (CSV upload) is already implemented. After adding refresh, also consider the “RefreshCache” endpoint: it should call `RefreshCachedNSNData`. Since we implement that, the `ImportCSV` and `RefreshCache` admin routes will both populate the NSN store. Ensure that one does not override the other’s data in unintended ways (e.g., if both are invoked).
-
-   * The “GetCacheStats” (GetCacheStats handler calls `service.GetCacheStats()`) should reflect meaningful info. If not already done, implement `GetCacheStats` to return metrics like cache item count, maybe last refresh time, etc. If using go-cache, you can get item count from it. Also you might include database counts (the code’s `GetStatistics` already returns total records and category counts). Integrating these stats into one response could be useful.
-5. **Testing:** After implementation, test the following scenarios:
-
-   * NSN lookup for an NSN that is in DB vs not in DB (to ensure `fetchFromExternalAPI` triggers and populates correctly).
-   * The `/api/nsn/refresh` endpoint: after invoking it, verify that new or updated NSNs appear in the database (and maybe the in-memory cache).
-   * Performance: if the NSN dataset is large (thousands of records), ensure the refresh process is reasonably fast (batching inserts, perhaps using transactions or bulk operations). Also ensure it doesn’t block the application server excessively – you might execute heavy refresh logic in a separate goroutine if needed, while returning an immediate response (or use a long-running request with proper timeouts).
-   * Ensure that during refresh, normal NSN lookups either wait or still serve old data. One approach is to lock writes during refresh, but allow reads; another is to serve stale cache data until new data is ready, then swap. Given the application context (inventory data that doesn’t change rapidly), a brief period of stale data is likely acceptable.
-
-By completing these steps, the NSN service will no longer use placeholder logic. Instead, it will maintain an up-to-date local NSN database by periodically pulling from authoritative sources, and fetch on-demand details for NSNs not yet seen. This aligns with the intended use of the `publog` integration mentioned in the code (possibly referring to a public logistics dataset) and ensures the app can provide NSN details even offline or under heavy use.
-
-### **Ledger History & Correction Events (Immutable Ledger Service)**
-
-Several methods in **ImmuDBLedgerService** are left as stubs, which are critical for audit trail and history features. Here’s how to flesh them out:
-
-1. **GetPropertyHistory(propertyID)**: Instead of returning a placeholder note, implement a retrieval of all ledger events for a given item:
-
-   * **Approach A (Key Scanning in ImmuDB):** If events were stored in ImmuDB with keys that include the property or item ID, use an ImmuDB client method to scan keys. For example, if keys were prefixed like `"item_<ID>_"`, you could fetch all keys with that prefix. The ImmuDB client library might support iterating through keys. If not, one workaround is to maintain, in parallel, a simple index in a regular database.
-   * **Approach B (Maintain Index):** On every `LogPropertyCreation/LogTransferEvent/...`, also insert a row in a relational table (e.g., `PropertyEvents`) with the itemID and a reference to the ledger entry (or a copy of the event data). Then `GetPropertyHistory` could simply query this SQL table for all events matching the property. This denormalizes the ledger data for easy querying, at the cost of duplicate storage. Given immutability requirements, the SQL copy is just for convenience; the source of truth is still ImmuDB.
-   * **Approach C (ImmuDB SQL integration):** If using ImmuDB’s experimental SQL or history features, you might directly query the ledger database if it were set up with tables. However, in this code it appears events are stored via `s.client.Set(key, value)`. So likely Approach A or B is needed.
-   * For simplicity, let’s assume Approach A using key patterns: Suppose keys were formatted like `"property_<propertyID>_<timestamp>"` for each event. You could:
-
-     * Use `s.client.Scan(prefix)` or similar if available, to get all keys for `property_<ID>_`. (ImmuDB’s API provides functions like `Scan` or `ZScan` for sorted sets. The basic key-value store might not easily list by prefix, but one can store a secondary index inside ImmuDB, e.g., as a sorted set of keys per property.)
-     * Retrieve each event by key (using `s.client.Get(key)` which you already use in `VerifyDocument`) and unmarshal the JSON back into a map or a domain struct.
-     * Collect all events, sort them by timestamp (if not inherently sorted by key), and return them as a list of maps or a structured history list. The `domain.GeneralLedgerEvent` type could be a union of different event types – if so, map your results to that.
-   * If a quick solution is acceptable: since each log method uses a composite key with timestamps (like `"item_creation_<id>_<unixTime>"`), you could fetch *all* ledger entries for the property by scanning through an ImmuDB “reference” of keys. For example, maintain an additional key like `"history_index_<propertyID>"` that appends every new event’s key to a list (ImmuDB doesn’t have a native list, but you could use a sorted set or a JSON array stored under that key).
-   * **Return Value:** The code expects `[]map[string]interface{}` for history. So you can return an array of event data maps. Populate each map with the event fields and metadata (event type, timestamp, user, etc.). This would replace the dummy “SystemNote” entry currently returned.
-2. **GetAllCorrectionEvents / GetCorrectionEventsByOriginalID / GetCorrectionEventByID**: The Correction Events are likely a special subset of ledger events that denote corrections to previous records (maybe analogous to append-only corrections). The placeholders currently return empty or nil. To implement:
-
-   * Ensure that `LogCorrectionEvent(originalEventID, ...)` (presumably implemented elsewhere) actually writes a correction event to ImmuDB. It likely uses a key containing the original event’s ID and marks it as a correction.
-   * *Option 1:* Use a similar strategy as above: e.g., keep a sorted set or index of all correction events in ImmuDB. For instance, every time a correction is logged, also append its key to a `corrections_index` list (or maybe the keys themselves have a prefix like `"correction_"`). Then:
-
-     * `GetAllCorrectionEvents` would scan that index or all keys starting with `"correction_"` and retrieve each event, convert to `domain.CorrectionEvent` (make sure this domain struct matches what was stored).
-     * `GetCorrectionEventsByOriginalID(originalEventID)` could filter the above list by matching a field `original_event_id == originalEventID`. If storing events as JSON, that field is part of the value; you’d need to check it after unmarshaling. Alternatively, if keys are structured like `"correction_<originalEventID>_<something>"`, you could scan by prefix `"correction_<originalEventID>"` to directly fetch those.
-     * `GetCorrectionEventByID(eventID)` implies each correction event itself has an ID (maybe a UUID or ledger sequence). If the keys or values contain a unique ID, you can retrieve by that. Perhaps the `eventID` here refers to ImmuDB’s transaction ID or a GUID stored in the event details. If the latter, consider maintaining a mapping from that ID to the key. (For example, include the correction’s own ID in the JSON and also store a separate KV of `correction:<ID> -> eventKey` for quick lookup.)
-   * *Option 2:* Simpler but less ideal – since these might not be too many, you could implement `GetAllCorrectionEvents()` by calling `GetGeneralHistory()` (once implemented) and filtering events of type "Correction". However, that could be inefficient if the history is large.
-   * In either approach, populate and return slices of `domain.CorrectionEvent` objects. This likely involves mapping the generic event map to the strongly-typed `CorrectionEvent` domain struct. Ensure fields like reason, originalEventID, userID, etc., are filled.
-   * For `GetCorrectionEventByID`, if no direct lookup is available, you could call `GetAllCorrectionEvents()` and then find the one with matching ID. But ideally, have an index or direct key for it. Since the placeholder returns a “not found” error with the ID included, implementing this properly will probably require storing correction events such that they can be retrieved by an ID (perhaps the key itself could be the ID if we use a UUID as the key).
-3. **GetGeneralHistory**: This is meant to return a consolidated list of all ledger events (possibly across all types: property events, transfers, verifications, corrections, etc.). As noted in the TODO, adding filters would be ideal, but at minimum:
-
-   * Retrieve all events. If using ImmuDB alone, this is tricky without scanning every key. If the ledger events are stored in a dedicated ImmuDB database or table, one approach is to maintain a chronological log. For example, every event logged could also be inserted into a separate structure (like an ImmuDB `Set` or a SQL table) with a timestamp that can be sorted.
-   * A practical solution: If `Log...` functions also log to a traditional database table `GeneralLedgerEvents` (with fields: eventType, itemID, userID, timestamp, details, etc.), then `GetGeneralHistory()` can just do a SQL SELECT of all events (or the most recent N) and map to `domain.GeneralLedgerEvent`.
-   * If sticking to ImmuDB: you might have to scan a range of keys if they share a common ordering. The code keys all have timestamps in them, but they are prefixed by type. ImmuDB doesn’t inherently sort across different prefixes. In absence of a global index, another approach is to combine results from each type-specific query (e.g., get all properties events, all transfers, etc., then merge-sort by timestamp). That could be done by:
-
-     * Getting all keys for property events, transfers events, etc., as separate lists.
-     * Decoding them and merging the sorted lists by the timestamp field inside.
-   * The comment suggests adding query params like time range or user filter. You could plan to accept optional parameters (perhaps from the handler via query strings) and apply them to whichever data source you use (SQL query with WHERE clauses, or filter the in-memory merged list).
-   * For now, implement the basic version: return everything (or maybe impose a sane limit, e.g., last 100 events to avoid huge payloads). This will replace the empty slice placeholder.
-4. **Cryptographic Document Verification Route:** Though not explicitly asked in the list, for completeness, the TODO in routes for “full cryptographic document verification” likely ties into verifying the integrity of ledger data. Implementation strategy:
-
-   * If using Azure SQL Ledger or ImmuDB, each has a way to verify the entire chain. For Azure SQL Ledger, one would call a stored procedure or use the digest to confirm no tampering. For ImmuDB, the client can fetch a global state or use `client.VerifiedGet` which ensures the server’s proof of inclusion.
-   * A concrete approach for ImmuDB: each `storeEvent` could store and then immediately verify using `client.VerifiedSet` or retrieving the state root. To verify after the fact, you could retrieve the root hash from ImmuDB and compare it with a trusted root (or ask ImmuDB to verify a key’s inclusion and consistency). For now, if implementing the route, it could simply call `VerifyDocument(documentID, tableName)` on the ledger service for each relevant table or item and aggregate results. Because the ledger service’s `VerifyDocument` for ImmuDB currently just checks existence, a full implementation would involve more rigorous cryptographic checks (which ImmuDB client libraries typically handle internally). This might be a longer-term feature.
-5. **Testing & Verification:** After implementing these:
-
-   * Log some events (create a property, transfer, etc.), then call the new endpoints for history and corrections. Ensure that the data returned matches what was logged.
-   * Create a correction event (if that feature exists, e.g., a user edits an entry creating a correction log) and test the correction queries.
-   * If using a relational table for indexing, verify that it stays in sync with ImmuDB writes (perhaps wrap ledger writes in a function that logs to both places, and handle rollback if one fails).
-   * Test edge cases: property with no history should return empty list (not error), an unknown correction ID returns not found, etc.
-   * Performance: if the history is large, ensure the approach (especially if merging lists in memory) is efficient enough. Add pagination parameters as noted, so the client can request history in chunks rather than everything at once.
-
-By implementing these, the system’s audit trail features will move from placeholders to functional. Users will be able to retrieve a property’s entire history of changes, verify ledger entries, and view any corrections, which are central to an immutable ledger-backed system. The coding style here should continue to emphasize not failing hard; e.g., return errors where appropriate rather than panicking, and use the existing `logrus` logger for any error logging (as seen in other handlers).
-
-### **Security and Role-Based Access Control Improvements**
-
-Some security-related todos should be addressed to harden the application:
-
-* **JWT Secret Configuration (Auth Middleware)**: Remove the hard-coded `"your-secret-key"` default. Instead, make it mandatory to supply a secret via config or environment. For example, on startup, if `viper.GetString("auth.jwt_secret")` is empty and no env var is set, **refuse to start** or generate a secure random secret and log a strong warning. This ensures tokens are properly signed. In code, you might do:
-
-  ```go
-  secret := viper.GetString("auth.jwt_secret")
-  if secret == "" {
-      log.Fatal("JWT secret not configured – aborting startup")
-  }
+  ```bash
+  pg_dump -h localhost -U <username> -Fc -f backup.dump <database>
   ```
 
-  (In development you can allow a dummy, but in production never use a placeholder.)
-* **Session Secret**: Similar to JWT, ensure `auth.session_secret` is provided. The code currently falls back to a default and prints a warning. For production, consider making that fatal or at least very explicit to change it.
-* **Implement Role Middleware**: The NSN admin routes hint at a `middleware.RequireRole("admin")` usage. To implement this:
+  Transfer this dump file to your machine or directly to the Azure environment, and then restore it to the Azure PostgreSQL instance:
 
-  1. Determine how user roles are stored. Perhaps the `users` table has a role field or a separate roles table. Assume each user has a role like "user", "admin", etc.
-  2. When a user logs in or their JWT is created, include the role in the token claims (or fetch from DB in session middleware). For example, extend the JWT `Claims` to include a `Role` field, and set it on login. Or, store the user’s role in the session cookie (`session.Set("user_role", role)` on login).
-  3. Implement `RequireRole(allowedRoles... string) gin.HandlerFunc`. This middleware will:
+  ```bash
+  pg_restore -h <azure-postgres-host> -U <adminuser>@<server> -d <database> -Fc backup.dump
+  ```
 
-     * Look up the user’s role from context. In the session-based approach, after `SessionAuthMiddleware` runs, you might have user ID in context; use that to query the DB for the role (and cache it short-term). Or if `user_role` was set in session (as the placeholder code expects with `c.GetString("user_role")`), retrieve it.
-     * If the user’s role is not in the `allowedRoles` list, respond with 403 Forbidden (as done in the placeholder). Otherwise, call `c.Next()` to proceed.
-  4. Attach this middleware to routes: e.g., in `nsn_routes.go`, use it for the adminGroup:
+  Ensure the target database is created on Azure beforehand, and update user permissions as needed. If downtime is a concern, you can minimize it by doing an initial dump/restore for most data, then apply any incremental changes manually or do a final dump during a maintenance window.
+* **Configuring the App:** Once the Azure PostgreSQL is running, update your application’s configuration (environment variables or config files) to point to the new database host, port (usually 5432), database name, and credentials. Azure will provide a connection string in the portal. Be sure to include SSL parameters if required.
 
-     ```go
-     adminGroup := nsnGroup.Group("")
-     adminGroup.Use(middleware.RequireRole("admin","super_admin"))
-     {
-         adminGroup.POST("/import", handler.ImportCSV)
-         ...
-     }
-     ```
+### Replacing MinIO with Azure Blob Storage
 
-     This would replace the inline placeholder check currently in `ImportCSV` handler.
-  5. Repeat for any other admin endpoints (user management, etc.) as needed.
-  6. **Testing**: Create a normal user token and an admin token, ensure that admin-only endpoints are inaccessible to the normal user (get 403), but work for admin. Also test what happens if no role is present – probably default to safest (deny access).
-* **Password Handling**: (Not explicitly in TODOs, but worth mentioning) If any part of the code uses plain secrets or placeholders (like default credentials), ensure to replace them. E.g., the default admin credentials or any “change-me” defaults in config should be documented and enforced to change in production.
-* **Email Service Initialization**: As noted, currently the email service is a stub. For a production-ready system, integrate a proper email sender:
+MinIO was used as an S3-compatible object storage. In Azure, the direct equivalent is **Azure Blob Storage**, which is Microsoft’s object storage solution for the cloud. Azure Blob Storage is highly durable and scalable, and is suitable for storing files, documents, images, backups – essentially any unstructured data. Key points about using Azure Blob Storage:
 
-  * Implement an `EmailService` (if one isn’t already in code) that has a method `SendEmail(emailRequest EmailRequest) error`. Possible implementations:
+* You will create an **Azure Storage Account** (general-purpose v2 type) in your chosen region. Within this Storage Account, you create a Blob Container (similar to an S3 bucket) to store your application’s files.
+* **Access and APIs:** Azure Blob has its own REST API and SDKs. It does not natively support the S3 API. This means if your application currently talks to MinIO using S3-compatible calls (for example, AWS SDK or MinIO SDK with an S3 endpoint), you will likely need to refactor that part to use Azure’s SDK or REST calls for Blob. Alternatively, you could consider running MinIO in **gateway mode** pointing to Azure Blob, but that adds complexity and is usually unnecessary if you can modify the code. Since you are open to switching to Azure services, plan to update the storage interface in your app. Azure’s SDKs for Blob Storage are available in many languages.
+* **Authentication:** The simplest way to use Blob is to generate a connection string or use an access key from the Storage Account and configure the app with it. However, a more secure approach is to use Azure AD integration. For example, in Azure, you can assign a **Managed Identity** to your application and grant that identity access to Blob storage (using RBAC roles like “Storage Blob Data Contributor”). This would allow your app to get access tokens and interact with Blob without storing any access keys. This is a best practice, but it requires using Azure SDK methods to obtain tokens. If that’s too complex to implement initially, you can start with an access key or a Shared Access Signature (SAS) token for the blob container.
+* **Migrating Data from MinIO:** If you have existing files in MinIO that need to be moved to Azure Blob, you can use **AzCopy**, a command-line tool provided by Azure. AzCopy supports copying data directly from an AWS S3 source to Azure Blob Storage. Since MinIO is S3-compatible, you might be able to use AzCopy by pointing it to the MinIO endpoint (if it’s publicly reachable) and using the appropriate S3 access key/secret from MinIO. The command format is:
 
-    * Use an SMTP library (Go’s `net/smtp`) to connect to an SMTP server. Config could provide SMTP host, port, user, pass. The `SendEmail` method constructs the MIME message with attachments (the code already Base64-encodes the PDF and prepares the MIME parts in `DA2062EmailService`), then sends it out via SMTP.
-    * Or integrate a service like AWS SES, SendGrid, etc. (via their API or SDK).
-  * Initialize this in `main` or `SetupRoutes`: for example, if using SMTP, do:
+  ```bash
+  azcopy copy 'https://<minio-endpoint>/<bucket>/<path>*' 'https://<yourstorageaccount>.blob.core.windows.net/<container>' --recursive
+  ```
 
-    ```go
-    smtpService := email.NewSMTPService(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass)
-    emailService := email.NewDA2062EmailService(smtpService)
-    da2062Handler := handlers.NewDA2062Handler(..., emailService)
-    ```
+  You would set environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` for your MinIO credentials before running the command (AzCopy uses them to authenticate to S3 sources). If AzCopy cannot directly connect to a self-hosted MinIO, an alternative is to download the files from MinIO (since it’s on your Lightsail, you might use `mc` (MinIO client) or simply access via the MinIO web console to retrieve files) and then upload to Azure using AzCopy or Azure CLI. Plan this data migration carefully if you have a large volume of files.
+* **Application Changes:** Update your app configuration for storage. For instance, if you have environment variables for MinIO like `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, etc., you might replace these with `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_KEY` or a connection string. If using an SDK, the connection string or the account name/key can be used to initialize the client. Also, note that Azure Blob does **not** have an equivalent of MinIO’s web console on port 9001 (though Azure Portal provides a UI to view blobs). If your workflow involved that console, you’ll use Azure Portal or tools like Azure Storage Explorer to manage files.
 
-    This provides a real email sender to the DA2062 handler. The TODO at routes.go:48 would be resolved by removing the stub `&email.DA2062EmailService{}` and using the constructed service.
-  * Ensure to handle errors (if email fails to send, the handler should return an error response). Possibly, queue email sending in background if it’s slow (to not block the API response), but since sending a single email is usually quick, it could be done inline with proper timeouts.
-  * Test by triggering the DA2062 generation feature and confirming an email is sent to the specified recipients with the PDF attached.
+### Deploying ImmuDB in Azure
 
-By addressing these, we ensure the application is secure and that critical admin operations are protected. The coding style in this project uses `logrus` for warnings (e.g., printing a WARNING for default secrets) and `gin` middleware for auth checks, so follow those conventions. For example, the new middleware should use `c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})` as in the placeholder. Similarly, externalizing secrets to config and failing fast if not provided aligns with twelve-factor app principles and avoids accidentally running with insecure defaults.
+ImmuDB (an immutable ledger database) does not have a native Azure managed service equivalent. You will continue to run ImmuDB in a container, but now on Azure’s platform:
+
+* **Container Deployment:** You can containerize ImmuDB just as you do now. In fact, you likely already have an ImmuDB Docker image (or use the official one). This image can be deployed to Azure Container Apps, App Service, or AKS alongside your application. If using Container Apps, you might deploy it as a separate container app within the same Container Apps Environment as the backend API – this allows the backend to talk to ImmuDB over the internal network. In Azure Container Apps, services in the same environment get an internal DNS name and can communicate without exposing a public endpoint. In AKS, you could deploy ImmuDB as a Deployment or StatefulSet with a Service. In App Service with multi-container, you would include ImmuDB in the docker-compose configuration.
+* **Storage/Persistence:** One crucial aspect is ensuring ImmuDB’s data is persisted. Running on Lightsail, the ImmuDB container likely writes to a volume (perhaps a Docker volume or bind mount on the Lightsail disk). In Azure, if you deploy on a fully managed service, the container’s filesystem may be ephemeral. For example, Azure Container Apps and App Service containers have ephemeral storage by default (resets on restart). To persist data, use **Azure Files** as a mounted volume. Azure Container Apps supports mounting Azure File Share volumes into your container, so any data written there will persist and be stored in Azure Files. Similarly, App Service allows mounting a storage account file share through the portal settings. On AKS, you can use Azure Disks or Azure Files via PersistentVolumeClaims. Plan to create an Azure File Share (e.g., `immudb-data`) and configure your container hosting environment to mount it at the path where ImmuDB stores its data (per ImmuDB documentation, likely `/var/lib/immudb` or similar). This way, if the container is restarted or moved, the ledger data remains intact on the file share.
+* **Configuration:** Keep the ImmuDB configuration (username, password, ports) the same, so that your application can reconnect to it in the new environment. You might need to adjust the host the app uses to reach ImmuDB (e.g., if using Container Apps and both are in same environment, use the internal FQDN of the immudb container app; if using App Service multi-container, Docker Compose service name; if AKS, the Service DNS name).
+* **Scaling & Performance:** If your use of ImmuDB is not heavy, running a single instance is fine. Ensure the container service plan you choose (ACA or App Service plan) has enough CPU/memory for ImmuDB’s needs, especially since it retains an in-memory index. If you need high throughput or redundancy for ImmuDB, you might consider running multiple instances and sharding or a clustering approach, but ImmuDB clustering is not trivial. Alternatively, Azure does offer an **Azure Confidential Ledger** service and Azure SQL Ledger feature (on Azure SQL Database) as managed tamper-evident ledger solutions – those could be future considerations, but since you specifically need to keep ImmuDB, the container approach is the way to go for now.
+
+## Migration Strategy and Steps
+
+Moving the application to Azure can be done in phases. Below is a step-by-step plan:
+
+### 1. Prepare Azure Environment and Resources
+
+**a. Set up Azure Resource Group:** Create a new Resource Group in Azure (via the Azure Portal or CLI) to contain all resources (e.g., `handreceipt-prod-rg`). This helps manage and tear down resources together.
+
+**b. Set up Azure Container Registry (ACR):** If you plan to use Azure Container Apps, AKS, or App Service with custom images, create an Azure Container Registry. Push your application’s Docker image and ensure you have (or can get) an ImmuDB image. You can push the official ImmuDB image to your registry for consistency. ACR will integrate with Azure services for authentication, especially if you enable “admin user” or use managed identities. (If you use App Service and your image is on Docker Hub or another public registry, you can skip ACR, but using ACR is recommended for privacy and reliability).
+
+**c. Choose and set up the Container Host Service:** Based on the earlier discussion:
+
+* *If using Azure Container Apps:* Create an Azure Container Apps Environment. You can do this in the Azure Portal by creating a Container App and specifying a new Environment, or via Azure CLI. The Environment can be left with default settings (which gives it an internal VNet managed by Azure), or you can integrate it into an existing VNet if you plan to use private endpoints for DB. Also set up a Log Analytics Workspace if prompted (Container Apps use this for logging).
+* *If using Azure App Service:* Create an App Service Plan (for Linux containers) in your desired tier (start with a B1 or S1 for testing, then consider production tier for go-live). Then create a Web App for Containers. If using multi-container (Docker Compose), you’ll need to configure using Azure CLI or ARM template deployment with the compose file. In the Azure Portal, you can also configure a web app for multi-container by uploading a docker-compose.yml under the "Container Settings". Ensure the App Service plan has enough resources for two containers.
+* *If using AKS:* Create an AKS cluster (ensure the node VM size is sufficient for running multiple containers). You may also create an Azure Container Registry and enable AKS to pull from it (using Azure AD integration or by secret).
+
+At this stage, you have the compute infrastructure ready but not yet running your app.
+
+### 2. Provision Azure Managed Services (PostgreSQL and Blob Storage)
+
+**a. Create Azure Database for PostgreSQL:** In Azure Portal, create an Azure Database for PostgreSQL **Flexible Server**. Choose the same region as your other resources for optimal latency. Select the compute and storage (e.g., Burstable B4ms or General Purpose tier depending on expected load). Set up admin username and password. If you want a quick start, enable public access and the option “Allow Azure services…” to avoid network connectivity issues initially. (You can lock this down later or switch to private access.) Note the server name (which will be something like `<name>.postgres.database.azure.com`). After creation, in the Azure Portal you can find the Connection Strings and the **SSL certificate** if needed (for verifying the server certificate in your app; often not needed if using sslmode=require). Consider configuring the backup retention (default 7 days, can increase) and high availability (you can enable zone-redundant HA if uptime is critical).
+
+**b. Create Azure Storage Account (for Blob):** In the Azure Portal, create a Storage Account (General Purpose v2). Again, use the same region and resource group. Once created, inside the storage account, create a **Container** (in Azure Blob terminology) – for example, `handreceipt-data`. Set the access level to private (since the app will fetch files, you likely don’t want it public). Generate an Access Key or connection string from the Storage Account’s Security settings. This will be used by the application to put/get blobs. (If you plan to use a more secure method later, you can skip retrieving the key now.)
+
+**c. Migrate Data (if needed, at this stage):** You can start migrating your database and files before switching the app over:
+
+* **Postgres data:** Use `pg_dump` on Lightsail as described earlier, and `psql` or `pg_restore` to import into Azure. The Azure PG server might require you to create the target database first (you can do that through the Azure Portal or with `createdb` command using the admin credentials). Also create roles/users on Azure PG that your application will use (or use the admin account for simplicity in testing, though it's better practice to create a specific DB user).
+* **MinIO files:** Use AzCopy or manual download/upload to move files from MinIO to the Azure Blob container. For AzCopy, ensure MinIO is accessible. If it’s not publicly accessible, you might run AzCopy on the Lightsail instance itself (since it can reach MinIO on localhost). You’d give AzCopy the MinIO endpoint (which might be `http://127.0.0.1:9000/bucketname` if running locally – note AzCopy expects an URL format like S3’s). Alternatively, you could copy files to an AWS S3 bucket then use AzCopy from that bucket to Azure (as an intermediary step). If data volume is small, simply download via MinIO UI and use Azure Portal’s upload.
+
+**d. Set up Azure File Share (for ImmuDB persistence):** Create an Azure **File Share** in the storage account (under “File Shares” blade). For example, name it `immudb-share` and initially you can leave a small quota. You’ll mount this in the container service in the next steps.
+
+### 3. Reconfigure Application for Azure Services
+
+Before deploying the containers, update configurations to point to Azure resources:
+
+* **Environment Variables:** Prepare a new set of environment variables or configuration file for Azure. For example:
+
+  * `DB_HOST` = `<your-postgres-server>.postgres.database.azure.com`
+  * `DB_USER` = the username (e.g., `myuser@servername` – Azure PostgreSQL requires the user format to include the server name)
+  * `DB_PASSWORD` = the password you set
+  * `DB_NAME` = the database name
+  * `DB_PORT` = 5432 (usually same)
+  * `DB_SSLMODE` = `require` (if your app needs an explicit flag for SSL)
+  * `MINIO_ENABLED` = false (if your code has a toggle) – Instead, configure Azure Blob: perhaps new vars like `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_KEY`, or if the app code can read MinIO config and you modify it to understand Azure, you might reuse fields (for example, set `MINIO_ENDPOINT` to the Azure Blob endpoint and use the key as "secret"). However, likely you will change code to use Azure SDK, in which case you might just point to a connection string.
+  * `BLOB_CONTAINER` = `<your container name>` (e.g., `handreceipt-data`)
+  * `IMMUDB_ADDRESS` = hostname for immudb (this might become something like `http://immudb:3322` if on the same network, or an internal DNS). If using Container Apps with internal comms, you might use the container app’s name. If using App Service compose, use the compose service name.
+  * `IMMUDB_USER` / `IMMUDB_PASSWORD` = if needed, credentials for immudb.
+  * Other service URLs or credentials (e.g., if you had any AWS-specific ones, replace them if needed).
+  * **Secrets:** Do **not** store sensitive values (DB password, storage key, etc.) in plaintext in your code repository. Plan to use Azure’s secret management. For example, use **Azure Key Vault** to store these secrets and then have the app fetch them, or use the platform’s secret management features. (See step 5 below for handling secrets.)
+
+* **Application Code Changes:** Modify the sections of your code that initialize MinIO/S3 client to instead initialize Azure Blob access. This may involve using Azure’s Go SDK for Blob (if your backend is Go, you can use the official Azure SDK for Go/Storage). If the code that interacts with MinIO is abstracted, implement an Azure backend for it. Test this locally if possible (you can use a connection string to Azure Blob and try a simple put/get). Similarly, double-check that your PostgreSQL connection code can handle Azure’s connection (especially the SSL part).
+
+* **Remove Nginx (if applicable):** If you plan to rely on Azure’s managed ingress (which is recommended), you won’t need to run Nginx in a container for TLS. For Azure Container Apps and App Service, you can terminate SSL at the Azure service. Both allow you to configure a custom domain and upload or generate an SSL certificate. For example, App Service can issue a free certificate for your custom domain. Container Apps currently allows you to bring a certificate (from Key Vault or upload) and assign it to a custom domain. Therefore, your Docker Compose will no longer need the Nginx service. The Go application can listen on port 8080 (or any port) and Azure will route HTTP(S) traffic to it directly. If there were any specific Nginx configurations (like static file serving or specific headers), you might need to replicate those either in Azure (App Service has settings for some common headers) or adjust your app to handle static files (or use Azure Blob for static file hosting if that applies).
+
+### 4. Deploy Containers to Azure Services
+
+Now it’s time to deploy the application and ImmuDB containers on Azure:
+
+**a. Deploy using Azure Container Apps (if chosen):**
+
+* Publish your container images to the Azure Container Registry (if you haven’t already). Ensure you have the image tags updated (e.g., `myregistry.azurecr.io/handreceipt-backend:latest` and maybe `myregistry.azurecr.io/immudb:latest` if you retagged the immudb image).
+* Create a Container App for the **backend API**. In the Azure Portal, set the image to your app’s image (configure the registry credentials if needed). Enable ingress for this container with HTTP(s) if you want it to be publicly accessible (you can start with a default Azure-generated hostname, and later add your custom domain). Set the ingress target port to the port your app listens on (8080). Add the environment variables for your app (DB host, etc.). For sensitive ones (DB password, storage key), Container Apps allows you to create a secret (which is stored securely) and then reference it as an env var. Do that for anything sensitive. If using managed identity for Blob, you would instead configure the identity and not need storage key in env.
+* Create a Container App for **ImmuDB**. Use the ImmuDB image. You might not need to enable public ingress for ImmuDB (it can be internal-only, accessible only within the Container App Environment). Azure Container Apps has a concept of **internal** ingress (no public IP) – you can use this so that only the backend app can talk to ImmuDB. Set ImmuDB’s container port (likely 3322 for gRPC, and possibly 8080 if it exposes REST, depending on how your app uses it). Mount the Azure File Share volume to this container. In Container Apps, you’d have defined the storage in the environment and then specify the mount path (for example, mount `/immudbdata` to the Azure File share). Set any required env vars for ImmuDB (like `IMMUDB_ADMIN_PASSWORD`, etc., or point it to use the mounted volume for data if needed).
+* The Container Apps environment ensures that the two container apps can resolve each other by name. Typically, Azure will assign an internal DNS name like `immudb.<env>.internal` or similar, or you can use the container app name with the suffix. Check Container Apps docs for the exact DNS naming within an environment. You will use that in your app’s config for IMMUDB address.
+* Verify deployment: Once both are up, you can open the logs (via Log Analytics or using `az containerapp logs` command) to see if the app connected to the database, etc. At first deployment, it might fail until the database connection is allowed – be ready to adjust the firewall if needed (see step 5 about networking).
+
+**b. Deploy using Azure App Service (if chosen):**
+
+* If using a single container (just the backend) and perhaps running ImmuDB elsewhere: you could deploy just the backend container to App Service and perhaps run ImmuDB in Container Apps or an Azure VM. But assuming you want both in one place, you’ll use multi-container.
+* Prepare a docker-compose.yml that defines your app and immudb services similar to your Lightsail one (minus MinIO and minus Nginx). For example:
+
+  ```yaml
+  version: '3'
+  services:
+    app:
+      image: myregistry.azurecr.io/handreceipt-backend:latest
+      ports:
+        - 8080:8080
+      env_file: .env   # (you might not include this, instead specify in App Service settings)
+    immudb:
+      image: myregistry.azurecr.io/immudb:latest
+      volumes:
+        - immudbdata:/data
+  volumes:
+    immudbdata:
+  ```
+
+  Note: In App Service, volume mounting a named volume requires configuration in Azure. In the portal, you can configure an Azure Storage mount to the `immudbdata` volume (backed by an Azure File Share). Alternatively, you might bake the use of Azure Files into the compose by using an Azure-specific driver. The easier approach: in Azure Portal -> your Web App -> Configuration -> Path Mappings, add a storage mapping for `immudbdata` to the Azure File share (it will ask for storage account name, share name, access key).
+* Deploy this compose to Azure App Service. You can do this by Azure CLI: `az webapp create --resource-group <rg> --plan <appserviceplan> --name <appName> --multicontainer-config-type compose --multicontainer-config-file docker-compose.yml --registry-password <ACR-password> ...` (with relevant parameters). Alternatively, in Portal under "Container Settings", choose Docker Compose and upload your file.
+* Configure the application settings (environment variables) in the App Service Configuration section. App Service allows you to define app settings which override those in the container. Populate DB connection info, etc., as settings. For secrets, you can leverage **Key Vault references**: App Service can directly pull a secret from Azure Key Vault into an environment variable if you set the value as `@Microsoft.KeyVault(SecretUri=https://...)` and give the App Service identity access to Key Vault. This is a secure way to keep secrets out of the compose file.
+* Once deployed, App Service will pull the images from ACR, start the containers, and wire up the configured settings. Verify in the App Service logs or streaming console that the app is running and connected.
+
+**c. Deploy using AKS (if chosen):**
+
+* Push images to ACR (or Docker Hub).
+* Create Kubernetes manifests (Deployments, Services, PersistentVolumeClaims) for the app and ImmuDB. You can use tools like Kompose to convert your docker-compose to k8s YAML, then adjust for Azure specifics (e.g., use `azureFile` storage class for the PVC to mount the Azure File share for immudb data, or use `azureDisk` if you prefer a managed disk).
+* Create a Secret in Kubernetes for any sensitive config (DB password, etc.) and mount or env-inject it into pods.
+* Deploy the resources to AKS using kubectl. Set up an Ingress Controller for the app’s HTTP endpoint (Azure Application Gateway Ingress or Nginx Ingress with a LoadBalancer service). Obtain a TLS cert (could use Let’s Encrypt via cert-manager, or upload a cert to Application Gateway).
+* This route is the most involved. Validate pods are running (`kubectl get pods`) and troubleshoot as needed.
+
+### 5. Networking, DNS, and Access Configuration
+
+At this point, your application should be running in Azure, but you need to ensure it’s accessible and secure:
+
+* **PostgreSQL connectivity:** If you had left the DB open to “Azure services”, the app should be able to connect. If not, now is the time to set up either the firewall rule or VNet integration. For example, for Container Apps without VNet: find out the outbound IP range of your Container Apps Environment (there’s an Azure Resource Manager property or you can use Azure Portal diagnostic to see outbound IPs) and add those in the PostgreSQL server firewall. For App Service: the outbound IP addresses are listed in the app’s Properties blade; add them. A more maintainable solution is to allow all Azure services or move to using private VNet integration (which would involve creating a VNet, integrating the App Service or Container Environment into it, and switching the DB to private access).
+* **Blob Storage access:** If using access keys, the app should work already. If you want to tighten security, you could use a **Shared Access Signature (SAS)** with limited permissions and expiry for the app to use. Or if using Managed Identity, configure the Identity and test that the app can retrieve blobs without stored keys.
+* **DNS and TLS (Custom Domain):** Currently, your Azure-hosted app might be reachable at a system domain (e.g., `<app>.azurecontainerapps.io` or `<app>.azurewebsites.net`). To cut over from Lightsail, you’ll want your custom domain (e.g., `yourdomain.com`) to point to the Azure app. In Lightsail, you likely pointed the domain to the instance’s static IP and ran certbot on Nginx. In Azure:
+
+  * For **App Service**: Go to Custom Domains, add your domain (you’ll need to create a CNAME or A record as instructed to verify domain ownership). Once added, you can use the **App Service Managed Certificate** (free SSL cert) or upload a certificate. The managed cert is convenient (it auto-renews annually). Bind the certificate to the domain. Azure will then serve your app on `https://yourdomain.com`. No Nginx needed.
+  * For **Container Apps**: Container Apps supports custom domains. You’d similarly validate the domain with a CNAME or TXT record to the Azure-provided URL. For SSL, you need to provide a certificate. You can obtain a certificate (using Azure Key Vault to do an ACME challenge via Azure DNS, or use certbot externally and upload). Azure is improving this process (they announced managed certs for Container Apps in preview). For now, you might manually get a cert. Once configured, Container Apps will handle the TLS termination.
+  * For **AKS**: If using Nginx ingress, you might reuse certbot in a Pod or use cert-manager to automate Let’s Encrypt certificates. If using Azure’s Application Gateway, you could upload the cert to a Key Vault and let the gateway use it.
+  * Update your DNS records (with your domain provider) to point to the Azure app’s endpoint. This might be a CNAME to an azurewebsites.net address (for App Service) or to the containerapps.io address (for Container Apps), or an A record to a static IP if using AKS with a LoadBalancer. Do this during a low-traffic period or put up a maintenance notice, as switching DNS will route users to the new deployment.
+* **Testing:** Once DNS is switched, test the application thoroughly in Azure: log in, perform all key functions (file upload/download to ensure Blob works, transactions to ensure ImmuDB works, etc.). Also monitor the application logs and Azure metrics (CPU, memory) to catch any performance issues.
+
+### 6. Secure Configuration of Environment Variables and Secrets
+
+Now that things are running, double-check that no sensitive configuration is exposed:
+
+* **Azure Key Vault for Secrets:** It’s recommended to use Azure Key Vault to store secrets like database passwords, storage keys, etc., and not have them directly in your app settings. Azure Container Apps and App Service can both integrate with Key Vault. For instance, you can give your app’s managed identity access to Key Vault and then use references in your configuration. In our setup, after things are working, you would: store the DB password and any other secret in an Azure Key Vault (in the same region ideally) as secrets. Then update the Container App’s environment variables to use Key Vault references (supported via the Azure CLI or ARM template) or update App Service settings to use the `@Microsoft.KeyVault(...` syntax as shown earlier. This way the actual secret values are not sitting in the app config in plaintext – the platform will fetch them securely from Key Vault at runtime. According to Azure’s best practices, **Azure Key Vault** provides a secure storage for keys and secrets and can be used in concert with containerized apps for improved security.
+* **Rotate and Review:** Use this opportunity to rotate any default or old credentials (for example, if you had a default MinIO password, it's now irrelevant; make sure the Azure Storage key is kept safe, etc.). Also, configure Azure **Application Insights** or container logs to monitor for any errors that might indicate misconfigured secrets.
+
+### 7. Decommission Lightsail (Post-Migration)
+
+Once the Azure environment is confirmed to be running smoothly with all functionality, you can plan to shut down the Lightsail instance. Before doing so, take one final backup of any data on Lightsail (database dump, any files) as a safety archive. Then update any remaining references (for example, if there are scheduled jobs or external services pointing to the old IP, repoint them to the new Azure endpoints). Finally, you can terminate the Lightsail instance to stop incurring AWS costs.
+
+Throughout the migration, ensure you have backed up data and have a rollback plan (for example, if Azure deployment runs into an issue, you can quickly re-point DNS back to Lightsail temporarily). However, following the above steps methodically will allow you to transition with minimal downtime.
+
+## Best Practices and Pitfalls to Consider
+
+Moving from Lightsail to Azure introduces new capabilities but also new considerations. Keep these best practices and tips in mind:
+
+* **Use Managed Services to the Fullest:** Offload as much as possible to Azure’s managed services. For example, let Azure Database for PostgreSQL handle backups and point-in-time-restore. Use Azure Blob lifecycle management for your files (you can configure rules to move older blobs to cooler storage tiers for cost savings). This reduces your ops burden.
+
+* **Monitoring and Logging:** Set up Azure Monitor and Application Insights for observability. Container Apps can send logs to Log Analytics – configure log retention and alerts for errors or high CPU/memory. App Service has Application Insights integration; enable it to get detailed performance metrics and request traces. This will help you catch any issues early after migration.
+
+* **Performance Tuning:** Azure Database for PostgreSQL might have different performance characteristics than a local container. Monitor the query performance; consider using the Azure DB Query Performance Insight to identify slow queries. You can scale up the DB if needed or adjust the vCores. Similarly, Azure Storage has different throughput limits (depending on account type and tier); if you serve a lot of large files, consider using a Content Delivery Network (Azure CDN) in front of Blob storage for caching.
+
+* **Security:** Take advantage of Azure’s security features. Aside from Key Vault for secrets, use **Managed Identity** for your app to access other Azure resources without embedding keys. For example, instead of storing the storage key, you can grant the app’s identity access to Blob and use Azure SDK with DefaultAzureCredential. Also ensure your PostgreSQL is not left open – ideally restrict it as much as possible (by IP or move it to private access). Azure has a **Security Center** that will flag any configuration deemed insecure.
+
+* **Cost Management:** Keep an eye on costs in Azure. Lightsail is a fixed-cost service, whereas Azure usage can scale with what you provision. Use Azure Cost Management to set budgets. For instance, Azure Container Apps charges based on vCPU/memory and usage – it can scale to zero if no traffic (which can save cost for low usage periods). Ensure you configure scale settings appropriately. Azure Database for PostgreSQL has a cost whether idle or not – choose a size that fits your usage (you can scale down at nights manually, or use the burstable SKU which is cheaper but can handle spikes). Azure Blob is pay-per-use (storage and egress), so monitor if you are serving very large files to external users (egress bandwidth costs might appear).
+
+* **Pitfall – Case Sensitivity in Blob:** One difference from S3: Azure Blob storage is case-sensitive in container and blob names (actually S3 is too for keys). But just ensure any code assumptions hold true. Also, Blob storage doesn’t have a directory hierarchy truly (just use blob paths with `/` in names). This should not affect you much if you treat it like S3.
+
+* **Pitfall – SSL Enforcement on DB:** As mentioned, many encounter connection failures initially because Azure PG by default requires SSL. Ensure your DB client in the container is using SSL. You can disable the requirement in Azure, but it’s better to use it. This often means adding an option in connection string or enabling an SSL mode in a config file.
+
+* **DNS Propagation:** When you switch the domain to point to Azure, note that DNS changes might take some time to propagate. During that time, some users might still hit the Lightsail instance. To minimize issues, you could shorten the DNS TTL a day before, or put the Lightsail site in maintenance mode once you initiate the cutover so users are nudged to the new site.
+
+* **Backup Strategy on Azure:** Set up a backup strategy for new environment: e.g., enable Azure PostgreSQL automatic backups (and maybe perform logical backups periodically too), consider backing up critical blobs (or enable soft delete for blobs so that deletions can be recovered), and for ImmuDB, since it’s on a file share, you might schedule a periodic backup of its data file or use Azure Backup to back up the file share.
+
+* **Testing and Staging:** It’s wise to have a staging setup on Azure before cutting over production. You can deploy the entire stack in a separate resource group (perhaps using smaller sizes to save cost), seed it with some sample data, and run integration tests. This can uncover any issues in configuration or code (for example, issues with Azure Blob SDK usage, permissions, etc.) before you affect real users.
+
+* **Leverage Azure Documentation:** Azure has extensive documentation and examples for all these services. For instance, there are official guides on setting up Container Apps with internal services, using Key Vault for secrets, copying data from AWS to Azure, etc. Refer to these docs for specifics – for example, Azure’s guide on copying S3 data to Blob with AzCopy, or the architecture guide on choosing container services, have details that might be useful during migration.
+
+By thoughtfully using Azure services and following best practices, you can achieve a more scalable and maintainable architecture than the single Lightsail instance, with Azure handling much of the heavy lifting of database management, storage durability, and infrastructure management. Good luck with your migration, and take it step by step. Azure’s platform will provide robust support for your Docker-based application once the transition is complete.
+
+**Sources:**
+
+* Azure Container Apps and other container hosting options
+* Azure Database for PostgreSQL features
+* Azure Blob Storage overview
+* Using AzCopy to migrate S3 (MinIO) data to Azure Blob
+* Azure Container Apps internal networking and secret management
+* Injecting Key Vault secrets into app configurations

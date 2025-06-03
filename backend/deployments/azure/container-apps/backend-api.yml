@@ -1,0 +1,171 @@
+apiVersion: 2024-03-01
+location: eastus
+name: handreceipt-backend-api
+properties:
+  managedEnvironmentId: /subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.App/managedEnvironments/handreceipt-prod-cae
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8080
+      transport: http
+      allowInsecure: false
+      customDomains: []
+    secrets:
+      - name: postgres-password
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/postgres-password/
+        identity: system
+      - name: storage-connection-string
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/storage-connection-string/
+        identity: system
+      - name: jwt-secret-key
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/jwt-secret-key/
+        identity: system
+      - name: immudb-password
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/immudb-password/
+        identity: system
+    registries:
+      - server: handreceiptprodacr.azurecr.io
+        identity: system
+    dapr:
+      enabled: false
+  template:
+    containers:
+      - image: handreceiptprodacr.azurecr.io/handreceipt-backend:latest
+        name: handreceipt-backend
+        env:
+          # Server Configuration
+          - name: HANDRECEIPT_SERVER_PORT
+            value: "8080"
+          - name: HANDRECEIPT_SERVER_ENVIRONMENT
+            value: "production"
+          
+          # Database Configuration
+          - name: HANDRECEIPT_DATABASE_HOST
+            value: "handreceipt-prod-postgres.postgres.database.azure.com"
+          - name: HANDRECEIPT_DATABASE_PORT
+            value: "5432"
+          - name: HANDRECEIPT_DATABASE_USER
+            value: "hradmin"
+          - name: HANDRECEIPT_DATABASE_NAME
+            value: "handreceipt"
+          - name: HANDRECEIPT_DATABASE_PASSWORD
+            secretRef: postgres-password
+          
+          # ImmuDB Configuration
+          - name: HANDRECEIPT_IMMUDB_HOST
+            value: "immudb"
+          - name: HANDRECEIPT_IMMUDB_PORT
+            value: "3322"
+          - name: HANDRECEIPT_IMMUDB_USERNAME
+            value: "immudb"
+          - name: HANDRECEIPT_IMMUDB_DATABASE
+            value: "defaultdb"
+          - name: HANDRECEIPT_IMMUDB_ENABLED
+            value: "true"
+          - name: HANDRECEIPT_IMMUDB_PASSWORD
+            secretRef: immudb-password
+          
+          # Storage Configuration
+          - name: HANDRECEIPT_STORAGE_TYPE
+            value: "azure_blob"
+          - name: HANDRECEIPT_STORAGE_ACCOUNT_NAME
+            value: "handreceiptprodstorage"
+          - name: HANDRECEIPT_STORAGE_CONTAINER_NAME
+            value: "documents"
+          - name: HANDRECEIPT_STORAGE_CONNECTION_STRING
+            secretRef: storage-connection-string
+          - name: HANDRECEIPT_STORAGE_ENABLED
+            value: "true"
+          
+          # Legacy MinIO (disabled)
+          - name: HANDRECEIPT_MINIO_ENABLED
+            value: "false"
+          
+          # JWT Configuration
+          - name: HANDRECEIPT_JWT_SECRET_KEY
+            secretRef: jwt-secret-key
+          
+          # Health Check
+          - name: HEALTH_CHECK_ENABLED
+            value: "true"
+          - name: HEALTH_CHECK_PATH
+            value: "/health"
+          
+          # CORS Configuration
+          - name: CORS_ALLOWED_ORIGINS
+            value: "https://your-domain.com,https://www.your-domain.com"
+          - name: CORS_ALLOWED_METHODS
+            value: "GET,POST,PUT,DELETE,OPTIONS"
+          - name: CORS_ALLOWED_HEADERS
+            value: "*"
+          - name: CORS_CREDENTIALS
+            value: "true"
+          
+          # Rate Limiting
+          - name: RATE_LIMIT_ENABLED
+            value: "true"
+          - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+            value: "60"
+          
+          # Monitoring
+          - name: PROMETHEUS_ENABLED
+            value: "false"
+          - name: METRICS_ENABLED
+            value: "true"
+          - name: LOG_LEVEL
+            value: "info"
+          
+        resources:
+          cpu: 1.0
+          memory: 2Gi
+        
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          - type: Readiness
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          - type: Startup
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+    
+    scale:
+      minReplicas: 1
+      maxReplicas: 5
+      rules:
+        - name: http-scale
+          http:
+            metadata:
+              concurrentRequests: "30"
+    
+    revisionSuffix: ""
+  
+  identity:
+    type: SystemAssigned
+  
+  tags:
+    Environment: production
+    Application: handreceipt
+    Component: backend-api 

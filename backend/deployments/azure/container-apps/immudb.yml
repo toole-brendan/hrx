@@ -1,0 +1,108 @@
+apiVersion: 2024-03-01
+location: eastus
+name: immudb
+properties:
+  managedEnvironmentId: /subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.App/managedEnvironments/handreceipt-prod-cae
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false  # Internal only - accessed by backend API
+      targetPort: 3322
+      transport: tcp
+      allowInsecure: true
+    secrets:
+      - name: immudb-admin-password
+        keyVaultUrl: https://handreceipt-prod-kv.vault.azure.net/secrets/immudb-password/
+        identity: system
+    registries: []
+    dapr:
+      enabled: false
+  template:
+    containers:
+      - image: codenotary/immudb:1.4.1
+        name: immudb
+        env:
+          - name: IMMUDB_ADDRESS
+            value: "0.0.0.0"
+          - name: IMMUDB_PORT
+            value: "3322"
+          - name: IMMUDB_ADMIN_PASSWORD
+            secretRef: immudb-admin-password
+          - name: IMMUDB_DIR
+            value: "/var/lib/immudb"
+          - name: IMMUDB_PIDFILE
+            value: "/var/lib/immudb/immudb.pid"
+          - name: IMMUDB_LOGFILE
+            value: "/var/lib/immudb/immudb.log"
+          - name: IMMUDB_MTLS
+            value: "false"
+          - name: IMMUDB_AUTH
+            value: "true"
+          - name: IMMUDB_DETACHED
+            value: "false"
+          - name: IMMUDB_DEVMODE
+            value: "false"
+          - name: IMMUDB_MAINTENANCE
+            value: "false"
+        
+        command: 
+          - immudb
+          - --address=0.0.0.0
+          - --port=3322
+          - --dir=/var/lib/immudb
+          - --pidfile=/var/lib/immudb/immudb.pid
+          - --logfile=/var/lib/immudb/immudb.log
+          - --mtls=false
+          - --auth=true
+        
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        
+        volumeMounts:
+          - volumeName: immudb-data
+            mountPath: /var/lib/immudb
+        
+        probes:
+          - type: Liveness
+            tcpSocket:
+              port: 3322
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          - type: Readiness
+            tcpSocket:
+              port: 3322
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          - type: Startup
+            tcpSocket:
+              port: 3322
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+    
+    volumes:
+      - name: immudb-data
+        storageType: AzureFile
+        storageName: immudb-storage
+    
+    scale:
+      minReplicas: 1
+      maxReplicas: 1  # ImmuDB should run as single instance for data consistency
+    
+    revisionSuffix: ""
+  
+  identity:
+    type: SystemAssigned
+  
+  tags:
+    Environment: production
+    Application: handreceipt
+    Component: immudb 

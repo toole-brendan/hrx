@@ -17,13 +17,13 @@ import (
 
 // PhotoHandler handles photo upload operations
 type PhotoHandler struct {
-	Storage *storage.MinIOService
+	Storage storage.StorageService
 	Repo    repository.Repository
 	Ledger  ledger.LedgerService
 }
 
 // NewPhotoHandler creates a new photo handler
-func NewPhotoHandler(storage *storage.MinIOService, repo repository.Repository, ledger ledger.LedgerService) *PhotoHandler {
+func NewPhotoHandler(storage storage.StorageService, repo repository.Repository, ledger ledger.LedgerService) *PhotoHandler {
 	return &PhotoHandler{
 		Storage: storage,
 		Repo:    repo,
