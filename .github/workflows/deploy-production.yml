@@ -576,7 +576,7 @@ jobs:
             if [ "$DATA_COUNT" -gt 5 ]; then
               echo "⚠️ Found $DATA_COUNT users with emails - this appears to be a production database with real data"
               echo "🔧 Performing minimal cleanup (only fixing migration issues, preserving user data)..."
-              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'MINIMAL_CLEANUP_EOF' || echo "Minimal cleanup completed"
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
                 -- Only fix users that have migration issues (missing email)
                 UPDATE users SET email = CONCAT(username, '@handreceipt.mil') 
                 WHERE email IS NULL OR email = '';
@@ -585,12 +585,12 @@ jobs:
                 DELETE FROM transfer_offer_recipients WHERE transfer_offer_id NOT IN (SELECT id FROM transfer_offers);
                 DELETE FROM transfer_items WHERE transfer_id NOT IN (SELECT id FROM transfers);
                 DELETE FROM property_components WHERE property_id NOT IN (SELECT id FROM properties);
-              MINIMAL_CLEANUP_EOF
+              " || echo "Minimal cleanup completed"
               echo "✅ Minimal database cleanup completed (preserved user data)"
             else
               echo "🧹 Found $DATA_COUNT users - this appears to be a test/development database"
               echo "🗑️ Performing full cleanup to ensure fresh state..."
-              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'FULL_CLEANUP_EOF' || echo "Full cleanup completed or tables don't exist"
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
                 -- Delete in order of dependencies for fresh deployment
                 DELETE FROM transfer_offer_recipients;
                 DELETE FROM transfer_offers;
@@ -610,21 +610,21 @@ jobs:
                 
                 -- Clean up any test NSN data that might conflict
                 DELETE FROM nsn_data WHERE nsn LIKE '9999%' OR manufacturer LIKE '%Test%';
-              FULL_CLEANUP_EOF
+              " || echo "Full cleanup completed or tables don't exist"
               echo "✅ Full database cleanup completed (test environment)"
             fi
             
             echo "🔧 Fixing database migration issues..."
             # Fix constraint naming issue for migrations
-            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'MIGRATION_FIX_EOF' || echo "Migration fixes completed or not needed"
+            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
               -- Rename constraint if it exists with the old name
-              DO $$
+              DO \$\$
               BEGIN
                   IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
                            WHERE table_name='users' AND constraint_name='users_email_key') THEN
                       ALTER TABLE users RENAME CONSTRAINT users_email_key TO uni_users_email;
                   END IF;
-              END $$;
+              END \$\$;
               
               -- Create nsn_data table if it doesn't exist
               CREATE TABLE IF NOT EXISTS nsn_data (
@@ -648,7 +648,7 @@ jobs:
               CREATE INDEX IF NOT EXISTS idx_nsn_data_lin ON nsn_data(lin);
               CREATE INDEX IF NOT EXISTS idx_nsn_data_nomenclature ON nsn_data USING gin(to_tsvector('english', nomenclature));
               CREATE INDEX IF NOT EXISTS idx_nsn_data_manufacturer ON nsn_data USING gin(to_tsvector('english', manufacturer));
-            MIGRATION_FIX_EOF
+            " || echo "Migration fixes completed or not needed"
             echo "✅ Database migration issues fixed"
             
             echo "📊 Populating NSN test data..."
@@ -661,7 +661,7 @@ jobs:
             else
               echo "⚠️ NSN test data script not found, inserting basic test data..."
               # Insert basic NSN test data directly
-              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'NSN_DATA_EOF' || echo "NSN test data insertion completed"
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
                 INSERT INTO nsn_data (nsn, lin, nomenclature, fsc, niin, unit_price, manufacturer, part_number) VALUES 
                 ('5820014518250', 'R12345', 'RADIO SET, MANPACK', '5820', '014518250', 5000.00, 'Harris Corporation', 'RF-7800M-MP'),
                 ('5820015229160', 'R67890', 'RADIO, PORTABLE', '5820', '015229160', 3500.00, 'Motorola Solutions', 'APX8000'),
@@ -669,7 +669,7 @@ jobs:
                 ('5895012345678', 'C12345', 'COMPUTER, DIGITAL', '5895', '012345678', 2500.00, 'Dell Technologies', 'LATITUDE-5520'),
                 ('2540012345678', 'V12345', 'VEHICLE, TACTICAL', '2540', '012345678', 85000.00, 'AM General', 'HMMWV-M1151')
                 ON CONFLICT (nsn) DO NOTHING;
-              NSN_DATA_EOF
+              " || echo "NSN test data insertion completed"
               echo "✅ Basic NSN test data inserted"
             fi
             
