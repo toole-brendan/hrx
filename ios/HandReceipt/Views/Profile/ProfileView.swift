@@ -6,16 +6,28 @@ struct ProfileView: View {
     @State private var showingSettings = false
     
     var body: some View {
-        NavigationView {
+        VStack(spacing: 0) {
+            // Custom minimal navigation bar
+            MinimalNavigationBar(
+                title: "PROFILE",
+                titleStyle: .mono,
+                showBackButton: false,
+                trailingItems: [
+                    MinimalNavigationBar.NavItem(icon: "gearshape", style: .icon) {
+                        showingSettings = true
+                    }
+                ]
+            )
+            
             ScrollView {
-                VStack(spacing: 24) {
-                    // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
+                VStack(spacing: 32) {
+                    // Top padding
+                    Color.clear.frame(height: 24)
                     
                     // Profile Information Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        ElegantSectionHeader(title: "Profile", style: .uppercase)
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(title: "Profile", style: .serif)
+                            .padding(.horizontal, 24)
                         
                         VStack(spacing: 0) {
                             if let user = authManager.currentUser {
@@ -57,13 +69,14 @@ struct ProfileView: View {
                                     .padding()
                             }
                         }
-                        .cleanCard()
-                        .padding(.horizontal)
+                        .modernCard()
+                        .padding(.horizontal, 24)
                     }
                     
                     // Quick Actions Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        ElegantSectionHeader(title: "Quick Actions", style: .uppercase)
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(title: "Quick Actions", style: .serif)
+                            .padding(.horizontal, 24)
                         
                         VStack(spacing: 0) {
                             NavigationLink(destination: SettingsView()) {
@@ -101,13 +114,14 @@ struct ProfileView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        .cleanCard()
-                        .padding(.horizontal)
+                        .modernCard()
+                        .padding(.horizontal, 24)
                     }
                     
                     // Account Actions Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        ElegantSectionHeader(title: "Account", style: .uppercase)
+                    VStack(spacing: 24) {
+                        ElegantSectionHeader(title: "Account", style: .serif)
+                            .padding(.horizontal, 24)
                         
                         VStack(spacing: 0) {
                             Button(action: {
@@ -137,30 +151,22 @@ struct ProfileView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
-                        .cleanCard()
-                        .padding(.horizontal)
+                        .modernCard()
+                        .padding(.horizontal, 24)
                     }
                     
                     // Bottom spacer
-                    Spacer()
-                        .frame(height: 100)
+                    Color.clear.frame(height: 80)
                 }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            .minimalNavigation(
-                title: "Profile",
-                titleStyle: .minimal,
-                showBackButton: false,
-                trailingItems: [
-                    MinimalNavigationBar.NavItem(icon: "gearshape", style: .icon) {
-                        showingSettings = true
-                    }
-                ]
-            )
+            .background(AppColors.appBackground)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .navigationTitle("")
+        .navigationBarHidden(true)
         .sheet(isPresented: $showingSettings) {
-            SettingsView()
+            NavigationView {
+                SettingsView()
+            }
         }
     }
 }
@@ -173,11 +179,11 @@ struct ProfileInfoRow: View {
     let icon: String
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: 18, weight: .light))
                 .foregroundColor(AppColors.accent)
-                .frame(width: 24)
+                .frame(width: 28)
             
             Text(label)
                 .font(AppFonts.body)
@@ -189,7 +195,8 @@ struct ProfileInfoRow: View {
                 .font(AppFonts.bodyMedium)
                 .foregroundColor(AppColors.primaryText)
         }
-        .padding()
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
     }
 }
 
@@ -207,15 +214,15 @@ struct ProfileActionRow: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: 18, weight: .light))
                 .foregroundColor(isDestructive ? AppColors.destructive : AppColors.accent)
-                .frame(width: 24)
+                .frame(width: 28)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(label)
-                    .font(AppFonts.body)
+                    .font(AppFonts.bodyMedium)
                     .foregroundColor(isDestructive ? AppColors.destructive : AppColors.primaryText)
                 
                 Text(description)
@@ -226,10 +233,11 @@ struct ProfileActionRow: View {
             Spacer()
             
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(.system(size: 14, weight: .light))
                 .foregroundColor(AppColors.tertiaryText)
         }
-        .padding()
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .contentShape(Rectangle())
     }
 }
@@ -237,4 +245,4 @@ struct ProfileActionRow: View {
 #Preview {
     ProfileView()
         .environmentObject(AuthManager.shared)
-} 
+}

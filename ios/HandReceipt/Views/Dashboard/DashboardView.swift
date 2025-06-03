@@ -134,7 +134,7 @@ struct DashboardView: View {
             ElegantSectionHeader(
                 title: "Overview",
                 subtitle: "Current system status",
-                style: .uppercase
+                style: .serif
             )
             
             LazyVGrid(columns: [
@@ -216,7 +216,7 @@ struct DashboardView: View {
             ElegantSectionHeader(
                 title: "Network",
                 subtitle: "Connected users",
-                style: .uppercase,
+                style: .serif,
                 action: {},
                 actionLabel: "View All"
             )
@@ -275,7 +275,7 @@ struct DashboardView: View {
             ElegantSectionHeader(
                 title: "Property Status",
                 subtitle: "Operational readiness",
-                style: .uppercase
+                style: .serif
             )
             
             VStack(spacing: 20) {
