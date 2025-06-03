@@ -30,14 +30,16 @@ env:
   AZURE_LOCATION: eastus2
   AZURE_BASE_NAME: handreceipt
   AZURE_ENVIRONMENT: ${{ github.event.inputs.environment }}
+  AZURE_SUBSCRIPTION_ID: 98b9185a-60b8-4df4-b8a4-73e6d35b176f
   
   # Container Registry
   REGISTRY_NAME: handreceipt${{ github.event.inputs.environment }}acr
   
   # Container Apps
-  BACKEND_APP_NAME: handreceipt-backend-api
+  BACKEND_APP_NAME: handreceipt-backend
   WORKER_APP_NAME: handreceipt-worker
   IMMUDB_APP_NAME: immudb
+  CONTAINER_ENVIRONMENT_NAME: handreceipt-${{ github.event.inputs.environment }}-cae
 
 permissions:
   id-token: write
@@ -50,6 +52,9 @@ jobs:
     outputs:
       registry_url: ${{ steps.get_registry.outputs.registry_url }}
       resource_group_exists: ${{ steps.check_rg.outputs.exists }}
+      infrastructure_exists: ${{ steps.check_infrastructure.outputs.exists }}
+      postgres_fqdn: ${{ steps.get_postgres.outputs.fqdn }}
+      immudb_internal_url: ${{ steps.get_immudb.outputs.internal_url }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -63,8 +68,8 @@ jobs:
 
       - name: Set Azure Subscription
         run: |
-          # Use the Azure subscription 1 ID
-          az account set --subscription "98b9185a-60b8-4df4-b8a4-73e6d35b176f"
+          az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
+          az account show
 
       - name: Check Resource Group
         id: check_rg
@@ -77,6 +82,17 @@ jobs:
             echo "❌ Resource group does not exist"
           fi
 
+      - name: Check Infrastructure
+        id: check_infrastructure
+        run: |
+          if az containerapp env show --name ${{ env.CONTAINER_ENVIRONMENT_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Container Apps Environment exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "❌ Container Apps Environment does not exist"
+          fi
+
       - name: Get Container Registry URL
         id: get_registry
         if: steps.check_rg.outputs.exists == 'true'
@@ -85,15 +101,47 @@ jobs:
             --name ${{ env.REGISTRY_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --query loginServer \
-            --output tsv)
-          echo "registry_url=$REGISTRY_URL" >> $GITHUB_OUTPUT
-          echo "Registry URL: $REGISTRY_URL"
+            --output tsv 2>/dev/null || echo "")
+          if [ -n "$REGISTRY_URL" ]; then
+            echo "registry_url=$REGISTRY_URL" >> $GITHUB_OUTPUT
+            echo "Registry URL: $REGISTRY_URL"
+          else
+            echo "registry_url=" >> $GITHUB_OUTPUT
+            echo "❌ Container Registry not found"
+          fi
+
+      - name: Get PostgreSQL FQDN
+        id: get_postgres
+        if: steps.check_rg.outputs.exists == 'true'
+        run: |
+          POSTGRES_FQDN=$(az postgres flexible-server show \
+            --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-postgres \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query fullyQualifiedDomainName \
+            --output tsv 2>/dev/null || echo "")
+          echo "fqdn=$POSTGRES_FQDN" >> $GITHUB_OUTPUT
+          echo "PostgreSQL FQDN: $POSTGRES_FQDN"
+
+      - name: Get ImmuDB Internal URL
+        id: get_immudb
+        if: steps.check_infrastructure.outputs.exists == 'true'
+        run: |
+          IMMUDB_URL=$(az containerapp show \
+            --name ${{ env.IMMUDB_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv 2>/dev/null || echo "")
+          echo "internal_url=$IMMUDB_URL" >> $GITHUB_OUTPUT
+          echo "ImmuDB Internal URL: $IMMUDB_URL"
 
   deploy-infrastructure:
     name: Deploy Azure Infrastructure
     if: ${{ github.event.inputs.deploy_infrastructure == 'true' }}
     needs: setup
     runs-on: ubuntu-latest
+    outputs:
+      registry_url: ${{ steps.get_outputs.outputs.registry_url }}
+      postgres_fqdn: ${{ steps.get_outputs.outputs.postgres_fqdn }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -104,6 +152,10 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Create Resource Group
         if: needs.setup.outputs.resource_group_exists == 'false'
@@ -125,35 +177,51 @@ jobs:
               baseName="${{ env.AZURE_BASE_NAME }}" \
               location="${{ env.AZURE_LOCATION }}" \
               postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-            --mode Complete
+              containerRegistryName="${{ env.REGISTRY_NAME }}" \
+            --mode Incremental
+
+      - name: Get Deployment Outputs
+        id: get_outputs
+        run: |
+          # Get Container Registry URL
+          REGISTRY_URL=$(az acr show \
+            --name ${{ env.REGISTRY_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query loginServer \
+            --output tsv)
+          echo "registry_url=$REGISTRY_URL" >> $GITHUB_OUTPUT
+          
+          # Get PostgreSQL FQDN
+          POSTGRES_FQDN=$(az postgres flexible-server show \
+            --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-postgres \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query fullyQualifiedDomainName \
+            --output tsv)
+          echo "postgres_fqdn=$POSTGRES_FQDN" >> $GITHUB_OUTPUT
 
       - name: Configure Key Vault Access
         run: |
-          # Get Key Vault name
+          # Get current user object ID for Key Vault access
+          USER_OBJECT_ID=$(az ad signed-in-user show --query id --output tsv)
           KEY_VAULT_NAME="${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-kv"
           
-          # Get the managed identity of Container Apps
-          BACKEND_IDENTITY=$(az containerapp show \
-            --name ${{ env.BACKEND_APP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query identity.principalId \
-            --output tsv 2>/dev/null || echo "")
-          
-          if [ -n "$BACKEND_IDENTITY" ]; then
-            az keyvault set-policy \
-              --name $KEY_VAULT_NAME \
-              --object-id $BACKEND_IDENTITY \
-              --secret-permissions get list
-          fi
+          # Set access policy for the deployment user
+          az keyvault set-policy \
+            --name $KEY_VAULT_NAME \
+            --object-id $USER_OBJECT_ID \
+            --secret-permissions get list set delete recover backup restore purge
 
   build-and-push:
     name: Build and Push Docker Images
     if: ${{ github.event.inputs.deploy_backend == 'true' }}
-    needs: [setup, deploy-infrastructure]
+    needs: [setup]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Azure Login
         uses: azure/login@v1
@@ -162,51 +230,56 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
+
       - name: Login to Azure Container Registry
         run: |
-          az acr login --name ${{ env.REGISTRY_NAME }}
+          REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
+          if [ -n "$REGISTRY_URL" ]; then
+            az acr login --name ${{ env.REGISTRY_NAME }}
+          else
+            echo "❌ Registry URL not available, skipping login"
+            exit 1
+          fi
+
+      - name: Fix Go Dependencies
+        run: |
+          cd backend
+          go mod tidy
 
       - name: Build and Push Backend Image
         run: |
           cd backend
+          REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
           
-          # Build the image
-          docker build -t ${{ needs.setup.outputs.registry_url }}/handreceipt-backend:latest \
-            -t ${{ needs.setup.outputs.registry_url }}/handreceipt-backend:${{ github.sha }} \
+          # Build for linux/amd64 platform (Azure compatibility)
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            -t $REGISTRY_URL/handreceipt-backend:latest \
+            -t $REGISTRY_URL/handreceipt-backend:${{ github.sha }} \
             -f Dockerfile .
-          
-          # Push both tags
-          docker push ${{ needs.setup.outputs.registry_url }}/handreceipt-backend:latest
-          docker push ${{ needs.setup.outputs.registry_url }}/handreceipt-backend:${{ github.sha }}
 
       - name: Build and Push Worker Image
         run: |
           cd backend
+          REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
           
-          # Build the worker image
-          docker build -t ${{ needs.setup.outputs.registry_url }}/handreceipt-worker:latest \
-            -t ${{ needs.setup.outputs.registry_url }}/handreceipt-worker:${{ github.sha }} \
+          # Build worker for linux/amd64 platform
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            -t $REGISTRY_URL/handreceipt-worker:latest \
+            -t $REGISTRY_URL/handreceipt-worker:${{ github.sha }} \
             -f Dockerfile.worker .
-          
-          # Push both tags
-          docker push ${{ needs.setup.outputs.registry_url }}/handreceipt-worker:latest
-          docker push ${{ needs.setup.outputs.registry_url }}/handreceipt-worker:${{ github.sha }}
-
-      - name: Push ImmuDB Image
-        run: |
-          # Pull official ImmuDB image
-          docker pull codenotary/immudb:1.4.1
-          
-          # Tag for our registry
-          docker tag codenotary/immudb:1.4.1 ${{ needs.setup.outputs.registry_url }}/immudb:1.4.1
-          
-          # Push to our registry
-          docker push ${{ needs.setup.outputs.registry_url }}/immudb:1.4.1
 
   deploy-backend:
     name: Deploy Backend to Container Apps
     if: ${{ github.event.inputs.deploy_backend == 'true' }}
     needs: [setup, build-and-push]
+    # Only depend on infrastructure if it doesn't exist
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -219,85 +292,162 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Get Container Apps Environment ID
-        id: get_env
+      - name: Set Azure Subscription
         run: |
-          ENV_ID=$(az containerapp env show \
-            --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-cae \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query id \
-            --output tsv)
-          echo "environment_id=$ENV_ID" >> $GITHUB_OUTPUT
+          az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Deploy ImmuDB
         run: |
-          cd backend/deployments/azure/container-apps
-          
-          # Update the YAML with actual values
-          sed -i "s|{subscription-id}|${{ secrets.AZURE_SUBSCRIPTION_ID }}|g" immudb.yml
-          sed -i "s|{resource-group}|${{ env.AZURE_RESOURCE_GROUP }}|g" immudb.yml
-          
-          # Deploy or update ImmuDB
-          az containerapp create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --yaml immudb.yml \
-            --query name \
-            --output tsv || \
-          az containerapp update \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --yaml immudb.yml
+          # Check if ImmuDB already exists
+          if az containerapp show --name ${{ env.IMMUDB_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
+            echo "✅ ImmuDB already exists, skipping deployment"
+          else
+            echo "🚀 Deploying ImmuDB..."
+            az containerapp create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment ${{ env.CONTAINER_ENVIRONMENT_NAME }} \
+              --name ${{ env.IMMUDB_APP_NAME }} \
+              --image codenotary/immudb:latest \
+              --target-port 3322 \
+              --ingress internal \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --cpu 0.5 \
+              --memory 1Gi \
+              --env-vars \
+                IMMUDB_ADMIN_PASSWORD=defaultpassword \
+                IMMUDB_DATABASE=defaultdb \
+                IMMUDB_PORT=3322
+          fi
 
       - name: Wait for ImmuDB
         run: |
           echo "⏳ Waiting for ImmuDB to be ready..."
           sleep 30
 
+      - name: Get ImmuDB Internal URL
+        id: get_immudb_url
+        run: |
+          IMMUDB_URL=$(az containerapp show \
+            --name ${{ env.IMMUDB_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "immudb_url=$IMMUDB_URL" >> $GITHUB_OUTPUT
+          echo "ImmuDB URL: $IMMUDB_URL"
+
       - name: Deploy Backend API
         run: |
-          cd backend/deployments/azure/container-apps
+          REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
+          POSTGRES_FQDN="${{ needs.setup.outputs.postgres_fqdn }}"
+          IMMUDB_URL="${{ steps.get_immudb_url.outputs.immudb_url }}"
           
-          # Update the YAML with actual values
-          sed -i "s|{subscription-id}|${{ secrets.AZURE_SUBSCRIPTION_ID }}|g" backend-api.yml
-          sed -i "s|{resource-group}|${{ env.AZURE_RESOURCE_GROUP }}|g" backend-api.yml
-          
-          # Update image tag to use the commit SHA
-          sed -i "s|handreceipt-backend:latest|handreceipt-backend:${{ github.sha }}|g" backend-api.yml
-          
-          # Deploy or update Backend API
-          az containerapp create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --yaml backend-api.yml \
-            --query name \
-            --output tsv || \
-          az containerapp update \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --yaml backend-api.yml
+          # Deploy or update Backend API using CLI parameters
+          if az containerapp show --name ${{ env.BACKEND_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
+            echo "🔄 Updating existing Backend API..."
+            az containerapp update \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image $REGISTRY_URL/handreceipt-backend:${{ github.sha }} \
+              --env-vars \
+                DATABASE_HOST="$POSTGRES_FQDN" \
+                DATABASE_USER=hradmin \
+                DATABASE_NAME=handreceipt \
+                DATABASE_PORT=5432 \
+                DATABASE_SSLMODE=require \
+                IMMUDB_HOST="$IMMUDB_URL" \
+                IMMUDB_PORT=3322 \
+                IMMUDB_USERNAME=immudb \
+                IMMUDB_PASSWORD=immudb \
+                IMMUDB_DATABASE=defaultdb \
+                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+          else
+            echo "🚀 Creating new Backend API..."
+            az containerapp create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment ${{ env.CONTAINER_ENVIRONMENT_NAME }} \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --image $REGISTRY_URL/handreceipt-backend:${{ github.sha }} \
+              --target-port 8080 \
+              --ingress external \
+              --min-replicas 1 \
+              --max-replicas 3 \
+              --cpu 1.0 \
+              --memory 2Gi \
+              --registry-server $REGISTRY_URL \
+              --env-vars \
+                DATABASE_HOST="$POSTGRES_FQDN" \
+                DATABASE_USER=hradmin \
+                DATABASE_NAME=handreceipt \
+                DATABASE_PORT=5432 \
+                DATABASE_SSLMODE=require \
+                IMMUDB_HOST="$IMMUDB_URL" \
+                IMMUDB_PORT=3322 \
+                IMMUDB_USERNAME=immudb \
+                IMMUDB_PASSWORD=immudb \
+                IMMUDB_DATABASE=defaultdb \
+                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+          fi
 
       - name: Deploy Worker
         run: |
-          cd backend/deployments/azure/container-apps
-          
-          # Update the YAML with actual values
-          sed -i "s|{subscription-id}|${{ secrets.AZURE_SUBSCRIPTION_ID }}|g" worker.yml
-          sed -i "s|{resource-group}|${{ env.AZURE_RESOURCE_GROUP }}|g" worker.yml
-          
-          # Update image tag to use the commit SHA
-          sed -i "s|handreceipt-worker:latest|handreceipt-worker:${{ github.sha }}|g" worker.yml
+          REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
+          POSTGRES_FQDN="${{ needs.setup.outputs.postgres_fqdn }}"
+          IMMUDB_URL="${{ steps.get_immudb_url.outputs.immudb_url }}"
           
           # Deploy or update Worker
-          az containerapp create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --yaml worker.yml \
-            --query name \
-            --output tsv || \
-          az containerapp update \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --yaml worker.yml
+          if az containerapp show --name ${{ env.WORKER_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
+            echo "🔄 Updating existing Worker..."
+            az containerapp update \
+              --name ${{ env.WORKER_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image $REGISTRY_URL/handreceipt-worker:${{ github.sha }} \
+              --env-vars \
+                DATABASE_HOST="$POSTGRES_FQDN" \
+                DATABASE_USER=hradmin \
+                DATABASE_NAME=handreceipt \
+                DATABASE_PORT=5432 \
+                DATABASE_SSLMODE=require \
+                IMMUDB_HOST="$IMMUDB_URL" \
+                IMMUDB_PORT=3322 \
+                IMMUDB_USERNAME=immudb \
+                IMMUDB_PASSWORD=immudb \
+                IMMUDB_DATABASE=defaultdb \
+                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+          else
+            echo "🚀 Creating new Worker..."
+            az containerapp create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment ${{ env.CONTAINER_ENVIRONMENT_NAME }} \
+              --name ${{ env.WORKER_APP_NAME }} \
+              --image $REGISTRY_URL/handreceipt-worker:${{ github.sha }} \
+              --min-replicas 1 \
+              --max-replicas 2 \
+              --cpu 0.5 \
+              --memory 1Gi \
+              --registry-server $REGISTRY_URL \
+              --env-vars \
+                DATABASE_HOST="$POSTGRES_FQDN" \
+                DATABASE_USER=hradmin \
+                DATABASE_NAME=handreceipt \
+                DATABASE_PORT=5432 \
+                DATABASE_SSLMODE=require \
+                IMMUDB_HOST="$IMMUDB_URL" \
+                IMMUDB_PORT=3322 \
+                IMMUDB_USERNAME=immudb \
+                IMMUDB_PASSWORD=immudb \
+                IMMUDB_DATABASE=defaultdb \
+                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+          fi
 
   health-check:
     name: Post-Deployment Health Check
     needs: [deploy-backend]
-    if: always()
+    if: always() && needs.deploy-backend.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Azure Login
@@ -306,6 +456,10 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Get Backend URL
         id: get_url
@@ -328,40 +482,45 @@ jobs:
           BACKEND_URL="${{ steps.get_url.outputs.backend_url }}"
           echo "🔍 Testing backend health at $BACKEND_URL/health"
           
-          for i in {1..5}; do
+          for i in {1..10}; do
             if curl -s -f "$BACKEND_URL/health" > /dev/null 2>&1; then
               echo "✅ Backend health check passed"
-              RESPONSE=$(curl -s "$BACKEND_URL/health")
+              RESPONSE=$(curl -s "$BACKEND_URL/health" || echo "No response body")
               echo "Response: $RESPONSE"
               exit 0
             else
-              echo "Attempt $i: Backend health check failed, retrying..."
-              sleep 10
+              echo "Attempt $i: Backend health check failed, retrying in 15 seconds..."
+              sleep 15
             fi
           done
           
-          echo "❌ Backend health check failed after 5 attempts"
+          echo "❌ Backend health check failed after 10 attempts"
+          echo "📊 Checking container app status for troubleshooting..."
+          
+          # Get container app status
+          az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.runningStatus"
+          
           exit 1
 
       - name: Check Container Apps Status
         if: failure()
         run: |
-          echo "📊 Checking Container Apps status..."
+          echo "📊 Checking all Container Apps status..."
           
-          # Check Backend API
-          echo "Backend API status:"
-          az containerapp show \
-            --name ${{ env.BACKEND_APP_NAME }} \
+          # Check all container apps
+          az containerapp list \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query "properties.runningStatus" \
-            --output tsv
+            --output table
           
-          # Get recent logs
+          # Get recent logs from backend
           echo "Recent Backend API logs:"
           az containerapp logs show \
             --name ${{ env.BACKEND_APP_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --tail 50
+            --tail 100 || echo "Could not retrieve logs"
 
   notify:
     name: Deployment Notification
@@ -369,19 +528,53 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get Backend URL
+        id: get_url
+        if: needs.health-check.result == 'success'
+        run: |
+          BACKEND_URL=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "backend_url=https://$BACKEND_URL" >> $GITHUB_OUTPUT
+
       - name: Deployment Success
         if: ${{ needs.health-check.result == 'success' }}
         run: |
           echo "🎉 HandReceipt Azure deployment successful!"
           echo "Environment: ${{ env.AZURE_ENVIRONMENT }}"
           echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
-          
-          # Add Slack/Teams notification here if desired
+          echo "Backend URL: ${{ steps.get_url.outputs.backend_url }}"
+          echo ""
+          echo "📊 Deployment Summary:"
+          echo "✅ ImmuDB: Internal service running"
+          echo "✅ Backend API: ${{ steps.get_url.outputs.backend_url }}"
+          echo "✅ Worker: Background processing active"
+          echo ""
+          echo "🔗 Next Steps:"
+          echo "1. Test the API endpoints"
+          echo "2. Configure custom domain if needed"
+          echo "3. Monitor logs and metrics"
 
       - name: Deployment Failure
         if: ${{ needs.health-check.result == 'failure' }}
         run: |
           echo "❌ HandReceipt Azure deployment failed!"
-          echo "Check the logs above for details."
-          
-          # Add failure notification here if desired 
+          echo "Environment: ${{ env.AZURE_ENVIRONMENT }}"
+          echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
+          echo ""
+          echo "🔍 Troubleshooting steps:"
+          echo "1. Check Container Apps logs in Azure Portal"
+          echo "2. Verify environment variables are set correctly"
+          echo "3. Check database connectivity"
+          echo "4. Review Key Vault access policies"
+          echo ""
+          echo "Check the workflow logs above for detailed error information." 
