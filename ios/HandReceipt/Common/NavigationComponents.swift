@@ -62,7 +62,7 @@ public struct MinimalNavigationBar: View {
                         // App logo or brand mark
                         Text("HR")
                             .font(AppFonts.monoBody)
-                            .foregroundColor(AppColors.secondaryText)
+                            .foregroundColor(AppColors.primaryText)
                     }
                 }
                 .frame(minWidth: 60, alignment: .leading)
@@ -86,7 +86,11 @@ public struct MinimalNavigationBar: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
-            .background(AppColors.appBackground)
+            .background(
+                Rectangle()
+                    .fill(AppColors.appBackground)
+                    .ignoresSafeArea(.container, edges: .top)
+            )
             
             // Subtle divider
             Rectangle()
@@ -107,7 +111,7 @@ public struct MinimalNavigationBar: View {
         case .mono:
             Text(title.uppercased())
                 .font(AppFonts.monoCaption)
-                .foregroundColor(AppColors.secondaryText)
+                .foregroundColor(AppColors.primaryText)
                 .compatibleKerning(AppFonts.wideKerning)
         case .minimal:
             Text(title)

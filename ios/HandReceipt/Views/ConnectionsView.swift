@@ -96,15 +96,24 @@ struct ConnectionsView: View {
         .onAppear {
             viewModel.loadConnections()
         }
-        .refreshable {
+        .minimalRefreshable {
             await viewModel.refresh()
         }
     }
     
     // MARK: - Loading View
     private var loadingView: some View {
-        IndustrialLoadingView(message: "LOADING NETWORK")
-            .padding(.top, 40)
+        VStack(spacing: 20) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                .scaleEffect(0.8)
+            
+            Text("LOADING NETWORK")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+                .kerning(AppFonts.wideKerning)
+        }
+        .padding(.top, 40)
     }
     
     @ViewBuilder
@@ -244,7 +253,7 @@ struct ConnectionsView: View {
             
             // Empty filter results
             if filteredConnections.isEmpty && !viewModel.pendingRequests.isEmpty && searchText.isEmpty {
-                ModernEmptyStateView(
+                MinimalEmptyState(
                     icon: "line.horizontal.3.decrease.circle",
                     title: "No \(selectedFilter.rawValue) Connections",
                     message: "Try adjusting your filter to see more connections."
@@ -255,12 +264,12 @@ struct ConnectionsView: View {
     
     // MARK: - Empty Network View
     private var emptyNetworkView: some View {
-        ModernEmptyStateView(
+        MinimalEmptyState(
             icon: "person.2",
             title: "No Connections Yet",
             message: "Connect with other users to share and transfer property items seamlessly.",
-            actionTitle: "ADD CONNECTION",
-            action: { showingAddConnection = true }
+            action: { showingAddConnection = true },
+            actionLabel: "Add Connection"
         )
         .padding(.top, 40)
     }
@@ -525,9 +534,18 @@ struct AddConnectionView: View {
                     
                     // Search Results
                     if viewModel.isLoading {
-                        IndustrialLoadingView(message: "SEARCHING USERS")
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                                .scaleEffect(0.8)
+                            
+                            Text("SEARCHING USERS")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .kerning(AppFonts.wideKerning)
+                        }
                     } else if viewModel.searchResults.isEmpty && !searchText.isEmpty {
-                        ModernEmptyStateView(
+                        MinimalEmptyState(
                             icon: "magnifyingglass",
                             title: "No Users Found", 
                             message: "Try different search terms or check the spelling."
@@ -551,7 +569,7 @@ struct AddConnectionView: View {
                             .padding(.horizontal, 24)
                         }
                     } else {
-                        ModernEmptyStateView(
+                        MinimalEmptyState(
                             icon: "person.badge.plus",
                             title: "Search for Users",
                             message: "Enter a name, rank, or username to find users to connect with."

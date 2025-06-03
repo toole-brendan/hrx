@@ -14,6 +14,7 @@ struct MyPropertiesView: View {
     @State private var showingCreateProperty = false
     @State private var showingSortOptions = false
     @State private var selectedSortOption: SortOption = .name
+    @State private var showingSearch = false
     
     enum PropertyFilter: String, CaseIterable {
         case all = "All"
@@ -50,6 +51,7 @@ struct MyPropertiesView: View {
                 title: "PROPERTY",
                 titleStyle: .mono,
                 trailingItems: [
+                    .init(icon: "magnifyingglass", action: { showingSearch = true }),
                     .init(icon: "plus", action: { showingCreateProperty = true }),
                     .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
                 ]
@@ -91,8 +93,13 @@ struct MyPropertiesView: View {
                     Color.clear.frame(height: 80)
                 }
             }
-            .background(AppColors.appBackground)
+            .minimalRefreshable {
+                await MainActor.run {
+                    viewModel.loadProperties()
+                }
+            }
         }
+        .background(AppColors.appBackground)
         .navigationTitle("")
         .navigationBarHidden(true)
         .sheet(isPresented: $showingCreateProperty) {
@@ -108,6 +115,9 @@ struct MyPropertiesView: View {
                     showingVerificationSheet = false
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showingSearch) {
+            MinimalSearchView(isPresented: $showingSearch)
         }
         .actionSheet(isPresented: $showingSortOptions) {
             ActionSheet(
@@ -208,8 +218,17 @@ struct MyPropertiesView: View {
         VStack(spacing: 0) {
             switch viewModel.loadingState {
             case .idle, .loading:
-                MinimalLoadingView(message: "Loading properties...")
-                    .padding(.vertical, 80)
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                        .scaleEffect(0.8)
+                    
+                    Text("LOADING PROPERTIES")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                        .kerning(AppFonts.wideKerning)
+                }
+                .padding(.vertical, 80)
                 
             case .success(_):
                 if filteredProperties.isEmpty {
@@ -699,9 +718,18 @@ struct PropertyVerificationSheet: View {
                 }
                 
                 if isLoading {
-                    MinimalLoadingView(message: "Saving verification...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppColors.overlayBackground)
+                    VStack(spacing: 24) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                            .scaleEffect(1.2)
+                        
+                        Text("SAVING VERIFICATION")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                            .kerning(AppFonts.wideKerning)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppColors.overlayBackground)
                 }
             }
         }

@@ -33,7 +33,7 @@ struct PropertyDetailView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Custom minimal navigation bar with serif title
+            // Custom navigation bar
             MinimalNavigationBar(
                 title: viewModel.property?.itemName ?? "Property Details",
                 titleStyle: .serif,

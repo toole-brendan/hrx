@@ -42,7 +42,7 @@ struct DashboardView: View {
                 .ignoresSafeArea()
             
             if isLoading {
-                MinimalLoadingView(message: "Loading dashboard...")
+                DashboardLoadingView(message: "Loading dashboard")
             } else if let error = loadingError {
                 MinimalEmptyState(
                     icon: "exclamationmark.circle",
@@ -71,7 +71,7 @@ struct DashboardView: View {
                         Color.clear.frame(height: 80)
                     }
                 }
-                .refreshable {
+                .minimalRefreshable {
                     await refreshData()
                 }
             }
@@ -654,20 +654,55 @@ public struct GeometricPatternView: View {
     }
 }
 
-// MARK: - Loading View
-struct MinimalLoadingView: View {
+// MARK: - Dashboard Loading View
+struct DashboardLoadingView: View {
     let message: String?
     
     var body: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
-                .scaleEffect(0.8)
+        VStack(spacing: 24) {
+            // Geometric loading animation
+            GeometricLoader()
             
             if let message = message {
-                Text(message)
+                Text(message.uppercased())
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
+                    .kerning(AppFonts.wideKerning)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.appBackground)
+    }
+}
+
+// MARK: - Geometric Loader
+struct GeometricLoader: View {
+    @State private var rotation: Double = 0
+    @State private var scale: CGFloat = 0.8
+    
+    var body: some View {
+        ZStack {
+            // Outer ring
+            Circle()
+                .stroke(AppColors.primaryText.opacity(0.2), lineWidth: 2)
+                .frame(width: 60, height: 60)
+            
+            // Inner rotating shapes
+            ForEach(0..<3) { index in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(AppColors.primaryText.opacity(0.8 - Double(index) * 0.2))
+                    .frame(width: 4, height: 16)
+                    .offset(y: -20)
+                    .rotationEffect(.degrees(rotation + Double(index * 120)))
+            }
+        }
+        .scaleEffect(scale)
+        .onAppear {
+            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+            withAnimation(.easeInOut(duration: 1).repeatForever(autoreverses: true)) {
+                scale = 1.1
             }
         }
     }

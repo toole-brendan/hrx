@@ -49,7 +49,6 @@ struct AuthenticatedTabView: View {
                 
             case 1:
                 MyPropertiesView()
-                    .transition(.opacity)
                 
             case 2:
                 TransfersView(apiService: apiService)

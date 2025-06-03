@@ -114,7 +114,7 @@ class AuthManager: ObservableObject {
     // Check auth status on app launch
     func checkAuthStatus() async {
         // Check if we have a valid token
-        guard let accessToken = getAccessToken() else {
+        guard getAccessToken() != nil else {
             await MainActor.run {
                 self.isAuthenticated = false
                 self.currentUser = nil

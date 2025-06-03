@@ -112,19 +112,28 @@ struct TransfersView: View {
     
     // MARK: - Loading View
     private var loadingView: some View {
-        IndustrialLoadingView(message: "LOADING TRANSFERS")
+        VStack(spacing: 20) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                .scaleEffect(0.8)
+            
+            Text("LOADING TRANSFERS")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+                .kerning(AppFonts.wideKerning)
+        }
     }
     
     // MARK: - Empty State
     private var emptyStateView: some View {
-        ModernEmptyStateView(
+        MinimalEmptyState(
             icon: selectedTab == .incoming ? "arrow.down" : "arrow.up",
             title: "No \(selectedTab.title) Transfers",
             message: selectedTab == .incoming ? 
                 "Transfer requests from your connections will appear here." : 
                 "Your outgoing transfer requests will appear here.",
-            actionTitle: selectedTab == .outgoing ? "CREATE TRANSFER" : nil,
-            action: selectedTab == .outgoing ? { showingTransferOptions = true } : nil
+            action: selectedTab == .outgoing ? { showingTransferOptions = true } : nil,
+            actionLabel: selectedTab == .outgoing ? "Create Transfer" : nil
         )
         .padding(.horizontal, 24)
     }
@@ -190,8 +199,10 @@ struct TransfersView: View {
                     .padding(.horizontal, 24)
                 }
             }
-            .refreshable {
-                viewModel.fetchTransfers()
+            .minimalRefreshable {
+                await MainActor.run {
+                    viewModel.fetchTransfers()
+                }
             }
         }
     }
