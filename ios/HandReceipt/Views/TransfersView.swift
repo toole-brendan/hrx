@@ -12,7 +12,7 @@ struct TransfersView: View {
     
     init(apiService: APIServiceProtocol? = nil) {
         let service = apiService ?? APIService()
-        let currentUserId = AuthManager.shared.getCurrentUserId()
+        let currentUserId = AuthManager.shared.getUserId()
         self._viewModel = StateObject(wrappedValue: TransfersViewModel(
             apiService: service,
             currentUserId: currentUserId
@@ -23,31 +23,41 @@ struct TransfersView: View {
         ZStack(alignment: .top) {
             AppColors.appBackground.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Spacer for header
-                Color.clear.frame(height: 36)
-                
-                // Filter tabs with 8VC styling
-                tabSelector
-                
-                // Content
-                transferContent
-            }
-            
-            // Header
-            UniversalHeaderView(
-                title: "Transfers",
-                showBackButton: false,
-                trailingButton: {
-                    AnyView(
-                        Button(action: { showingTransferOptions = true }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(AppColors.accent)
+            ScrollView {
+                VStack(spacing: 40) {
+                    // Header section
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("Transfers")
+                                .font(AppFonts.serifTitle)
+                                .foregroundColor(AppColors.primaryText)
+                            Spacer()
+                            Button(action: { showingTransferOptions = true }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(AppColors.accent)
+                            }
                         }
-                    )
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+                        
+                        Divider()
+                            .background(AppColors.divider)
+                    }
+                    
+                    // Main content
+                    VStack(spacing: 32) {
+                        // Filter tabs
+                        tabSelector
+                        
+                        // Transfer content
+                        transferMainContent
+                    }
+                    
+                    // Bottom padding
+                    Color.clear.frame(height: 80)
                 }
-            )
+            }
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -109,81 +119,6 @@ struct TransfersView: View {
         }
     }
     
-    // MARK: - Transfer Content
-    @ViewBuilder
-    private var transferContent: some View {
-        let transfers = viewModel.filteredTransfers.filter { transfer in
-            if selectedTab == .incoming {
-                return viewModel.currentUserId != nil && transfer.toUserId == viewModel.currentUserId
-            } else {
-                return viewModel.currentUserId != nil && transfer.fromUserId == viewModel.currentUserId
-            }
-        }
-        
-        if case .loading = viewModel.loadingState {
-            loadingView
-        } else if transfers.isEmpty && activeOffers.isEmpty {
-            emptyStateView
-        } else {
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Top padding
-                    Color.clear.frame(height: 24)
-                    
-                    // Active offers section (only for incoming tab)
-                    if selectedTab == .incoming && !activeOffers.isEmpty {
-                        VStack(spacing: 24) {
-                            ModernSectionHeader(
-                                title: "Property Offers",
-                                subtitle: "Items offered by your connections"
-                            )
-                            
-                            VStack(spacing: 16) {
-                                ForEach(activeOffers) { offer in
-                                    CleanOfferCard(offer: offer)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Transfer requests section
-                    if !transfers.isEmpty {
-                        VStack(spacing: 24) {
-                            ModernSectionHeader(
-                                title: selectedTab == .incoming ? "Incoming Transfers" : "Outgoing Transfers",
-                                subtitle: "\(transfers.count) transfers"
-                            )
-                            
-                            VStack(spacing: 16) {
-                                ForEach(transfers) { transfer in
-                                    CleanTransferCard(
-                                        transfer: transfer,
-                                        isIncoming: selectedTab == .incoming,
-                                        onTap: { selectedTransfer = transfer },
-                                        onQuickApprove: {
-                                            viewModel.approveTransfer(transferId: transfer.id)
-                                        },
-                                        onQuickReject: {
-                                            viewModel.rejectTransfer(transferId: transfer.id)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Bottom padding
-                    Color.clear.frame(height: 80)
-                }
-            }
-            .refreshable {
-                viewModel.fetchTransfers()
-            }
-        }
-    }
-    
     // MARK: - Loading View
     private var loadingView: some View {
         IndustrialLoadingView(message: "LOADING TRANSFERS")
@@ -201,6 +136,73 @@ struct TransfersView: View {
             action: selectedTab == .outgoing ? { showingTransferOptions = true } : nil
         )
         .padding(.horizontal, 24)
+    }
+    
+    // MARK: - Transfer Main Content
+    @ViewBuilder
+    private var transferMainContent: some View {
+        let transfers = viewModel.filteredTransfers.filter { transfer in
+            if selectedTab == .incoming {
+                return viewModel.currentUserId != nil && transfer.toUserId == viewModel.currentUserId
+            } else {
+                return viewModel.currentUserId != nil && transfer.fromUserId == viewModel.currentUserId
+            }
+        }
+        
+        if case .loading = viewModel.loadingState {
+            loadingView
+        } else if transfers.isEmpty && activeOffers.isEmpty {
+            emptyStateView
+        } else {
+            VStack(spacing: 32) {
+                // Active offers section (only for incoming tab)
+                if selectedTab == .incoming && !activeOffers.isEmpty {
+                    VStack(spacing: 24) {
+                        ModernSectionHeader(
+                            title: "Property Offers",
+                            subtitle: "Items offered by your connections"
+                        )
+                        
+                        VStack(spacing: 16) {
+                            ForEach(activeOffers) { offer in
+                                CleanOfferCard(offer: offer)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+                
+                // Transfer requests section
+                if !transfers.isEmpty {
+                    VStack(spacing: 24) {
+                        ModernSectionHeader(
+                            title: selectedTab == .incoming ? "Incoming Transfers" : "Outgoing Transfers",
+                            subtitle: "\(transfers.count) transfers"
+                        )
+                        
+                        VStack(spacing: 16) {
+                            ForEach(transfers) { transfer in
+                                CleanTransferCard(
+                                    transfer: transfer,
+                                    isIncoming: selectedTab == .incoming,
+                                    onTap: { selectedTransfer = transfer },
+                                    onQuickApprove: {
+                                        viewModel.approveTransfer(transferId: transfer.id)
+                                    },
+                                    onQuickReject: {
+                                        viewModel.rejectTransfer(transferId: transfer.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+            }
+            .refreshable {
+                viewModel.fetchTransfers()
+            }
+        }
     }
     
     private func loadActiveOffers() async {
@@ -802,13 +804,6 @@ enum TransferTab: String, CaseIterable {
 enum TransferAction {
     case approve
     case reject
-}
-
-// MARK: - AuthManager Extension
-extension AuthManager {
-    func getCurrentUserId() -> Int? {
-        return self.getUserId()
-    }
 }
 
 // MARK: - Previews

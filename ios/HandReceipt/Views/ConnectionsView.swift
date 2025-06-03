@@ -50,33 +50,40 @@ struct ConnectionsView: View {
             AppColors.appBackground.ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 32) {
-                    // Spacer for header
-                    Color.clear.frame(height: 36)
-                    
-                    if viewModel.isLoading {
-                        loadingView
-                    } else {
-                        mainContent
+                VStack(spacing: 40) {
+                    // Header section
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("Network")
+                                .font(AppFonts.serifTitle)
+                                .foregroundColor(AppColors.primaryText)
+                            Spacer()
+                            Button(action: { showingAddConnection = true }) {
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(AppColors.accent)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+                        
+                        Divider()
+                            .background(AppColors.divider)
                     }
+                    
+                    // Main content
+                    VStack(spacing: 32) {
+                        if viewModel.isLoading {
+                            loadingView
+                        } else {
+                            mainContent
+                        }
+                    }
+                    
+                    // Bottom padding
+                    Color.clear.frame(height: 80)
                 }
             }
-            .background(AppColors.appBackground.ignoresSafeArea(.all))
-            
-            // Header
-            UniversalHeaderView(
-                title: "Network",
-                showBackButton: false,
-                trailingButton: {
-                    AnyView(
-                        Button(action: { showingAddConnection = true }) {
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(AppColors.accent)
-                        }
-                    )
-                }
-            )
         }
         .navigationTitle("")
         .navigationBarHidden(true)

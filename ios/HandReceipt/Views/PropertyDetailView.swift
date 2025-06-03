@@ -245,7 +245,7 @@ struct PropertyDetailView: View {
                     action: { showingHistory = true }
                 )
                 
-                if let currentUserId = AuthManager.shared.getCurrentUserId(),
+                if let currentUserId = AuthManager.shared.getUserId(),
                    property.assignedToUserId == currentUserId {
                     QuickActionButton(
                         icon: "gift",
