@@ -60,12 +60,7 @@ struct MyPropertiesView: View {
                 MinimalNavigationBar(
                     title: "PROPERTY",
                     titleStyle: .mono,
-                    trailingItems: [
-                        .init(icon: "magnifyingglass", action: { showingSearch = true }),
-                        .init(icon: "plus", action: { showingAddMenu = true }),
-                        .init(icon: "doc.text.viewfinder", action: { showingDA2062Scan = true }),
-                        .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
-                    ]
+                    trailingItems: []  // Removed all trailing items to make title centered
                 )
                 .background(AppColors.secondaryBackground)
                 .zIndex(1)
@@ -241,9 +236,37 @@ struct MyPropertiesView: View {
                             .stroke(AppColors.border, lineWidth: 1)
                     )
                     
-                    // Sort button
+                    // Filter/Sort button
                     Button(action: { showingSortOptions = true }) {
-                        Image(systemName: "arrow.up.arrow.down")
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .foregroundColor(AppColors.accent)
+                            .font(.system(size: 16, weight: .light))
+                            .frame(width: 44, height: 44)
+                            .background(AppColors.secondaryBackground)
+                            .cornerRadius(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
+                    }
+                    
+                    // Add button
+                    Button(action: { showingAddMenu = true }) {
+                        Image(systemName: "plus")
+                            .foregroundColor(AppColors.accent)
+                            .font(.system(size: 16, weight: .light))
+                            .frame(width: 44, height: 44)
+                            .background(AppColors.secondaryBackground)
+                            .cornerRadius(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
+                    }
+                    
+                    // Scan button
+                    Button(action: { showingDA2062Scan = true }) {
+                        Image(systemName: "doc.text.viewfinder")
                             .foregroundColor(AppColors.accent)
                             .font(.system(size: 16, weight: .light))
                             .frame(width: 44, height: 44)

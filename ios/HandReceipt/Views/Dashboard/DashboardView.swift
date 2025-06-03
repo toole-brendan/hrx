@@ -10,6 +10,7 @@ struct DashboardView: View {
     // Navigation states
     @State private var navigateToMaintenance = false
     @State private var navigateToSensitiveItems = false
+    @State private var showingSearch = false
     
     // Tab switching callback
     var onTabSwitch: ((Int) -> Void)?
@@ -86,6 +87,9 @@ struct DashboardView: View {
         .navigationTitle("")
         .navigationBarHidden(true)
         .background(navigationLinks)
+        .fullScreenCover(isPresented: $showingSearch) {
+            MinimalSearchView(isPresented: $showingSearch)
+        }
         .task {
             await loadData()
         }
@@ -103,10 +107,18 @@ struct DashboardView: View {
                 
                 Spacer()
                 
-                Button(action: {}) {
-                    Image(systemName: "person.circle")
-                        .font(.system(size: 24, weight: .light))
-                        .foregroundColor(AppColors.primaryText)
+                HStack(spacing: 20) {
+                    Button(action: { showingSearch = true }) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(AppColors.primaryText)
+                    }
+                    
+                    Button(action: {}) {
+                        Image(systemName: "person.circle")
+                            .font(.system(size: 24, weight: .light))
+                            .foregroundColor(AppColors.primaryText)
+                    }
                 }
             }
             .padding(.horizontal, 24)
@@ -200,7 +212,7 @@ struct DashboardView: View {
                 ActionButton(
                     icon: "magnifyingglass",
                     title: "Search",
-                    action: { onTabSwitch?(1) }
+                    action: { showingSearch = true }
                 )
                 
                 ActionButton(
