@@ -36,7 +36,7 @@ struct LoginView: View {
                         VStack(spacing: 0) {
                             // Logo with tap gesture for dev login
                             ZStack {
-                                Image("hr_logo")
+                                Image("hr_logo4")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
                                     .frame(height: 200) // Reduced for cleaner look
