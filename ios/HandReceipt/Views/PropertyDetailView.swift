@@ -32,19 +32,32 @@ struct PropertyDetailView: View {
     }
     
     var body: some View {
-        ZStack {
-            AppColors.appBackground.ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Custom minimal navigation bar with serif title
+            MinimalNavigationBar(
+                title: viewModel.property?.itemName ?? "Property Details",
+                titleStyle: .serif,
+                showBackButton: true,
+                backAction: { dismiss() },
+                trailingItems: [
+                    .init(icon: "square.and.arrow.up", action: { /* share action */ }),
+                    .init(icon: "ellipsis", action: { showingMenu = true })
+                ]
+            )
             
             content
-                .industrialNavigation(
-                    title: "Property Details",
-                    showBackButton: true,
-                    backButtonAction: { dismiss() },
-                    trailingItems: [
-                        .init(icon: "ellipsis", action: { showingMenu = true })
-                    ]
-                )
-                .sheet(isPresented: $viewModel.showingUserSelection) {
+            
+            // Minimal toolbar at bottom for main actions
+            MinimalToolbar(items: [
+                .init(icon: "arrow.left.arrow.right", label: "Transfer", action: { viewModel.requestTransferClicked() }),
+                .init(icon: "qrcode", label: "QR Code", action: { /* show QR code */ }),
+                .init(icon: "wrench", label: "Service", action: { showingMaintenanceSchedule = true })
+            ])
+        }
+        .background(AppColors.appBackground)
+        .navigationTitle("")
+        .navigationBarHidden(true)
+        .sheet(isPresented: $viewModel.showingUserSelection) {
                     UserSelectionView(onUserSelected: { selectedUser in
                         viewModel.initiateTransfer(targetUser: selectedUser)
                     })
@@ -77,7 +90,6 @@ struct PropertyDetailView: View {
                     Button("Cancel", role: .cancel) { }
                 }
                 .overlay(TransferStatusMessage(state: viewModel.transferRequestState))
-        }
         .onAppear {
             viewModel.loadProperty()
         }

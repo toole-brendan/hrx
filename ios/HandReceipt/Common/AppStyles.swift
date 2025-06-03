@@ -80,6 +80,8 @@ public struct AppFonts {
 
 // MARK: - Minimal Button Styles
 public struct MinimalPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -90,7 +92,9 @@ public struct MinimalPrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .background(
                 Group {
-                    if configuration.isPressed {
+                    if !isEnabled {
+                        AppColors.primaryText.opacity(0.3)
+                    } else if configuration.isPressed {
                         AppColors.primaryText.opacity(0.8)
                     } else {
                         AppColors.primaryText
@@ -103,6 +107,8 @@ public struct MinimalPrimaryButtonStyle: ButtonStyle {
 }
 
 public struct MinimalSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -114,13 +120,19 @@ public struct MinimalSecondaryButtonStyle: ButtonStyle {
             .background(Color.clear)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .stroke(configuration.isPressed ? AppColors.border : AppColors.borderStrong, lineWidth: 1)
+                    .stroke(
+                        configuration.isPressed ? AppColors.border : AppColors.borderStrong,
+                        lineWidth: 1
+                    )
             )
+            .opacity(isEnabled ? 1.0 : 0.5)
             .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
 public struct TextLinkButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -128,12 +140,14 @@ public struct TextLinkButtonStyle: ButtonStyle {
             configuration.label
                 .font(AppFonts.body)
                 .foregroundColor(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
+                .opacity(isEnabled ? 1.0 : 0.5)
             
             // Custom underline for backwards compatibility
             if configuration.isPressed {
                 Rectangle()
                     .fill(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
                     .frame(height: 1)
+                    .opacity(isEnabled ? 1.0 : 0.5)
             }
         }
     }
@@ -586,10 +600,28 @@ extension TextFieldStyle where Self == IndustrialTextFieldStyle {
     }
 }
 
+// MARK: - Section Divider Modifier
+public struct SectionDividerModifier: ViewModifier {
+    public init() {}
+    
+    public func body(content: Content) -> some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 1)
+            content
+        }
+    }
+}
+
 // MARK: - View Extensions
 extension View {
     public func cleanCard(padding: CGFloat = 24, showShadow: Bool = true) -> some View {
         self.modifier(CleanCardModifier(padding: padding, showShadow: showShadow))
+    }
+    
+    public func sectionDivider() -> some View {
+        self.modifier(SectionDividerModifier())
     }
     
     public func modernCard(isElevated: Bool = false) -> some View {

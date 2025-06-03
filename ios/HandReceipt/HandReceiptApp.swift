@@ -10,6 +10,10 @@ struct HandReceiptApp: App {
         print("🚀 HandReceiptApp: init() called")
         print("🚀 HandReceiptApp: Bundle ID: \(Bundle.main.bundleIdentifier ?? "unknown")")
         print("🚀 HandReceiptApp: App version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] ?? "unknown")")
+        
+        // Configure 8VC-inspired global navigation appearance
+        GlobalNavigationConfiguration.configureGlobalAppearance()
+        print("🎨 HandReceiptApp: 8VC navigation styling configured")
     }
     
     var body: some Scene {

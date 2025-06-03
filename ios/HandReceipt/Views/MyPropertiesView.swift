@@ -44,25 +44,25 @@ struct MyPropertiesView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            AppColors.appBackground.ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Custom minimal navigation bar
+            MinimalNavigationBar(
+                title: "PROPERTY",
+                titleStyle: .mono,
+                trailingItems: [
+                    .init(icon: "plus", action: { showingCreateProperty = true }),
+                    .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
+                ]
+            )
             
             ScrollView {
                 VStack(spacing: 40) {
-                    // Header section
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("Property Book")
-                                .font(AppFonts.serifTitle)
-                                .foregroundColor(AppColors.primaryText)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
-                        
-                        Divider()
-                            .background(AppColors.divider)
-                    }
+                    // Inline header with inventory count
+                    InlinePageHeader(
+                        title: "Equipment Inventory",
+                        subtitle: "\(filteredProperties.count) items tracked",
+                        style: .standard
+                    )
                     
                     // Main content
                     VStack(spacing: 32) {
@@ -88,6 +88,7 @@ struct MyPropertiesView: View {
                     Color.clear.frame(height: 80)
                 }
             }
+            .background(AppColors.appBackground)
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -121,12 +122,7 @@ struct MyPropertiesView: View {
     
     private var searchAndFiltersSection: some View {
         VStack(spacing: 20) {
-            ElegantSectionHeader(
-                title: "Equipment Inventory",
-                subtitle: "\(filteredProperties.count) items tracked",
-                style: .uppercase
-            )
-            .padding(.horizontal, 24)
+            // Remove duplicate header since we have InlinePageHeader now
             
             VStack(spacing: 16) {
                 // Search bar

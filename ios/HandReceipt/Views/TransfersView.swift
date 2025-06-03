@@ -20,30 +20,24 @@ struct TransfersView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            AppColors.appBackground.ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Custom minimal navigation bar
+            MinimalNavigationBar(
+                title: "TRANSFERS",
+                titleStyle: .mono,
+                trailingItems: [
+                    .init(text: "New", style: .text, action: { showingTransferOptions = true })
+                ]
+            )
             
             ScrollView {
                 VStack(spacing: 40) {
-                    // Header section
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("Transfers")
-                                .font(AppFonts.serifTitle)
-                                .foregroundColor(AppColors.primaryText)
-                            Spacer()
-                            Button(action: { showingTransferOptions = true }) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
-                        
-                        Divider()
-                            .background(AppColors.divider)
-                    }
+                    // Inline header (for context)
+                    InlinePageHeader(
+                        title: "Property Transfers",
+                        subtitle: "Manage incoming and outgoing transfers",
+                        style: .standard
+                    )
                     
                     // Main content
                     VStack(spacing: 32) {
@@ -58,6 +52,7 @@ struct TransfersView: View {
                     Color.clear.frame(height: 80)
                 }
             }
+            .background(AppColors.appBackground)
         }
         .navigationTitle("")
         .navigationBarHidden(true)
