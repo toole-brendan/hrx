@@ -307,7 +307,7 @@ jobs:
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --environment ${{ env.CONTAINER_ENVIRONMENT_NAME }} \
               --name ${{ env.IMMUDB_APP_NAME }} \
-              --image codenotary/immudb:latest \
+              --image codenotary/immudb:1.4.1 \
               --target-port 3322 \
               --ingress internal \
               --min-replicas 1 \
@@ -315,9 +315,13 @@ jobs:
               --cpu 0.5 \
               --memory 1Gi \
               --env-vars \
-                IMMUDB_ADMIN_PASSWORD=defaultpassword \
+                IMMUDB_ADMIN_PASSWORD="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
                 IMMUDB_DATABASE=defaultdb \
-                IMMUDB_PORT=3322
+                IMMUDB_PORT=3322 \
+                IMMUDB_ADDRESS=0.0.0.0 \
+                IMMUDB_DIR=/var/lib/immudb \
+                IMMUDB_PIDFILE=/var/lib/immudb/immudb.pid \
+                IMMUDB_LOGFILE=/var/lib/immudb/immudb.log
           fi
 
       - name: Wait for ImmuDB
@@ -349,19 +353,33 @@ jobs:
               --name ${{ env.BACKEND_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --image $REGISTRY_URL/handreceipt-backend:${{ github.sha }} \
-              --env-vars \
-                DATABASE_HOST="$POSTGRES_FQDN" \
-                DATABASE_USER=hradmin \
-                DATABASE_NAME=handreceipt \
-                DATABASE_PORT=5432 \
-                DATABASE_SSLMODE=require \
-                IMMUDB_HOST="$IMMUDB_URL" \
-                IMMUDB_PORT=3322 \
-                IMMUDB_USERNAME=immudb \
-                IMMUDB_PASSWORD=immudb \
-                IMMUDB_DATABASE=defaultdb \
-                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
-                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+              --set-env-vars \
+                HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
+                HANDRECEIPT_DATABASE_USER=hradmin \
+                HANDRECEIPT_DATABASE_NAME=handreceipt \
+                HANDRECEIPT_DATABASE_PORT=5432 \
+                HANDRECEIPT_DATABASE_SSL_MODE=require \
+                HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
+                HANDRECEIPT_IMMUDB_ENABLED=true \
+                HANDRECEIPT_IMMUDB_HOST="$IMMUDB_URL" \
+                HANDRECEIPT_IMMUDB_PORT=3322 \
+                HANDRECEIPT_IMMUDB_USERNAME=immudb \
+                HANDRECEIPT_IMMUDB_PASSWORD=secretref:immudb-password \
+                HANDRECEIPT_IMMUDB_DATABASE=defaultdb \
+                HANDRECEIPT_SERVER_PORT=8080 \
+                HANDRECEIPT_SERVER_ENVIRONMENT=production \
+                HANDRECEIPT_STORAGE_TYPE=azure_blob \
+                HANDRECEIPT_STORAGE_ACCOUNT_NAME=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                HANDRECEIPT_STORAGE_CONTAINER_NAME=documents \
+                HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
+                HANDRECEIPT_MINIO_ENABLED=false \
+                HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
+                HANDRECEIPT_CONFIG_NAME=config.azure \
+              --secrets \
+                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net" \
+                jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
           else
             echo "🚀 Creating new Backend API..."
             az containerapp create \
@@ -376,19 +394,33 @@ jobs:
               --cpu 1.0 \
               --memory 2Gi \
               --registry-server $REGISTRY_URL \
+              --secrets \
+                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net" \
+                jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=" \
               --env-vars \
-                DATABASE_HOST="$POSTGRES_FQDN" \
-                DATABASE_USER=hradmin \
-                DATABASE_NAME=handreceipt \
-                DATABASE_PORT=5432 \
-                DATABASE_SSLMODE=require \
-                IMMUDB_HOST="$IMMUDB_URL" \
-                IMMUDB_PORT=3322 \
-                IMMUDB_USERNAME=immudb \
-                IMMUDB_PASSWORD=immudb \
-                IMMUDB_DATABASE=defaultdb \
-                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
-                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+                HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
+                HANDRECEIPT_DATABASE_USER=hradmin \
+                HANDRECEIPT_DATABASE_NAME=handreceipt \
+                HANDRECEIPT_DATABASE_PORT=5432 \
+                HANDRECEIPT_DATABASE_SSL_MODE=require \
+                HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
+                HANDRECEIPT_IMMUDB_ENABLED=true \
+                HANDRECEIPT_IMMUDB_HOST="$IMMUDB_URL" \
+                HANDRECEIPT_IMMUDB_PORT=3322 \
+                HANDRECEIPT_IMMUDB_USERNAME=immudb \
+                HANDRECEIPT_IMMUDB_PASSWORD=secretref:immudb-password \
+                HANDRECEIPT_IMMUDB_DATABASE=defaultdb \
+                HANDRECEIPT_SERVER_PORT=8080 \
+                HANDRECEIPT_SERVER_ENVIRONMENT=production \
+                HANDRECEIPT_STORAGE_TYPE=azure_blob \
+                HANDRECEIPT_STORAGE_ACCOUNT_NAME=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                HANDRECEIPT_STORAGE_CONTAINER_NAME=documents \
+                HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
+                HANDRECEIPT_MINIO_ENABLED=false \
+                HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
+                HANDRECEIPT_CONFIG_NAME=config.azure
           fi
 
       - name: Deploy Worker
@@ -404,19 +436,24 @@ jobs:
               --name ${{ env.WORKER_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --image $REGISTRY_URL/handreceipt-worker:${{ github.sha }} \
-              --env-vars \
-                DATABASE_HOST="$POSTGRES_FQDN" \
-                DATABASE_USER=hradmin \
-                DATABASE_NAME=handreceipt \
-                DATABASE_PORT=5432 \
-                DATABASE_SSLMODE=require \
-                IMMUDB_HOST="$IMMUDB_URL" \
-                IMMUDB_PORT=3322 \
-                IMMUDB_USERNAME=immudb \
-                IMMUDB_PASSWORD=immudb \
-                IMMUDB_DATABASE=defaultdb \
-                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
-                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+              --set-env-vars \
+                HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
+                HANDRECEIPT_DATABASE_USER=hradmin \
+                HANDRECEIPT_DATABASE_NAME=handreceipt \
+                HANDRECEIPT_DATABASE_PORT=5432 \
+                HANDRECEIPT_DATABASE_SSL_MODE=require \
+                HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
+                HANDRECEIPT_IMMUDB_ENABLED=false \
+                HANDRECEIPT_SERVER_ENVIRONMENT=development \
+                HANDRECEIPT_STORAGE_TYPE=azure_blob \
+                HANDRECEIPT_STORAGE_ACCOUNT_NAME=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                HANDRECEIPT_STORAGE_CONTAINER_NAME=documents \
+                HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
+                HANDRECEIPT_MINIO_ENABLED=false \
+                HANDRECEIPT_CONFIG_NAME=config.azure \
+              --secrets \
+                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net"
           else
             echo "🚀 Creating new Worker..."
             az containerapp create \
@@ -429,19 +466,24 @@ jobs:
               --cpu 0.5 \
               --memory 1Gi \
               --registry-server $REGISTRY_URL \
+              --secrets \
+                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net" \
               --env-vars \
-                DATABASE_HOST="$POSTGRES_FQDN" \
-                DATABASE_USER=hradmin \
-                DATABASE_NAME=handreceipt \
-                DATABASE_PORT=5432 \
-                DATABASE_SSLMODE=require \
-                IMMUDB_HOST="$IMMUDB_URL" \
-                IMMUDB_PORT=3322 \
-                IMMUDB_USERNAME=immudb \
-                IMMUDB_PASSWORD=immudb \
-                IMMUDB_DATABASE=defaultdb \
-                AZURE_STORAGE_ACCOUNT=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
-                ENVIRONMENT=${{ env.AZURE_ENVIRONMENT }}
+                HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
+                HANDRECEIPT_DATABASE_USER=hradmin \
+                HANDRECEIPT_DATABASE_NAME=handreceipt \
+                HANDRECEIPT_DATABASE_PORT=5432 \
+                HANDRECEIPT_DATABASE_SSL_MODE=require \
+                HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
+                HANDRECEIPT_IMMUDB_ENABLED=false \
+                HANDRECEIPT_SERVER_ENVIRONMENT=development \
+                HANDRECEIPT_STORAGE_TYPE=azure_blob \
+                HANDRECEIPT_STORAGE_ACCOUNT_NAME=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+                HANDRECEIPT_STORAGE_CONTAINER_NAME=documents \
+                HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
+                HANDRECEIPT_MINIO_ENABLED=false \
+                HANDRECEIPT_CONFIG_NAME=config.azure
           fi
 
   health-check:

@@ -3,7 +3,7 @@
 
 # Server configuration
 server:
-  environment: "development"  # Changed from production to bypass ImmuDB requirement
+  environment: "production"
   port: "8080"
 
 # Database configuration - Use environment variables
@@ -24,11 +24,14 @@ storage:
 minio:
   enabled: false
 
-# Disable ImmuDB temporarily (until we fix the connection)
+# Enable ImmuDB for immutable audit trail
 immudb:
-  enabled: false
-  host: ""
-  port: 0
+  enabled: true
+  host: "${HANDRECEIPT_IMMUDB_HOST}"
+  port: 3322
+  username: "immudb"
+  password: "${HANDRECEIPT_IMMUDB_PASSWORD}"
+  database: "defaultdb"
 
 # Security - Azure-specific CORS
 security:
