@@ -55,8 +55,8 @@ struct DashboardView: View {
                 )
             } else {
                 ScrollView {
-                    VStack(spacing: 48) {
-                        // Hero Section with geometric pattern
+                    VStack(spacing: 24) {
+                        // Hero Section
                         heroSection
                         
                         // Main content
@@ -127,24 +127,16 @@ struct DashboardView: View {
             Divider()
                 .background(AppColors.divider)
             
-            // Welcome section with geometric pattern
-            ZStack {
-                GeometricPatternView()
-                    .frame(height: 200)
-                    .opacity(0.3)
-                
-                VStack(spacing: 16) {
-                    Text(getWelcomeMessage())
-                        .font(AppFonts.serifHero)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Text("Property Management System")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                }
+            // Welcome section
+            Text(getWelcomeMessage())
+                .font(AppFonts.serifHero)
+                .foregroundColor(AppColors.primaryText)
+                .multilineTextAlignment(.leading)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
-            }
-            .frame(height: 200)
+                .padding(.vertical, 20)
         }
     }
     
