@@ -55,7 +55,7 @@ struct AuthenticatedTabView: View {
                     .transition(.opacity)
                 
             case 3:
-                SettingsView()
+                ProfileView()
                     .transition(.opacity)
                 
             default:
