@@ -6,13 +6,13 @@ server:
   environment: "production"
   port: "8080"
 
-# Database configuration - Use environment variables
+# Database configuration - Will use environment variables
 database:
-  host: "${HANDRECEIPT_DATABASE_HOST}"
+  host: ""  # Uses HANDRECEIPT_DATABASE_HOST env var
   port: 5432
-  user: "${HANDRECEIPT_DATABASE_USER}"
-  password: "${HANDRECEIPT_DATABASE_PASSWORD}"
-  name: "${HANDRECEIPT_DATABASE_NAME}"
+  user: ""  # Uses HANDRECEIPT_DATABASE_USER env var
+  password: ""  # Uses HANDRECEIPT_DATABASE_PASSWORD env var
+  name: ""  # Uses HANDRECEIPT_DATABASE_NAME env var
   ssl_mode: "require"
 
 # Storage Configuration - Use Azure Blob instead of MinIO
@@ -27,10 +27,10 @@ minio:
 # Enable ImmuDB for immutable audit trail
 immudb:
   enabled: true
-  host: "${HANDRECEIPT_IMMUDB_HOST}"
+  host: ""  # Uses HANDRECEIPT_IMMUDB_HOST env var
   port: 3322
   username: "immudb"
-  password: "${HANDRECEIPT_IMMUDB_PASSWORD}"
+  password: ""  # Uses HANDRECEIPT_IMMUDB_PASSWORD env var
   database: "defaultdb"
 
 # Security - Azure-specific CORS
