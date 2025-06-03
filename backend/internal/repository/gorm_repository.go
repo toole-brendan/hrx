@@ -57,6 +57,12 @@ func (r *gormRepository) GetAllUsers() ([]domain.User, error) {
 	return users, err
 }
 
+// UpdateUser updates an existing user in the database.
+func (r *gormRepository) UpdateUser(user *domain.User) error {
+	// Use Save to update all fields, including zero values
+	return r.db.Save(user).Error
+}
+
 // --- Property Operations ---
 
 func (r *gormRepository) CreateProperty(property *domain.Property) error {
