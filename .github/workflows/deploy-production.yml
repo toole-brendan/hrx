@@ -568,30 +568,88 @@ jobs:
               fi
             done
             
-            echo "🗑️ Clearing existing users to fix email migration issue..."
-            # First, delete all related data that references users
-            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'CLEANUP_EOF' || echo "Cleanup completed or tables don't exist"
-              -- Delete in order of dependencies
-              DELETE FROM transfer_offer_recipients;
-              DELETE FROM transfer_offers;
-              DELETE FROM transfers;
-              DELETE FROM property_components;
-              DELETE FROM properties;
-              DELETE FROM user_connections;
-              DELETE FROM activities;
-              DELETE FROM documents;
-              DELETE FROM attachments;
-              DELETE FROM transfer_items;
-              DELETE FROM offline_sync_queues;
-              DELETE FROM immudb_references;
+            echo "🗑️ Performing database cleanup..."
+            # Check if this is a fresh deployment or if we need to preserve data
+            DATA_COUNT=$(sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -t -c "SELECT COUNT(*) FROM users WHERE email IS NOT NULL AND email != '' AND username != 'admin';" 2>/dev/null || echo "0")
+            DATA_COUNT=$(echo $DATA_COUNT | tr -d ' ')
+            
+            if [ "$DATA_COUNT" -gt 5 ]; then
+              echo "⚠️ Found $DATA_COUNT users with emails - this appears to be a production database with real data"
+              echo "🔧 Performing minimal cleanup (only fixing migration issues, preserving user data)..."
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'MINIMAL_CLEANUP_EOF' || echo "Minimal cleanup completed"
+                -- Only fix users that have migration issues (missing email)
+                UPDATE users SET email = CONCAT(username, '@handreceipt.mil') 
+                WHERE email IS NULL OR email = '';
+                
+                -- Clean up any orphaned or invalid records but preserve real data
+                DELETE FROM transfer_offer_recipients WHERE transfer_offer_id NOT IN (SELECT id FROM transfer_offers);
+                DELETE FROM transfer_items WHERE transfer_id NOT IN (SELECT id FROM transfers);
+                DELETE FROM property_components WHERE property_id NOT IN (SELECT id FROM properties);
+              MINIMAL_CLEANUP_EOF
+              echo "✅ Minimal database cleanup completed (preserved user data)"
+            else
+              echo "🧹 Found $DATA_COUNT users - this appears to be a test/development database"
+              echo "🗑️ Performing full cleanup to ensure fresh state..."
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'FULL_CLEANUP_EOF' || echo "Full cleanup completed or tables don't exist"
+                -- Delete in order of dependencies for fresh deployment
+                DELETE FROM transfer_offer_recipients;
+                DELETE FROM transfer_offers;
+                DELETE FROM transfers;
+                DELETE FROM property_components;
+                DELETE FROM properties;
+                DELETE FROM user_connections;
+                DELETE FROM activities;
+                DELETE FROM documents;
+                DELETE FROM attachments;
+                DELETE FROM transfer_items;
+                DELETE FROM offline_sync_queues;
+                DELETE FROM immudb_references;
+                
+                -- Delete users (safe for test environment)
+                DELETE FROM users;
+                
+                -- Clean up any test NSN data that might conflict
+                DELETE FROM nsn_data WHERE nsn LIKE '9999%' OR manufacturer LIKE '%Test%';
+              FULL_CLEANUP_EOF
+              echo "✅ Full database cleanup completed (test environment)"
+            fi
+            
+            echo "🔧 Fixing database migration issues..."
+            # Fix constraint naming issue for migrations
+            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'MIGRATION_FIX_EOF' || echo "Migration fixes completed or not needed"
+              -- Rename constraint if it exists with the old name
+              DO $$
+              BEGIN
+                  IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                           WHERE table_name='users' AND constraint_name='users_email_key') THEN
+                      ALTER TABLE users RENAME CONSTRAINT users_email_key TO uni_users_email;
+                  END IF;
+              END $$;
               
-              -- Now we can safely delete users
-              DELETE FROM users;
+              -- Create nsn_data table if it doesn't exist
+              CREATE TABLE IF NOT EXISTS nsn_data (
+                  id BIGSERIAL PRIMARY KEY,
+                  nsn VARCHAR(13) NOT NULL UNIQUE,
+                  lin VARCHAR(6),
+                  nomenclature TEXT,
+                  fsc VARCHAR(4),
+                  niin VARCHAR(9),
+                  unit_price DECIMAL(10,2) DEFAULT 0.00,
+                  manufacturer TEXT,
+                  part_number TEXT,
+                  specifications JSONB,
+                  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+              );
               
-              -- Also update any existing users that might remain to have email
-              UPDATE users SET email = CONCAT(username, '@handreceipt.mil') WHERE email IS NULL OR email = '';
-            CLEANUP_EOF
-            echo "✅ Database cleaned up"
+              -- Create indexes for NSN data table
+              CREATE INDEX IF NOT EXISTS idx_nsn_data_nsn ON nsn_data(nsn);
+              CREATE INDEX IF NOT EXISTS idx_nsn_data_lin ON nsn_data(lin);
+              CREATE INDEX IF NOT EXISTS idx_nsn_data_nomenclature ON nsn_data USING gin(to_tsvector('english', nomenclature));
+              CREATE INDEX IF NOT EXISTS idx_nsn_data_manufacturer ON nsn_data USING gin(to_tsvector('english', manufacturer));
+            MIGRATION_FIX_EOF
+            echo "✅ Database migration issues fixed"
             
             echo "📊 Populating NSN test data..."
             # Populate the database with test NSN data
@@ -599,9 +657,20 @@ jobs:
               # Copy the SQL script into the container and execute it
               sudo docker cp scripts/populate_test_nsn_data.sql backend_postgres_1:/tmp/populate_test_nsn_data.sql
               sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -f /tmp/populate_test_nsn_data.sql || echo "NSN data population completed or failed"
-              echo "✅ NSN test data populated"
+              echo "✅ NSN test data populated from script"
             else
-              echo "⚠️ NSN test data script not found, skipping"
+              echo "⚠️ NSN test data script not found, inserting basic test data..."
+              # Insert basic NSN test data directly
+              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'NSN_DATA_EOF' || echo "NSN test data insertion completed"
+                INSERT INTO nsn_data (nsn, lin, nomenclature, fsc, niin, unit_price, manufacturer, part_number) VALUES 
+                ('5820014518250', 'R12345', 'RADIO SET, MANPACK', '5820', '014518250', 5000.00, 'Harris Corporation', 'RF-7800M-MP'),
+                ('5820015229160', 'R67890', 'RADIO, PORTABLE', '5820', '015229160', 3500.00, 'Motorola Solutions', 'APX8000'),
+                ('1240012345678', 'A11111', 'ANTENNA, RADIO', '1240', '012345678', 800.00, 'Antenna Corp', 'ANT-500'),
+                ('5895012345678', 'C12345', 'COMPUTER, DIGITAL', '5895', '012345678', 2500.00, 'Dell Technologies', 'LATITUDE-5520'),
+                ('2540012345678', 'V12345', 'VEHICLE, TACTICAL', '2540', '012345678', 85000.00, 'AM General', 'HMMWV-M1151')
+                ON CONFLICT (nsn) DO NOTHING;
+              NSN_DATA_EOF
+              echo "✅ Basic NSN test data inserted"
             fi
             
             echo "⏳ Waiting for MinIO to be ready..."

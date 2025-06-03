@@ -1597,16 +1597,6 @@ public struct NSNDetails: Codable {
     public let specifications: [String: String]?
     public let lastUpdated: Date
     
-    // Map server field names
-    private enum CodingKeys: String, CodingKey {
-        case nsn, lin, nomenclature, fsc, niin
-        case unitPrice = "unit_price"
-        case manufacturer
-        case partNumber = "part_number"
-        case specifications
-        case lastUpdated = "last_updated"
-    }
-    
     public var itemName: String {
         return nomenclature
     }
