@@ -141,6 +141,37 @@ func main() {
 		immuPassword := viper.GetString("immudb.password")
 		immuDatabase := viper.GetString("immudb.database")
 
+		// Manual fallbacks for environment variables (fix for Azure deployment)
+		if immuHost == "" {
+			immuHost = os.Getenv("HANDRECEIPT_IMMUDB_HOST")
+		}
+		if immuPort == 0 {
+			if portStr := os.Getenv("HANDRECEIPT_IMMUDB_PORT"); portStr != "" {
+				fmt.Sscan(portStr, &immuPort)
+			}
+			if immuPort == 0 {
+				immuPort = 3322 // Default port
+			}
+		}
+		if immuUsername == "" {
+			immuUsername = os.Getenv("HANDRECEIPT_IMMUDB_USERNAME")
+			if immuUsername == "" {
+				immuUsername = "immudb" // Default username
+			}
+		}
+		if immuPassword == "" {
+			immuPassword = os.Getenv("HANDRECEIPT_IMMUDB_PASSWORD")
+		}
+		if immuDatabase == "" {
+			immuDatabase = os.Getenv("HANDRECEIPT_IMMUDB_DATABASE")
+			if immuDatabase == "" {
+				immuDatabase = "defaultdb" // Default database
+			}
+		}
+
+		// Debug log the ImmuDB connection parameters
+		log.Printf("ImmuDB config: host=%s, port=%d, username=%s, database=%s", immuHost, immuPort, immuUsername, immuDatabase)
+
 		var err error
 		ledgerService, err = ledger.NewImmuDBLedgerService(immuHost, immuPort, immuUsername, immuPassword, immuDatabase)
 		if err != nil {
@@ -270,7 +301,19 @@ func setupConfig() error {
 
 	// Set environment variable prefix
 	viper.SetEnvPrefix("HANDRECEIPT")
+
+	// Set key replacer to handle dot-to-underscore conversion for environment variables
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
 	viper.AutomaticEnv() // Automatically use all environment variables
+
+	// Explicitly bind ImmuDB environment variables to config keys
+	viper.BindEnv("immudb.host", "HANDRECEIPT_IMMUDB_HOST")
+	viper.BindEnv("immudb.port", "HANDRECEIPT_IMMUDB_PORT")
+	viper.BindEnv("immudb.username", "HANDRECEIPT_IMMUDB_USERNAME")
+	viper.BindEnv("immudb.password", "HANDRECEIPT_IMMUDB_PASSWORD")
+	viper.BindEnv("immudb.database", "HANDRECEIPT_IMMUDB_DATABASE")
+	viper.BindEnv("immudb.enabled", "HANDRECEIPT_IMMUDB_ENABLED")
 
 	// Read configuration
 	if err := viper.ReadInConfig(); err != nil {

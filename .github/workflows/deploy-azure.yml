@@ -361,7 +361,7 @@ jobs:
                 HANDRECEIPT_DATABASE_SSL_MODE=require \
                 HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
                 HANDRECEIPT_IMMUDB_ENABLED=true \
-                HANDRECEIPT_IMMUDB_HOST="$IMMUDB_URL" \
+                HANDRECEIPT_IMMUDB_HOST="immudb" \
                 HANDRECEIPT_IMMUDB_PORT=3322 \
                 HANDRECEIPT_IMMUDB_USERNAME=immudb \
                 HANDRECEIPT_IMMUDB_PASSWORD=secretref:immudb-password \
@@ -407,7 +407,7 @@ jobs:
                 HANDRECEIPT_DATABASE_SSL_MODE=require \
                 HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
                 HANDRECEIPT_IMMUDB_ENABLED=true \
-                HANDRECEIPT_IMMUDB_HOST="$IMMUDB_URL" \
+                HANDRECEIPT_IMMUDB_HOST="immudb" \
                 HANDRECEIPT_IMMUDB_PORT=3322 \
                 HANDRECEIPT_IMMUDB_USERNAME=immudb \
                 HANDRECEIPT_IMMUDB_PASSWORD=secretref:immudb-password \
