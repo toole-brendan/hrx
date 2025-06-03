@@ -166,6 +166,8 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 		{
 			users.GET("", userHandler.GetAllUsers)
 			users.GET("/:id", userHandler.GetUserByID)
+			users.PATCH("/:id", userHandler.UpdateUserProfile)
+			users.POST("/:id/password", userHandler.ChangePassword)
 			// POST /api/users from Node is handled by POST /api/auth/register
 
 			// User connections/friends routes

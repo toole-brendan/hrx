@@ -57,6 +57,8 @@ public protocol APIServiceProtocol {
     // --- User Functions ---
     func fetchUsers(searchQuery: String?) async throws -> [UserSummary] // Expect UserSummary for selection
     func getUserById(_ userId: Int) async throws -> UserSummary
+    func updateUserProfile(userId: Int, profileData: [String: Any]) async throws -> LoginResponse.User
+    func changePassword(userId: Int, currentPassword: String, newPassword: String) async throws
 
     // --- User Connection Functions ---
     func getConnections() async throws -> [UserConnection]
@@ -1497,6 +1499,53 @@ public class APIService: APIServiceProtocol {
         debugPrint("Successfully sent maintenance form")
         return response
     }
+
+    // --- User Profile Functions ---
+    
+    public func updateUserProfile(userId: Int, profileData: [String: Any]) async throws -> LoginResponse.User {
+        debugPrint("Updating profile for user: \(userId)")
+        let endpoint = baseURL.appendingPathComponent("/api/users/\(userId)")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: profileData)
+            debugPrint("Successfully encoded profile update data")
+        } catch {
+            debugPrint("ERROR: Failed to encode profile data: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let response = try await performRequest(request: request) as UpdateProfileResponse
+        debugPrint("Successfully updated profile for user: \(userId)")
+        return response.user
+    }
+    
+    public func changePassword(userId: Int, currentPassword: String, newPassword: String) async throws {
+        debugPrint("Changing password for user: \(userId)")
+        let endpoint = baseURL.appendingPathComponent("/api/users/\(userId)/password")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let passwordChangeData = [
+            "current_password": currentPassword,
+            "new_password": newPassword,
+            "confirm_password": newPassword
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: passwordChangeData)
+            debugPrint("Successfully encoded password change data")
+        } catch {
+            debugPrint("ERROR: Failed to encode password change data: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let _: EmptyResponse = try await performRequest(request: request)
+        debugPrint("Successfully changed password for user: \(userId)")
+    }
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)
@@ -1601,6 +1650,11 @@ public struct ConnectionsResponse: Decodable {
 
 public struct UsersResponse: Decodable {
     public let users: [UserSummary]
+}
+
+public struct UpdateProfileResponse: Decodable {
+    public let message: String
+    public let user: LoginResponse.User
 }
 
 // Component association request/response models

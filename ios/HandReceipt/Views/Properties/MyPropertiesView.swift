@@ -263,20 +263,6 @@ struct MyPropertiesView: View {
                                     .stroke(AppColors.border, lineWidth: 1)
                             )
                     }
-                    
-                    // Scan button
-                    Button(action: { showingDA2062Scan = true }) {
-                        Image(systemName: "doc.text.viewfinder")
-                            .foregroundColor(AppColors.accent)
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 44, height: 44)
-                            .background(AppColors.secondaryBackground)
-                            .cornerRadius(4)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .stroke(AppColors.border, lineWidth: 1)
-                            )
-                    }
                 }
                 .padding(.horizontal, 24)
                 

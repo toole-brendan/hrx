@@ -4,7 +4,6 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
     @ObservedObject private var documentService = DocumentService.shared
-    @State private var showingSettings = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -12,12 +11,7 @@ struct ProfileView: View {
             MinimalNavigationBar(
                 title: "PROFILE",
                 titleStyle: .mono,
-                showBackButton: false,
-                trailingItems: [
-                    MinimalNavigationBar.NavItem(icon: "gearshape", style: .icon) {
-                        showingSettings = true
-                    }
-                ]
+                showBackButton: false
             )
             
             ScrollView {
@@ -91,9 +85,7 @@ struct ProfileView: View {
                             
                             Divider().background(AppColors.border)
                             
-                            Button(action: {
-                                // TODO: Implement edit profile functionality
-                            }) {
+                            NavigationLink(destination: EditProfileView()) {
                                 ProfileActionRow(
                                     label: "Edit Profile",
                                     icon: "person.badge.plus",
@@ -114,19 +106,6 @@ struct ProfileView: View {
                                 )
                             }
                             .buttonStyle(PlainButtonStyle())
-                            
-                            Divider().background(AppColors.border)
-                            
-                            Button(action: {
-                                // TODO: Implement view activity functionality
-                            }) {
-                                ProfileActionRow(
-                                    label: "Activity History",
-                                    icon: "clock.arrow.circlepath",
-                                    description: "View your recent activity"
-                                )
-                            }
-                            .buttonStyle(PlainButtonStyle())
                         }
                         .modernCard()
                         .padding(.horizontal, 24)
@@ -138,9 +117,7 @@ struct ProfileView: View {
                             .padding(.horizontal, 24)
                         
                         VStack(spacing: 0) {
-                            Button(action: {
-                                // TODO: Implement change password functionality
-                            }) {
+                            NavigationLink(destination: ChangePasswordView()) {
                                 ProfileActionRow(
                                     label: "Change Password",
                                     icon: "lock.rotation",
@@ -177,11 +154,6 @@ struct ProfileView: View {
         }
         .navigationTitle("")
         .navigationBarHidden(true)
-        .sheet(isPresented: $showingSettings) {
-            NavigationView {
-                SettingsView()
-            }
-        }
     }
 }
 

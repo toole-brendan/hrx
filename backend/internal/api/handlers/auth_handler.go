@@ -78,17 +78,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Convert domain.User to models.User for JWT service
-	// Since domain.User is incomplete, we'll create a minimal models.User
 	modelUser := models.User{
 		ID:           domainUser.ID,
 		UUID:         uuid.New(), // Generate new UUID since domain.User doesn't have it
 		Username:     domainUser.Username,
-		Email:        domainUser.Username + "@handreceipt.mil", // Default email since domain.User doesn't have it
+		Email:        domainUser.Email,
 		PasswordHash: domainUser.Password,
 		FirstName:    domainUser.Name, // Use Name as FirstName
 		LastName:     "",              // Empty since we don't have separate last name
 		Rank:         domainUser.Rank,
-		Unit:         "",                      // Empty since domain.User doesn't have it
+		Unit:         domainUser.Unit,
 		Role:         models.UserRole("user"), // Default role
 		Status:       models.StatusActive,     // Default status
 		CreatedAt:    domainUser.CreatedAt,
@@ -109,11 +108,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			ID:        domainUser.ID,
 			UUID:      modelUser.UUID,
 			Username:  domainUser.Username,
-			Email:     modelUser.Email,
+			Email:     domainUser.Email,
 			FirstName: domainUser.Name,
 			LastName:  "",
 			Rank:      domainUser.Rank,
-			Unit:      "",
+			Unit:      domainUser.Unit,
 			Role:      modelUser.Role,
 			Status:    modelUser.Status,
 		},
@@ -156,12 +155,12 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		ID:           domainUser.ID,
 		UUID:         uuid.New(),
 		Username:     domainUser.Username,
-		Email:        domainUser.Username + "@handreceipt.mil",
+		Email:        domainUser.Email,
 		PasswordHash: domainUser.Password,
 		FirstName:    domainUser.Name,
 		LastName:     "",
 		Rank:         domainUser.Rank,
-		Unit:         "",
+		Unit:         domainUser.Unit,
 		Role:         models.UserRole("user"),
 		Status:       models.StatusActive,
 		CreatedAt:    domainUser.CreatedAt,
@@ -210,9 +209,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// Create domain.User for repository (since repository expects domain.User)
 	domainUser := &domain.User{
 		Username: createUserInput.Username,
+		Email:    createUserInput.Email,
 		Password: string(hashedPassword),
 		Name:     createUserInput.FirstName + " " + createUserInput.LastName,
 		Rank:     createUserInput.Rank,
+		Unit:     createUserInput.Unit,
 	}
 
 	if err := h.repo.CreateUser(domainUser); err != nil {
@@ -264,7 +265,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			FirstName: createUserInput.FirstName,
 			LastName:  createUserInput.LastName,
 			Rank:      createUserInput.Rank,
-			Unit:      "",
+			Unit:      createUserInput.Unit,
 			Role:      models.UserRole("user"),
 			Status:    models.StatusActive,
 			CreatedAt: domainUser.CreatedAt,
@@ -304,11 +305,11 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 			ID:        domainUser.ID,
 			UUID:      uuid.New(), // Generate since domain.User doesn't have it
 			Username:  domainUser.Username,
-			Email:     domainUser.Username + "@handreceipt.mil",
+			Email:     domainUser.Email,
 			FirstName: domainUser.Name,
 			LastName:  "",
 			Rank:      domainUser.Rank,
-			Unit:      "",
+			Unit:      domainUser.Unit,
 			Role:      models.UserRole("user"),
 			Status:    models.StatusActive,
 			CreatedAt: domainUser.CreatedAt,

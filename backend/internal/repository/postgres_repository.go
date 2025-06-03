@@ -54,6 +54,11 @@ func (r *PostgresRepository) GetAllUsers() ([]domain.User, error) {
 	return users, nil
 }
 
+func (r *PostgresRepository) UpdateUser(user *domain.User) error {
+	// Use Save to update all fields
+	return r.db.Save(user).Error
+}
+
 // Property operations
 func (r *PostgresRepository) CreateProperty(property *domain.Property) error {
 	return r.db.Create(property).Error

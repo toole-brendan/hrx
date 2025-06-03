@@ -7,7 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
+	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UserHandler handles user-related API requests
@@ -253,4 +255,181 @@ func (h *UserHandler) UpdateConnectionStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, connection)
+}
+
+// UpdateUserProfile godoc
+// @Summary Update user profile
+// @Description Update the authenticated user's profile information
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path uint true "User ID"
+// @Param request body models.UpdateUserRequest true "Profile update data"
+// @Success 200 {object} models.UserDTO "Updated user profile"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 403 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Failed to update profile"
+// @Router /users/{id} [patch]
+// @Security BearerAuth
+func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
+	userIDParam := c.Param("id")
+	currentUserID := getUserIDFromSession(c)
+
+	if currentUserID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	targetUserID, err := strconv.ParseUint(userIDParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Users can only update their own profile (unless admin - TODO: implement admin check)
+	if currentUserID != uint(targetUserID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Can only update your own profile"})
+		return
+	}
+
+	var updateReq models.UpdateUserRequest
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+	// Get the current user from database
+	user, err := h.repo.GetUserByID(currentUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+		return
+	}
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Update allowed fields
+	if updateReq.Email != nil {
+		user.Email = *updateReq.Email
+	}
+	if updateReq.FirstName != nil {
+		// Domain User has "Name" field, we'll update it with first name
+		if updateReq.LastName != nil {
+			user.Name = *updateReq.FirstName + " " + *updateReq.LastName
+		} else {
+			user.Name = *updateReq.FirstName
+		}
+	}
+	if updateReq.Rank != nil {
+		user.Rank = *updateReq.Rank
+	}
+	if updateReq.Unit != nil {
+		user.Unit = *updateReq.Unit
+	}
+
+	// Save changes to database
+	if err := h.repo.UpdateUser(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	// Return updated user data
+	response := models.UserDTO{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.Name, // Since domain.User only has Name
+		LastName:  "",
+		Rank:      user.Rank,
+		Unit:      user.Unit,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile updated successfully",
+		"user":    response,
+	})
+}
+
+// ChangePassword godoc
+// @Summary Change user password
+// @Description Change the authenticated user's password
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path uint true "User ID"
+// @Param request body models.ChangePasswordRequest true "Password change data"
+// @Success 200 {object} map[string]string "Password updated successfully"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Current password incorrect"
+// @Failure 403 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Failed to update password"
+// @Router /users/{id}/password [post]
+// @Security BearerAuth
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	userIDParam := c.Param("id")
+	currentUserID := getUserIDFromSession(c)
+
+	if currentUserID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	targetUserID, err := strconv.ParseUint(userIDParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Users can only change their own password (unless admin - TODO: implement admin check)
+	if currentUserID != uint(targetUserID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Can only change your own password"})
+		return
+	}
+
+	var changePasswordReq models.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&changePasswordReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+	// Get the current user from database
+	user, err := h.repo.GetUserByID(currentUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+		return
+	}
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Verify current password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(changePasswordReq.CurrentPassword))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
+		return
+	}
+
+	// Hash the new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(changePasswordReq.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to secure new password"})
+		return
+	}
+
+	// Update password in database
+	user.Password = string(hashedPassword)
+	if err := h.repo.UpdateUser(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	// TODO: Invalidate other sessions/tokens for this user for security
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }

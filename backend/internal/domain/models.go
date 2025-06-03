@@ -8,6 +8,7 @@ import (
 type User struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
 	Username  string    `json:"username" gorm:"uniqueIndex;not null"`
+	Email     string    `json:"email" gorm:"uniqueIndex;not null"`
 	Password  string    `json:"-" gorm:"not null"` // Password is omitted from JSON responses
 	Name      string    `json:"name" gorm:"not null"`
 	Rank      string    `json:"rank" gorm:"not null"`

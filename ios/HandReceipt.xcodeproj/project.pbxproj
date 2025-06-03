@@ -75,6 +75,8 @@
 		BF4A1C932DEF34C20066ADD9 /* PropertyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C802DEF34C20066ADD9 /* PropertyDetailView.swift */; };
 		BF4A1C942DEF34C20066ADD9 /* SettingsRowViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C862DEF34C20066ADD9 /* SettingsRowViews.swift */; };
 		BF4A1C952DEF34C20066ADD9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C792DEF34C20066ADD9 /* DashboardView.swift */; };
+		BF4A1C982DEF52C50066ADD9 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C972DEF52C50066ADD9 /* EditProfileView.swift */; };
+		BF4A1C992DEF52C50066ADD9 /* ChangePasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C962DEF52C50066ADD9 /* ChangePasswordView.swift */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
 		BFA128092DEA22E700C12800 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */; };
@@ -169,6 +171,8 @@
 		BF4A1C862DEF34C20066ADD9 /* SettingsRowViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRowViews.swift; sourceTree = "<group>"; };
 		BF4A1C872DEF34C20066ADD9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BF4A1C892DEF34C20066ADD9 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
+		BF4A1C962DEF52C50066ADD9 /* ChangePasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangePasswordView.swift; sourceTree = "<group>"; };
+		BF4A1C972DEF52C50066ADD9 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = HandReceipt/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -286,6 +290,8 @@
 		BF4A1C7E2DEF34C20066ADD9 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C962DEF52C50066ADD9 /* ChangePasswordView.swift */,
+				BF4A1C972DEF52C50066ADD9 /* EditProfileView.swift */,
 				BF4A1C7D2DEF34C20066ADD9 /* ProfileView.swift */,
 			);
 			path = Profile;
@@ -569,6 +575,8 @@
 				BF4A1C3E2DECC7380066ADD9 /* VisionDocumentScanner.swift in Sources */,
 				BF4A1C3F2DECC7380066ADD9 /* DA2062ScanView.swift in Sources */,
 				BF4A1C402DECC7380066ADD9 /* DA2062ReviewSheet.swift in Sources */,
+				BF4A1C982DEF52C50066ADD9 /* EditProfileView.swift in Sources */,
+				BF4A1C992DEF52C50066ADD9 /* ChangePasswordView.swift in Sources */,
 				DE3312936DE375DAEC9A4552 /* UserSelectionView.swift in Sources */,
 				9CAA7907B48AF7D46F77FB02 /* UserSelectionViewModel.swift in Sources */,
 			);
