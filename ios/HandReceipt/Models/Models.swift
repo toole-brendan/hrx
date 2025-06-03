@@ -55,41 +55,59 @@ public struct Transfer: Codable, Identifiable, Hashable {
     public let createdAt: Date?
     public let updatedAt: Date?
     
-    // Relationship fields - excluded from Codable to avoid infinite size
-    public let fromUser: UserSummary? // Optionally populated
-    public let toUser: UserSummary? // Optionally populated
-    
     enum CodingKeys: String, CodingKey {
         case id, propertyId, propertySerialNumber, propertyName
         case fromUserId, toUserId, status, requestDate, resolvedDate
         case notes, createdAt, updatedAt
-        // Note: fromUser and toUser are excluded from coding
     }
     
     // Computed property for status enum
     public var transferStatus: TransferStatus {
         return TransferStatus(rawValue: status) ?? TransferStatus(rawValue: status.uppercased()) ?? .UNKNOWN
     }
+}
+
+// MARK: - Transfer Relationships Extension
+// Handle user relationships through extensions to avoid circular references
+
+extension Transfer {
+    // Static storage for relationship data to avoid infinite size issues
+    private static var relationshipStorage: [Int: TransferRelationships] = [:]
     
-    // Add memberwise initializer for direct creation (e.g., in mocks)
-    public init(id: Int, propertyId: Int, propertySerialNumber: String?, propertyName: String?, fromUserId: Int, toUserId: Int, status: String, requestDate: Date, resolvedDate: Date?, notes: String?, createdAt: Date? = nil, updatedAt: Date? = nil, fromUser: UserSummary? = nil, toUser: UserSummary? = nil) {
-        self.id = id
-        self.propertyId = propertyId
-        self.propertySerialNumber = propertySerialNumber
-        self.propertyName = propertyName
-        self.fromUserId = fromUserId
-        self.toUserId = toUserId
-        self.status = status
-        self.requestDate = requestDate
-        self.resolvedDate = resolvedDate
-        self.notes = notes
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-        self.fromUser = fromUser
-        self.toUser = toUser
+    private struct TransferRelationships {
+        var fromUserData: UserSummary?
+        var toUserData: UserSummary?
     }
     
-    // Remove custom decoder since we're matching the API fields now
+    // Computed properties for accessing relationship data
+    public var fromUser: UserSummary? {
+        get { Transfer.relationshipStorage[id]?.fromUserData }
+        set { 
+            if Transfer.relationshipStorage[id] == nil {
+                Transfer.relationshipStorage[id] = TransferRelationships()
+            }
+            Transfer.relationshipStorage[id]?.fromUserData = newValue
+        }
+    }
+    
+    public var toUser: UserSummary? {
+        get { Transfer.relationshipStorage[id]?.toUserData }
+        set { 
+            if Transfer.relationshipStorage[id] == nil {
+                Transfer.relationshipStorage[id] = TransferRelationships()
+            }
+            Transfer.relationshipStorage[id]?.toUserData = newValue
+        }
+    }
+    
+    // Helper methods for managing relationship data
+    public static func clearRelationshipData(for transferId: Int) {
+        relationshipStorage.removeValue(forKey: transferId)
+    }
+    
+    public static func clearAllRelationshipData() {
+        relationshipStorage.removeAll()
+    }
 }
 
 // Model for initiating a transfer request

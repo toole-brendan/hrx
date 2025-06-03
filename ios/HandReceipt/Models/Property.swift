@@ -40,10 +40,6 @@ public struct Property: Identifiable, Codable {
     public let isAttachable: Bool?
     public let attachmentPoints: [String]?
     public let compatibleWith: [String]?
-    
-    // Component relationships - excluded from Codable to avoid infinite size
-    public let attachedComponents: [PropertyComponent]?
-    public let attachedTo: PropertyComponent?
 
     enum CodingKeys: String, CodingKey {
         case id, serialNumber, nsn, lin, name, description, manufacturer, imageUrl
@@ -52,7 +48,6 @@ public struct Property: Identifiable, Codable {
         case propertyModelId, lastVerifiedAt, lastMaintenanceAt, createdAt, updatedAt
         case sourceType, importMetadata, verified, verifiedAt
         case isAttachable, attachmentPoints, compatibleWith
-        // Note: attachedComponents and attachedTo are excluded from coding
     }
 
     // Add other relevant fields: condition, value, calibration_due_date, etc.
@@ -86,17 +81,6 @@ public struct Property: Identifiable, Codable {
     // Component-related computed properties
     var canHaveComponents: Bool {
         return isAttachable == true && !(attachmentPoints?.isEmpty ?? true)
-    }
-    
-    var isComponent: Bool {
-        return attachedTo != nil
-    }
-    
-    var availablePositions: [String] {
-        guard canHaveComponents else { return [] }
-        
-        let occupiedPositions = Set(attachedComponents?.compactMap { $0.position } ?? [])
-        return attachmentPoints?.filter { !occupiedPositions.contains($0) } ?? []
     }
     
     func isCompatibleWith(_ parent: Property) -> Bool {
@@ -140,9 +124,7 @@ public struct Property: Identifiable, Codable {
         verifiedAt: Date(),
         isAttachable: true,
         attachmentPoints: ["rail_top", "rail_side", "barrel", "grip", "stock"],
-        compatibleWith: nil,
-        attachedComponents: [PropertyComponent.example],
-        attachedTo: nil
+        compatibleWith: nil
     )
 }
 
@@ -224,46 +206,9 @@ public struct PropertyComponent: Identifiable, Codable {
     public let createdAt: Date
     public let updatedAt: Date
     
-    // Relationships - excluded from Codable to avoid infinite size
-    public let parentProperty: Property?
-    public let componentProperty: Property?
-    public let attachedByUser: User?
-    
     enum CodingKeys: String, CodingKey {
         case id, parentPropertyId, componentPropertyId, attachedAt, attachedByUserId
         case notes, attachmentType, position, createdAt, updatedAt
-        // Note: parentProperty, componentProperty, and attachedByUser are excluded from coding
-    }
-    
-    // Custom initializer for example data
-    init(
-        id: Int,
-        parentPropertyId: Int,
-        componentPropertyId: Int,
-        attachedAt: Date = Date(),
-        attachedByUserId: Int,
-        notes: String? = nil,
-        attachmentType: String = "field",
-        position: String? = nil,
-        createdAt: Date = Date(),
-        updatedAt: Date = Date(),
-        parentProperty: Property? = nil,
-        componentProperty: Property? = nil,
-        attachedByUser: User? = nil
-    ) {
-        self.id = id
-        self.parentPropertyId = parentPropertyId
-        self.componentPropertyId = componentPropertyId
-        self.attachedAt = attachedAt
-        self.attachedByUserId = attachedByUserId
-        self.notes = notes
-        self.attachmentType = attachmentType
-        self.position = position
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-        self.parentProperty = parentProperty
-        self.componentProperty = componentProperty
-        self.attachedByUser = attachedByUser
     }
     
     // Example for previews
@@ -271,8 +216,83 @@ public struct PropertyComponent: Identifiable, Codable {
         id: 1,
         parentPropertyId: 999,
         componentPropertyId: 1001,
+        attachedAt: Date(),
         attachedByUserId: 101,
         notes: "Attached for training exercise",
-        position: "rail_top"
+        attachmentType: "field",
+        position: "rail_top",
+        createdAt: Date(),
+        updatedAt: Date()
     )
+}
+
+// MARK: - Property Relationships Extension
+// Handle component relationships through extensions to avoid circular references
+
+extension Property {
+    // Static storage for relationship data to avoid infinite size issues
+    private static var relationshipStorage: [Int: PropertyRelationships] = [:]
+    
+    private struct PropertyRelationships {
+        var attachedComponentData: [ComponentSummary] = []
+        var attachedToData: ComponentSummary?
+    }
+    
+    // Simplified component summary to avoid circular references
+    public struct ComponentSummary {
+        public let id: Int
+        public let parentPropertyId: Int
+        public let componentPropertyId: Int
+        public let attachmentType: String
+        public let position: String?
+        public let notes: String?
+        public let attachedAt: Date
+        
+        // Component property summary
+        public let componentName: String?
+        public let componentSerialNumber: String?
+        public let componentNSN: String?
+    }
+    
+    // Computed properties for accessing relationship data
+    public var attachedComponents: [ComponentSummary] {
+        get { Property.relationshipStorage[id]?.attachedComponentData ?? [] }
+        set { 
+            if Property.relationshipStorage[id] == nil {
+                Property.relationshipStorage[id] = PropertyRelationships()
+            }
+            Property.relationshipStorage[id]?.attachedComponentData = newValue
+        }
+    }
+    
+    public var attachedTo: ComponentSummary? {
+        get { Property.relationshipStorage[id]?.attachedToData }
+        set { 
+            if Property.relationshipStorage[id] == nil {
+                Property.relationshipStorage[id] = PropertyRelationships()
+            }
+            Property.relationshipStorage[id]?.attachedToData = newValue
+        }
+    }
+    
+    // Computed properties that were removed from the main struct
+    var isComponent: Bool {
+        return attachedTo != nil
+    }
+    
+    var availablePositions: [String] {
+        guard canHaveComponents else { return [] }
+        
+        let occupiedPositions = Set(attachedComponents.compactMap { $0.position })
+        return attachmentPoints?.filter { !occupiedPositions.contains($0) } ?? []
+    }
+    
+    // Helper methods for managing relationship data
+    public static func clearRelationshipData(for propertyId: Int) {
+        relationshipStorage.removeValue(forKey: propertyId)
+    }
+    
+    public static func clearAllRelationshipData() {
+        relationshipStorage.removeAll()
+    }
 } 

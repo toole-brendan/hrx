@@ -64,7 +64,7 @@ struct SendMaintenanceFormView: View {
             )
         }
         .sheet(isPresented: $showingPhotoPicker) {
-            ImagePicker(image: $selectedPhoto)
+                                        MaintenanceImagePicker(image: $selectedPhoto)
         }
         .task {
             await connectionService.loadConnections()
@@ -387,7 +387,7 @@ struct UserAvatarView: View {
     }
 }
 
-struct ImagePicker: UIViewControllerRepresentable {
+struct MaintenanceImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Environment(\.dismiss) private var dismiss
     
@@ -405,9 +405,9 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
     
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ImagePicker
+        let parent: MaintenanceImagePicker
         
-        init(_ parent: ImagePicker) {
+        init(_ parent: MaintenanceImagePicker) {
             self.parent = parent
         }
         

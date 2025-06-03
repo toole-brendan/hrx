@@ -777,7 +777,12 @@ extension Property {
             createdAt: Date(),
             updatedAt: Date(),
             sourceType: nil,
-            importMetadata: nil
+            importMetadata: nil,
+            verified: true,
+            verifiedAt: Date(),
+            isAttachable: true,
+            attachmentPoints: ["rail_top", "rail_side", "barrel"],
+            compatibleWith: nil
         ),
         Property(
             id: 2, 
@@ -803,7 +808,12 @@ extension Property {
             createdAt: Date(),
             updatedAt: Date(),
             sourceType: nil,
-            importMetadata: nil
+            importMetadata: nil,
+            verified: true,
+            verifiedAt: Date(),
+            isAttachable: false,
+            attachmentPoints: nil,
+            compatibleWith: ["M4", "AR-15"]
         )
     ]
 }

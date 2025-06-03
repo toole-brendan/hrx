@@ -1556,7 +1556,25 @@ public struct ComponentsResponse: Decodable {
 }
 
 public struct AttachmentResponse: Decodable {
-    public let attachment: PropertyComponent
+    public let attachment: AttachmentSummary
+}
+
+public struct AttachmentSummary: Decodable {
+    public let id: Int
+    public let parentPropertyId: Int
+    public let componentPropertyId: Int
+    public let attachedAt: Date
+    public let attachedByUserId: Int
+    public let notes: String?
+    public let attachmentType: String
+    public let position: String?
+    public let createdAt: Date
+    public let updatedAt: Date
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, parentPropertyId, componentPropertyId, attachedAt, attachedByUserId
+        case notes, attachmentType, position, createdAt, updatedAt
+    }
 }
 
 public struct AvailableComponentsResponse: Decodable {

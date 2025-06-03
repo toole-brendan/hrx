@@ -223,7 +223,7 @@ extension APIService {
         }
         
         guard httpResponse.statusCode == 200 else {
-            if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+            if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
                 throw APIError.serverError(errorData.error)
             }
             throw APIError.serverError("Failed to generate PDF")
@@ -252,7 +252,7 @@ extension APIService {
         }
         
         guard httpResponse.statusCode == 200 else {
-            if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+            if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
                 throw APIError.serverError(errorData.error)
             }
             throw APIError.serverError("Failed to send email")
@@ -281,6 +281,6 @@ extension APIService {
     }
 }
 
-struct ErrorResponse: Codable {
+struct DA2062ErrorResponse: Codable {
     let error: String
 } 
