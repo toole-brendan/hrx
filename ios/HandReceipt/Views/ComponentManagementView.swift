@@ -467,12 +467,12 @@ struct AttachComponentSheet: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            TextField("Add notes about this attachment...", text: $notes, axis: .vertical)
-                                .textFieldStyle(.plain)
+                            TextField("Add notes about this attachment...", text: $notes)
+                                .textFieldStyle(PlainTextFieldStyle())
                                 .padding(12)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(8)
-                                .lineLimit(2...4)
+                                .lineLimit(4)
                         }
                         .padding(.horizontal)
                         
