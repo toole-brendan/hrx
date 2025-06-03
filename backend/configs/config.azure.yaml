@@ -3,7 +3,17 @@
 
 # Server configuration
 server:
-  environment: "production"
+  environment: "development"  # Changed from production to bypass ImmuDB requirement
+  port: "8080"
+
+# Database configuration - Use environment variables
+database:
+  host: "${HANDRECEIPT_DATABASE_HOST}"
+  port: 5432
+  user: "${HANDRECEIPT_DATABASE_USER}"
+  password: "${HANDRECEIPT_DATABASE_PASSWORD}"
+  name: "${HANDRECEIPT_DATABASE_NAME}"
+  ssl_mode: "require"
 
 # Storage Configuration - Use Azure Blob instead of MinIO
 storage:
@@ -17,6 +27,8 @@ minio:
 # Disable ImmuDB temporarily (until we fix the connection)
 immudb:
   enabled: false
+  host: ""
+  port: 0
 
 # Security - Azure-specific CORS
 security:
