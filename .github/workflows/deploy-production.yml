@@ -569,8 +569,29 @@ jobs:
             done
             
             echo "🗑️ Clearing existing users to fix email migration issue..."
-            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "DELETE FROM users;" || echo "No users table or already empty"
-            echo "✅ Users table cleared"
+            # First, delete all related data that references users
+            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt << 'CLEANUP_EOF' || echo "Cleanup completed or tables don't exist"
+              -- Delete in order of dependencies
+              DELETE FROM transfer_offer_recipients;
+              DELETE FROM transfer_offers;
+              DELETE FROM transfers;
+              DELETE FROM property_components;
+              DELETE FROM properties;
+              DELETE FROM user_connections;
+              DELETE FROM activities;
+              DELETE FROM documents;
+              DELETE FROM attachments;
+              DELETE FROM transfer_items;
+              DELETE FROM offline_sync_queues;
+              DELETE FROM immudb_references;
+              
+              -- Now we can safely delete users
+              DELETE FROM users;
+              
+              -- Also update any existing users that might remain to have email
+              UPDATE users SET email = CONCAT(username, '@handreceipt.mil') WHERE email IS NULL OR email = '';
+            CLEANUP_EOF
+            echo "✅ Database cleaned up"
             
             echo "⏳ Waiting for MinIO to be ready..."
             for i in {1..30}; do
