@@ -80,8 +80,6 @@ public struct AppFonts {
 
 // MARK: - Minimal Button Styles
 public struct MinimalPrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -92,9 +90,7 @@ public struct MinimalPrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .background(
                 Group {
-                    if !isEnabled {
-                        AppColors.primaryText.opacity(0.3)
-                    } else if configuration.isPressed {
+                    if configuration.isPressed {
                         AppColors.primaryText.opacity(0.8)
                     } else {
                         AppColors.primaryText
@@ -145,8 +141,6 @@ public struct TextLinkButtonStyle: ButtonStyle {
 
 // Legacy button styles (updated to use minimal design)
 public struct PrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
