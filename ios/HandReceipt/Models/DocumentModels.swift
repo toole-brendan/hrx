@@ -1,5 +1,8 @@
 import Foundation
 
+// MARK: - Type Aliases
+typealias User = LoginResponse.User
+
 // MARK: - Document Models
 
 struct Document: Codable, Identifiable {
@@ -19,34 +22,47 @@ struct Document: Codable, Identifiable {
     let createdAt: Date
     let updatedAt: Date
     
-    // Relationships
-    var sender: User?
-    var recipient: User?
-    var property: Property?
+    enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case subtype
+        case title
+        case senderUserId
+        case recipientUserId
+        case propertyId
+        case formData
+        case description
+        case attachments
+        case status
+        case sentAt
+        case readAt
+        case createdAt
+        case updatedAt
+    }
+}
+
+enum DocumentStatus: String, Codable, CaseIterable {
+    case unread = "unread"
+    case read = "read"
+    case archived = "archived"
     
-    enum DocumentStatus: String, Codable, CaseIterable {
-        case unread = "unread"
-        case read = "read"
-        case archived = "archived"
-        
-        var displayName: String {
-            switch self {
-            case .unread: return "Unread"
-            case .read: return "Read"
-            case .archived: return "Archived"
-            }
+    var displayName: String {
+        switch self {
+        case .unread: return "Unread"
+        case .read: return "Read"
+        case .archived: return "Archived"
         }
     }
+}
+
+enum DocumentType: String, Codable, CaseIterable {
+    case maintenanceForm = "maintenance_form"
+    case transferForm = "transfer_form"
     
-    enum DocumentType: String, Codable, CaseIterable {
-        case maintenanceForm = "maintenance_form"
-        case transferForm = "transfer_form"
-        
-        var displayName: String {
-            switch self {
-            case .maintenanceForm: return "Maintenance Form"
-            case .transferForm: return "Transfer Form"
-            }
+    var displayName: String {
+        switch self {
+        case .maintenanceForm: return "Maintenance Form"
+        case .transferForm: return "Transfer Form"
         }
     }
 }
@@ -62,7 +78,7 @@ struct MaintenanceFormData: Codable {
     let description: String
     let faultDescription: String
     let requestDate: Date
-    let formFields: [String: Any]
+    let formFields: [String: String] // Simplified to avoid Any type issues
     
     enum FormType: String, Codable, CaseIterable {
         case da2404 = "DA2404"
@@ -96,40 +112,7 @@ struct MaintenanceFormData: Codable {
         case formFields = "form_fields"
     }
     
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        formType = try container.decode(FormType.self, forKey: .formType)
-        equipmentName = try container.decode(String.self, forKey: .equipmentName)
-        serialNumber = try container.decode(String.self, forKey: .serialNumber)
-        nsn = try container.decode(String.self, forKey: .nsn)
-        location = try container.decode(String.self, forKey: .location)
-        description = try container.decode(String.self, forKey: .description)
-        faultDescription = try container.decode(String.self, forKey: .faultDescription)
-        requestDate = try container.decode(Date.self, forKey: .requestDate)
-        
-        // Decode formFields as a dictionary of Any values
-        if let formFieldsData = try? container.decode([String: String].self, forKey: .formFields) {
-            formFields = formFieldsData
-        } else {
-            formFields = [:]
-        }
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(formType, forKey: .formType)
-        try container.encode(equipmentName, forKey: .equipmentName)
-        try container.encode(serialNumber, forKey: .serialNumber)
-        try container.encode(nsn, forKey: .nsn)
-        try container.encode(location, forKey: .location)
-        try container.encode(description, forKey: .description)
-        try container.encode(faultDescription, forKey: .faultDescription)
-        try container.encode(requestDate, forKey: .requestDate)
-        
-        // Encode formFields - simplified to just strings for now
-        let stringFields = formFields.compactMapValues { $0 as? String }
-        try container.encode(stringFields, forKey: .formFields)
-    }
+    // Manual Codable implementation removed since formFields is now [String: String]
 }
 
 // MARK: - Request/Response Models
@@ -173,6 +156,71 @@ struct SendMaintenanceFormResponse: Codable {
     let message: String
 }
 
+// MARK: - Document Relationships (Non-Codable)
+
+extension Document {
+    // These properties are added as extensions to avoid Codable issues
+    // They should be populated by the service layer after decoding
+    
+    private static var documentRelationships: [Int: DocumentRelationships] = [:]
+    
+    private struct DocumentRelationships {
+        var sender: User?
+        var recipient: User?
+        var propertyData: PropertySummary?
+    }
+    
+    // Simplified property summary to avoid circular references
+    public struct PropertySummary {
+        public let id: Int
+        public let serialNumber: String
+        public let name: String
+        public let nsn: String?
+        public let status: String?
+        public let isSensitiveItem: Bool?
+        public let location: String?
+    }
+    
+    var sender: User? {
+        get { Document.documentRelationships[id]?.sender }
+        set { 
+            if Document.documentRelationships[id] == nil {
+                Document.documentRelationships[id] = DocumentRelationships()
+            }
+            Document.documentRelationships[id]?.sender = newValue
+        }
+    }
+    
+    var recipient: User? {
+        get { Document.documentRelationships[id]?.recipient }
+        set { 
+            if Document.documentRelationships[id] == nil {
+                Document.documentRelationships[id] = DocumentRelationships()
+            }
+            Document.documentRelationships[id]?.recipient = newValue
+        }
+    }
+    
+    var property: PropertySummary? {
+        get { Document.documentRelationships[id]?.propertyData }
+        set { 
+            if Document.documentRelationships[id] == nil {
+                Document.documentRelationships[id] = DocumentRelationships()
+            }
+            Document.documentRelationships[id]?.propertyData = newValue
+        }
+    }
+    
+    // Helper methods for managing relationship data
+    public static func clearRelationshipData(for documentId: Int) {
+        documentRelationships.removeValue(forKey: documentId)
+    }
+    
+    public static func clearAllRelationshipData() {
+        documentRelationships.removeAll()
+    }
+}
+
 // MARK: - Extensions
 
 extension Document {
@@ -203,10 +251,13 @@ extension Document {
     
     var shortFormattedSentDate: String {
         let formatter = DateFormatter()
-        if Calendar.current.isToday(sentAt) {
+        let calendar = Calendar.current
+        
+        if calendar.isDate(sentAt, inSameDayAs: Date()) {
             formatter.timeStyle = .short
             return formatter.string(from: sentAt)
-        } else if Calendar.current.isYesterday(sentAt) {
+        } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()),
+                  calendar.isDate(sentAt, inSameDayAs: yesterday) {
             return "Yesterday"
         } else {
             formatter.dateFormat = "MMM d"

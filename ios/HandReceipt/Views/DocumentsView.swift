@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DocumentsView: View {
-    @StateObject private var documentService = DocumentService.shared
+    @ObservedObject private var documentService = DocumentService.shared
     @State private var selectedFilter: DocumentFilter = .all
     @State private var selectedDocument: Document?
     @State private var showingDocumentDetail = false

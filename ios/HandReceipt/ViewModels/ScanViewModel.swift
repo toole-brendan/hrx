@@ -1,19 +1,19 @@
 import Foundation
 import Combine
 
-public enum ScanState: Equatable {
+public enum ScanState: Equatable { // Note: Deliberately not Codable to avoid circular reference issues
     case scanning
     case loading
-    case success(Property)
+    case success(propertyId: Int) // Store ID instead of full Property object
     case notFound
     case error(String)
 
-    // Implement == manually since Property might not be Equatable yet
+    // Implement == manually
     public static func == (lhs: ScanState, rhs: ScanState) -> Bool {
         switch (lhs, rhs) {
         case (.scanning, .scanning): return true
         case (.loading, .loading): return true
-        case (.success(let lProp), .success(let rProp)): return lProp.id == rProp.id // Compare by ID
+        case (.success(let lId), .success(let rId)): return lId == rId
         case (.notFound, .notFound): return true
         case (.error(let lMsg), .error(let rMsg)): return lMsg == rMsg
         default: return false
@@ -35,10 +35,10 @@ public class ScanViewModel: ObservableObject {
     private var clearStateTimer: AnyCancellable? // Timer to clear success/error message
 
     // Nested enum for transfer request status
-    public enum TransferRequestState: Equatable {
+    public enum TransferRequestState: Equatable { // Note: Deliberately not Codable to avoid circular reference issues
         case idle
         case loading
-        case success(Transfer) // Return the created transfer record
+        case success(transferId: Int) // Store ID instead of full Transfer object
         case error(String)
         
         // Implement Equatable manually
@@ -46,7 +46,7 @@ public class ScanViewModel: ObservableObject {
             switch (lhs, rhs) {
             case (.idle, .idle): return true
             case (.loading, .loading): return true
-            case (.success(let lTransfer), .success(let rTransfer)): return lTransfer.id == rTransfer.id
+            case (.success(let lId), .success(let rId)): return lId == rId
             case (.error(let lMsg), .error(let rMsg)): return lMsg == rMsg
             default: return false
             }
@@ -91,7 +91,7 @@ public class ScanViewModel: ObservableObject {
                 guard self.scanState == .loading else { return }
                 print("ScanViewModel: Success - Found property \(property.serialNumber)")
                 self.confirmedProperty = property // Store the property
-                self.scanState = .success(property)
+                self.scanState = .success(propertyId: property.id)
             } catch let error as APIService.APIError where error == .itemNotFound {
                 guard self.scanState == .loading else { return } // Check state again
                 print("ScanViewModel: Error - Property not found for code \(code)")
@@ -129,7 +129,7 @@ public class ScanViewModel: ObservableObject {
             do {
                 let newTransfer = try await apiService.requestTransfer(propertyId: propertyToTransfer.id, targetUserId: targetUser.id)
                 print("ScanViewModel: Transfer request successful - ID \(newTransfer.id)")
-                self.transferRequestState = .success(newTransfer)
+                self.transferRequestState = .success(transferId: newTransfer.id)
                 // Schedule state reset after delay
                 self.scheduleTransferStateReset(delay: 3.0)
             } catch {

@@ -51,11 +51,20 @@ public struct Transfer: Codable, Identifiable, Hashable {
     public let status: String // Changed to String to handle lowercase status from API
     public let requestDate: Date // Changed from requestTimestamp
     public let resolvedDate: Date? // Changed from approvalTimestamp
-    public let fromUser: UserSummary? // Optionally populated
-    public let toUser: UserSummary? // Optionally populated
     public let notes: String? // Added notes property
     public let createdAt: Date?
     public let updatedAt: Date?
+    
+    // Relationship fields - excluded from Codable to avoid infinite size
+    public let fromUser: UserSummary? // Optionally populated
+    public let toUser: UserSummary? // Optionally populated
+    
+    enum CodingKeys: String, CodingKey {
+        case id, propertyId, propertySerialNumber, propertyName
+        case fromUserId, toUserId, status, requestDate, resolvedDate
+        case notes, createdAt, updatedAt
+        // Note: fromUser and toUser are excluded from coding
+    }
     
     // Computed property for status enum
     public var transferStatus: TransferStatus {
@@ -63,7 +72,7 @@ public struct Transfer: Codable, Identifiable, Hashable {
     }
     
     // Add memberwise initializer for direct creation (e.g., in mocks)
-    public init(id: Int, propertyId: Int, propertySerialNumber: String?, propertyName: String?, fromUserId: Int, toUserId: Int, status: String, requestDate: Date, resolvedDate: Date?, fromUser: UserSummary?, toUser: UserSummary?, notes: String?, createdAt: Date? = nil, updatedAt: Date? = nil) {
+    public init(id: Int, propertyId: Int, propertySerialNumber: String?, propertyName: String?, fromUserId: Int, toUserId: Int, status: String, requestDate: Date, resolvedDate: Date?, notes: String?, createdAt: Date? = nil, updatedAt: Date? = nil, fromUser: UserSummary? = nil, toUser: UserSummary? = nil) {
         self.id = id
         self.propertyId = propertyId
         self.propertySerialNumber = propertySerialNumber
@@ -73,11 +82,11 @@ public struct Transfer: Codable, Identifiable, Hashable {
         self.status = status
         self.requestDate = requestDate
         self.resolvedDate = resolvedDate
-        self.fromUser = fromUser
-        self.toUser = toUser
         self.notes = notes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.fromUser = fromUser
+        self.toUser = toUser
     }
     
     // Remove custom decoder since we're matching the API fields now

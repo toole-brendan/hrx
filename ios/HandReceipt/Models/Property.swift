@@ -4,7 +4,7 @@ import Foundation
 // likely fetched by serial number or ID.
 // Adjust properties based on your actual backend API response for the
 // /api/property/serial/:serialNumber endpoint.
-public struct Property: Identifiable, Decodable {
+public struct Property: Identifiable, Codable {
     public let id: Int // Changed from UUID
     public let serialNumber: String
     public let nsn: String? // National Stock Number - Made OPTIONAL as backend doesn't return it
@@ -41,9 +41,19 @@ public struct Property: Identifiable, Decodable {
     public let attachmentPoints: [String]?
     public let compatibleWith: [String]?
     
-    // Component relationships
+    // Component relationships - excluded from Codable to avoid infinite size
     public let attachedComponents: [PropertyComponent]?
     public let attachedTo: PropertyComponent?
+
+    enum CodingKeys: String, CodingKey {
+        case id, serialNumber, nsn, lin, name, description, manufacturer, imageUrl
+        case status, currentStatus, assignedToUserId, location, lastInventoryDate
+        case acquisitionDate, notes, maintenanceDueDate, isSensitiveItem
+        case propertyModelId, lastVerifiedAt, lastMaintenanceAt, createdAt, updatedAt
+        case sourceType, importMetadata, verified, verifiedAt
+        case isAttachable, attachmentPoints, compatibleWith
+        // Note: attachedComponents and attachedTo are excluded from coding
+    }
 
     // Add other relevant fields: condition, value, calibration_due_date, etc.
 
@@ -98,28 +108,7 @@ public struct Property: Identifiable, Decodable {
         }
     }
 
-    // Example CodingKeys if API names differ (e.g., serial_number)
-    /*
-    enum CodingKeys: String, CodingKey {
-        case id
-        case serialNumber = "serial_number"
-        case nsn
-        case lin
-        case itemName = "item_name"
-        case description
-        case manufacturer
-        case imageUrl = "image_url"
-        case status
-        case currentStatus = "current_status"
-        case assignedToUserId = "assigned_to_user_id"
-        case location
-        case lastInventoryDate = "last_inventory_date"
-        case acquisitionDate = "acquisition_date"
-        case notes
-        case maintenanceDueDate = "maintenance_due_date"
-        case isSensitiveItem = "is_sensitive_item"
-    }
-    */
+    // Duplicate CodingKeys removed to avoid compiler confusion
 
     // Provide an example for previews or testing
     static let example = Property(
@@ -223,7 +212,7 @@ struct PropertyResponse: Decodable {
 // MARK: - PropertyComponent Model
 
 // Represents an attachment relationship between properties
-public struct PropertyComponent: Identifiable, Decodable {
+public struct PropertyComponent: Identifiable, Codable {
     public let id: Int
     public let parentPropertyId: Int
     public let componentPropertyId: Int
@@ -235,10 +224,16 @@ public struct PropertyComponent: Identifiable, Decodable {
     public let createdAt: Date
     public let updatedAt: Date
     
-    // Relationships
+    // Relationships - excluded from Codable to avoid infinite size
     public let parentProperty: Property?
     public let componentProperty: Property?
     public let attachedByUser: User?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, parentPropertyId, componentPropertyId, attachedAt, attachedByUserId
+        case notes, attachmentType, position, createdAt, updatedAt
+        // Note: parentProperty, componentProperty, and attachedByUser are excluded from coding
+    }
     
     // Custom initializer for example data
     init(
