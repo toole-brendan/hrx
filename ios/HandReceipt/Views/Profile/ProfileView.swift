@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
+    @ObservedObject private var documentService = DocumentService.shared
     @State private var showingSettings = false
     
     var body: some View {
@@ -97,6 +98,19 @@ struct ProfileView: View {
                                     label: "Edit Profile",
                                     icon: "person.badge.plus",
                                     description: "Update your profile information"
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            Divider().background(AppColors.border)
+                            
+                            NavigationLink(destination: DocumentsView()) {
+                                ProfileActionRow(
+                                    label: "Documents Inbox",
+                                    icon: "tray.fill",
+                                    description: documentService.unreadCount > 0 
+                                        ? "\(documentService.unreadCount) unread documents" 
+                                        : "View received documents"
                                 )
                             }
                             .buttonStyle(PlainButtonStyle())

@@ -15,6 +15,11 @@ struct MyPropertiesView: View {
     @State private var showingSortOptions = false
     @State private var selectedSortOption: SortOption = .name
     @State private var showingSearch = false
+    @State private var showingDA2062Scan = false
+    @State private var showingAddMenu = false
+    @State private var showingDA2062Export = false
+    @State private var isSelectMode = false
+    @State private var selectedPropertiesForExport: Set<Int> = []
     
     enum PropertyFilter: String, CaseIterable {
         case all = "All"
@@ -57,7 +62,8 @@ struct MyPropertiesView: View {
                     titleStyle: .mono,
                     trailingItems: [
                         .init(icon: "magnifyingglass", action: { showingSearch = true }),
-                        .init(icon: "plus", action: { showingCreateProperty = true }),
+                        .init(icon: "plus", action: { showingAddMenu = true }),
+                        .init(icon: "doc.text.viewfinder", action: { showingDA2062Scan = true }),
                         .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
                     ]
                 )
@@ -71,7 +77,23 @@ struct MyPropertiesView: View {
                         Text("\(filteredProperties.count) items tracked")
                             .font(AppFonts.body)
                             .foregroundColor(AppColors.tertiaryText)
+                        
                         Spacer()
+                        
+                        if !isSelectMode && !filteredProperties.isEmpty {
+                            Button("Select") {
+                                isSelectMode = true
+                            }
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.accent)
+                        } else if isSelectMode {
+                            Button("Cancel") {
+                                isSelectMode = false
+                                selectedPropertiesForExport.removeAll()
+                            }
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.accent)
+                        }
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 16)
@@ -106,6 +128,31 @@ struct MyPropertiesView: View {
                     viewModel.loadProperties()
                 }
             }
+            
+            // Floating export button when items are selected
+            if isSelectMode && !selectedPropertiesForExport.isEmpty {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showingDA2062Export = true
+                        }) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Export DA 2062 (\(selectedPropertiesForExport.count))")
+                            }
+                            .padding()
+                            .background(AppColors.accent)
+                            .foregroundColor(.white)
+                            .cornerRadius(25)
+                            .shadow(radius: 8)
+                        }
+                        .padding(.trailing, 24)
+                        .padding(.bottom, 100)
+                    }
+                }
+            }
         }
         }
         .navigationTitle("")
@@ -116,6 +163,15 @@ struct MyPropertiesView: View {
                 .onDisappear {
                     viewModel.loadProperties()
                 }
+        }
+        .sheet(isPresented: $showingDA2062Scan) {
+            DA2062ScanView()
+                .onDisappear {
+                    viewModel.loadProperties()
+                }
+        }
+        .sheet(isPresented: $showingDA2062Export) {
+            DA2062ExportView()
         }
         .sheet(isPresented: $showingVerificationSheet) {
             if let property = selectedProperty {
@@ -137,6 +193,15 @@ struct MyPropertiesView: View {
                     }
                 } + [.cancel()]
             )
+        }
+        .confirmationDialog("Add Property", isPresented: $showingAddMenu) {
+            Button("Create New Property") { 
+                showingCreateProperty = true 
+            }
+            Button("Import from DA-2062") { 
+                showingDA2062Scan = true 
+            }
+            Button("Cancel", role: .cancel) { }
         }
     }
     
@@ -253,15 +318,29 @@ struct MyPropertiesView: View {
                 } else {
                     LazyVStack(spacing: 16) {
                         ForEach(filteredProperties) { property in
-                            NavigationLink(destination: PropertyDetailView(propertyId: property.id)) {
-                                MinimalPropertyCard(property: property) {
-                                    if property.needsVerification {
-                                        selectedProperty = property
-                                        showingVerificationSheet = true
+                            if isSelectMode {
+                                MinimalPropertyCard(
+                                    property: property,
+                                    isSelected: selectedPropertiesForExport.contains(property.id),
+                                    isSelectMode: true
+                                ) {
+                                    if selectedPropertiesForExport.contains(property.id) {
+                                        selectedPropertiesForExport.remove(property.id)
+                                    } else {
+                                        selectedPropertiesForExport.insert(property.id)
                                     }
                                 }
+                            } else {
+                                NavigationLink(destination: PropertyDetailView(propertyId: property.id)) {
+                                    MinimalPropertyCard(property: property) {
+                                        if property.needsVerification {
+                                            selectedProperty = property
+                                            showingVerificationSheet = true
+                                        }
+                                    }
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                     .padding(.horizontal, 24)
@@ -448,12 +527,29 @@ struct MinimalFilterChip: View {
 
 struct MinimalPropertyCard: View {
     let property: Property
+    var isSelected: Bool = false
+    var isSelectMode: Bool = false
     let onTap: (() -> Void)?
+    
+    init(property: Property, isSelected: Bool = false, isSelectMode: Bool = false, onTap: (() -> Void)? = nil) {
+        self.property = property
+        self.isSelected = isSelected
+        self.isSelectMode = isSelectMode
+        self.onTap = onTap
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header row
             HStack(alignment: .top) {
+                // Selection checkbox in select mode
+                if isSelectMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(isSelected ? AppColors.accent : AppColors.tertiaryText)
+                        .padding(.trailing, 8)
+                }
+                
                 VStack(alignment: .leading, spacing: 8) {
                     // Item name with status indicators
                     HStack(spacing: 8) {
@@ -528,11 +624,11 @@ struct MinimalPropertyCard: View {
             }
         }
         .padding(20)
-        .background(AppColors.secondaryBackground)
+        .background(isSelected ? AppColors.accent.opacity(0.1) : AppColors.secondaryBackground)
         .cornerRadius(4)
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(AppColors.border, lineWidth: 1)
+                .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: isSelected ? 2 : 1)
         )
         .contentShape(Rectangle())
         .onTapGesture {

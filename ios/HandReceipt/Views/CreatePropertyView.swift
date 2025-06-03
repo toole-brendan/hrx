@@ -289,11 +289,19 @@ struct CreatePropertyView: View {
     
     private var nsnLookupSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            FormSectionHeader(title: "NSN/LIN Lookup", isOptional: true)
+            HStack {
+                FormSectionHeader(title: "NSN/LIN Lookup", isOptional: true)
+                Spacer()
+                Text("AUTO-FILL FROM DATABASE")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.accent)
+                    .kerning(AppFonts.wideKerning)
+            }
             
             HStack(spacing: 12) {
                 TextField("NSN or LIN (optional)", text: $viewModel.nsnLinInput)
                     .textFieldStyle(CustomTextFieldStyle())
+                    .font(AppFonts.monoBody)
                     .autocapitalization(.allCharacters)
                     .disableAutocorrection(true)
                 
@@ -329,9 +337,25 @@ struct CreatePropertyView: View {
                     .transition(.opacity.combined(with: .scale))
             }
             
-            Text("Search or enter NSN/LIN to auto-populate item details")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Search or enter NSN/LIN to auto-populate item details")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.tertiaryText)
+                
+                // Visual emphasis box
+                HStack {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(AppColors.accent)
+                    Text("Tap the search icon to browse the NSN database")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.accent.opacity(0.1))
+                .cornerRadius(4)
+            }
         }
     }
     

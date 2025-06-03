@@ -4,6 +4,7 @@ import SwiftUI
 struct AuthenticatedTabView: View {
     @State private var selectedTab = 0
     @EnvironmentObject var authManager: AuthManager
+    @ObservedObject private var documentService = DocumentService.shared
     
     // Services
     private let apiService: APIServiceProtocol
@@ -25,7 +26,7 @@ struct AuthenticatedTabView: View {
                     .init(icon: "house", label: "Home", tag: 0),
                     .init(icon: "shippingbox", label: "Property", tag: 1),
                     .init(icon: "arrow.left.arrow.right", label: "Transfers", tag: 2),
-                    .init(icon: "person", label: "Profile", tag: 3)
+                    .init(icon: "person", label: "Profile", tag: 3, badge: documentService.unreadCount > 0 ? "\(documentService.unreadCount)" : nil)
                 ]
             )
         }

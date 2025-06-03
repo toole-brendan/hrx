@@ -18,6 +18,7 @@ struct PropertyDetailView: View {
     @State private var showingHistory = false
     @State private var showingMaintenanceSchedule = false
     @State private var showingOfferSheet = false
+    @State private var showingMaintenanceForm = false
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -50,6 +51,7 @@ struct PropertyDetailView: View {
             // Minimal toolbar at bottom for main actions
             MinimalToolbar(items: [
                 .init(icon: "arrow.left.arrow.right", label: "Transfer", action: { viewModel.requestTransferClicked() }),
+                .init(icon: "doc.plaintext", label: "Maintenance Form", action: { showingMaintenanceForm = true }),
                 .init(icon: "qrcode", label: "QR Code", action: { /* show QR code */ }),
                 .init(icon: "wrench", label: "Service", action: { showingMaintenanceSchedule = true })
             ])
@@ -77,8 +79,15 @@ struct PropertyDetailView: View {
                         OfferPropertyView(property: property)
                     }
                 }
+                .sheet(isPresented: $showingMaintenanceForm) {
+                    if let property = viewModel.property {
+                        SendMaintenanceFormView(property: property)
+                    }
+                }
                 .confirmationDialog("Property Actions", isPresented: $showingMenu) {
                     Button("View History") { showingHistory = true }
+                    
+                    Button("Send Maintenance Form") { showingMaintenanceForm = true }
                     
                     if viewModel.property?.needsMaintenance == true {
                         Button("Schedule Maintenance") { showingMaintenanceSchedule = true }

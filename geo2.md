@@ -1,4 +1,6 @@
-Thanks for clarifying. I’ll review your iOS module using SwiftUI and UIKit in the `hrx` repo to evaluate whether the newly added features—DA 2062 import/export, maintenance form autocomplete, document inbox, and pub log for NSN lookups—are being surfaced in the current UI. I’ll also suggest concrete UI/UX improvements to ensure these features are discoverable and integrated smoothly.
+SURFACING PLAN
+
+evaluate whether the newly added features—DA 2062 import/export, maintenance form autocomplete, document inbox, and pub log for NSN lookups—are being surfaced in the current UI. I’ll also suggest concrete UI/UX improvements to ensure these features are discoverable and integrated smoothly.
 
 I'll get back to you shortly with my findings and suggestions.
 

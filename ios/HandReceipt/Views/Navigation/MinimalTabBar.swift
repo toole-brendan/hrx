@@ -10,11 +10,13 @@ public struct MinimalTabBar: View {
         let icon: String
         let label: String
         let tag: Int
+        let badge: String?
         
-        public init(icon: String, label: String, tag: Int) {
+        public init(icon: String, label: String, tag: Int, badge: String? = nil) {
             self.icon = icon
             self.label = label
             self.tag = tag
+            self.badge = badge
         }
     }
     
@@ -51,9 +53,29 @@ public struct MinimalTabBar: View {
         var body: some View {
             Button(action: action) {
                 VStack(spacing: 4) {
-                    Image(systemName: item.icon)
-                        .font(.system(size: 22, weight: isSelected ? .regular : .light))
-                        .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
+                    ZStack {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 22, weight: isSelected ? .regular : .light))
+                            .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
+                        
+                        // Badge indicator
+                        if let badge = item.badge {
+                            VStack {
+                                HStack {
+                                    Spacer()
+                                    Text(badge)
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.red)
+                                        .clipShape(Capsule())
+                                        .offset(x: 8, y: -8)
+                                }
+                                Spacer()
+                            }
+                        }
+                    }
                     
                     Text(item.label.uppercased())
                         .font(AppFonts.caption)

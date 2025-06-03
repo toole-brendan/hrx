@@ -30,6 +30,7 @@ struct DashboardView: View {
     
     // Services
     private let apiService: APIServiceProtocol
+    @ObservedObject private var documentService = DocumentService.shared
     
     init(apiService: APIServiceProtocol = APIService(), onTabSwitch: ((Int) -> Void)? = nil) {
         self.apiService = apiService
@@ -61,6 +62,12 @@ struct DashboardView: View {
                         VStack(spacing: 40) {
                             statsOverview
                             quickActions
+                            
+                            // Documents Inbox card if there are unread documents
+                            if documentService.unreadCount > 0 {
+                                documentsInboxCard
+                            }
+                            
                             networkSection
                             activitySection
                             propertyStatusSection
@@ -453,6 +460,43 @@ struct DashboardView: View {
                 .cornerRadius(2)
             }
         }
+    }
+    
+    // MARK: - Documents Inbox Card
+    private var documentsInboxCard: some View {
+        NavigationLink(destination: DocumentsView()) {
+            HStack(spacing: 16) {
+                Image(systemName: "tray.fill")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundColor(AppColors.accent)
+                    .frame(width: 48, height: 48)
+                    .background(AppColors.accent.opacity(0.1))
+                    .cornerRadius(4)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Documents Inbox")
+                        .font(AppFonts.bodyMedium)
+                        .foregroundColor(AppColors.primaryText)
+                    Text("\(documentService.unreadCount) unread")
+                        .font(AppFonts.monoCaption)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+            .padding(20)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
     
     // MARK: - Navigation Links
