@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Settings View
 struct SettingsView: View {
-    @ObservedObject var authViewModel: AuthViewModel
+    @EnvironmentObject var authManager: AuthManager
     @State private var notificationsEnabled = true
     @State private var biometricsEnabled = false
     @State private var autoSyncEnabled = true
@@ -14,8 +14,7 @@ struct SettingsView: View {
     // Services
     private let apiService: APIServiceProtocol
     
-    init(authViewModel: AuthViewModel, apiService: APIServiceProtocol = APIService()) {
-        self.authViewModel = authViewModel
+    init(apiService: APIServiceProtocol = APIService()) {
         self.apiService = apiService
     }
     
@@ -33,7 +32,7 @@ struct SettingsView: View {
                         SectionHeader(title: "Account")
                         
                         WebAlignedCard {
-                            if let user = authViewModel.currentUser?.user {
+                            if let user = authManager.currentUser {
                                 VStack(spacing: 0) {
                                     SettingsRow(
                                         label: "Name",
@@ -207,7 +206,9 @@ struct SettingsView: View {
                     
                     // Sign Out Button
                     Button("Sign Out", role: .destructive) {
-                        authViewModel.logout()
+                        Task {
+                            await authManager.logout()
+                        }
                     }
                     .buttonStyle(.destructive)
                     .padding(.horizontal)
@@ -783,8 +784,9 @@ struct AboutView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            SettingsView(authViewModel: AuthViewModel())
+            SettingsView()
         }
+        .environmentObject(AuthManager.shared)
         .preferredColorScheme(.dark)
     }
 } 

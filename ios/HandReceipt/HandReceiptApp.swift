@@ -18,7 +18,7 @@ struct HandReceiptApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(apiService: APIService())
                 .environmentObject(authManager)
                 .task {
                     // Check auth status on app launch
@@ -63,7 +63,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         // Create the SwiftUI content view with AuthManager
         let authManager = AuthManager.shared
-        let contentView = ContentView()
+        let contentView = ContentView(apiService: APIService())
             .environmentObject(authManager)
         let hostingController = UIHostingController(rootView: contentView)
         

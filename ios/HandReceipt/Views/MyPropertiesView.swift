@@ -56,13 +56,16 @@ struct MyPropertiesView: View {
             )
             
             ScrollView {
-                VStack(spacing: 40) {
-                    // Inline header with inventory count
-                    InlinePageHeader(
-                        title: "Equipment Inventory",
-                        subtitle: "\(filteredProperties.count) items tracked",
-                        style: .standard
-                    )
+                VStack(spacing: 24) {
+                    // Just the item count, no title
+                    HStack {
+                        Text("\(filteredProperties.count) items tracked")
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.tertiaryText)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
                     
                     // Main content
                     VStack(spacing: 32) {

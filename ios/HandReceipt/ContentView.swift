@@ -78,24 +78,8 @@ struct ContentView: View {
                     debugPrint("LoginView appeared - user needs to authenticate")
                 }
             } else {
-                AuthenticatedTabView(authViewModel: AuthViewModel(
-                    currentUser: LoginResponse(
-                        accessToken: AuthManager.shared.getAccessToken(),
-                        user: authManager.currentUser ?? LoginResponse.User(
-                            id: 0,
-                            username: "unknown",
-                            rank: ""
-                        )
-                    ),
-                    logoutCallback: {
-                        debugPrint("ContentView: Received logout request")
-                        Task {
-                            await authManager.logout()
-                            debugPrint("ContentView: User logged out - authentication state reset")
-                        }
-                    }
-                ))
-                .environmentObject(authManager)
+                AuthenticatedTabView(apiService: apiService)
+                    .environmentObject(authManager)
                 .onAppear {
                     debugPrint("AuthenticatedTabView appeared - user is authenticated as \(authManager.currentUser?.username ?? "unknown")")
                 }
@@ -188,6 +172,18 @@ struct ContentView: View {
                     .font(AppFonts.captionBold)
                     .padding(6)
                     .background(AppColors.destructive) // Use theme destructive
+                    .foregroundColor(AppColors.primaryText) // Use light text
+                    .cornerRadius(6)
+                    
+                    Button("Clear Auth") {
+                        debugPrint("Clear auth button tapped")
+                        Task {
+                            await authManager.clearAllStoredCredentials()
+                        }
+                    }
+                    .font(AppFonts.captionBold)
+                    .padding(6)
+                    .background(AppColors.warning) // Use warning color
                     .foregroundColor(AppColors.primaryText) // Use light text
                     .cornerRadius(6)
                 }

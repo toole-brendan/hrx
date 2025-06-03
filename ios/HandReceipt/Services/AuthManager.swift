@@ -114,7 +114,7 @@ class AuthManager: ObservableObject {
     // Check auth status on app launch
     func checkAuthStatus() async {
         // Check if we have a valid token
-        guard let _ = getAccessToken() else {
+        guard let accessToken = getAccessToken() else {
             await MainActor.run {
                 self.isAuthenticated = false
                 self.currentUser = nil
@@ -122,7 +122,7 @@ class AuthManager: ObservableObject {
             return
         }
         
-        // If we have persisted user data, use it
+        // If we have persisted user data, use it temporarily
         if let user = loadPersistedUserData() {
             await MainActor.run {
                 self.currentUser = user
@@ -130,8 +130,33 @@ class AuthManager: ObservableObject {
             }
         }
         
-        // Note: In production, you'd verify the token with the backend here
+        // Verify the token with the backend
+        do {
+            let apiService = APIService()
+            let loginResponse = try await apiService.checkSession()
+            
+            // Token is valid, update user data
+            await MainActor.run {
+                self.currentUser = loginResponse.user
+                self.isAuthenticated = true
+            }
+            persistUser(loginResponse.user)
+            
+        } catch {
+            // Token is invalid, clear everything
+            debugPrint("Token verification failed: \(error)")
+            await logout()
+        }
     }
+    
+    // MARK: - Debug Methods
+    
+    #if DEBUG
+    func clearAllStoredCredentials() async {
+        await logout()
+        debugPrint("DEBUG: All stored credentials cleared")
+    }
+    #endif
     
     // MARK: - Persistence Methods
     

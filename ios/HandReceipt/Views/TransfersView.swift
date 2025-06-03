@@ -31,18 +31,14 @@ struct TransfersView: View {
             )
             
             ScrollView {
-                VStack(spacing: 40) {
-                    // Inline header (for context)
-                    InlinePageHeader(
-                        title: "Property Transfers",
-                        subtitle: "Manage incoming and outgoing transfers",
-                        style: .standard
-                    )
-                    
-                    // Main content
+                VStack(spacing: 24) {
+                    // Main content - no header, direct to tabs
                     VStack(spacing: 32) {
-                        // Filter tabs
-                        tabSelector
+                        // Filter tabs with reduced top spacing
+                        VStack(spacing: 0) {
+                            Color.clear.frame(height: 16)
+                            tabSelector
+                        }
                         
                         // Transfer content
                         transferMainContent
