@@ -97,11 +97,18 @@ func (h *NSNHandler) SearchNSN(c *gin.Context) {
 		}
 	}
 
+	h.logger.WithFields(logrus.Fields{
+		"query": query,
+		"limit": limit,
+	}).Info("NSN search request received")
+
 	results, err := h.service.SearchNSN(c.Request.Context(), query, limit)
 	if err != nil {
 		h.logger.WithError(err).WithField("query", query).Error("Failed to search NSN")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Search failed",
+			"error":   "Search failed",
+			"details": err.Error(),
+			"query":   query,
 		})
 		return
 	}
@@ -257,6 +264,24 @@ func (h *NSNHandler) GetCacheStats(c *gin.Context) {
 	})
 }
 
+// GetDatabaseStatus handles GET /api/nsn/database/status
+func (h *NSNHandler) GetDatabaseStatus(c *gin.Context) {
+	status, err := h.service.GetDatabaseStatus(c.Request.Context())
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to get database status")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Database status check failed",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    status,
+	})
+}
+
 // UniversalSearch handles GET /api/nsn/universal-search?q=query&limit=20
 // This searches across NSN, part numbers, and item names using publog data
 func (h *NSNHandler) UniversalSearch(c *gin.Context) {
@@ -280,11 +305,18 @@ func (h *NSNHandler) UniversalSearch(c *gin.Context) {
 		}
 	}
 
+	h.logger.WithFields(logrus.Fields{
+		"query": query,
+		"limit": limit,
+	}).Info("Universal search request received")
+
 	results, err := h.service.UniversalSearch(c.Request.Context(), query, limit)
 	if err != nil {
 		h.logger.WithError(err).WithField("query", query).Error("Failed to perform universal search")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Search failed",
+			"error":   "Search failed",
+			"details": err.Error(),
+			"query":   query,
 		})
 		return
 	}

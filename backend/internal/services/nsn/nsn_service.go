@@ -119,11 +119,29 @@ func (r *nsnRepository) BulkSave(ctx context.Context, nsnDataList []*models.NSND
 
 func (r *nsnRepository) Search(ctx context.Context, query string, limit int) ([]*models.NSNData, error) {
 	var results []*models.NSNData
+
+	// Log the search parameters
+	logrus.WithFields(logrus.Fields{
+		"query": query,
+		"limit": limit,
+	}).Debug("Repository search started")
+
 	err := r.db.WithContext(ctx).
 		Where("nsn ILIKE ? OR lin ILIKE ? OR nomenclature ILIKE ? OR manufacturer ILIKE ?",
 			"%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%").
 		Limit(limit).
 		Find(&results).Error
+
+	if err != nil {
+		logrus.WithError(err).WithField("query", query).Error("Database query failed in repository")
+		return nil, err
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"query":         query,
+		"results_count": len(results),
+	}).Debug("Repository search completed")
+
 	return results, err
 }
 
@@ -671,11 +689,22 @@ func (s *NSNService) SearchNSN(ctx context.Context, query string, limit int) ([]
 		limit = 20
 	}
 
+	s.logger.WithFields(logrus.Fields{
+		"query": query,
+		"limit": limit,
+	}).Debug("Performing NSN search")
+
 	repo := NewNSNRepository(s.db)
 	dbResults, err := repo.Search(ctx, query, limit)
 	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
+		s.logger.WithError(err).WithField("query", query).Error("Database search failed")
+		return nil, fmt.Errorf("database search failed: %w", err)
 	}
+
+	s.logger.WithFields(logrus.Fields{
+		"query":         query,
+		"results_count": len(dbResults),
+	}).Debug("Database search completed")
 
 	results := make([]*NSNDetails, len(dbResults))
 	for i, dbData := range dbResults {
@@ -863,6 +892,47 @@ func (s *NSNService) GetCacheStats() map[string]interface{} {
 	}
 }
 
+// GetDatabaseStatus returns database connectivity and NSN data statistics
+func (s *NSNService) GetDatabaseStatus(ctx context.Context) (map[string]interface{}, error) {
+	status := make(map[string]interface{})
+
+	// Test basic database connectivity
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database instance: %w", err)
+	}
+
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("database ping failed: %w", err)
+	}
+
+	status["database_connected"] = true
+
+	// Count NSN records in database
+	var nsnCount int64
+	if err := s.db.WithContext(ctx).Model(&models.NSNData{}).Count(&nsnCount).Error; err != nil {
+		s.logger.WithError(err).Warn("Failed to count NSN records")
+		status["nsn_count_error"] = err.Error()
+	} else {
+		status["nsn_count"] = nsnCount
+	}
+
+	// Check publog service status
+	if s.publogService != nil {
+		publogStats := s.publogService.GetStats()
+		status["publog_enabled"] = true
+		status["publog_stats"] = publogStats
+	} else {
+		status["publog_enabled"] = false
+	}
+
+	// Check if NSN records table exists
+	hasTable := s.db.Migrator().HasTable(&models.NSNData{})
+	status["nsn_table_exists"] = hasTable
+
+	return status, nil
+}
+
 // convertFromPublog converts publog search result to NSNDetails
 func (s *NSNService) convertFromPublog(result *publogModels.SearchResult) *NSNDetails {
 	if result == nil || result.NSNItem == nil {
@@ -926,6 +996,7 @@ func (s *NSNService) UniversalSearch(ctx context.Context, query string, limit in
 
 	// Try publog universal search first if available
 	if s.publogService != nil {
+		s.logger.Debug("Attempting publog search")
 		publogResults, err := s.publogService.Search(query)
 		if err != nil {
 			// Log the error but don't fail - fall back to database search

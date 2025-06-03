@@ -20,6 +20,7 @@ func RegisterNSNRoutes(router *gin.RouterGroup, handler *handlers.NSNHandler, au
 		// Statistics (available to all authenticated users)
 		nsnGroup.GET("/stats", handler.GetStatistics)
 		nsnGroup.GET("/cache/stats", handler.GetCacheStats)
+		nsnGroup.GET("/database/status", handler.GetDatabaseStatus)
 
 		// Admin operations
 		adminGroup := nsnGroup.Group("")
