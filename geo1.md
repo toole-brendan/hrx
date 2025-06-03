@@ -1,417 +1,393 @@
-# HRX iOS: Next Steps for 8VC Styling Implementation
+import SwiftUI
 
-## Current Progress Assessment
-Based on your repository structure, you have:
-- ✅ Core design system (AppStyles.swift, AppColors)
-- ✅ Typography system (serif, sans-serif, mono)
-- ✅ Basic component styles
-- ✅ Navigation components planning
-- 🔄 View transformations in progress
-
-## Major Feature Implementation Plan
-
-### 1. Pull-to-Refresh with Custom Animation
-**Priority: High** - Core interaction pattern that sets the tone
-
-#### Implementation Steps:
-```swift
-// GeometricRefreshView.swift
-struct GeometricRefreshView: View {
-    @Binding var isRefreshing: Bool
-    let progress: CGFloat
-    
-    var body: some View {
-        ZStack {
-            // 8VC-inspired cube animation
-            GeometricCubeLoader(
-                progress: progress,
-                scale: 0.6
-            )
-            .opacity(progress)
-            
-            if isRefreshing {
-                Text("UPDATING")
-                    .font(AppFonts.monoCaption)
-                    .foregroundColor(AppColors.secondaryText)
-                    .kerning(AppFonts.ultraWideKerning)
-                    .offset(y: 30)
-            }
-        }
-        .frame(height: 80)
-        .frame(maxWidth: .infinity)
-        .background(AppColors.appBackground)
-    }
-}
-
-// Custom RefreshableModifier
-struct MinimalRefreshableModifier: ViewModifier {
-    let action: () async -> Void
-    @State private var refreshState: RefreshState = .idle
-    @State private var pullProgress: CGFloat = 0
-    
-    func body(content: Content) -> some View {
-        ScrollViewReader { proxy in
-            VStack(spacing: 0) {
-                GeometricRefreshView(
-                    isRefreshing: .constant(refreshState == .refreshing),
-                    progress: pullProgress
-                )
-                .offset(y: refreshState == .idle ? -80 : 0)
-                
-                content
-            }
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        if refreshState == .idle && value.translation.height > 0 {
-                            pullProgress = min(value.translation.height / 120, 1.0)
-                        }
-                    }
-                    .onEnded { value in
-                        if value.translation.height > 80 {
-                            Task {
-                                await triggerRefresh()
-                            }
-                        } else {
-                            withAnimation(.easeOut) {
-                                pullProgress = 0
-                            }
-                        }
-                    }
-            )
-        }
-    }
-}
-```
-
-#### Integration Points:
-- DashboardView: Replace `.refreshable` with custom implementation
-- MyPropertiesView: Add geometric refresh to property list
-- TransfersView: Implement for transfer list updates
-
-### 2. Geometric Loading Animations
-**Priority: High** - Brand consistency across all loading states
-
-#### Core Components:
-```swift
-// GeometricCubeLoader.swift
-struct GeometricCubeLoader: View {
-    let progress: CGFloat
-    let scale: CGFloat
-    @State private var rotation: Double = 0
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Nested cube structure like 8VC
-                ForEach(0..<3) { index in
-                    CubeWireframe(
-                        size: geometry.size.width * (1.0 - CGFloat(index) * 0.3),
-                        strokeWidth: 1.0 - CGFloat(index) * 0.2
-                    )
-                    .rotation3DEffect(
-                        .degrees(rotation + Double(index * 30)),
-                        axis: (x: 1, y: 1, z: 0)
-                    )
-                    .opacity(1.0 - CGFloat(index) * 0.3)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .scaleEffect(scale)
-            .onAppear {
-                withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                    rotation = 360
-                }
-            }
-        }
-    }
-}
-
-// Loading States
-struct MinimalLoadingState: View {
-    let message: String?
-    let style: LoadingStyle
-    
-    enum LoadingStyle {
-        case inline      // Small, for button states
-        case section     // Medium, for content sections
-        case fullScreen  // Large, for page loads
-    }
-    
-    var body: some View {
-        VStack(spacing: style.spacing) {
-            GeometricCubeLoader(
-                progress: 1.0,
-                scale: style.scale
-            )
-            .frame(width: style.size, height: style.size)
-            
-            if let message = message {
-                Text(message.uppercased())
-                    .font(style.font)
-                    .foregroundColor(AppColors.tertiaryText)
-                    .kerning(AppFonts.wideKerning)
-            }
-        }
-        .padding(style.padding)
-    }
-}
-```
-
-#### Usage Scenarios:
-- Initial app launch
-- Data fetching states
-- Property scan processing
-- Transfer submissions
-- Background sync indicators
-
-### 3. Property Detail View with Minimal Toolbar
-**Priority: Medium** - Key feature screen
-
-#### View Structure:
-```swift
-// PropertyDetailView.swift
-struct PropertyDetailView: View {
-    let property: Property
-    @State private var selectedTab = 0
+struct RegisterView: View {
+    @StateObject private var viewModel = RegisterViewModel()
     @Environment(\.dismiss) private var dismiss
     
+    @State private var firstName = ""
+    @State private var lastName = ""
+    @State private var username = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var selectedRank = ""
+    @State private var unit = ""
+    @State private var showingLogin = false
+    
+    let militaryRanks = [
+        "PVT", "PV2", "PFC", "SPC", "CPL", "SGT", "SSG", "SFC", "MSG", "1SG", "SGM",
+        "2LT", "1LT", "CPT", "MAJ", "LTC", "COL", "BG", "MG", "LTG", "GEN"
+    ]
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Minimal Navigation
-            MinimalNavigationBar(
-                title: property.itemName,
-                titleStyle: .serif,
-                showBackButton: true,
-                backAction: { dismiss() },
-                trailingItems: [
-                    .init(icon: "square.and.arrow.up", action: shareProperty),
-                    .init(icon: "ellipsis", action: showOptions)
-                ]
-            )
-            
-            ScrollView {
-                VStack(spacing: 40) {
-                    // Hero Section with Geometric Background
-                    ZStack {
-                        GeometricPatternView()
-                            .frame(height: 200)
-                            .opacity(0.05)
-                        
-                        VStack(spacing: 16) {
-                            Text(property.serialNumber)
-                                .font(AppFonts.monoHeadline)
-                                .foregroundColor(AppColors.primaryText)
+        NavigationView {
+            GeometryReader { geometry in
+                ZStack {
+                    // Background
+                    AppColors.appBackground
+                        .ignoresSafeArea()
+                    
+                    // Subtle geometric pattern
+                    GeometricPatternBackground()
+                        .opacity(0.03)
+                        .ignoresSafeArea()
+                    
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            // Custom navigation bar
+                            HStack {
+                                MinimalBackButton(label: "Back") {
+                                    dismiss()
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, 48)
+                            .padding(.top, geometry.safeAreaInsets.top + 20)
+                            .padding(.bottom, 40)
                             
-                            StatusBadge(
-                                status: property.status,
-                                style: .large
-                            )
+                            // Main content
+                            VStack(alignment: .leading, spacing: 56) {
+                                // Header
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Create Account")
+                                        .font(AppFonts.serifTitle)
+                                        .foregroundColor(AppColors.primaryText)
+                                    
+                                    Text("Join the property management system")
+                                        .font(AppFonts.body)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                }
+                                
+                                // Personal Information Section
+                                VStack(alignment: .leading, spacing: 24) {
+                                    SectionHeader(title: "Personal Information")
+                                    
+                                    HStack(spacing: 24) {
+                                        UnderlinedTextField(
+                                            label: "First Name",
+                                            text: $firstName,
+                                            placeholder: "John",
+                                            textContentType: .givenName
+                                        )
+                                        
+                                        UnderlinedTextField(
+                                            label: "Last Name",
+                                            text: $lastName,
+                                            placeholder: "Doe",
+                                            textContentType: .familyName
+                                        )
+                                    }
+                                    
+                                    UnderlinedTextField(
+                                        label: "Username",
+                                        text: $username,
+                                        placeholder: "john.doe",
+                                        textContentType: .username,
+                                        keyboardType: .asciiCapable,
+                                        autocapitalization: .none
+                                    )
+                                    
+                                    UnderlinedTextField(
+                                        label: "Email",
+                                        text: $email,
+                                        placeholder: "john.doe@example.com",
+                                        textContentType: .emailAddress,
+                                        keyboardType: .emailAddress,
+                                        autocapitalization: .none
+                                    )
+                                }
+                                
+                                // Military Details Section
+                                VStack(alignment: .leading, spacing: 24) {
+                                    SectionHeader(title: "Military Details")
+                                    
+                                    HStack(spacing: 24) {
+                                        MinimalDropdown(
+                                            label: "Rank",
+                                            selection: $selectedRank,
+                                            placeholder: "Select Rank",
+                                            options: militaryRanks
+                                        )
+                                        
+                                        UnderlinedTextField(
+                                            label: "Unit",
+                                            text: $unit,
+                                            placeholder: "1st Battalion"
+                                        )
+                                    }
+                                }
+                                
+                                // Security Section
+                                VStack(alignment: .leading, spacing: 24) {
+                                    SectionHeader(title: "Security")
+                                    
+                                    UnderlinedSecureField(
+                                        label: "Password",
+                                        text: $password,
+                                        placeholder: "Minimum 8 characters",
+                                        textContentType: .newPassword
+                                    )
+                                    
+                                    UnderlinedSecureField(
+                                        label: "Confirm Password",
+                                        text: $confirmPassword,
+                                        placeholder: "Re-enter password",
+                                        textContentType: .newPassword
+                                    )
+                                    
+                                    // Password requirements
+                                    if !password.isEmpty {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            PasswordRequirement(
+                                                met: password.count >= 8,
+                                                text: "At least 8 characters"
+                                            )
+                                            PasswordRequirement(
+                                                met: password == confirmPassword && !confirmPassword.isEmpty,
+                                                text: "Passwords match"
+                                            )
+                                        }
+                                        .padding(.top, -16)
+                                        .transition(.opacity)
+                                    }
+                                }
+                                
+                                // Error message
+                                if let errorMessage = viewModel.errorMessage {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "exclamationmark.circle")
+                                            .font(.system(size: 16, weight: .light))
+                                            .foregroundColor(AppColors.destructive)
+                                        
+                                        Text(errorMessage)
+                                            .font(AppFonts.body)
+                                            .foregroundColor(AppColors.destructive)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .move(edge: .top)),
+                                        removal: .opacity
+                                    ))
+                                }
+                                
+                                // Create account button
+                                MinimalLoadingButton(
+                                    isLoading: viewModel.isLoading,
+                                    title: "Create Account",
+                                    icon: nil,
+                                    action: register
+                                )
+                                .disabled(!isFormValid || viewModel.isLoading)
+                                .padding(.top, 16)
+                                
+                                // Login link
+                                VStack(spacing: 4) {
+                                    Text("Already have an account?")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                    
+                                    Button("Sign in") {
+                                        showingLogin = true
+                                    }
+                                    .buttonStyle(TextLinkButtonStyle())
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 24)
+                            }
+                            .padding(.horizontal, 48)
+                            .padding(.bottom, 80)
                         }
+                        .animation(.easeInOut(duration: 0.3), value: viewModel.errorMessage)
+                        .animation(.easeInOut(duration: 0.3), value: password)
                     }
-                    .frame(height: 200)
-                    .cleanCard(showShadow: false)
-                    
-                    // Information Sections
-                    VStack(spacing: 32) {
-                        PropertyInfoSection(
-                            title: "DETAILS",
-                            property: property
-                        )
-                        
-                        PropertyHistorySection(
-                            property: property
-                        )
-                        
-                        PropertyMaintenanceSection(
-                            property: property
-                        )
-                    }
-                    .padding(.horizontal, 24)
                 }
             }
-            
-            // Minimal Toolbar
-            MinimalToolbar(items: [
-                .init(icon: "arrow.left.arrow.right", label: "Transfer", action: initiateTransfer),
-                .init(icon: "qrcode", label: "QR Code", action: showQRCode),
-                .init(icon: "wrench", label: "Service", action: scheduleMaintenance),
-                .init(icon: "doc.text", label: "Report", action: generateReport)
-            ])
+            .navigationBarHidden(true)
         }
-        .navigationBarHidden(true)
+        .navigationViewStyle(.stack)
+        .sheet(isPresented: $showingLogin) {
+            LoginView { loginResponse in
+                dismiss()
+            }
+        }
     }
-}
-
-// Supporting Components
-struct PropertyInfoSection: View {
-    let title: String
-    let property: Property
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            ElegantSectionHeader(
-                title: title,
-                style: .uppercase
+    private var isFormValid: Bool {
+        !firstName.isEmpty &&
+        !lastName.isEmpty &&
+        !username.isEmpty &&
+        !email.isEmpty &&
+        !password.isEmpty &&
+        !confirmPassword.isEmpty &&
+        password == confirmPassword &&
+        !selectedRank.isEmpty &&
+        !unit.isEmpty &&
+        password.count >= 8
+    }
+    
+    private func register() {
+        Task {
+            await viewModel.register(
+                firstName: firstName,
+                lastName: lastName,
+                username: username,
+                email: email,
+                password: password,
+                rank: selectedRank,
+                unit: unit
             )
             
-            VStack(spacing: 16) {
-                InfoRow(label: "Category", value: property.category.uppercased(), style: .mono)
-                InfoRow(label: "NSN", value: property.nsn ?? "N/A", style: .mono)
-                InfoRow(label: "Location", value: property.location, style: .standard)
-                InfoRow(label: "Custodian", value: property.custodian, style: .standard)
+            if viewModel.isRegistered {
+                showingLogin = true
             }
         }
     }
 }
-```
 
-### 4. Search with Minimal Styling
-**Priority: Medium** - Essential for property management
+// MARK: - Custom Components
 
-#### Search Implementation:
-```swift
-// MinimalSearchView.swift
-struct MinimalSearchView: View {
-    @Binding var searchText: String
-    @Binding var isSearching: Bool
+struct SectionHeader: View {
+    let title: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title.uppercased())
+                .font(AppFonts.captionMedium)
+                .foregroundColor(AppColors.secondaryText)
+                .kerning(AppFonts.ultraWideKerning)
+            
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 1)
+        }
+    }
+}
+
+struct MinimalDropdown: View {
+    let label: String
+    @Binding var selection: String
     let placeholder: String
-    let onCancel: () -> Void
+    let options: [String]
+    
+    @State private var isExpanded = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Search Header
-            HStack(spacing: 16) {
-                // Search Field
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .light))
-                        .foregroundColor(AppColors.tertiaryText)
-                    
-                    TextField(placeholder, text: $searchText)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
+            
+            Menu {
+                ForEach(options, id: \.self) { option in
+                    Button(option) {
+                        selection = option
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selection.isEmpty ? placeholder : selection)
                         .font(AppFonts.body)
-                        .foregroundColor(AppColors.primaryText)
-                        .submitLabel(.search)
+                        .foregroundColor(selection.isEmpty ? AppColors.tertiaryText : AppColors.primaryText)
                     
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16, weight: .light))
-                                .foregroundColor(AppColors.tertiaryText)
-                        }
-                    }
+                    Spacer()
+                    
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundColor(AppColors.tertiaryText)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(AppColors.tertiaryBackground)
-                .cornerRadius(8)
-                
-                // Cancel Button
-                Button("Cancel", action: onCancel)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
+                .padding(.vertical, 8)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
+            .buttonStyle(PlainButtonStyle())
             
-            Divider()
-                .background(AppColors.divider)
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 1)
         }
     }
 }
 
-// Search Results View
-struct MinimalSearchResultsView: View {
-    let results: [SearchResult]
-    let query: String
-    @State private var selectedFilter: SearchFilter = .all
+struct PasswordRequirement: View {
+    let met: Bool
+    let text: String
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Filter Pills
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(SearchFilter.allCases) { filter in
-                        FilterPill(
-                            title: filter.title,
-                            count: filter.count(in: results),
-                            isSelected: selectedFilter == filter,
-                            action: { selectedFilter = filter }
-                        )
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-            }
+        HStack(spacing: 8) {
+            Image(systemName: met ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 14, weight: .light))
+                .foregroundColor(met ? AppColors.success : AppColors.border)
             
-            Divider()
-                .background(AppColors.divider)
-            
-            // Results List
-            if filteredResults.isEmpty {
-                MinimalEmptyState(
-                    icon: "magnifyingglass",
-                    title: "No Results",
-                    message: "No items found matching '\(query)'"
-                )
-                .padding(.top, 80)
-            } else {
-                List(filteredResults) { result in
-                    SearchResultRow(result: result)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 24, bottom: 8, trailing: 24))
-                }
-                .listStyle(.plain)
-                .background(AppColors.appBackground)
-            }
+            Text(text)
+                .font(AppFonts.caption)
+                .foregroundColor(met ? AppColors.secondaryText : AppColors.tertiaryText)
         }
+        .animation(.easeInOut(duration: 0.2), value: met)
     }
 }
-```
 
-## Implementation Timeline
+// MARK: - View Model
 
-### Week 1: Foundation & Pull-to-Refresh
-- [ ] Create GeometricCubeLoader component
-- [ ] Implement custom RefreshableModifier
-- [ ] Integrate into DashboardView
-- [ ] Test on MyPropertiesView
+@MainActor
+class RegisterViewModel: ObservableObject {
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var isRegistered = false
+    
+    private let apiService: APIServiceProtocol
+    
+    init(apiService: APIServiceProtocol = APIService()) {
+        self.apiService = apiService
+    }
+    
+    func register(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        rank: String,
+        unit: String
+    ) async {
+        isLoading = true
+        errorMessage = nil
+        
+        let credentials = RegisterCredentials(
+            username: username,
+            email: email,
+            password: password,
+            first_name: firstName,
+            last_name: lastName,
+            rank: rank,
+            unit: unit
+        )
+        
+        do {
+            _ = try await apiService.register(credentials: credentials)
+            isRegistered = true
+        } catch let error as APIService.APIError {
+            switch error {
+            case .badRequest(let message):
+                errorMessage = message ?? "Registration failed. Please check your information."
+            case .conflict:
+                errorMessage = "Username or email already exists."
+            case .serverError:
+                errorMessage = "Server error. Please try again later."
+            default:
+                errorMessage = "Registration failed. Please try again."
+            }
+        } catch {
+            errorMessage = "An unexpected error occurred."
+        }
+        
+        isLoading = false
+    }
+}
 
-### Week 2: Loading States & Animations
-- [ ] Build comprehensive loading state system
-- [ ] Create transition animations
-- [ ] Replace all ProgressView instances
-- [ ] Add loading states to async operations
+// MARK: - Preview
 
-### Week 3: Property Detail View
-- [ ] Design and implement PropertyDetailView
-- [ ] Create MinimalToolbar component
-- [ ] Build property info sections
-- [ ] Implement action handlers
-
-### Week 4: Search Implementation
-- [ ] Build MinimalSearchView
-- [ ] Implement search results UI
-- [ ] Add filtering system
-- [ ] Integrate with existing data
-
-## Key Implementation Notes
-
-### Animation Guidelines
-- Keep animations subtle (0.3-0.5s duration)
-- Use `.easeInOut` for most transitions
-- Respect `UIAccessibility.isReduceMotionEnabled`
-- Test performance on older devices
-
-### Styling Consistency
-- Maintain 24px horizontal padding throughout
-- Use appropriate font mixing (serif for important items)
-- Keep color usage minimal (mostly grayscale + accent)
-- Ensure 8pt corner radius on cards
-
-### Performance Considerations
-- Lazy load heavy components
-- Use `@StateObject` for view models
-- Implement proper list virtualization
-- Profile animations on device
+struct RegisterView_Previews: PreviewProvider {
+    static var previews: some View {
+        RegisterView()
+            .previewDisplayName("8VC Style Register")
+    }
+}

@@ -1,609 +1,435 @@
-//
-//  PropertyDetailView.swift
-//  HandReceipt
-//
-//  8VC-inspired property detail view with minimal toolbar
-//
-
 import SwiftUI
+import Foundation
+import UIKit
 
-// MARK: - Property Detail View
-struct PropertyDetailView: View {
-    let property: Property
+struct LoginView: View {
+    @StateObject private var viewModel = LoginViewModel()
+    @State private var showingRegistration = false
+    @State private var logoTapCount = 0
+    @State private var lastTapTime = Date()
+    @State private var isAnimatingLogo = false
     
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = PropertyDetailViewModel()
+    var onLoginSuccess: (LoginResponse) -> Void
+
+    init(onLoginSuccess: @escaping (LoginResponse) -> Void) {
+        self.onLoginSuccess = onLoginSuccess
+        debugPrint("LoginView initialized")
+    }
+
+    var body: some View {
+        NavigationView {
+            GeometryReader { geometry in
+                ZStack {
+                    // Background with subtle geometric pattern
+                    AppColors.appBackground
+                        .ignoresSafeArea()
+                    
+                    // Subtle geometric pattern overlay
+                    GeometricPatternBackground()
+                        .opacity(0.03)
+                        .ignoresSafeArea()
+                    
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            // Logo section - maintaining original size
+                            VStack(spacing: 0) {
+                                // Full logo at original size
+                                ZStack {
+                                    Image("hr_logo4")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(height: 200) // Original size maintained
+                                        .scaleEffect(isAnimatingLogo ? 1.05 : 1.0)
+                                        .onTapGesture {
+                                            handleLogoTap()
+                                        }
+                                    
+                                    // Dev login progress indicator
+                                    if logoTapCount > 0 && logoTapCount < 5 {
+                                        VStack {
+                                            Spacer()
+                                            HStack(spacing: 4) {
+                                                ForEach(0..<5) { index in
+                                                    Circle()
+                                                        .fill(index < logoTapCount ? AppColors.primaryText : AppColors.border)
+                                                        .frame(width: 6, height: 6)
+                                                }
+                                            }
+                                            .padding(.bottom, 20)
+                                        }
+                                        .frame(height: 200)
+                                    }
+                                }
+                                
+                                Text("Property Management System")
+                                    .font(AppFonts.body)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .padding(.top, 24)
+                                
+                                // Dev login indicator
+                                if logoTapCount > 0 && logoTapCount < 5 {
+                                    HStack(spacing: 4) {
+                                        ForEach(0..<5) { index in
+                                            Circle()
+                                                .fill(index < logoTapCount ? AppColors.primaryText : AppColors.border)
+                                                .frame(width: 6, height: 6)
+                                        }
+                                    }
+                                    .transition(.opacity)
+                                }
+                            }
+                            .padding(.top, geometry.safeAreaInsets.top + 60)
+                            .padding(.bottom, 60)
+                            
+                            // Main content - no container
+                            VStack(alignment: .leading, spacing: 48) {
+                                // Header section
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Welcome Back")
+                                        .font(AppFonts.serifHero)
+                                        .foregroundColor(AppColors.primaryText)
+                                    
+                                    Text("Sign in to continue")
+                                        .font(AppFonts.body)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                // Form fields with generous spacing
+                                VStack(spacing: 36) {
+                                    UnderlinedTextField(
+                                        label: "Username",
+                                        text: $viewModel.username,
+                                        placeholder: "Enter your username",
+                                        textContentType: .username,
+                                        keyboardType: .asciiCapable,
+                                        autocapitalization: .none
+                                    )
+                                    
+                                    UnderlinedSecureField(
+                                        label: "Password",
+                                        text: $viewModel.password,
+                                        placeholder: "Enter your password",
+                                        textContentType: .password
+                                    )
+                                }
+                                
+                                // Error message with subtle animation
+                                if !errorMessage.isEmpty {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "exclamationmark.circle")
+                                            .font(.system(size: 16, weight: .light))
+                                            .foregroundColor(AppColors.destructive)
+                                        
+                                        Text(errorMessage)
+                                            .font(AppFonts.body)
+                                            .foregroundColor(AppColors.destructive)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .move(edge: .top)),
+                                        removal: .opacity
+                                    ))
+                                    .padding(.top, -20)
+                                }
+                                
+                                // Sign in button
+                                MinimalLoadingButton(
+                                    isLoading: viewModel.loginState == .loading,
+                                    title: "Sign In",
+                                    icon: "arrow.right",
+                                    action: { viewModel.attemptLogin() }
+                                )
+                                .disabled(!viewModel.canAttemptLogin)
+                                .padding(.top, 8)
+                                
+                                // Registration link section
+                                VStack(spacing: 4) {
+                                    Text("Don't have an account?")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                    
+                                    Button("Create one") {
+                                        showingRegistration = true
+                                    }
+                                    .buttonStyle(TextLinkButtonStyle())
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 32)
+                            }
+                            .padding(.horizontal, 48) // Generous side margins
+                            .padding(.bottom, 80)
+                        }
+                        .animation(.easeInOut(duration: 0.3), value: errorMessage)
+                    }
+                }
+            }
+            .navigationBarHidden(true)
+            .onChange(of: viewModel.loginState) { newState in
+                if case .success(let response) = newState {
+                    debugPrint("LoginView: Login success - User: \(response.user.username)")
+                    Task {
+                        await AuthManager.shared.login(response: response)
+                    }
+                    onLoginSuccess(response)
+                }
+            }
+            .sheet(isPresented: $showingRegistration) {
+                RegisterView()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
     
-    // View states
-    @State private var selectedSection = 0
-    @State private var showTransferSheet = false
-    @State private var showQRCode = false
-    @State private var showMaintenanceSheet = false
-    @State private var showActionSheet = false
+    private var errorMessage: String {
+        if case .failed(let message) = viewModel.loginState {
+            return message
+        } else {
+            return ""
+        }
+    }
+    
+    private func handleLogoTap() {
+        let now = Date()
+        let timeSinceLastTap = now.timeIntervalSince(lastTapTime)
+        
+        if timeSinceLastTap > 2.0 {
+            logoTapCount = 1
+            debugPrint("Dev login: Starting new tap sequence")
+        } else {
+            logoTapCount += 1
+            debugPrint("Dev login: Tap \(logoTapCount) of 5")
+        }
+        
+        lastTapTime = now
+        
+        // Animate logo
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isAnimatingLogo = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isAnimatingLogo = false
+            }
+        }
+        
+        // Haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        if logoTapCount >= 5 {
+            let successFeedback = UINotificationFeedbackGenerator()
+            successFeedback.notificationOccurred(.success)
+            
+            performDevLogin()
+            logoTapCount = 0
+        }
+    }
+    
+    private func performDevLogin() {
+        debugPrint("🔧 DEV LOGIN ACTIVATED! Using test credentials...")
+        
+        viewModel.username = "michael.rodriguez"
+        viewModel.password = "password123"
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            viewModel.loginState = .loading
+        }
+        
+        Task {
+            do {
+                try await viewModel.performLogin()
+                debugPrint("✅ Dev login successful via API!")
+            } catch {
+                debugPrint("❌ Dev login failed: \(error)")
+                #if DEBUG
+                let mockUser = LoginResponse.User(
+                    id: 999,
+                    uuid: "dev-uuid",
+                    username: "michael.rodriguez",
+                    email: "michael.rodriguez@example.com",
+                    firstName: "Michael",
+                    lastName: "Rodriguez",
+                    rank: "SSG",
+                    unit: "Test Unit",
+                    role: "user",
+                    status: "active"
+                )
+                
+                let mockResponse = LoginResponse(
+                    accessToken: "dev-token-\(UUID().uuidString)",
+                    refreshToken: "dev-refresh-token-\(UUID().uuidString)",
+                    expiresAt: Date().addingTimeInterval(86400),
+                    user: mockUser
+                )
+                
+                viewModel.loginState = .success(mockResponse)
+                onLoginSuccess(mockResponse)
+                #endif
+            }
+        }
+    }
+}
+
+// MARK: - Custom Components
+
+struct UnderlinedTextField: View {
+    let label: String
+    @Binding var text: String
+    let placeholder: String
+    var textContentType: UITextContentType? = nil
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalization: UITextAutocapitalizationType = .sentences
+    
+    @FocusState private var isFocused: Bool
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom navigation bar
-            MinimalNavigationBar(
-                title: property.itemName,
-                titleStyle: .serif,
-                showBackButton: true,
-                backAction: { dismiss() },
-                trailingItems: [
-                    .init(icon: "square.and.arrow.up", action: shareProperty),
-                    .init(icon: "ellipsis", action: { showActionSheet = true })
-                ]
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(isFocused ? AppColors.primaryText : AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
             
-            // Content
-            ScrollView {
-                VStack(spacing: 40) {
-                    // Hero section
-                    heroSection
-                    
-                    // Information sections
-                    VStack(spacing: 32) {
-                        detailsSection
-                        historySection
-                        maintenanceSection
-                        documentsSection
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    // Bottom padding for toolbar
-                    Color.clear.frame(height: 100)
-                }
-            }
-            .overlay(alignment: .bottom) {
-                // Minimal toolbar
-                MinimalToolbar(items: [
-                    .init(icon: "arrow.left.arrow.right", label: "Transfer", action: { showTransferSheet = true }),
-                    .init(icon: "qrcode", label: "QR Code", action: { showQRCode = true }),
-                    .init(icon: "wrench", label: "Service", action: { showMaintenanceSheet = true }),
-                    .init(icon: "doc.text", label: "Report", action: generateReport)
-                ])
-            }
-        }
-        .navigationBarHidden(true)
-        .sheet(isPresented: $showTransferSheet) {
-            TransferInitiationSheet(property: property)
-        }
-        .sheet(isPresented: $showQRCode) {
-            QRCodeSheet(property: property)
-        }
-        .sheet(isPresented: $showMaintenanceSheet) {
-            MaintenanceScheduleSheet(property: property)
-        }
-        .confirmationDialog("More Actions", isPresented: $showActionSheet) {
-            Button("Edit Property") { editProperty() }
-            Button("View Audit Log") { viewAuditLog() }
-            Button("Export Data") { exportData() }
-            Button("Report Issue", role: .destructive) { reportIssue() }
+            TextField(placeholder, text: $text)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+                .tint(AppColors.accent)
+                .textFieldStyle(PlainTextFieldStyle())
+                .textContentType(textContentType)
+                .keyboardType(keyboardType)
+                .autocapitalization(autocapitalization)
+                .disableAutocorrection(true)
+                .focused($isFocused)
+                .padding(.vertical, 8)
+            
+            Rectangle()
+                .fill(isFocused ? AppColors.primaryText : AppColors.border)
+                .frame(height: isFocused ? 2 : 1)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
         }
     }
+}
+
+struct UnderlinedSecureField: View {
+    let label: String
+    @Binding var text: String
+    let placeholder: String
+    var textContentType: UITextContentType? = nil
     
-    // MARK: - Hero Section
-    private var heroSection: some View {
-        ZStack {
-            // Geometric background pattern
-            GeometricPatternView()
-                .frame(height: 240)
-                .opacity(0.05)
-            
-            VStack(spacing: 24) {
-                // Property identifier
-                VStack(spacing: 8) {
-                    Text("SERIAL NUMBER")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.tertiaryText)
-                        .kerning(AppFonts.ultraWideKerning)
-                    
-                    Text(property.serialNumber)
-                        .font(AppFonts.monoHeadline)
-                        .foregroundColor(AppColors.primaryText)
-                }
-                
-                // Status indicator
-                PropertyStatusBadge(
-                    status: property.status,
-                    style: .large
-                )
-                
-                // Key metrics
-                HStack(spacing: 32) {
-                    MetricItem(
-                        value: property.condition,
-                        label: "CONDITION"
-                    )
-                    
-                    MetricItem(
-                        value: property.lastVerified.formatted(.relative(presentation: .named)),
-                        label: "VERIFIED"
-                    )
-                    
-                    MetricItem(
-                        value: "\(property.transferCount)",
-                        label: "TRANSFERS"
-                    )
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 240)
-        .background(AppColors.secondaryBackground)
-        .cornerRadius(8)
-        .shadow(color: AppColors.shadowColor, radius: 4, y: 2)
-    }
+    @FocusState private var isFocused: Bool
     
-    // MARK: - Details Section
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            ElegantSectionHeader(
-                title: "DETAILS",
-                style: .uppercase
-            )
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(isFocused ? AppColors.primaryText : AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
             
-            VStack(spacing: 0) {
-                InfoRow(
-                    label: "Category",
-                    value: property.category.uppercased(),
-                    style: .mono
-                )
-                
-                Divider()
-                    .background(AppColors.divider)
-                
-                InfoRow(
-                    label: "NSN",
-                    value: property.nsn ?? "Not Available",
-                    style: .mono
-                )
-                
-                Divider()
-                    .background(AppColors.divider)
-                
-                InfoRow(
-                    label: "Location",
-                    value: property.location,
-                    style: .standard
-                )
-                
-                Divider()
-                    .background(AppColors.divider)
-                
-                InfoRow(
-                    label: "Current Holder",
-                    value: property.currentHolder.name,
-                    style: .standard,
-                    accessory: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .light))
-                            .foregroundColor(AppColors.tertiaryText)
-                    }
-                )
-            }
-            .cleanCard(padding: 0)
+            SecureField(placeholder, text: $text)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+                .tint(AppColors.accent)
+                .textFieldStyle(PlainTextFieldStyle())
+                .textContentType(textContentType)
+                .focused($isFocused)
+                .padding(.vertical, 8)
+            
+            Rectangle()
+                .fill(isFocused ? AppColors.primaryText : AppColors.border)
+                .frame(height: isFocused ? 2 : 1)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
         }
     }
+}
+
+struct MinimalLoadingButton: View {
+    let isLoading: Bool
+    let title: String
+    let icon: String?
+    let action: () -> Void
     
-    // MARK: - History Section
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            ElegantSectionHeader(
-                title: "TRANSFER HISTORY",
-                subtitle: "\(viewModel.transfers.count) transfers",
-                style: .uppercase,
-                action: viewModel.transfers.count > 3 ? { viewAllTransfers() } : nil,
-                actionLabel: "View All"
-            )
-            
-            if viewModel.isLoadingTransfers {
-                SkeletonLoadingView(rows: 3)
-            } else if viewModel.transfers.isEmpty {
-                MinimalEmptyState(
-                    icon: "clock",
-                    title: "No Transfer History",
-                    message: "This property has not been transferred yet"
-                )
-                .cleanCard()
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(viewModel.transfers.prefix(3)) { transfer in
-                        TransferHistoryRow(transfer: transfer)
-                        
-                        if transfer.id != viewModel.transfers.prefix(3).last?.id {
-                            Divider()
-                                .background(AppColors.divider)
-                                .padding(.leading, 56)
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                if isLoading {
+                    // Minimal three dots loading animation
+                    HStack(spacing: 4) {
+                        ForEach(0..<3) { index in
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 6, height: 6)
+                                .scaleEffect(isLoading ? 1 : 0.3)
+                                .animation(
+                                    Animation.easeInOut(duration: 0.6)
+                                        .repeatForever()
+                                        .delay(Double(index) * 0.2),
+                                    value: isLoading
+                                )
                         }
                     }
-                }
-                .cleanCard(padding: 0)
-            }
-        }
-    }
-    
-    // MARK: - Maintenance Section
-    private var maintenanceSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            ElegantSectionHeader(
-                title: "MAINTENANCE",
-                subtitle: property.nextMaintenance != nil ? "Next service due" : "No maintenance scheduled",
-                style: .uppercase
-            )
-            
-            if let nextMaintenance = property.nextMaintenance {
-                MaintenanceCard(
-                    date: nextMaintenance,
-                    type: property.maintenanceType,
-                    isOverdue: nextMaintenance < Date()
-                )
-            } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "wrench")
-                        .font(.system(size: 32, weight: .thin))
-                        .foregroundColor(AppColors.tertiaryText)
+                } else {
+                    Text(title)
+                        .font(AppFonts.bodyMedium)
                     
-                    Text("No maintenance scheduled")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    Button("Schedule Maintenance") {
-                        showMaintenanceSheet = true
-                    }
-                    .buttonStyle(MinimalSecondaryButtonStyle())
-                }
-                .frame(maxWidth: .infinity)
-                .padding(32)
-                .cleanCard()
-            }
-        }
-    }
-    
-    // MARK: - Documents Section
-    private var documentsSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            ElegantSectionHeader(
-                title: "DOCUMENTS",
-                subtitle: "\(viewModel.documents.count) files",
-                style: .uppercase,
-                action: { uploadDocument() },
-                actionLabel: "Upload"
-            )
-            
-            if viewModel.documents.isEmpty {
-                MinimalEmptyState(
-                    icon: "doc",
-                    title: "No Documents",
-                    message: "Upload technical manuals, receipts, or other documentation"
-                )
-                .cleanCard()
-            } else {
-                VStack(spacing: 12) {
-                    ForEach(viewModel.documents) { document in
-                        DocumentRow(document: document)
+                    if let icon = icon {
+                        Image(systemName: icon)
+                            .font(.system(size: 14, weight: .regular))
                     }
                 }
-                .cleanCard()
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
         }
-    }
-    
-    // MARK: - Actions
-    private func shareProperty() {
-        // Share implementation
-    }
-    
-    private func generateReport() {
-        // Report generation
-    }
-    
-    private func editProperty() {
-        // Edit implementation
-    }
-    
-    private func viewAuditLog() {
-        // Audit log navigation
-    }
-    
-    private func exportData() {
-        // Export implementation
-    }
-    
-    private func reportIssue() {
-        // Issue reporting
-    }
-    
-    private func viewAllTransfers() {
-        // Navigate to full transfer history
-    }
-    
-    private func uploadDocument() {
-        // Document upload
+        .buttonStyle(MinimalPrimaryButtonStyle())
+        .disabled(isLoading)
     }
 }
 
-// MARK: - Supporting Components
-
-struct MetricItem: View {
-    let value: String
-    let label: String
-    
+struct GeometricPatternBackground: View {
     var body: some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(AppFonts.monoBody)
-                .foregroundColor(AppColors.primaryText)
-            
-            Text(label)
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
-                .kerning(AppFonts.wideKerning)
-        }
-    }
-}
-
-struct InfoRow<Accessory: View>: View {
-    let label: String
-    let value: String
-    let style: TextStyle
-    let accessory: (() -> Accessory)?
-    
-    enum TextStyle {
-        case standard
-        case mono
-        
-        var font: Font {
-            switch self {
-            case .standard: return AppFonts.body
-            case .mono: return AppFonts.monoBody
-            }
-        }
-    }
-    
-    init(label: String, value: String, style: TextStyle = .standard, @ViewBuilder accessory: @escaping () -> Accessory) {
-        self.label = label
-        self.value = value
-        self.style = style
-        self.accessory = accessory
-    }
-    
-    init(label: String, value: String, style: TextStyle = .standard) where Accessory == EmptyView {
-        self.label = label
-        self.value = value
-        self.style = style
-        self.accessory = nil
-    }
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
-            
-            Spacer()
-            
-            HStack(spacing: 8) {
-                Text(value)
-                    .font(style.font)
-                    .foregroundColor(AppColors.primaryText)
+        GeometryReader { geometry in
+            Canvas { context, size in
+                // Create subtle geometric pattern inspired by 8VC
+                let spacing: CGFloat = 120
+                let lineWidth: CGFloat = 0.5
                 
-                if let accessory = accessory {
-                    accessory()
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-    }
-}
-
-struct TransferHistoryRow: View {
-    let transfer: Transfer
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Icon
-            Circle()
-                .fill(AppColors.tertiaryBackground)
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: transferIcon)
-                        .font(.system(size: 16, weight: .light))
-                        .foregroundColor(AppColors.secondaryText)
-                )
-            
-            // Details
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transfer.description)
-                    .font(AppFonts.bodyMedium)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Text(transfer.participants)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-            }
-            
-            Spacer()
-            
-            // Date
-            Text(transfer.date.formatted(.relative(presentation: .named)))
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
-        }
-        .padding(16)
-    }
-    
-    private var transferIcon: String {
-        switch transfer.type {
-        case .incoming: return "arrow.down.circle"
-        case .outgoing: return "arrow.up.circle"
-        case .maintenance: return "wrench"
-        case .verification: return "checkmark.circle"
-        }
-    }
-}
-
-struct MaintenanceCard: View {
-    let date: Date
-    let type: String
-    let isOverdue: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(type.uppercased())
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
-                        .kerning(AppFonts.wideKerning)
-                    
-                    Text(date.formatted(date: .abbreviated, time: .omitted))
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.primaryText)
-                }
-                
-                Spacer()
-                
-                if isOverdue {
-                    Label("Overdue", systemImage: "exclamationmark.circle")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.destructive)
-                }
-            }
-            
-            // Progress to maintenance
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Time until service")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    Spacer()
-                    
-                    Text(isOverdue ? "Overdue" : date.formatted(.relative(presentation: .named)))
-                        .font(AppFonts.monoCaption)
-                        .foregroundColor(isOverdue ? AppColors.destructive : AppColors.primaryText)
-                }
-                
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Rectangle()
-                            .fill(AppColors.tertiaryBackground)
-                            .frame(height: 4)
+                // Draw grid of subtle lines
+                for x in stride(from: 0, to: size.width, by: spacing) {
+                    for y in stride(from: 0, to: size.height, by: spacing) {
+                        // Draw subtle square
+                        let rect = CGRect(x: x, y: y, width: spacing * 0.6, height: spacing * 0.6)
+                        context.stroke(
+                            Path(rect),
+                            with: .color(AppColors.border.opacity(0.5)),
+                            lineWidth: lineWidth
+                        )
                         
-                        Rectangle()
-                            .fill(isOverdue ? AppColors.destructive : AppColors.primaryText)
-                            .frame(width: progressWidth(in: geometry.size.width), height: 4)
+                        // Add inner square for depth
+                        let innerRect = CGRect(x: x + 20, y: y + 20, width: spacing * 0.3, height: spacing * 0.3)
+                        context.stroke(
+                            Path(innerRect),
+                            with: .color(AppColors.border.opacity(0.3)),
+                            lineWidth: lineWidth
+                        )
                     }
                 }
-                .frame(height: 4)
-                .cornerRadius(2)
             }
         }
-        .padding(20)
-        .cleanCard()
-    }
-    
-    private func progressWidth(in totalWidth: CGFloat) -> CGFloat {
-        guard !isOverdue else { return totalWidth }
-        
-        let totalDays = 365.0 // Assuming annual maintenance
-        let daysUntil = date.timeIntervalSinceNow / 86400
-        let progress = max(0, min(1, 1 - (daysUntil / totalDays)))
-        
-        return totalWidth * CGFloat(progress)
-    }
-}
-
-struct DocumentRow: View {
-    let document: Document
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: document.icon)
-                .font(.system(size: 20, weight: .light))
-                .foregroundColor(AppColors.secondaryText)
-                .frame(width: 32)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(document.name)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Text("\(document.size) • \(document.uploadDate.formatted(date: .abbreviated, time: .omitted))")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.tertiaryText)
-            }
-            
-            Spacer()
-            
-            Button(action: { downloadDocument(document) }) {
-                Image(systemName: "arrow.down.circle")
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundColor(AppColors.accent)
-            }
-        }
-    }
-    
-    private func downloadDocument(_ document: Document) {
-        // Download implementation
-    }
-}
-
-// MARK: - Property Status Badge
-struct PropertyStatusBadge: View {
-    let status: PropertyStatus
-    let style: BadgeStyle
-    
-    enum BadgeStyle {
-        case small
-        case large
-        
-        var font: Font {
-            switch self {
-            case .small: return AppFonts.caption
-            case .large: return AppFonts.body
-            }
-        }
-        
-        var padding: EdgeInsets {
-            switch self {
-            case .small: return EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
-            case .large: return EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)
-            }
-        }
-    }
-    
-    var body: some View {
-        Text(status.displayName.uppercased())
-            .font(style.font)
-            .foregroundColor(status.color)
-            .kerning(AppFonts.wideKerning)
-            .padding(style.padding)
-            .background(status.color.opacity(0.1))
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(status.color.opacity(0.2), lineWidth: 1)
-            )
-    }
-}
-
-// MARK: - View Model
-class PropertyDetailViewModel: ObservableObject {
-    @Published var transfers: [Transfer] = []
-    @Published var documents: [Document] = []
-    @Published var isLoadingTransfers = true
-    @Published var isLoadingDocuments = true
-    
-    init() {
-        // Load data
     }
 }
 
 // MARK: - Preview
-struct PropertyDetailView_Previews: PreviewProvider {
+struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        PropertyDetailView(property: .sample)
+        LoginView { loginResponse in
+            debugPrint("Preview Login Success: User \(loginResponse.user.username)")
+        }
+        .previewDisplayName("8VC Style Login")
     }
 }

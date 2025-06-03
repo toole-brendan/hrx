@@ -1,341 +1,295 @@
-//
-//  GeometricRefreshView.swift
-//  HandReceipt
-//
-//  8VC-inspired pull-to-refresh with geometric cube animation
-//
+# HRX iOS Authentication Screens Implementation Guide
 
+## Overview
+
+This guide provides step-by-step instructions for implementing the 8VC-inspired redesign of the login and registration screens in the HRX iOS app.
+
+## Key Design Principles
+
+1. **No Containers**: Remove all card/container backgrounds
+2. **Direct Placement**: Form elements sit directly on the background
+3. **Minimal Borders**: Use only bottom borders for input fields
+4. **Generous Spacing**: 48px horizontal margins, increased vertical spacing
+5. **Typography Mix**: Serif for headers, monospace for technical elements
+6. **Subtle Patterns**: Optional geometric background patterns
+
+## Implementation Steps
+
+### Step 1: Update Dependencies
+
+Ensure your `AppColors.swift` and `AppStyles.swift` files are updated with the 8VC color palette and typography system (already in your codebase).
+
+### Step 2: Create Shared Components
+
+Add these reusable components to a new file `AuthComponents.swift`:
+
+```swift
+// AuthComponents.swift
 import SwiftUI
 
-// MARK: - Refresh State
-enum RefreshState {
-    case idle
-    case pulling(progress: CGFloat)
-    case refreshing
-    case finishing
-}
-
-// MARK: - Geometric Refresh View
-struct GeometricRefreshView: View {
-    let state: RefreshState
+// Underlined text field with focus states
+struct UnderlinedTextField: View {
+    let label: String
+    @Binding var text: String
+    let placeholder: String
+    var textContentType: UITextContentType? = nil
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalization: UITextAutocapitalizationType = .sentences
     
-    private var progress: CGFloat {
-        switch state {
-        case .idle: return 0
-        case .pulling(let p): return p
-        case .refreshing, .finishing: return 1
-        }
-    }
-    
-    private var scale: CGFloat {
-        switch state {
-        case .idle: return 0.8
-        case .pulling(let p): return 0.8 + (0.2 * p)
-        case .refreshing: return 1.0
-        case .finishing: return 0.9
-        }
-    }
+    @FocusState private var isFocused: Bool
     
     var body: some View {
-        ZStack {
-            // Background fade
-            AppColors.appBackground
-                .opacity(0.95)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(isFocused ? AppColors.primaryText : AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
             
-            VStack(spacing: 20) {
-                // Geometric cube loader
-                GeometricCubeWireframe(
-                    size: 40,
-                    isAnimating: state == .refreshing
-                )
-                .scaleEffect(scale)
-                .opacity(progress)
-                .animation(.easeInOut(duration: 0.3), value: scale)
-                
-                // Status text
-                Text(statusText)
-                    .font(AppFonts.monoCaption)
-                    .foregroundColor(AppColors.secondaryText)
-                    .kerning(AppFonts.wideKerning)
-                    .opacity(progress > 0.5 ? 1 : 0)
-                    .animation(.easeIn(duration: 0.2), value: progress)
-            }
-        }
-        .frame(height: 100)
-        .frame(maxWidth: .infinity)
-    }
-    
-    private var statusText: String {
-        switch state {
-        case .idle:
-            return ""
-        case .pulling(let progress):
-            return progress < 0.8 ? "PULL TO REFRESH" : "RELEASE TO REFRESH"
-        case .refreshing:
-            return "UPDATING"
-        case .finishing:
-            return "COMPLETE"
+            TextField(placeholder, text: $text)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+                .tint(AppColors.accent)
+                .textFieldStyle(PlainTextFieldStyle())
+                .textContentType(textContentType)
+                .keyboardType(keyboardType)
+                .autocapitalization(autocapitalization)
+                .disableAutocorrection(true)
+                .focused($isFocused)
+                .padding(.vertical, 8)
+            
+            Rectangle()
+                .fill(isFocused ? AppColors.primaryText : AppColors.border)
+                .frame(height: isFocused ? 2 : 1)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
         }
     }
 }
 
-// MARK: - Geometric Cube Wireframe
-struct GeometricCubeWireframe: View {
-    let size: CGFloat
-    let isAnimating: Bool
-    
-    @State private var rotation: Double = 0
-    @State private var innerRotation: Double = 0
+// Similar component for secure fields
+struct UnderlinedSecureField: View {
+    // Implementation similar to UnderlinedTextField but with SecureField
+}
+
+// Loading button with minimal animation
+struct MinimalLoadingButton: View {
+    let isLoading: Bool
+    let title: String
+    let icon: String?
+    let action: () -> Void
     
     var body: some View {
-        ZStack {
-            // Outer cube
-            CubeFrame(size: size)
-                .stroke(AppColors.primaryText.opacity(0.3), lineWidth: 1)
-                .rotation3DEffect(
-                    .degrees(rotation),
-                    axis: (x: 1, y: 1, z: 0)
-                )
-            
-            // Middle cube
-            CubeFrame(size: size * 0.7)
-                .stroke(AppColors.primaryText.opacity(0.5), lineWidth: 1)
-                .rotation3DEffect(
-                    .degrees(rotation * 1.5),
-                    axis: (x: 0, y: 1, z: 1)
-                )
-            
-            // Inner cube
-            CubeFrame(size: size * 0.4)
-                .stroke(AppColors.primaryText.opacity(0.8), lineWidth: 1)
-                .rotation3DEffect(
-                    .degrees(innerRotation),
-                    axis: (x: 1, y: 0, z: 1)
-                )
-        }
-        .onAppear {
-            if isAnimating {
-                withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                    rotation = 360
-                }
-                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
-                    innerRotation = -360
-                }
-            }
-        }
-        .onChange(of: isAnimating) { newValue in
-            if newValue {
-                withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                    rotation = 360
-                }
-                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
-                    innerRotation = -360
-                }
-            } else {
-                withAnimation(.easeOut(duration: 0.5)) {
-                    rotation = 0
-                    innerRotation = 0
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Cube Frame Shape
-struct CubeFrame: Shape {
-    let size: CGFloat
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        
-        let centerX = rect.midX
-        let centerY = rect.midY
-        let halfSize = size / 2
-        
-        // Front face
-        path.move(to: CGPoint(x: centerX - halfSize, y: centerY - halfSize))
-        path.addLine(to: CGPoint(x: centerX + halfSize, y: centerY - halfSize))
-        path.addLine(to: CGPoint(x: centerX + halfSize, y: centerY + halfSize))
-        path.addLine(to: CGPoint(x: centerX - halfSize, y: centerY + halfSize))
-        path.closeSubpath()
-        
-        // Connect to back face (simplified for 2D representation)
-        let depth = halfSize * 0.5
-        path.move(to: CGPoint(x: centerX - halfSize, y: centerY - halfSize))
-        path.addLine(to: CGPoint(x: centerX - halfSize + depth, y: centerY - halfSize - depth))
-        
-        path.move(to: CGPoint(x: centerX + halfSize, y: centerY - halfSize))
-        path.addLine(to: CGPoint(x: centerX + halfSize + depth, y: centerY - halfSize - depth))
-        
-        path.move(to: CGPoint(x: centerX + halfSize, y: centerY + halfSize))
-        path.addLine(to: CGPoint(x: centerX + halfSize + depth, y: centerY + halfSize - depth))
-        
-        return path
-    }
-}
-
-// MARK: - Refreshable Modifier
-struct MinimalRefreshableModifier: ViewModifier {
-    let action: () async -> Void
-    @State private var refreshState: RefreshState = .idle
-    @State private var contentOffset: CGFloat = 0
-    @State private var previousOffset: CGFloat = 0
-    
-    private let threshold: CGFloat = 80
-    private let maxPull: CGFloat = 150
-    
-    func body(content: Content) -> some View {
-        ZStack(alignment: .top) {
-            // Refresh indicator
-            GeometricRefreshView(state: refreshState)
-                .offset(y: refreshOffset)
-            
-            // Content
-            GeometryReader { geometry in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Hidden spacer to detect pull
-                        GeometryReader { scrollGeometry in
-                            Color.clear
-                                .preference(
-                                    key: ScrollOffsetPreferenceKey.self,
-                                    value: scrollGeometry.frame(in: .named("scroll")).minY
+        Button(action: action) {
+            HStack(spacing: 12) {
+                if isLoading {
+                    // Three dots loading animation
+                    HStack(spacing: 4) {
+                        ForEach(0..<3) { index in
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 6, height: 6)
+                                .scaleEffect(isLoading ? 1 : 0.3)
+                                .animation(
+                                    Animation.easeInOut(duration: 0.6)
+                                        .repeatForever()
+                                        .delay(Double(index) * 0.2),
+                                    value: isLoading
                                 )
                         }
-                        .frame(height: 0)
-                        
-                        // Actual content
-                        content
-                            .offset(y: contentPullOffset)
+                    }
+                } else {
+                    Text(title)
+                        .font(AppFonts.bodyMedium)
+                    
+                    if let icon = icon {
+                        Image(systemName: icon)
+                            .font(.system(size: 14, weight: .regular))
                     }
                 }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                    handleScrollChange(offset)
-                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
         }
-    }
-    
-    private var refreshOffset: CGFloat {
-        switch refreshState {
-        case .idle:
-            return -100
-        case .pulling(let progress):
-            return -100 + (100 * progress)
-        case .refreshing, .finishing:
-            return 0
-        }
-    }
-    
-    private var contentPullOffset: CGFloat {
-        switch refreshState {
-        case .pulling(let progress):
-            return max(0, threshold * progress)
-        case .refreshing, .finishing:
-            return threshold
-        default:
-            return 0
-        }
-    }
-    
-    private func handleScrollChange(_ offset: CGFloat) {
-        // Only track when at top and pulling down
-        guard offset > 0 else {
-            if refreshState != .refreshing {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    refreshState = .idle
-                }
-            }
-            return
-        }
-        
-        let pullDistance = min(offset, maxPull)
-        let progress = pullDistance / threshold
-        
-        switch refreshState {
-        case .idle, .pulling:
-            if pullDistance > 0 {
-                refreshState = .pulling(progress: progress)
-            }
-            
-            // Check if should trigger refresh
-            if previousOffset > threshold && offset <= threshold && progress >= 1 {
-                triggerRefresh()
-            }
-            
-        default:
-            break
-        }
-        
-        previousOffset = offset
-    }
-    
-    private func triggerRefresh() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            refreshState = .refreshing
-        }
-        
-        Task {
-            // Ensure minimum visible time
-            async let refresh = action()
-            async let minimumDelay = Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
-            
-            await refresh
-            try? await minimumDelay
-            
-            withAnimation(.easeOut(duration: 0.3)) {
-                refreshState = .finishing
-            }
-            
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-            
-            withAnimation(.easeOut(duration: 0.3)) {
-                refreshState = .idle
-            }
-        }
+        .buttonStyle(MinimalPrimaryButtonStyle())
+        .disabled(isLoading)
     }
 }
 
-// MARK: - Scroll Offset Preference Key
-struct ScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-// MARK: - View Extension
-extension View {
-    func minimalRefreshable(action: @escaping () async -> Void) -> some View {
-        modifier(MinimalRefreshableModifier(action: action))
-    }
-}
-
-// MARK: - Usage Example
-struct RefreshableExampleView: View {
-    @State private var items = ["Item 1", "Item 2", "Item 3"]
-    
+// Optional geometric pattern background
+struct GeometricPatternBackground: View {
     var body: some View {
-        VStack(spacing: 0) {
-            MinimalNavigationBar(
-                title: "REFRESHABLE LIST",
-                titleStyle: .mono
-            )
-            
-            List(items, id: \.self) { item in
-                Text(item)
-                    .font(AppFonts.body)
-                    .padding(.vertical, 12)
-            }
-            .listStyle(.plain)
-            .minimalRefreshable {
-                // Simulate network delay
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+        GeometryReader { geometry in
+            Canvas { context, size in
+                let spacing: CGFloat = 120
+                let lineWidth: CGFloat = 0.5
                 
-                // Update data
-                items.append("New Item \(items.count + 1)")
+                for x in stride(from: 0, to: size.width, by: spacing) {
+                    for y in stride(from: 0, to: size.height, by: spacing) {
+                        let rect = CGRect(x: x, y: y, width: spacing * 0.6, height: spacing * 0.6)
+                        context.stroke(
+                            Path(rect),
+                            with: .color(AppColors.border.opacity(0.5)),
+                            lineWidth: lineWidth
+                        )
+                    }
+                }
             }
         }
     }
 }
+```
+
+### Step 3: Update LoginView
+
+Replace the existing `LoginView.swift` with the new implementation. Key changes:
+
+```swift
+// Main structure changes:
+GeometryReader { geometry in
+    ZStack {
+        // 1. Light background
+        AppColors.appBackground
+            .ignoresSafeArea()
+        
+        // 2. Optional geometric pattern
+        GeometricPatternBackground()
+            .opacity(0.03)
+            .ignoresSafeArea()
+        
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                // 3. Smaller, minimal logo
+                logoSection
+                    .padding(.top, geometry.safeAreaInsets.top + 80)
+                    .padding(.bottom, 80)
+                
+                // 4. Main content without container
+                VStack(alignment: .leading, spacing: 48) {
+                    headerSection      // Serif font header
+                    formFields         // Underlined fields
+                    errorMessage       // Subtle error display
+                    signInButton       // Minimal black button
+                    registrationLink   // Text link style
+                }
+                .padding(.horizontal, 48) // Generous margins
+                .padding(.bottom, 80)
+            }
+        }
+    }
+}
+```
+
+### Step 4: Update RegisterView
+
+Key structure for the registration screen:
+
+```swift
+// Section-based layout:
+VStack(alignment: .leading, spacing: 56) {
+    // Custom navigation
+    MinimalBackButton(label: "Back") { dismiss() }
+    
+    // Serif header
+    headerSection
+    
+    // Personal Information Section
+    VStack(alignment: .leading, spacing: 24) {
+        SectionHeader(title: "Personal Information")
+        personalInfoFields
+    }
+    
+    // Military Details Section
+    VStack(alignment: .leading, spacing: 24) {
+        SectionHeader(title: "Military Details")
+        militaryFields
+    }
+    
+    // Security Section
+    VStack(alignment: .leading, spacing: 24) {
+        SectionHeader(title: "Security")
+        passwordFields
+        passwordRequirements // Visual feedback
+    }
+    
+    // Action button
+    createAccountButton
+    
+    // Login link
+    loginLink
+}
+.padding(.horizontal, 48)
+```
+
+### Step 5: Testing & Refinement
+
+1. **Test on Multiple Devices**
+   - iPhone SE (smallest)
+   - iPhone 15 Pro
+   - iPhone 15 Pro Max
+   - iPad (if applicable)
+
+2. **Check Keyboard Behavior**
+   - Ensure fields scroll into view when keyboard appears
+   - Test keyboard types and autocorrection settings
+
+3. **Validate Accessibility**
+   - VoiceOver support
+   - Dynamic Type scaling
+   - Color contrast ratios
+
+4. **Animation Performance**
+   - Ensure smooth transitions
+   - Test on older devices
+
+## Migration Checklist
+
+- [ ] Back up current implementation
+- [ ] Create `AuthComponents.swift` with shared components
+- [ ] Update `LoginView.swift`
+- [ ] Update `RegisterView.swift`
+- [ ] Remove old unused styles (WebStyleTextField, etc.)
+- [ ] Test dev login functionality (5-tap easter egg)
+- [ ] Verify API integration still works
+- [ ] Test error states and loading states
+- [ ] Check navigation flow between login/register
+- [ ] Validate form validation logic
+- [ ] Test on all target devices
+- [ ] Get design approval
+- [ ] Update unit tests if applicable
+
+## Common Issues & Solutions
+
+### Issue: Text fields not visible on keyboard
+**Solution**: Wrap ScrollView content in a GeometryReader and adjust padding based on keyboard height.
+
+### Issue: Focus states not working on iOS 14
+**Solution**: Use @available checks for FocusState (iOS 15+) and provide fallback.
+
+### Issue: Geometric pattern performance
+**Solution**: Reduce pattern complexity or make it optional based on device capabilities.
+
+### Issue: Dark mode compatibility
+**Solution**: Test all colors in both light and dark mode, adjust as needed.
+
+## Customization Options
+
+1. **Pattern Variations**: Try different geometric patterns (triangles, hexagons, etc.)
+2. **Animation Timing**: Adjust loading animation speed for preference
+3. **Field Spacing**: Fine-tune vertical spacing between form fields
+4. **Typography Scale**: Adjust font sizes for different screen sizes
+
+## Next Steps
+
+After implementing the authentication screens:
+
+1. Apply similar styling to other screens (Dashboard, Properties, etc.)
+2. Create a comprehensive style guide document
+3. Update the onboarding flow if applicable
+4. Consider adding subtle sound effects for interactions
+5. Implement analytics to track auth success rates
+
+## Resources
+
+- [8VC Build Site](https://www.8vc.com/build) - Design inspiration
+- Apple HIG - iOS design guidelines
+- SwiftUI Documentation - Latest APIs and best practices

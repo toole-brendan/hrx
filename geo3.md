@@ -1,454 +1,419 @@
-//
-//  GeometricLoadingAnimations.swift
-//  HandReceipt
-//
-//  8VC-inspired loading animations and states
-//
+# HRX iOS Authentication Screens Redesign Plan - 8VC Style
 
-import SwiftUI
+## Design Philosophy
 
-// MARK: - Loading Style Configuration
-struct LoadingStyleConfiguration {
-    let size: CGFloat
-    let scale: CGFloat
-    let spacing: CGFloat
-    let padding: CGFloat
-    let font: Font
-    let showMessage: Bool
-    
-    static let inline = LoadingStyleConfiguration(
-        size: 24,
-        scale: 0.8,
-        spacing: 8,
-        padding: 8,
-        font: AppFonts.caption,
-        showMessage: false
-    )
-    
-    static let section = LoadingStyleConfiguration(
-        size: 48,
-        scale: 1.0,
-        spacing: 16,
-        padding: 24,
-        font: AppFonts.caption,
-        showMessage: true
-    )
-    
-    static let fullScreen = LoadingStyleConfiguration(
-        size: 80,
-        scale: 1.2,
-        spacing: 24,
-        padding: 40,
-        font: AppFonts.body,
-        showMessage: true
-    )
-}
+The 8VC aesthetic emphasizes:
+- **No containers**: Direct placement on clean backgrounds
+- **Sophisticated typography**: Mixed serif, sans-serif, and monospace fonts
+- **Generous whitespace**: Breathing room between elements
+- **Minimal visual elements**: Remove unnecessary decoration
+- **Subtle interactions**: Light touches, no heavy shadows
 
-// MARK: - Minimal Loading View
-struct MinimalLoadingView: View {
-    let message: String?
-    let style: LoadingStyle
-    
-    enum LoadingStyle {
-        case inline
-        case section
-        case fullScreen
-        
-        var config: LoadingStyleConfiguration {
-            switch self {
-            case .inline: return .inline
-            case .section: return .section
-            case .fullScreen: return .fullScreen
+## Login Screen Redesign
+
+### Layout Structure
+
+```
+┌─────────────────────────────────┐
+│                                 │
+│        [HR Logo - Full Size]    │  ← Original 200pt height
+│    Property Management System   │  ← Tagline
+│                                 │
+│                                 │
+│      Welcome Back               │  ← Large serif font
+│   Sign in to continue           │  ← Light gray, smaller
+│                                 │
+│                                 │
+│   Username                      │  ← Small label
+│   ─────────────────────         │  ← Minimal underline
+│                                 │
+│   Password                      │
+│   ─────────────────────         │
+│                                 │
+│        [Sign In →]              │  ← Black button, minimal
+│                                 │
+│   Don't have an account?        │
+│   Create one                    │  ← Text link style
+│                                 │
+└─────────────────────────────────┘
+```
+
+### Key Changes
+
+1. **Remove Card Container**
+   - Eliminate the white card background
+   - Place form elements directly on the light gray background
+   - Use subtle shadows only on interactive elements
+
+2. **Typography Hierarchy**
+   ```swift
+   // Hero text
+   Text("Welcome Back")
+       .font(AppFonts.serifHero)  // 48pt serif
+       .foregroundColor(AppColors.primaryText)
+   
+   // Subtitle
+   Text("Sign in to continue")
+       .font(AppFonts.body)  // 16pt sans-serif
+       .foregroundColor(AppColors.tertiaryText)
+   ```
+
+3. **Form Fields - Minimalist Style**
+   ```swift
+   // New minimal text field with only bottom border
+   struct UnderlinedTextFieldStyle: TextFieldStyle {
+       func _body(configuration: TextField<Self._Label>) -> some View {
+           VStack(alignment: .leading, spacing: 8) {
+               configuration
+                   .font(AppFonts.body)
+                   .foregroundColor(AppColors.primaryText)
+                   .padding(.vertical, 8)
+               
+               Rectangle()
+                   .fill(AppColors.border)
+                   .frame(height: 1)
+           }
+       }
+   }
+   ```
+
+4. **Logo Treatment**
+   - Keep the logo at its original 200pt height for strong brand presence
+   - The larger logo works well with the minimal design
+   - Maintain the tap gesture for dev login easter egg
+   - Add "Property Management System" tagline below
+
+5. **Button Styling**
+   - Primary button: Black background, white text, no borders
+   - Text links: Blue accent color, no underline unless hovered/pressed
+
+## Registration Screen Redesign
+
+### Layout Structure
+
+```
+┌─────────────────────────────────┐
+│  ← Back                         │
+│                                 │
+│     Create Account              │  ← Serif font
+│  Join the property system       │
+│                                 │
+│  Personal Information           │  ← Section header
+│  ─────────────────────          │
+│                                 │
+│  First Name        Last Name    │  ← Side by side
+│  ──────────        ──────────   │
+│                                 │
+│  Username                       │
+│  ─────────────────────          │
+│                                 │
+│  Email                          │
+│  ─────────────────────          │
+│                                 │
+│  Military Details               │  ← Section header
+│  ─────────────────────          │
+│                                 │
+│  Rank              Unit         │
+│  ──────────        ──────────   │
+│                                 │
+│  Security                       │  ← Section header
+│  ─────────────────────          │
+│                                 │
+│  Password                       │
+│  ─────────────────────          │
+│                                 │
+│  Confirm Password               │
+│  ─────────────────────          │
+│                                 │
+│     [Create Account]            │
+│                                 │
+│  Already have an account?       │
+│  Sign in                        │
+└─────────────────────────────────┘
+```
+
+### Key Changes
+
+1. **Section Headers**
+   ```swift
+   Text("PERSONAL INFORMATION")
+       .font(AppFonts.captionMedium)
+       .foregroundColor(AppColors.secondaryText)
+       .kerning(AppFonts.ultraWideKerning)  // Wide letter spacing
+   ```
+
+2. **Remove All Containers**
+   - No rounded rectangles or cards
+   - Use section headers with dividers to group related fields
+   - Generous vertical spacing between sections
+
+3. **Dropdown Styling**
+   ```swift
+   // Minimal dropdown appearance
+   Menu {
+       ForEach(militaryRanks, id: \.self) { rank in
+           Button(rank) { selectedRank = rank }
+       }
+   } label: {
+       HStack {
+           Text(selectedRank.isEmpty ? "Select Rank" : selectedRank)
+               .font(AppFonts.body)
+               .foregroundColor(selectedRank.isEmpty ? AppColors.tertiaryText : AppColors.primaryText)
+           Spacer()
+           Image(systemName: "chevron.down")
+               .font(.system(size: 12, weight: .light))
+               .foregroundColor(AppColors.tertiaryText)
+       }
+       .padding(.vertical, 8)
+   }
+   ```
+
+## Implementation Code Examples
+
+### Updated LoginView Structure
+
+```swift
+struct LoginView: View {
+    var body: some View {
+        NavigationView {
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Logo - smaller, more subtle
+                        Image("hr_logo_icon") // Just the book icon
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 80)
+                            .foregroundColor(AppColors.tertiaryText)
+                            .padding(.top, geometry.safeAreaInsets.top + 60)
+                            .padding(.bottom, 60)
+                        
+                        // Main content - no container
+                        VStack(alignment: .leading, spacing: 48) {
+                            // Header
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Welcome Back")
+                                    .font(AppFonts.serifHero)
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                Text("Sign in to continue")
+                                    .font(AppFonts.body)
+                                    .foregroundColor(AppColors.tertiaryText)
+                            }
+                            
+                            // Form fields
+                            VStack(spacing: 32) {
+                                UnderlinedTextField(
+                                    label: "Username",
+                                    text: $viewModel.username,
+                                    keyboardType: .asciiCapable
+                                )
+                                
+                                UnderlinedSecureField(
+                                    label: "Password",
+                                    text: $viewModel.password
+                                )
+                            }
+                            
+                            // Error message (if any)
+                            if !errorMessage.isEmpty {
+                                Text(errorMessage)
+                                    .font(AppFonts.body)
+                                    .foregroundColor(AppColors.destructive)
+                                    .padding(.top, -24)
+                            }
+                            
+                            // Sign in button
+                            Button(action: { viewModel.attemptLogin() }) {
+                                HStack {
+                                    Text("Sign In")
+                                        .font(AppFonts.bodyMedium)
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 14, weight: .regular))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                            }
+                            .buttonStyle(MinimalPrimaryButtonStyle())
+                            .disabled(!viewModel.canAttemptLogin)
+                            
+                            // Registration link
+                            VStack(spacing: 4) {
+                                Text("Don't have an account?")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.tertiaryText)
+                                
+                                Button("Create one") {
+                                    showingRegistration = true
+                                }
+                                .buttonStyle(TextLinkButtonStyle())
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 24)
+                        }
+                        .padding(.horizontal, 48) // Generous side margins
+                        .padding(.bottom, 60)
+                    }
+                }
             }
+            .background(AppColors.appBackground)
+            .ignoresSafeArea()
+            .navigationBarHidden(true)
         }
     }
+}
+```
+
+### New Underlined Text Field Component
+
+```swift
+struct UnderlinedTextField: View {
+    let label: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
     
     var body: some View {
-        VStack(spacing: style.config.spacing) {
-            GeometricLoader(
-                style: style,
-                size: style.config.size
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
             
-            if style.config.showMessage, let message = message {
-                Text(message.uppercased())
-                    .font(style.config.font)
-                    .foregroundColor(AppColors.tertiaryText)
-                    .kerning(AppFonts.wideKerning)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .padding(style.config.padding)
-        .frame(maxWidth: style == .fullScreen ? .infinity : nil)
-        .frame(maxHeight: style == .fullScreen ? .infinity : nil)
-        .background(
-            style == .fullScreen ? AppColors.appBackground : Color.clear
-        )
-    }
-}
-
-// MARK: - Geometric Loader
-struct GeometricLoader: View {
-    let style: MinimalLoadingView.LoadingStyle
-    let size: CGFloat
-    
-    @State private var rotation: Double = 0
-    @State private var scale: CGFloat = 0.8
-    @State private var opacity: Double = 0.3
-    
-    var body: some View {
-        ZStack {
-            // Multiple nested shapes for depth
-            ForEach(0..<3) { index in
-                RotatingShape(
-                    index: index,
-                    size: size * (1.0 - CGFloat(index) * 0.25),
-                    rotation: rotation + Double(index * 45),
-                    opacity: 1.0 - Double(index) * 0.3
-                )
-            }
-        }
-        .scaleEffect(scale)
-        .onAppear {
-            startAnimations()
-        }
-    }
-    
-    private func startAnimations() {
-        // Rotation animation
-        withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-            rotation = 360
-        }
-        
-        // Scale pulsing
-        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-            scale = 1.1
-        }
-        
-        // Opacity fade
-        withAnimation(.easeInOut(duration: 1).repeatForever(autoreverses: true)) {
-            opacity = 1.0
-        }
-    }
-}
-
-// MARK: - Rotating Shape Component
-struct RotatingShape: View {
-    let index: Int
-    let size: CGFloat
-    let rotation: Double
-    let opacity: Double
-    
-    var body: some View {
-        GeometricShape(sides: 4 + index)
-            .stroke(
-                AppColors.primaryText.opacity(opacity * 0.8),
-                style: StrokeStyle(
-                    lineWidth: 1.5 - Double(index) * 0.3,
-                    lineCap: .round,
-                    lineJoin: .round
-                )
-            )
-            .frame(width: size, height: size)
-            .rotationEffect(.degrees(rotation))
-            .rotation3DEffect(
-                .degrees(rotation * 0.5),
-                axis: (x: index % 2 == 0 ? 1 : 0, y: index % 2 == 1 ? 1 : 0, z: 0.5)
-            )
-    }
-}
-
-// MARK: - Geometric Shape
-struct GeometricShape: Shape {
-    let sides: Int
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let radius = min(rect.width, rect.height) / 2
-        let angle = 2 * .pi / Double(sides)
-        
-        for i in 0..<sides {
-            let currentAngle = angle * Double(i) - .pi / 2
-            let x = center.x + radius * cos(currentAngle)
-            let y = center.y + radius * sin(currentAngle)
+            TextField("", text: $text)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+                .keyboardType(keyboardType)
+                .textFieldStyle(PlainTextFieldStyle())
+                .padding(.vertical, 8)
             
-            if i == 0 {
-                path.move(to: CGPoint(x: x, y: y))
-            } else {
-                path.addLine(to: CGPoint(x: x, y: y))
-            }
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 1)
         }
-        
-        path.closeSubpath()
-        return path
     }
 }
 
-// MARK: - Loading State Container
-struct LoadingStateView<Content: View>: View {
+struct UnderlinedSecureField: View {
+    let label: String
+    @Binding var text: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
+            
+            SecureField("", text: $text)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+                .textFieldStyle(PlainTextFieldStyle())
+                .padding(.vertical, 8)
+            
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 1)
+        }
+    }
+}
+```
+
+## Visual Enhancements
+
+### 1. Geometric Pattern Background
+Add subtle geometric patterns (inspired by 8VC's cube motif) as a background element:
+
+```swift
+struct GeometricBackgroundView: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                // Create subtle line pattern
+                let spacing: CGFloat = 100
+                for x in stride(from: 0, to: geometry.size.width, by: spacing) {
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x + 50, y: 50))
+                }
+            }
+            .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
+        }
+    }
+}
+```
+
+### 2. Loading States
+Replace progress indicators with minimal animations:
+
+```swift
+struct MinimalLoadingButton: View {
     let isLoading: Bool
-    let error: String?
-    let isEmpty: Bool
-    let loadingMessage: String?
-    let emptyStateConfig: EmptyStateConfig?
-    let content: () -> Content
-    
-    struct EmptyStateConfig {
-        let icon: String
-        let title: String
-        let message: String
-        let actionLabel: String?
-        let action: (() -> Void)?
-    }
-    
-    var body: some View {
-        ZStack {
-            if let error = error {
-                MinimalEmptyState(
-                    icon: "exclamationmark.circle",
-                    title: "Error",
-                    message: error,
-                    action: emptyStateConfig?.action,
-                    actionLabel: "Retry"
-                )
-            } else if isLoading {
-                MinimalLoadingView(
-                    message: loadingMessage,
-                    style: .section
-                )
-            } else if isEmpty, let config = emptyStateConfig {
-                MinimalEmptyState(
-                    icon: config.icon,
-                    title: config.title,
-                    message: config.message,
-                    action: config.action,
-                    actionLabel: config.actionLabel
-                )
-            } else {
-                content()
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: isLoading)
-        .animation(.easeInOut(duration: 0.3), value: error != nil)
-        .animation(.easeInOut(duration: 0.3), value: isEmpty)
-    }
-}
-
-// MARK: - Skeleton Loading
-struct SkeletonLoadingView: View {
-    let rows: Int
-    
-    @State private var shimmerOffset: CGFloat = -1
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            ForEach(0..<rows, id: \.self) { _ in
-                SkeletonRow()
-                    .modifier(ShimmerModifier(offset: shimmerOffset))
-            }
-        }
-        .onAppear {
-            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                shimmerOffset = 2
-            }
-        }
-    }
-}
-
-struct SkeletonRow: View {
-    var body: some View {
-        HStack(spacing: 16) {
-            // Avatar placeholder
-            Circle()
-                .fill(AppColors.tertiaryBackground)
-                .frame(width: 48, height: 48)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                // Title placeholder
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(AppColors.tertiaryBackground)
-                    .frame(width: 200, height: 16)
-                
-                // Subtitle placeholder
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(AppColors.tertiaryBackground)
-                    .frame(width: 150, height: 12)
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
-    }
-}
-
-// MARK: - Shimmer Modifier
-struct ShimmerModifier: ViewModifier {
-    let offset: CGFloat
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GeometryReader { geometry in
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.clear,
-                            AppColors.appBackground.opacity(0.6),
-                            Color.clear
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: geometry.size.width * 0.3)
-                    .offset(x: geometry.size.width * offset)
-                    .allowsHitTesting(false)
-                }
-                .clipped()
-            )
-    }
-}
-
-// MARK: - Progress Indicator
-struct MinimalProgressIndicator: View {
-    let progress: Double
-    let showPercentage: Bool
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                // Background track
-                Circle()
-                    .stroke(AppColors.tertiaryBackground, lineWidth: 4)
-                
-                // Progress arc
-                Circle()
-                    .trim(from: 0, to: CGFloat(progress))
-                    .stroke(
-                        AppColors.primaryText,
-                        style: StrokeStyle(
-                            lineWidth: 4,
-                            lineCap: .round
-                        )
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.3), value: progress)
-                
-                if showPercentage {
-                    Text("\(Int(progress * 100))%")
-                        .font(AppFonts.monoBody)
-                        .foregroundColor(AppColors.primaryText)
-                }
-            }
-            .frame(width: 60, height: 60)
-        }
-    }
-}
-
-// MARK: - Loading Button
-struct LoadingButton: View {
     let title: String
-    let isLoading: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Text(title)
-                    .opacity(isLoading ? 0 : 1)
-                
+            HStack(spacing: 12) {
                 if isLoading {
-                    MinimalLoadingView(
-                        message: nil,
-                        style: .inline
-                    )
+                    // Three dots animation
+                    HStack(spacing: 4) {
+                        ForEach(0..<3) { index in
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 6, height: 6)
+                                .scaleEffect(isLoading ? 1 : 0.3)
+                                .animation(
+                                    Animation.easeInOut(duration: 0.6)
+                                        .repeatForever()
+                                        .delay(Double(index) * 0.2),
+                                    value: isLoading
+                                )
+                        }
+                    }
+                } else {
+                    Text(title)
+                        .font(AppFonts.bodyMedium)
                 }
             }
-            .frame(minWidth: 120)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
         }
         .buttonStyle(MinimalPrimaryButtonStyle())
         .disabled(isLoading)
     }
 }
+```
 
-// MARK: - View Extensions
-extension View {
-    func loadingState<T>(
-        data: T?,
-        isLoading: Bool,
-        error: String? = nil,
-        loadingMessage: String? = nil,
-        emptyConfig: LoadingStateView<Self>.EmptyStateConfig? = nil
-    ) -> some View where T: Collection {
-        LoadingStateView(
-            isLoading: isLoading,
-            error: error,
-            isEmpty: data?.isEmpty ?? true,
-            loadingMessage: loadingMessage,
-            emptyStateConfig: emptyConfig,
-            content: { self }
-        )
-    }
-    
-    func skeletonLoading(isLoading: Bool, rows: Int = 5) -> some View {
-        ZStack {
-            if isLoading {
-                SkeletonLoadingView(rows: rows)
-            } else {
-                self
-            }
-        }
-    }
+## Transition Animations
+
+Add subtle transitions when navigating between login and registration:
+
+```swift
+// In LoginView
+.sheet(isPresented: $showingRegistration) {
+    RegisterView()
+        .transition(.asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        ))
 }
 
-// MARK: - Usage Examples
-struct LoadingExamplesView: View {
-    @State private var isLoading = false
-    @State private var progress: Double = 0
-    
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 40) {
-                // Inline loader
-                HStack {
-                    Text("Processing")
-                        .font(AppFonts.body)
-                    
-                    MinimalLoadingView(
-                        message: nil,
-                        style: .inline
-                    )
-                }
-                
-                // Section loader
-                MinimalLoadingView(
-                    message: "Loading properties",
-                    style: .section
-                )
-                .cleanCard()
-                
-                // Loading button
-                LoadingButton(
-                    title: "SUBMIT TRANSFER",
-                    isLoading: isLoading,
-                    action: {
-                        isLoading.toggle()
-                    }
-                )
-                
-                // Progress indicator
-                MinimalProgressIndicator(
-                    progress: progress,
-                    showPercentage: true
-                )
-                .onAppear {
-                    withAnimation(.linear(duration: 3)) {
-                        progress = 0.75
-                    }
-                }
-            }
-            .padding(24)
-        }
-    }
-}
+// Subtle fade for error messages
+.animation(.easeInOut(duration: 0.3), value: errorMessage)
+```
+
+## Color Usage Guidelines
+
+1. **Primary Text**: Use pure black (#000000) for main content
+2. **Secondary Text**: Use medium gray (#4A4A4A) for subtitles
+3. **Tertiary Text**: Use light gray (#6B6B6B) for labels and hints
+4. **Accent**: Use sparingly - only for links and active states
+5. **Backgrounds**: Main background #FAFAFA, no secondary containers
+
+## Final Notes
+
+- Remove all rounded rectangles and cards
+- Increase horizontal padding to 48pt for main content
+- Use uppercase with wide letter spacing for all labels
+- Keep animations subtle and functional
+- Test on both light and dark mode (though prioritize light)
+- Ensure sufficient contrast for accessibility

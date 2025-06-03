@@ -1,807 +1,569 @@
-//
-//  MinimalSearchView.swift
-//  HandReceipt
-//
-//  8VC-inspired search interface with minimal styling
-//
-
 import SwiftUI
-import Combine
 
-// MARK: - Search View
-struct MinimalSearchView: View {
-    @Binding var isPresented: Bool
-    @StateObject private var viewModel = SearchViewModel()
-    @FocusState private var isSearchFieldFocused: Bool
+struct AuthScreensComparison: View {
+    @State private var selectedScreen = 0
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Search header
-            searchHeader
-            
-            // Content
-            if viewModel.searchText.isEmpty && viewModel.recentSearches.isEmpty {
-                // Empty state
-                emptySearchState
-            } else if viewModel.searchText.isEmpty {
-                // Recent searches
-                recentSearchesView
-            } else if viewModel.isSearching {
-                // Loading state
-                searchLoadingState
-            } else {
-                // Search results
-                searchResultsView
-            }
-        }
-        .background(AppColors.appBackground)
-        .onAppear {
-            isSearchFieldFocused = true
-        }
-    }
-    
-    // MARK: - Search Header
-    private var searchHeader: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                // Search field
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .light))
-                        .foregroundColor(AppColors.tertiaryText)
-                    
-                    TextField("Search properties, people, or transfers", text: $viewModel.searchText)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.primaryText)
-                        .focused($isSearchFieldFocused)
-                        .submitLabel(.search)
-                        .onSubmit {
-                            viewModel.performSearch()
-                        }
-                    
-                    if !viewModel.searchText.isEmpty {
-                        Button(action: { viewModel.searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16, weight: .light))
-                                .foregroundColor(AppColors.tertiaryText)
-                        }
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(AppColors.tertiaryBackground)
-                .cornerRadius(8)
-                
-                // Cancel button
-                Button("Cancel") {
-                    isPresented = false
-                }
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .animation(.easeInOut(duration: 0.2), value: viewModel.searchText.isEmpty)
-            
-            // Filter pills
-            if !viewModel.searchText.isEmpty {
-                filterPillsView
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-            
-            Divider()
-                .background(AppColors.divider)
-        }
-        .animation(.easeInOut(duration: 0.3), value: !viewModel.searchText.isEmpty)
-    }
-    
-    // MARK: - Filter Pills
-    private var filterPillsView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(SearchFilter.allCases) { filter in
-                    FilterPill(
-                        filter: filter,
-                        count: viewModel.resultCount(for: filter),
-                        isSelected: viewModel.selectedFilter == filter,
-                        action: { viewModel.selectedFilter = filter }
-                    )
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 16)
-        }
-    }
-    
-    // MARK: - Empty Search State
-    private var emptySearchState: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // Geometric pattern
-            GeometricSearchPattern()
-                .frame(width: 120, height: 120)
-                .opacity(0.1)
-            
-            VStack(spacing: 16) {
-                Text("SEARCH HANDRECEIPT")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.primaryText)
-                    .kerning(AppFonts.wideKerning)
-                
-                Text("Find properties, people, transfers, and more")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Quick search suggestions
-            VStack(alignment: .leading, spacing: 16) {
-                Text("TRY SEARCHING FOR")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.tertiaryText)
-                    .kerning(AppFonts.ultraWideKerning)
-                
-                VStack(spacing: 12) {
-                    QuickSearchItem(icon: "shippingbox", text: "M4 Carbine", action: {
-                        viewModel.searchText = "M4 Carbine"
-                    })
-                    
-                    QuickSearchItem(icon: "person", text: "Recent transfers", action: {
-                        viewModel.searchText = "transfers"
-                    })
-                    
-                    QuickSearchItem(icon: "wrench", text: "Maintenance due", action: {
-                        viewModel.searchText = "maintenance"
-                    })
-                }
-            }
-            .padding(.horizontal, 24)
-            
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    // MARK: - Recent Searches
-    private var recentSearchesView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Text("RECENT")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.tertiaryText)
-                    .kerning(AppFonts.ultraWideKerning)
-                
-                Spacer()
-                
-                if !viewModel.recentSearches.isEmpty {
-                    Button("Clear") {
-                        viewModel.clearRecentSearches()
-                    }
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.accent)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 20)
-            
-            // Recent items
-            VStack(spacing: 0) {
-                ForEach(viewModel.recentSearches) { recent in
-                    RecentSearchRow(
-                        search: recent,
-                        onTap: {
-                            viewModel.searchText = recent.query
-                            viewModel.performSearch()
-                        },
-                        onRemove: {
-                            viewModel.removeRecentSearch(recent)
-                        }
-                    )
-                    
-                    if recent.id != viewModel.recentSearches.last?.id {
-                        Divider()
-                            .background(AppColors.divider)
-                            .padding(.leading, 56)
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - Loading State
-    private var searchLoadingState: some View {
-        VStack {
-            Spacer()
-            
-            MinimalLoadingView(
-                message: "Searching...",
-                style: .section
-            )
-            
-            Spacer()
-        }
-    }
-    
-    // MARK: - Search Results
-    private var searchResultsView: some View {
         ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: .sectionHeaders) {
-                // Results summary
-                HStack {
-                    Text("\(viewModel.totalResults) results for \"\(viewModel.searchText)\"")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.secondaryText)
-                    
-                    Spacer()
+            VStack(spacing: 40) {
+                // Title
+                Text("Authentication Screens Transformation")
+                    .font(.system(size: 32, weight: .bold, design: .serif))
+                    .padding(.top, 40)
+                
+                // Screen selector
+                Picker("Screen", selection: $selectedScreen) {
+                    Text("Login").tag(0)
+                    Text("Registration").tag(1)
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal, 80)
                 
-                // Grouped results
-                ForEach(viewModel.groupedResults) { group in
-                    Section {
-                        VStack(spacing: 0) {
-                            ForEach(group.results) { result in
-                                SearchResultRow(
-                                    result: result,
-                                    searchText: viewModel.searchText,
-                                    onTap: {
-                                        handleResultTap(result)
-                                    }
-                                )
-                                
-                                if result.id != group.results.last?.id {
-                                    Divider()
-                                        .background(AppColors.divider)
-                                        .padding(.leading: 72)
-                                }
-                            }
-                        }
-                    } header: {
-                        SearchResultSectionHeader(
-                            title: group.category.title,
-                            count: group.results.count
-                        )
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - Actions
-    private func handleResultTap(_ result: SearchResult) {
-        viewModel.addToRecentSearches(result)
-        
-        // Navigate based on result type
-        switch result.type {
-        case .property:
-            // Navigate to property detail
-            break
-        case .person:
-            // Navigate to person profile
-            break
-        case .transfer:
-            // Navigate to transfer detail
-            break
-        case .document:
-            // Open document
-            break
-        }
-        
-        isPresented = false
-    }
-}
-
-// MARK: - Supporting Components
-
-struct FilterPill: View {
-    let filter: SearchFilter
-    let count: Int
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Text(filter.title.uppercased())
-                    .font(AppFonts.caption)
-                    .kerning(AppFonts.wideKerning)
-                
-                if count > 0 {
-                    Text("\(count)")
-                        .font(AppFonts.monoCaption)
-                }
-            }
-            .foregroundColor(isSelected ? AppColors.primaryText : AppColors.secondaryText)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? AppColors.tertiaryBackground : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.clear : AppColors.border, lineWidth: 1)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
-
-struct QuickSearchItem: View {
-    let icon: String
-    let text: String
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundColor(AppColors.secondaryText)
-                    .frame(width: 24)
-                
-                Text(text)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Spacer()
-                
-                Image(systemName: "arrow.up.backward")
-                    .font(.system(size: 14, weight: .light))
-                    .foregroundColor(AppColors.tertiaryText)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(8)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
-
-struct RecentSearchRow: View {
-    let search: RecentSearch
-    let onTap: () -> Void
-    let onRemove: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 16) {
-                Image(systemName: "clock")
-                    .font(.system(size: 16, weight: .light))
-                    .foregroundColor(AppColors.tertiaryText)
-                    .frame(width: 20)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(search.query)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    if let subtitle = search.subtitle {
-                        Text(subtitle)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.secondaryText)
-                    }
+                if selectedScreen == 0 {
+                    LoginComparisonView()
+                } else {
+                    RegistrationComparisonView()
                 }
                 
-                Spacer()
+                // Key improvements summary
+                ImprovementsCard()
                 
-                Button(action: onRemove) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .light))
-                        .foregroundColor(AppColors.tertiaryText)
-                }
+                Spacer(minLength: 40)
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 12)
         }
-        .buttonStyle(PlainButtonStyle())
+        .background(Color(hex: "FAFAFA"))
     }
 }
 
-struct SearchResultSectionHeader: View {
-    let title: String
-    let count: Int
-    
-    var body: some View {
-        HStack {
-            Text(title.uppercased())
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
-                .kerning(AppFonts.ultraWideKerning)
-            
-            Text("(\(count))")
-                .font(AppFonts.monoCaption)
-                .foregroundColor(AppColors.tertiaryText)
-            
-            Spacer()
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
-        .background(AppColors.appBackground.opacity(0.95))
-    }
-}
+// MARK: - Login Comparison
 
-struct SearchResultRow: View {
-    let result: SearchResult
-    let searchText: String
-    let onTap: () -> Void
-    
+struct LoginComparisonView: View {
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 16) {
-                // Icon
-                Circle()
-                    .fill(result.type.backgroundColor)
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Image(systemName: result.type.icon)
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundColor(result.type.foregroundColor)
-                    )
-                
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
-                    HighlightedText(
-                        text: result.title,
-                        highlight: searchText,
-                        font: AppFonts.bodyMedium,
-                        color: AppColors.primaryText,
-                        highlightColor: AppColors.accent
-                    )
+        VStack(spacing: 32) {
+            Text("Login Screen Redesign")
+                .font(.system(size: 24, weight: .semibold, design: .serif))
+            
+            HStack(spacing: 20) {
+                // Before
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("BEFORE", systemImage: "xmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.red)
                     
-                    if let subtitle = result.subtitle {
-                        HighlightedText(
-                            text: subtitle,
-                            highlight: searchText,
-                            font: AppFonts.caption,
-                            color: AppColors.secondaryText,
-                            highlightColor: AppColors.accent
+                    OldLoginMockup()
+                        .frame(width: 300, height: 600)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.red.opacity(0.3), lineWidth: 2)
                         )
-                    }
+                }
+                
+                // After
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("AFTER", systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.green)
                     
-                    // Metadata
-                    HStack(spacing: 8) {
-                        ForEach(result.metadata) { meta in
-                            HStack(spacing: 4) {
-                                Image(systemName: meta.icon)
-                                    .font(.system(size: 10, weight: .light))
-                                
-                                Text(meta.value)
-                                    .font(AppFonts.monoCaption)
-                            }
-                            .foregroundColor(AppColors.tertiaryText)
+                    NewLoginMockup()
+                        .frame(width: 300, height: 600)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.green.opacity(0.3), lineWidth: 2)
+                        )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Registration Comparison
+
+struct RegistrationComparisonView: View {
+    var body: some View {
+        VStack(spacing: 32) {
+            Text("Registration Screen Redesign")
+                .font(.system(size: 24, weight: .semibold, design: .serif))
+            
+            HStack(spacing: 20) {
+                // Before
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("BEFORE", systemImage: "xmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.red)
+                    
+                    OldRegistrationMockup()
+                        .frame(width: 300, height: 600)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.red.opacity(0.3), lineWidth: 2)
+                        )
+                }
+                
+                // After
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("AFTER", systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.green)
+                    
+                    NewRegistrationMockup()
+                        .frame(width: 300, height: 600)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.green.opacity(0.3), lineWidth: 2)
+                        )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Old Login Mockup
+
+struct OldLoginMockup: View {
+    var body: some View {
+        ZStack {
+            // Old light background
+            Color(hex: "FAFAFA")
+            
+            VStack(spacing: 0) {
+                // Large logo
+                VStack(spacing: 16) {
+                    Image(systemName: "book.fill")
+                        .font(.system(size: 100))
+                        .foregroundColor(Color(hex: "4A4A4A"))
+                    
+                    Text("handreceipt")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Color(hex: "4A4A4A"))
+                }
+                .padding(.top, 60)
+                .padding(.bottom, 40)
+                
+                // Card container (the issue!)
+                VStack(spacing: 24) {
+                    VStack(spacing: 16) {
+                        Text("Welcome Back")
+                            .font(.system(size: 32, weight: .bold, design: .serif))
+                            .foregroundColor(.black)
+                        
+                        Text("Enter your credentials to access\nyour account")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "6B6B6B"))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Username")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(Color(hex: "6B6B6B"))
                             
-                            if meta.id != result.metadata.last?.id {
-                                Circle()
-                                    .fill(AppColors.tertiaryText)
-                                    .frame(width: 2, height: 2)
-                            }
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white)
+                                .frame(height: 44)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .stroke(Color(hex: "E0E0E0"), lineWidth: 1)
+                                )
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Password")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(Color(hex: "6B6B6B"))
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white)
+                                .frame(height: 44)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .stroke(Color(hex: "E0E0E0"), lineWidth: 1)
+                                )
+                        }
+                    }
+                    
+                    Button(action: {}) {
+                        HStack {
+                            Image(systemName: "arrow.right")
+                            Text("Sign In")
+                        }
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color.black)
+                        .cornerRadius(4)
+                    }
+                }
+                .padding(32)
+                .background(Color.white)
+                .cornerRadius(4)
+                .shadow(color: Color.black.opacity(0.08), radius: 8, y: 4)
+                .padding(.horizontal, 24)
+                
+                Spacer()
+            }
+        }
+    }
+}
+
+// MARK: - New Login Mockup
+
+struct NewLoginMockup: View {
+    var body: some View {
+        ZStack {
+            // Clean background
+            Color(hex: "FAFAFA")
+            
+            // Subtle pattern
+            GeometryReader { geometry in
+                Path { path in
+                    for x in stride(from: 0, to: geometry.size.width, by: 60) {
+                        for y in stride(from: 0, to: geometry.size.height, by: 60) {
+                            path.addRect(CGRect(x: x, y: y, width: 30, height: 30))
                         }
                     }
                 }
+                .stroke(Color(hex: "E0E0E0").opacity(0.3), lineWidth: 0.5)
+            }
+            
+            VStack(spacing: 0) {
+                // Full-size logo maintained
+                VStack(spacing: 24) {
+                    Image(systemName: "book.fill")
+                        .font(.system(size: 100, weight: .regular))
+                        .foregroundColor(Color(hex: "6B6B6B"))
+                    
+                    Text("Property Management System")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(hex: "4A4A4A"))
+                }
+                .padding(.top, 60)
+                .padding(.bottom, 60)
+                
+                // No container - direct placement
+                VStack(alignment: .leading, spacing: 48) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Welcome Back")
+                            .font(.system(size: 48, weight: .bold, design: .serif))
+                            .foregroundColor(.black)
+                        
+                        Text("Sign in to continue")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(hex: "6B6B6B"))
+                    }
+                    
+                    // Fields with underlines only
+                    VStack(spacing: 36) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("USERNAME")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color(hex: "6B6B6B"))
+                                .tracking(1)
+                            
+                            Rectangle()
+                                .fill(Color(hex: "E0E0E0"))
+                                .frame(height: 1)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("PASSWORD")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color(hex: "6B6B6B"))
+                                .tracking(1)
+                            
+                            Rectangle()
+                                .fill(Color(hex: "E0E0E0"))
+                                .frame(height: 1)
+                        }
+                    }
+                    
+                    // Minimal button
+                    Button(action: {}) {
+                        HStack {
+                            Text("Sign In")
+                                .font(.system(size: 16, weight: .medium))
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color.black)
+                        .cornerRadius(4)
+                    }
+                    
+                    // Text link
+                    VStack(spacing: 4) {
+                        Text("Don't have an account?")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "9B9B9B"))
+                        
+                        Text("Create one")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(hex: "0066CC"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 24)
+                }
+                .padding(.horizontal, 48)
                 
                 Spacer()
-                
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .light))
-                    .foregroundColor(AppColors.tertiaryText)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .background(AppColors.appBackground)
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Highlighted Text
-struct HighlightedText: View {
-    let text: String
-    let highlight: String
-    let font: Font
-    let color: Color
-    let highlightColor: Color
-    
-    var body: some View {
-        if highlight.isEmpty {
-            Text(text)
-                .font(font)
-                .foregroundColor(color)
-        } else {
-            Text(attributedString)
-                .font(font)
-        }
-    }
-    
-    private var attributedString: AttributedString {
-        var attributed = AttributedString(text)
-        attributed.foregroundColor = color
-        
-        let lowercased = text.lowercased()
-        let highlightLowercased = highlight.lowercased()
-        
-        var searchRange = lowercased.startIndex..<lowercased.endIndex
-        while let range = lowercased.range(of: highlightLowercased, options: .caseInsensitive, range: searchRange) {
-            let attributedRange = attributed.index(
-                attributed.startIndex,
-                offsetBy: lowercased.distance(from: lowercased.startIndex, to: range.lowerBound)
-            )..<attributed.index(
-                attributed.startIndex,
-                offsetBy: lowercased.distance(from: lowercased.startIndex, to: range.upperBound)
-            )
-            
-            attributed[attributedRange].foregroundColor = highlightColor
-            attributed[attributedRange].font = font.weight(.semibold)
-            
-            searchRange = range.upperBound..<lowercased.endIndex
-        }
-        
-        return attributed
-    }
-}
+// MARK: - Old Registration Mockup
 
-// MARK: - Geometric Search Pattern
-struct GeometricSearchPattern: View {
+struct OldRegistrationMockup: View {
     var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let size = min(geometry.size.width, geometry.size.height)
-                let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                
-                // Magnifying glass circle
-                path.addEllipse(in: CGRect(
-                    x: center.x - size * 0.35,
-                    y: center.y - size * 0.35,
-                    width: size * 0.7,
-                    height: size * 0.7
-                ))
-                
-                // Handle
-                path.move(to: CGPoint(
-                    x: center.x + size * 0.25,
-                    y: center.y + size * 0.25
-                ))
-                path.addLine(to: CGPoint(
-                    x: center.x + size * 0.45,
-                    y: center.y + size * 0.45
-                ))
-                
-                // Inner geometric pattern
-                let innerSize = size * 0.4
-                let vertices = 6
-                for i in 0..<vertices {
-                    let angle = Double(i) * (2.0 * .pi / Double(vertices)) - .pi / 2
-                    let x = center.x + innerSize * cos(angle) * 0.5
-                    let y = center.y + innerSize * sin(angle) * 0.5
+        ZStack {
+            Color(hex: "FAFAFA")
+            
+            VStack(spacing: 20) {
+                // Header with system icon
+                VStack(spacing: 8) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 60))
+                        .foregroundColor(Color(hex: "4A4A4A"))
                     
-                    if i == 0 {
-                        path.move(to: CGPoint(x: x, y: y))
-                    } else {
-                        path.addLine(to: CGPoint(x: x, y: y))
+                    Text("Create Account")
+                        .font(.system(size: 28, weight: .bold))
+                    
+                    Text("Join HandReceipt System")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 40)
+                
+                // Form with rounded text fields
+                VStack(spacing: 16) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(hex: "F0F0F0"))
+                            .frame(height: 40)
+                        
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(hex: "F0F0F0"))
+                            .frame(height: 40)
+                    }
+                    
+                    ForEach(0..<4) { _ in
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(hex: "F0F0F0"))
+                            .frame(height: 40)
+                    }
+                    
+                    Button(action: {}) {
+                        HStack {
+                            Image(systemName: "person.badge.plus")
+                            Text("Create Account")
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Color.gray)
+                        .cornerRadius(10)
                     }
                 }
-                path.closeSubpath()
-            }
-            .stroke(AppColors.primaryText, lineWidth: 1)
-        }
-    }
-}
-
-// MARK: - Models
-
-enum SearchFilter: String, CaseIterable, Identifiable {
-    case all = "All"
-    case properties = "Properties"
-    case people = "People"
-    case transfers = "Transfers"
-    case documents = "Documents"
-    
-    var id: String { rawValue }
-    
-    var title: String { rawValue }
-}
-
-struct SearchResult: Identifiable {
-    let id = UUID()
-    let type: ResultType
-    let title: String
-    let subtitle: String?
-    let metadata: [Metadata]
-    let relevanceScore: Double
-    
-    enum ResultType {
-        case property
-        case person
-        case transfer
-        case document
-        
-        var icon: String {
-            switch self {
-            case .property: return "shippingbox"
-            case .person: return "person"
-            case .transfer: return "arrow.left.arrow.right"
-            case .document: return "doc"
+                .padding(.horizontal, 20)
+                
+                Spacer()
             }
         }
-        
-        var backgroundColor: Color {
-            AppColors.tertiaryBackground
-        }
-        
-        var foregroundColor: Color {
-            AppColors.secondaryText
-        }
-    }
-    
-    struct Metadata: Identifiable {
-        let id = UUID()
-        let icon: String
-        let value: String
     }
 }
 
-struct RecentSearch: Identifiable {
-    let id = UUID()
-    let query: String
-    let subtitle: String?
-    let date: Date
-}
+// MARK: - New Registration Mockup
 
-struct SearchResultGroup: Identifiable {
-    let id = UUID()
-    let category: SearchFilter
-    let results: [SearchResult]
-}
-
-// MARK: - View Model
-class SearchViewModel: ObservableObject {
-    @Published var searchText = ""
-    @Published var selectedFilter: SearchFilter = .all
-    @Published var isSearching = false
-    @Published var results: [SearchResult] = []
-    @Published var recentSearches: [RecentSearch] = []
-    
-    private var cancellables = Set<AnyCancellable>()
-    
-    init() {
-        // Debounce search
-        $searchText
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-            .removeDuplicates()
-            .sink { [weak self] text in
-                if !text.isEmpty {
-                    self?.performSearch()
+struct NewRegistrationMockup: View {
+    var body: some View {
+        ZStack {
+            Color(hex: "FAFAFA")
+            
+            VStack(alignment: .leading, spacing: 0) {
+                // Clean back button
+                HStack {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14))
+                    Text("Back")
+                        .font(.system(size: 16))
+                }
+                .foregroundColor(Color(hex: "4A4A4A"))
+                .padding(.top, 30)
+                .padding(.horizontal, 48)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 56) {
+                        // Serif header
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Create Account")
+                                .font(.system(size: 32, weight: .bold, design: .serif))
+                            
+                            Text("Join the property management system")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(hex: "6B6B6B"))
+                        }
+                        
+                        // Section 1
+                        VStack(alignment: .leading, spacing: 24) {
+                            Text("PERSONAL INFORMATION")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Color(hex: "4A4A4A"))
+                                .tracking(2)
+                            
+                            Rectangle()
+                                .fill(Color(hex: "E0E0E0"))
+                                .frame(height: 1)
+                            
+                            HStack(spacing: 24) {
+                                UnderlineFieldMockup(label: "FIRST NAME")
+                                UnderlineFieldMockup(label: "LAST NAME")
+                            }
+                            
+                            UnderlineFieldMockup(label: "USERNAME")
+                            UnderlineFieldMockup(label: "EMAIL")
+                        }
+                        
+                        // Section 2
+                        VStack(alignment: .leading, spacing: 24) {
+                            Text("MILITARY DETAILS")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Color(hex: "4A4A4A"))
+                                .tracking(2)
+                            
+                            Rectangle()
+                                .fill(Color(hex: "E0E0E0"))
+                                .frame(height: 1)
+                            
+                            HStack(spacing: 24) {
+                                UnderlineFieldMockup(label: "RANK")
+                                UnderlineFieldMockup(label: "UNIT")
+                            }
+                        }
+                        
+                        // Clean button
+                        Button(action: {}) {
+                            Text("Create Account")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(Color.black)
+                                .cornerRadius(4)
+                        }
+                    }
+                    .padding(.horizontal, 48)
+                    .padding(.top, 40)
                 }
             }
-            .store(in: &cancellables)
-        
-        loadRecentSearches()
+        }
     }
+}
+
+struct UnderlineFieldMockup: View {
+    let label: String
     
-    var totalResults: Int {
-        results.count
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "6B6B6B"))
+                .tracking(1)
+            
+            Rectangle()
+                .fill(Color(hex: "E0E0E0"))
+                .frame(height: 1)
+        }
     }
+}
+
+// MARK: - Improvements Card
+
+struct ImprovementsCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Key Improvements")
+                .font(.system(size: 20, weight: .semibold))
+            
+            VStack(alignment: .leading, spacing: 16) {
+                ImprovementItem(
+                    icon: "square.dashed",
+                    title: "No Containers",
+                    description: "Removed card backgrounds for cleaner, more open design"
+                )
+                
+                ImprovementItem(
+                    icon: "textformat",
+                    title: "Typography Hierarchy",
+                    description: "Serif fonts for headers, monospace for technical elements"
+                )
+                
+                ImprovementItem(
+                    icon: "minus.rectangle",
+                    title: "Minimal Fields",
+                    description: "Simple underlines instead of boxed inputs"
+                )
+                
+                ImprovementItem(
+                    icon: "arrow.left.and.right",
+                    title: "Generous Spacing",
+                    description: "48px horizontal margins, increased vertical spacing"
+                )
+                
+                ImprovementItem(
+                    icon: "cube",
+                    title: "Subtle Patterns",
+                    description: "Geometric background inspired by 8VC's aesthetic"
+                )
+            }
+            .padding(24)
+            .background(Color.white)
+            .cornerRadius(8)
+            .shadow(color: Color.black.opacity(0.05), radius: 4, y: 2)
+        }
+    }
+}
+
+struct ImprovementItem: View {
+    let icon: String
+    let title: String
+    let description: String
     
-    var groupedResults: [SearchResultGroup] {
-        let filtered = selectedFilter == .all ? results : results.filter { matchesFilter($0, filter: selectedFilter) }
-        
-        let grouped = Dictionary(grouping: filtered) { result -> SearchFilter in
-            switch result.type {
-            case .property: return .properties
-            case .person: return .people
-            case .transfer: return .transfers
-            case .document: return .documents
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .light))
+                .foregroundColor(Color(hex: "0066CC"))
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.black)
+                
+                Text(description)
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "6B6B6B"))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        
-        return grouped.map { SearchResultGroup(category: $0.key, results: $0.value) }
-            .sorted { $0.category.rawValue < $1.category.rawValue }
-    }
-    
-    func resultCount(for filter: SearchFilter) -> Int {
-        guard filter != .all else { return results.count }
-        return results.filter { matchesFilter($0, filter: filter) }.count
-    }
-    
-    func performSearch() {
-        isSearching = true
-        
-        // Simulate search
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            self?.generateMockResults()
-            self?.isSearching = false
-        }
-    }
-    
-    func addToRecentSearches(_ result: SearchResult) {
-        let recent = RecentSearch(
-            query: result.title,
-            subtitle: result.subtitle,
-            date: Date()
-        )
-        
-        recentSearches.insert(recent, at: 0)
-        if recentSearches.count > 10 {
-            recentSearches.removeLast()
-        }
-        
-        saveRecentSearches()
-    }
-    
-    func removeRecentSearch(_ search: RecentSearch) {
-        recentSearches.removeAll { $0.id == search.id }
-        saveRecentSearches()
-    }
-    
-    func clearRecentSearches() {
-        recentSearches.removeAll()
-        saveRecentSearches()
-    }
-    
-    private func matchesFilter(_ result: SearchResult, filter: SearchFilter) -> Bool {
-        switch (result.type, filter) {
-        case (_, .all): return true
-        case (.property, .properties): return true
-        case (.person, .people): return true
-        case (.transfer, .transfers): return true
-        case (.document, .documents): return true
-        default: return false
-        }
-    }
-    
-    private func loadRecentSearches() {
-        // Load from UserDefaults or Core Data
-    }
-    
-    private func saveRecentSearches() {
-        // Save to UserDefaults or Core Data
-    }
-    
-    private func generateMockResults() {
-        // Generate mock search results for demo
-        results = [
-            SearchResult(
-                type: .property,
-                title: "M4 Carbine",
-                subtitle: "SN: M4-12345",
-                metadata: [
-                    .init(icon: "location", value: "Building A"),
-                    .init(icon: "person", value: "CPT Smith")
-                ],
-                relevanceScore: 0.95
-            ),
-            SearchResult(
-                type: .person,
-                title: "CPT John Smith",
-                subtitle: "Current holder of 12 items",
-                metadata: [
-                    .init(icon: "envelope", value: "john.smith@army.mil")
-                ],
-                relevanceScore: 0.85
-            ),
-            SearchResult(
-                type: .transfer,
-                title: "Transfer #T-2024-001",
-                subtitle: "M4 Carbine to CPT Smith",
-                metadata: [
-                    .init(icon: "calendar", value: "2 days ago"),
-                    .init(icon: "checkmark.circle", value: "Completed")
-                ],
-                relevanceScore: 0.75
-            )
-        ]
     }
 }
 
 // MARK: - Preview
-struct MinimalSearchView_Previews: PreviewProvider {
+
+struct AuthScreensComparison_Previews: PreviewProvider {
     static var previews: some View {
-        MinimalSearchView(isPresented: .constant(true))
+        AuthScreensComparison()
+            .previewDevice("iPad Pro (12.9-inch)")
     }
 }

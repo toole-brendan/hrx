@@ -21,136 +21,195 @@ struct RegisterView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Image(systemName: "person.badge.plus")
-                            .font(.system(size: 60))
-                            .foregroundColor(.military)
-                        
-                        Text("Create Account")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        
-                        Text("Join HandReceipt System")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 20)
+            GeometryReader { geometry in
+                ZStack {
+                    // Background
+                    AppColors.appBackground
+                        .ignoresSafeArea()
                     
-                    // Registration Form
-                    VStack(spacing: 16) {
-                        // Name fields
-                        HStack(spacing: 12) {
-                            TextField("First Name", text: $firstName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .textContentType(.givenName)
-                            
-                            TextField("Last Name", text: $lastName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .textContentType(.familyName)
-                        }
-                        
-                        // Username
-                        TextField("Username", text: $username)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .textContentType(.username)
-                            .autocapitalization(.none)
-                        
-                        // Email
-                        TextField("Email", text: $email)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .textContentType(.emailAddress)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                        
-                        // Rank and Unit
-                        HStack(spacing: 12) {
-                            Picker("Rank", selection: $selectedRank) {
-                                Text("Select Rank").tag("")
-                                ForEach(militaryRanks, id: \.self) { rank in
-                                    Text(rank).tag(rank)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
-                            
-                            TextField("Unit", text: $unit)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                        }
-                        
-                        // Password fields
-                        SecureField("Password", text: $password)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .textContentType(.newPassword)
-                        
-                        SecureField("Confirm Password", text: $confirmPassword)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .textContentType(.newPassword)
-                        
-                        // Error message
-                        if let errorMessage = viewModel.errorMessage {
-                            Text(errorMessage)
-                                .font(.caption)
-                                .foregroundColor(.red)
-                                .padding(.horizontal)
-                        }
-                        
-                        // Register button
-                        Button(action: register) {
+                    // Subtle geometric pattern
+                    GeometricPatternBackground()
+                        .opacity(0.03)
+                        .ignoresSafeArea()
+                    
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            // Custom navigation bar
                             HStack {
-                                if viewModel.isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .scaleEffect(0.8)
-                                } else {
-                                    Image(systemName: "person.badge.plus")
-                                    Text("Create Account")
+                                MinimalBackButton(label: "Back") {
+                                    dismiss()
                                 }
+                                Spacer()
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(isFormValid ? Color.military : Color.gray)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                        }
-                        .disabled(!isFormValid || viewModel.isLoading)
-                        
-                        // Login link
-                        HStack {
-                            Text("Already have an account?")
-                                .foregroundColor(.secondary)
-                            Button("Sign In") {
-                                showingLogin = true
+                            .padding(.horizontal, 48)
+                            .padding(.top, geometry.safeAreaInsets.top + 20)
+                            .padding(.bottom, 40)
+                            
+                            // Main content
+                            VStack(alignment: .leading, spacing: 56) {
+                                // Header
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Create Account")
+                                        .font(AppFonts.serifTitle)
+                                        .foregroundColor(AppColors.primaryText)
+                                    
+                                    Text("Join the property management system")
+                                        .font(AppFonts.body)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                }
+                                
+                                // Personal Information Section
+                                VStack(alignment: .leading, spacing: 24) {
+                                    SectionHeader(title: "Personal Information")
+                                    
+                                    HStack(spacing: 24) {
+                                        UnderlinedTextField(
+                                            label: "First Name",
+                                            text: $firstName,
+                                            placeholder: "John",
+                                            textContentType: .givenName
+                                        )
+                                        
+                                        UnderlinedTextField(
+                                            label: "Last Name",
+                                            text: $lastName,
+                                            placeholder: "Doe",
+                                            textContentType: .familyName
+                                        )
+                                    }
+                                    
+                                    UnderlinedTextField(
+                                        label: "Username",
+                                        text: $username,
+                                        placeholder: "john.doe",
+                                        textContentType: .username,
+                                        keyboardType: .asciiCapable,
+                                        autocapitalization: .none
+                                    )
+                                    
+                                    UnderlinedTextField(
+                                        label: "Email",
+                                        text: $email,
+                                        placeholder: "john.doe@example.com",
+                                        textContentType: .emailAddress,
+                                        keyboardType: .emailAddress,
+                                        autocapitalization: .none
+                                    )
+                                }
+                                
+                                // Military Details Section
+                                VStack(alignment: .leading, spacing: 24) {
+                                    SectionHeader(title: "Military Details")
+                                    
+                                    HStack(spacing: 24) {
+                                        MinimalDropdown(
+                                            label: "Rank",
+                                            selection: $selectedRank,
+                                            placeholder: "Select Rank",
+                                            options: militaryRanks
+                                        )
+                                        
+                                        UnderlinedTextField(
+                                            label: "Unit",
+                                            text: $unit,
+                                            placeholder: "1st Battalion"
+                                        )
+                                    }
+                                }
+                                
+                                // Security Section
+                                VStack(alignment: .leading, spacing: 24) {
+                                    SectionHeader(title: "Security")
+                                    
+                                    UnderlinedSecureField(
+                                        label: "Password",
+                                        text: $password,
+                                        placeholder: "Minimum 8 characters",
+                                        textContentType: .newPassword
+                                    )
+                                    
+                                    UnderlinedSecureField(
+                                        label: "Confirm Password",
+                                        text: $confirmPassword,
+                                        placeholder: "Re-enter password",
+                                        textContentType: .newPassword
+                                    )
+                                    
+                                    // Password requirements
+                                    if !password.isEmpty {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            PasswordRequirement(
+                                                met: password.count >= 8,
+                                                text: "At least 8 characters"
+                                            )
+                                            PasswordRequirement(
+                                                met: password == confirmPassword && !confirmPassword.isEmpty,
+                                                text: "Passwords match"
+                                            )
+                                        }
+                                        .padding(.top, -16)
+                                        .transition(.opacity)
+                                    }
+                                }
+                                
+                                // Error message
+                                if let errorMessage = viewModel.errorMessage {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "exclamationmark.circle")
+                                            .font(.system(size: 16, weight: .light))
+                                            .foregroundColor(AppColors.destructive)
+                                        
+                                        Text(errorMessage)
+                                            .font(AppFonts.body)
+                                            .foregroundColor(AppColors.destructive)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .move(edge: .top)),
+                                        removal: .opacity
+                                    ))
+                                }
+                                
+                                // Create account button
+                                MinimalLoadingButton(
+                                    isLoading: viewModel.isLoading,
+                                    title: "Create Account",
+                                    icon: nil,
+                                    action: register
+                                )
+                                .disabled(!isFormValid || viewModel.isLoading)
+                                .padding(.top, 16)
+                                
+                                // Login link
+                                VStack(spacing: 4) {
+                                    Text("Already have an account?")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                    
+                                    Button("Sign in") {
+                                        showingLogin = true
+                                    }
+                                    .buttonStyle(TextLinkButtonStyle())
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 24)
                             }
-                            .foregroundColor(.military)
+                            .padding(.horizontal, 48)
+                            .padding(.bottom, 80)
                         }
-                        .font(.footnote)
+                        .animation(.easeInOut(duration: 0.3), value: viewModel.errorMessage)
+                        .animation(.easeInOut(duration: 0.3), value: password)
                     }
-                    .padding(.horizontal)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
+            .navigationBarHidden(true)
         }
+        .navigationViewStyle(.stack)
         .sheet(isPresented: $showingLogin) {
             LoginView { loginResponse in
-                // Dismiss the register view when login is successful
                 dismiss()
             }
         }
-        .navigationViewStyle(.stack)
     }
     
     private var isFormValid: Bool {
@@ -185,7 +244,8 @@ struct RegisterView: View {
     }
 }
 
-// RegisterViewModel
+// MARK: - View Model
+
 @MainActor
 class RegisterViewModel: ObservableObject {
     @Published var isLoading = false
@@ -226,7 +286,15 @@ class RegisterViewModel: ObservableObject {
         } catch let error as APIService.APIError {
             switch error {
             case .badRequest(let message):
-                errorMessage = message ?? "Registration failed. Please try again."
+                errorMessage = message ?? "Registration failed. Please check your information."
+            case .serverError(let statusCode, let message):
+                if statusCode == 409 {
+                    errorMessage = "Username or email already exists."
+                } else {
+                    errorMessage = message ?? "Server error. Please try again later."
+                }
+            case .forbidden(let message):
+                errorMessage = message ?? "Registration not allowed."
             default:
                 errorMessage = "Registration failed. Please try again."
             }
@@ -235,5 +303,17 @@ class RegisterViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+}
+
+// MARK: - Auth Components
+// Note: Auth components are defined in AuthComponents.swift
+
+// MARK: - Preview
+
+struct RegisterView_Previews: PreviewProvider {
+    static var previews: some View {
+        RegisterView()
+            .previewDisplayName("8VC Style Register")
     }
 } 

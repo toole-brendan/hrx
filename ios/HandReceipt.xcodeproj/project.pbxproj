@@ -66,6 +66,7 @@
 		BF4A1C732DEF196C0066ADD9 /* GeometricRefreshView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C722DEF196C0066ADD9 /* GeometricRefreshView.swift */; };
 		BF4A1C742DEF196C0066ADD9 /* GeometricLoadingAnimations.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C712DEF196C0066ADD9 /* GeometricLoadingAnimations.swift */; };
 		BF4A1C762DEF19950066ADD9 /* MinimalSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C752DEF19950066ADD9 /* MinimalSearchView.swift */; };
+		BF4A1C782DEF23920066ADD9 /* AuthComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C772DEF23920066ADD9 /* AuthComponents.swift */; };
 		BF8172312DEA96A10086B2DD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8172302DEA96A10086B2DD /* SettingsView.swift */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
@@ -153,6 +154,7 @@
 		BF4A1C712DEF196C0066ADD9 /* GeometricLoadingAnimations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometricLoadingAnimations.swift; sourceTree = "<group>"; };
 		BF4A1C722DEF196C0066ADD9 /* GeometricRefreshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometricRefreshView.swift; sourceTree = "<group>"; };
 		BF4A1C752DEF19950066ADD9 /* MinimalSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinimalSearchView.swift; sourceTree = "<group>"; };
+		BF4A1C772DEF23920066ADD9 /* AuthComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthComponents.swift; sourceTree = "<group>"; };
 		BF8172302DEA96A10086B2DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -289,6 +291,7 @@
 		EB1E1FAD2E9EFEB08A590505 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C772DEF23920066ADD9 /* AuthComponents.swift */,
 				BF4A1C752DEF19950066ADD9 /* MinimalSearchView.swift */,
 				BF4A1C652DEE70EF0066ADD9 /* ComponentManagementView.swift */,
 				BF4A1C662DEE70EF0066ADD9 /* DocumentsView.swift */,
@@ -458,6 +461,7 @@
 				BF4A1C622DEE70CA0066ADD9 /* DA2062ExportViewModel.swift in Sources */,
 				BF2DF4432DE929E700E450D6 /* NSNSearchView.swift in Sources */,
 				BFC223CF2DAB3E1F00ACF884 /* AppColors.swift in Sources */,
+				BF4A1C782DEF23920066ADD9 /* AuthComponents.swift in Sources */,
 				BFC223D02DAB3E1F00ACF884 /* AppStyles.swift in Sources */,
 				BF2DF43C2DE929D700E450D6 /* CoreDataStack.swift in Sources */,
 				BF2DF43D2DE929D700E450D6 /* OfflineSyncService.swift in Sources */,

@@ -1,6 +1,6 @@
 import SwiftUI
 import Foundation
-import UIKit  // For haptic feedback
+import UIKit
 // Import our custom colors and styles directly by relative file path
 // @_exported import class HandReceipt.AppColors
 // @_exported import struct HandReceipt.PrimaryButtonStyle
@@ -13,6 +13,7 @@ struct LoginView: View {
     @State private var showingRegistration = false
     @State private var logoTapCount = 0
     @State private var lastTapTime = Date()
+    @State private var isAnimatingLogo = false
     
     // Callback invoked on successful login, passing the response
     // Used by the containing view/coordinator to navigate away.
@@ -25,96 +26,94 @@ struct LoginView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                // Light background to match 8VC style
-                AppColors.appBackground
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Logo and Header Section
+            GeometryReader { geometry in
+                ZStack {
+                    // Background with subtle geometric pattern
+                    AppColors.appBackground
+                        .ignoresSafeArea()
+                    
+                    // Subtle geometric pattern overlay
+                    GeometricPatternBackground()
+                        .opacity(0.03)
+                        .ignoresSafeArea()
+                    
+                    ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
-                            // Logo with tap gesture for dev login
-                            ZStack {
-                                Image("hr_logo4")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(height: 200) // Reduced for cleaner look
-                                    .onTapGesture {
-                                        handleLogoTap()
-                                    }
-                                
-                                // Dev login progress indicator
-                                if logoTapCount > 0 && logoTapCount < 5 {
-                                    Circle()
-                                        .strokeBorder(AppColors.border, lineWidth: 2)
-                                        .frame(width: 120, height: 120)
-                                        .scaleEffect(1 + (CGFloat(logoTapCount) * 0.05))
-                                        .animation(.easeOut(duration: 0.2), value: logoTapCount)
+                            // Logo section - maintaining original size
+                            VStack(spacing: 0) {
+                                // Full logo at original size
+                                ZStack {
+                                    Image("hr_logo4")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(height: 200) // Original size maintained
+                                        .scaleEffect(isAnimatingLogo ? 1.05 : 1.0)
+                                        .onTapGesture {
+                                            handleLogoTap()
+                                        }
                                     
-                                    Text("\(logoTapCount)")
-                                        .font(AppFonts.caption)
-                                        .foregroundColor(AppColors.tertiaryText)
-                                        .offset(y: -80)
+                                    // Dev login progress indicator overlay
+                                    if logoTapCount > 0 && logoTapCount < 5 {
+                                        VStack {
+                                            Spacer()
+                                            HStack(spacing: 4) {
+                                                ForEach(0..<5) { index in
+                                                    Circle()
+                                                        .fill(index < logoTapCount ? AppColors.primaryText : AppColors.border)
+                                                        .frame(width: 6, height: 6)
+                                                }
+                                            }
+                                            .padding(.bottom, 20)
+                                        }
+                                        .frame(height: 200)
+                                    }
                                 }
-                            }
-                            .padding(.bottom, 24)
-                            
-                            Text("Property Management System")
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.secondaryText)
-                                .padding(.bottom, 40)
-                        }
-                        .padding(.top, 60)
-                        
-                        // Login Card
-                        VStack(spacing: 0) {
-                            // Card Header
-                            VStack(spacing: 16) {
-                                Text("Welcome Back")
-                                    .font(AppFonts.serifTitle)
-                                    .foregroundColor(AppColors.primaryText)
                                 
-                                Text("Enter your credentials to access your account")
+                                Text("Property Management System")
                                     .font(AppFonts.body)
                                     .foregroundColor(AppColors.secondaryText)
-                                    .multilineTextAlignment(.center)
+                                    .padding(.top, -24)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 32)
-                            .padding(.horizontal, 24)
+                            .padding(.top, geometry.safeAreaInsets.top - 30)
+                            .padding(.bottom, 40)
                             
-                            // Card Content
-                            VStack(spacing: 24) {
-                                // Username Field
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Username")
-                                        .font(AppFonts.captionMedium)
-                                        .foregroundColor(AppColors.tertiaryText)
+                            // Main content - no container
+                            VStack(alignment: .leading, spacing: 20) {
+                                // Header section
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Welcome Back")
+                                        .font(AppFonts.serifHero)
+                                        .foregroundColor(AppColors.primaryText)
                                     
-                                    TextField("Enter your username", text: $viewModel.username)
-                                        .textFieldStyle(MinimalTextFieldStyle())
-                                        .textContentType(.username)
-                                        .keyboardType(.asciiCapable)
-                                        .autocapitalization(.none)
-                                        .disableAutocorrection(true)
+                                    Text("Sign in to continue")
+                                        .font(AppFonts.body)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                // Form fields with tighter spacing
+                                VStack(spacing: 16) {
+                                    UnderlinedTextField(
+                                        label: "Username",
+                                        text: $viewModel.username,
+                                        placeholder: "Enter your username",
+                                        textContentType: .username,
+                                        keyboardType: .asciiCapable,
+                                        autocapitalization: .none
+                                    )
+                                    
+                                    UnderlinedSecureField(
+                                        label: "Password",
+                                        text: $viewModel.password,
+                                        placeholder: "Enter your password",
+                                        textContentType: .password
+                                    )
                                 }
                                 
-                                // Password Field
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Password")
-                                        .font(AppFonts.captionMedium)
-                                        .foregroundColor(AppColors.tertiaryText)
-                                    
-                                    SecureField("Enter your password", text: $viewModel.password)
-                                        .textFieldStyle(MinimalTextFieldStyle())
-                                        .textContentType(.password)
-                                }
-                                
-                                // Error Message
+                                // Error message with subtle animation
                                 if !errorMessage.isEmpty {
                                     HStack(spacing: 12) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
+                                        Image(systemName: "exclamationmark.circle")
                                             .font(.system(size: 16, weight: .light))
                                             .foregroundColor(AppColors.destructive)
                                         
@@ -123,45 +122,40 @@ struct LoginView: View {
                                             .foregroundColor(AppColors.destructive)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding(16)
-                                    .background(AppColors.destructive.opacity(0.05))
-                                    .cornerRadius(4)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .stroke(AppColors.destructive.opacity(0.2), lineWidth: 1)
-                                    )
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .move(edge: .top)),
+                                        removal: .opacity
+                                    ))
+                                    .padding(.top, -12)
                                 }
                                 
-                                // Login Button
-                                Button {
-                                    viewModel.attemptLogin()
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        if case .loading = viewModel.loginState {
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                .scaleEffect(0.8)
-                                        } else {
-                                            Image(systemName: "arrow.right")
-                                                .font(.system(size: 16, weight: .light))
-                                        }
-                                        
-                                        Text("Sign In")
-                                            .font(AppFonts.bodyMedium)
+                                // Sign in button
+                                MinimalLoadingButton(
+                                    isLoading: viewModel.loginState == .loading,
+                                    title: "Sign In",
+                                    icon: "arrow.right",
+                                    action: { viewModel.attemptLogin() }
+                                )
+                                .disabled(!viewModel.canAttemptLogin)
+                                
+                                // Registration link section
+                                VStack(spacing: 4) {
+                                    Text("Don't have an account?")
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.tertiaryText)
+                                    
+                                    Button("Create one") {
+                                        showingRegistration = true
                                     }
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
+                                    .buttonStyle(TextLinkButtonStyle())
                                 }
-                                .buttonStyle(MinimalPrimaryButtonStyle())
-                                .disabled(!viewModel.canAttemptLogin || viewModel.loginState == .loading)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 12)
                             }
-                            .padding(32)
+                            .padding(.horizontal, 48) // Generous side margins
+                            .padding(.bottom, 24)
                         }
-                        .background(AppColors.secondaryBackground)
-                        .cornerRadius(4)
-                        .shadow(color: AppColors.shadowColor, radius: 8, y: 4)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 60)
+                        .animation(.easeInOut(duration: 0.3), value: errorMessage)
                     }
                 }
             }
@@ -181,6 +175,10 @@ struct LoginView: View {
             }
             .sheet(isPresented: $showingRegistration) {
                 RegisterView()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
             }
         }
         .navigationViewStyle(.stack)
@@ -200,7 +198,6 @@ struct LoginView: View {
         let now = Date()
         let timeSinceLastTap = now.timeIntervalSince(lastTapTime)
         
-        // Reset counter if more than 2 seconds since last tap
         if timeSinceLastTap > 2.0 {
             logoTapCount = 1
             debugPrint("Dev login: Starting new tap sequence")
@@ -211,13 +208,21 @@ struct LoginView: View {
         
         lastTapTime = now
         
-        // Provide haptic feedback
+        // Animate logo
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isAnimatingLogo = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isAnimatingLogo = false
+            }
+        }
+        
+        // Haptic feedback
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.impactOccurred()
         
-        // Trigger dev login after 5 taps
         if logoTapCount >= 5 {
-            // Stronger haptic for success
             let successFeedback = UINotificationFeedbackGenerator()
             successFeedback.notificationOccurred(.success)
             
@@ -293,6 +298,12 @@ struct WebStyleTextField: TextFieldStyle {
 }
 
 // --- Preview --- 
+// MARK: - Auth Components
+// Note: Auth components are defined in AuthComponents.swift
+
+
+
+// MARK: - Preview
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView { loginResponse in
