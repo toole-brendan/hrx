@@ -201,14 +201,14 @@ jobs:
 
       - name: Configure Key Vault Access
         run: |
-          # Get current user object ID for Key Vault access
-          USER_OBJECT_ID=$(az ad signed-in-user show --query id --output tsv)
+          # Get service principal object ID for Key Vault access
+          SP_OBJECT_ID=$(az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id --output tsv)
           KEY_VAULT_NAME="${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-kv"
           
-          # Set access policy for the deployment user
+          # Set access policy for the deployment service principal
           az keyvault set-policy \
             --name $KEY_VAULT_NAME \
-            --object-id $USER_OBJECT_ID \
+            --object-id $SP_OBJECT_ID \
             --secret-permissions get list set delete recover backup restore purge
 
   build-and-push:
