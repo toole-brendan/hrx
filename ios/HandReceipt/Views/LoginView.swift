@@ -235,9 +235,9 @@ struct LoginView: View {
     private func performDevLogin() {
         debugPrint("🔧 DEV LOGIN ACTIVATED! Using test credentials...")
         
-        // Use test credentials to actually authenticate with the backend
-        viewModel.username = "michael.rodriguez"
-        viewModel.password = "password123"
+        // Clear any existing credentials
+        viewModel.username = ""
+        viewModel.password = ""
         
         // Show a brief visual confirmation
         withAnimation(.easeInOut(duration: 0.3)) {
@@ -254,13 +254,13 @@ struct LoginView: View {
                 // Fallback to local mock if API fails in development
                 #if DEBUG
                 let mockUser = LoginResponse.User(
-                    id: 999,
+                    id: 1,
                     uuid: "dev-uuid",
-                    username: "michael.rodriguez",
-                    email: "michael.rodriguez@example.com",
-                    firstName: "Michael",
-                    lastName: "Rodriguez",
-                    rank: "SSG",
+                    username: "testuser",
+                    email: "testuser@example.com",
+                    firstName: "Test",
+                    lastName: "User",
+                    rank: "PVT",
                     unit: "Test Unit",
                     role: "user",
                     status: "active"
