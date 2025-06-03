@@ -47,18 +47,15 @@ struct ConnectionsView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            // Main content
             AppColors.appBackground.ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 32) {
                     // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
+                    Color.clear.frame(height: 36)
                     
                     if viewModel.isLoading {
-                        ConnectionsLoadingView()
-                            .padding(.top, 40)
+                        loadingView
                     } else {
                         mainContent
                     }
@@ -97,9 +94,15 @@ struct ConnectionsView: View {
         }
     }
     
+    // MARK: - Loading View
+    private var loadingView: some View {
+        IndustrialLoadingView(message: "LOADING NETWORK")
+            .padding(.top, 40)
+    }
+    
     @ViewBuilder
     private var mainContent: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 32) {
             // Network Overview Stats
             networkStatsSection
             
@@ -112,48 +115,37 @@ struct ConnectionsView: View {
             } else {
                 emptyNetworkView
             }
-            
-            // Bottom spacer
-            Spacer()
-                .frame(height: 100)
         }
+        .padding(.horizontal, 24)
     }
     
     // MARK: - Network Stats Section
-    
     private var networkStatsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 20) {
             ModernSectionHeader(
                 title: "Network Overview",
                 subtitle: "Your connections and pending requests"
             )
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                NetworkStatCard(
+            HStack(spacing: 16) {
+                CleanStatCard(
                     title: "Connected",
-                    value: "\(viewModel.connections.filter { $0.connectionStatus == .accepted }.count)",
-                    icon: "person.2.fill",
-                    color: AppColors.success
+                    value: String(format: "%02d", viewModel.connections.filter { $0.connectionStatus == .accepted }.count),
+                    icon: "person.2"
                 )
                 
-                NetworkStatCard(
+                CleanStatCard(
                     title: "Pending",
-                    value: "\(viewModel.pendingRequests.count)",
-                    icon: "clock.fill",
-                    color: AppColors.warning
+                    value: String(format: "%02d", viewModel.pendingRequests.count),
+                    icon: "clock"
                 )
             }
-            .padding(.horizontal)
         }
     }
     
     // MARK: - Search and Filter Section
-    
     private var searchAndFilterSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             // Search bar
             HStack(spacing: 12) {
                 HStack {
@@ -183,69 +175,63 @@ struct ConnectionsView: View {
                         .stroke(AppColors.border, lineWidth: 1)
                 )
             }
-            .padding(.horizontal)
             
             // Filter pills
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(ConnectionFilter.allCases, id: \.self) { filter in
-                        ConnectionFilterPill(
-                            title: filter.rawValue,
-                            icon: filter.icon,
-                            count: getCountForFilter(filter),
-                            isSelected: selectedFilter == filter
-                        ) {
-                            selectedFilter = filter
-                        }
+            HStack(spacing: 12) {
+                ForEach(ConnectionFilter.allCases, id: \.self) { filter in
+                    CleanFilterPill(
+                        title: filter.rawValue,
+                        icon: filter.icon,
+                        count: getCountForFilter(filter),
+                        isSelected: selectedFilter == filter
+                    ) {
+                        selectedFilter = filter
                     }
                 }
-                .padding(.horizontal)
+                Spacer()
             }
         }
     }
     
     // MARK: - Connections List Section
-    
     @ViewBuilder
     private var connectionsListSection: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             // Pending Requests Section
             if !viewModel.pendingRequests.isEmpty && (selectedFilter == .all || selectedFilter == .pending) {
                 VStack(alignment: .leading, spacing: 16) {
                     ModernSectionHeader(
                         title: "Pending Requests",
-                        subtitle: "\(viewModel.pendingRequests.count) waiting for your response"
+                        subtitle: "\(viewModel.pendingRequests.count) awaiting response"
                     )
                     
                     VStack(spacing: 12) {
                         ForEach(viewModel.pendingRequests) { request in
-                            ModernPendingRequestRow(request: request) {
+                            CleanPendingRequestCard(request: request) {
                                 viewModel.acceptConnection(request.id)
                             } onReject: {
                                 viewModel.rejectConnection(request.id)
                             }
                         }
                     }
-                    .padding(.horizontal)
                 }
             }
             
-            // Active Connections Section
+            // Connected Users Section
             if !filteredConnections.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
                     ModernSectionHeader(
-                        title: selectedFilter == .pending ? "Pending Connections" : "Connected Users",
+                        title: selectedFilter == .pending ? "Outgoing Requests" : "Connected Users",
                         subtitle: "\(filteredConnections.count) in your network"
                     )
                     
                     VStack(spacing: 12) {
                         ForEach(filteredConnections) { connection in
-                            ModernConnectionRow(connection: connection) {
+                            CleanConnectionCard(connection: connection) {
                                 // TODO: Handle connection action (view profile, message, etc.)
                             }
                         }
                     }
-                    .padding(.horizontal)
                 }
             }
             
@@ -256,27 +242,23 @@ struct ConnectionsView: View {
                     title: "No \(selectedFilter.rawValue) Connections",
                     message: "Try adjusting your filter to see more connections."
                 )
-                .padding(.horizontal)
             }
         }
     }
     
     // MARK: - Empty Network View
-    
     private var emptyNetworkView: some View {
         ModernEmptyStateView(
             icon: "person.2",
             title: "No Connections Yet",
-            message: "Connect with other users to request and transfer property items",
+            message: "Connect with other users to share and transfer property items seamlessly.",
             actionTitle: "ADD CONNECTION",
             action: { showingAddConnection = true }
         )
-        .padding(.horizontal)
         .padding(.top, 40)
     }
     
     // MARK: - Helper Properties
-    
     private var hasAnyConnections: Bool {
         !viewModel.connections.isEmpty || !viewModel.pendingRequests.isEmpty
     }
@@ -293,37 +275,36 @@ struct ConnectionsView: View {
     }
 }
 
-// MARK: - Network Stat Card
-struct NetworkStatCard: View {
+// MARK: - Clean Stat Card (8VC-styled)
+struct CleanStatCard: View {
     let title: String
     let value: String
     let icon: String
-    let color: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-                Spacer()
+        VStack(alignment: .leading, spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 24, weight: .light))
+                .foregroundColor(AppColors.accent)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 24, weight: .medium, design: .monospaced))
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text(title.uppercased())
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
+                    .compatibleKerning(1.5)
             }
-            
-            Text(value)
-                .font(AppFonts.largeTitleHeavy)
-                .foregroundColor(AppColors.primaryText)
-            
-            Text(title.uppercased())
-                .font(AppFonts.captionBold)
-                .foregroundColor(AppColors.secondaryText)
-                .compatibleKerning(AppFonts.wideTracking)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .modernCard()
     }
 }
 
-// MARK: - Connection Filter Pill
-struct ConnectionFilterPill: View {
+// MARK: - Clean Filter Pill (8VC-styled)
+struct CleanFilterPill: View {
     let title: String
     let icon: String
     let count: Int
@@ -332,45 +313,34 @@ struct ConnectionFilterPill: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                Text(title.uppercased())
-                    .font(AppFonts.captionBold)
-                    .compatibleKerning(AppFonts.wideTracking)
-                if count > 0 {
-                    Text("(\(count))")
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .medium))
+                    Text(title.uppercased())
                         .font(AppFonts.captionBold)
+                        .compatibleKerning(1.2)
                 }
+                
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(isSelected ? AppColors.accent : AppColors.quaternaryText)
+                }
+                
+                Rectangle()
+                    .fill(isSelected ? AppColors.primaryText : Color.clear)
+                    .frame(height: 2)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .foregroundColor(isSelected ? Color.black : AppColors.secondaryText)
-            .background(
-                Group {
-                    if isSelected {
-                        AppColors.accent
-                    } else {
-                        AppColors.secondaryBackground
-                    }
-                }
-            )
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: 1)
-            )
-            .shadow(
-                color: isSelected ? AppColors.accent.opacity(0.3) : Color.clear,
-                radius: isSelected ? 4 : 0,
-                y: isSelected ? 2 : 0
-            )
+            .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
+            .padding(.horizontal, 8)
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Modern Connection Row
-struct ModernConnectionRow: View {
+// MARK: - Clean Connection Card (8VC-styled)
+struct CleanConnectionCard: View {
     let connection: UserConnection
     let action: () -> Void
     
@@ -378,15 +348,14 @@ struct ModernConnectionRow: View {
         Button(action: action) {
             HStack(spacing: 16) {
                 // User Avatar
-                ZStack {
-                    Circle()
-                        .fill(AppColors.success.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                    
-                    Text((connection.connectedUser?.lastName ?? connection.connectedUser?.username ?? "?").prefix(1))
-                        .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.success)
-                }
+                Circle()
+                    .fill(AppColors.success.opacity(0.1))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Text((connection.connectedUser?.lastName ?? connection.connectedUser?.username ?? "?").prefix(1))
+                            .font(AppFonts.bodyBold)
+                            .foregroundColor(AppColors.success)
+                    )
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
@@ -405,43 +374,41 @@ struct ModernConnectionRow: View {
                 
                 // Connection Status
                 VStack(alignment: .trailing, spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: "checkmark.circle")
                         .foregroundColor(AppColors.success)
-                        .font(.system(size: 16))
+                        .font(.system(size: 16, weight: .light))
                     
                     Text("CONNECTED")
-                        .font(AppFonts.captionBold)
+                        .font(AppFonts.caption)
                         .foregroundColor(AppColors.success)
-                        .compatibleKerning(AppFonts.militaryTracking)
+                        .compatibleKerning(1.2)
                 }
             }
-            .padding()
-            .contentShape(Rectangle())
+            .padding(20)
         }
         .buttonStyle(PlainButtonStyle())
         .modernCard(isElevated: false)
     }
 }
 
-// MARK: - Modern Pending Request Row
-struct ModernPendingRequestRow: View {
+// MARK: - Clean Pending Request Card (8VC-styled)
+struct CleanPendingRequestCard: View {
     let request: ConnectionRequest
     let onAccept: () -> Void
     let onReject: () -> Void
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             HStack(spacing: 16) {
                 // User Avatar
-                ZStack {
-                    Circle()
-                        .fill(AppColors.warning.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                    
-                    Text((request.requester.lastName ?? request.requester.username).prefix(1))
-                        .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.warning)
-                }
+                Circle()
+                    .fill(AppColors.warning.opacity(0.1))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Text((request.requester.lastName ?? request.requester.username).prefix(1))
+                            .font(AppFonts.bodyBold)
+                            .foregroundColor(AppColors.warning)
+                    )
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
@@ -453,68 +420,57 @@ struct ModernPendingRequestRow: View {
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.secondaryText)
                     
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.caption2)
-                        Text("Wants to connect")
-                            .font(AppFonts.caption)
-                    }
-                    .foregroundColor(AppColors.warning)
+                    Text("Wants to connect")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.warning)
+                        .italic()
                 }
                 
                 Spacer()
                 
                 // Pending Indicator
                 VStack(spacing: 4) {
-                    Image(systemName: "clock.fill")
+                    Image(systemName: "clock")
                         .foregroundColor(AppColors.warning)
-                        .font(.system(size: 16))
+                        .font(.system(size: 16, weight: .light))
                     
                     Text("PENDING")
-                        .font(AppFonts.captionBold)
+                        .font(AppFonts.caption)
                         .foregroundColor(AppColors.warning)
-                        .compatibleKerning(AppFonts.militaryTracking)
+                        .compatibleKerning(1.2)
                 }
             }
             
             // Action Buttons
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 Button(action: onReject) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 14, weight: .regular))
                         Text("DECLINE")
-                            .compatibleKerning(AppFonts.militaryTracking)
+                            .compatibleKerning(1.2)
                     }
                     .font(AppFonts.captionBold)
-                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.destructive)
+                .buttonStyle(.secondary)
                 
                 Button(action: onAccept) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 14, weight: .regular))
                         Text("ACCEPT")
-                            .compatibleKerning(AppFonts.militaryTracking)
+                            .compatibleKerning(1.2)
                     }
                     .font(AppFonts.captionBold)
-                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.primary)
             }
         }
-        .padding()
-        .background(AppColors.secondaryBackground)
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AppColors.warning.opacity(0.3), lineWidth: 1)
-        )
+        .modernCard()
     }
 }
 
-// MARK: - Add Connection View
+// MARK: - Add Connection View (Updated with existing components)
 struct AddConnectionView: View {
     @State private var searchText = ""
     @StateObject private var viewModel = AddConnectionViewModel()
@@ -525,13 +481,12 @@ struct AddConnectionView: View {
             ZStack(alignment: .top) {
                 AppColors.appBackground.ignoresSafeArea()
                 
-                VStack(spacing: 24) {
+                VStack(spacing: 32) {
                     // Spacer for header
-                    Color.clear
-                        .frame(height: 36)
+                    Color.clear.frame(height: 36)
                     
                     // Search Section
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(spacing: 24) {
                         ModernSectionHeader(
                             title: "Find Users",
                             subtitle: "Search by name, rank, or username"
@@ -558,39 +513,35 @@ struct AddConnectionView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(AppColors.border, lineWidth: 1)
                         )
-                        .padding(.horizontal)
                     }
+                    .padding(.horizontal, 24)
                     
                     // Search Results
                     if viewModel.isLoading {
-                        Spacer()
                         IndustrialLoadingView(message: "SEARCHING USERS")
-                        Spacer()
                     } else if viewModel.searchResults.isEmpty && !searchText.isEmpty {
                         ModernEmptyStateView(
                             icon: "magnifyingglass",
                             title: "No Users Found", 
                             message: "Try different search terms or check the spelling."
                         )
-                        .padding(.horizontal)
-                        .padding(.top, 40)
+                        .padding(.horizontal, 24)
                     } else if !viewModel.searchResults.isEmpty {
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(spacing: 16) {
                             ModernSectionHeader(
                                 title: "Search Results",
                                 subtitle: "\(viewModel.searchResults.count) users found"
                             )
+                            .padding(.horizontal, 24)
                             
-                            ScrollView {
-                                VStack(spacing: 12) {
-                                    ForEach(viewModel.searchResults) { user in
-                                        ModernUserSearchResultRow(user: user) {
-                                            viewModel.sendConnectionRequest(to: user.id)
-                                        }
+                            VStack(spacing: 12) {
+                                ForEach(viewModel.searchResults) { user in
+                                    CleanUserSearchResultCard(user: user) {
+                                        viewModel.sendConnectionRequest(to: user.id)
                                     }
                                 }
-                                .padding(.horizontal)
                             }
+                            .padding(.horizontal, 24)
                         }
                     } else {
                         ModernEmptyStateView(
@@ -598,8 +549,7 @@ struct AddConnectionView: View {
                             title: "Search for Users",
                             message: "Enter a name, rank, or username to find users to connect with."
                         )
-                        .padding(.horizontal)
-                        .padding(.top, 40)
+                        .padding(.horizontal, 24)
                     }
                 }
                 
@@ -616,23 +566,22 @@ struct AddConnectionView: View {
     }
 }
 
-// MARK: - Modern User Search Result Row
-struct ModernUserSearchResultRow: View {
+// MARK: - Clean User Search Result Card (8VC-styled)
+struct CleanUserSearchResultCard: View {
     let user: UserSummary
     let onConnect: () -> Void
     
     var body: some View {
         HStack(spacing: 16) {
             // User Avatar
-            ZStack {
-                Circle()
-                    .fill(AppColors.accent.opacity(0.2))
-                    .frame(width: 44, height: 44)
-                
-                Text((user.lastName ?? user.username).prefix(1))
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.accent)
-            }
+            Circle()
+                .fill(AppColors.accent.opacity(0.1))
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Text((user.lastName ?? user.username).prefix(1))
+                        .font(AppFonts.bodyBold)
+                        .foregroundColor(AppColors.accent)
+                )
             
             // User Info
             VStack(alignment: .leading, spacing: 4) {
@@ -649,27 +598,17 @@ struct ModernUserSearchResultRow: View {
             
             // Connect Button
             Button(action: onConnect) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 14, weight: .regular))
                     Text("CONNECT")
-                        .compatibleKerning(AppFonts.militaryTracking)
+                        .compatibleKerning(1.2)
                 }
                 .font(AppFonts.captionBold)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
             }
             .buttonStyle(.secondary)
         }
-        .padding()
         .modernCard(isElevated: false)
-    }
-}
-
-// MARK: - Loading View
-struct ConnectionsLoadingView: View {
-    var body: some View {
-        IndustrialLoadingView(message: "LOADING NETWORK")
     }
 }
 
@@ -677,6 +616,5 @@ struct ConnectionsLoadingView: View {
 struct ConnectionsView_Previews: PreviewProvider {
     static var previews: some View {
         ConnectionsView()
-            .preferredColorScheme(.dark)
     }
 } 
