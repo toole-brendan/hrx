@@ -31,7 +31,7 @@ struct ReportIssueView: View {
             VStack(spacing: 0) {
                 MinimalNavigationBar(
                     title: "Report Issue",
-                    titleStyle: .serif,
+                    titleStyle: .mono,
                     showBackButton: true,
                     backAction: { dismiss() }
                 )
@@ -164,6 +164,7 @@ struct ReportIssueView: View {
                         // Bottom safe area
                         Color.clear.frame(height: 80)
                     }
+                    .padding(.top, 16)
                 }
             }
         }

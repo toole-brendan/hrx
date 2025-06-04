@@ -12,7 +12,7 @@ struct AboutView: View {
             VStack(spacing: 0) {
                 MinimalNavigationBar(
                     title: "About",
-                    titleStyle: .serif,
+                    titleStyle: .mono,
                     showBackButton: true,
                     backAction: { dismiss() }
                 )
@@ -166,6 +166,7 @@ struct AboutView: View {
                         // Bottom safe area
                         Color.clear.frame(height: 80)
                     }
+                    .padding(.top, 16)
                 }
             }
         }

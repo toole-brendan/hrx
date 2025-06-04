@@ -12,7 +12,7 @@ struct HelpView: View {
             VStack(spacing: 0) {
                 MinimalNavigationBar(
                     title: "Help & Support",
-                    titleStyle: .serif,
+                    titleStyle: .mono,
                     showBackButton: true,
                     backAction: { dismiss() }
                 )
@@ -120,6 +120,7 @@ struct HelpView: View {
                         // Bottom safe area
                         Color.clear.frame(height: 80)
                     }
+                    .padding(.top, 16)
                 }
             }
         }

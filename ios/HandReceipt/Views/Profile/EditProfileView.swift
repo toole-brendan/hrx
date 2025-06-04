@@ -28,7 +28,7 @@ struct EditProfileView: View {
             VStack(spacing: 0) {
                 MinimalNavigationBar(
                     title: "Edit Profile",
-                    titleStyle: .serif,
+                    titleStyle: .mono,
                     showBackButton: true,
                     backAction: { dismiss() }
                 )
@@ -142,6 +142,7 @@ struct EditProfileView: View {
                         // Bottom safe area
                         Color.clear.frame(height: 80)
                     }
+                    .padding(.top, 16)
                 }
             }
         }

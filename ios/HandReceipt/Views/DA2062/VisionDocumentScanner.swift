@@ -37,12 +37,12 @@ struct VisionDocumentScanner: UIViewControllerRepresentable {
         
         // Title styling - use serif font for elegance
         appearance.titleTextAttributes = [
-            .font: UIFont.systemFont(ofSize: 17, weight: .semibold, design: .serif),
+            .font: UIFont(name: "Times New Roman", size: 17) ?? UIFont.systemFont(ofSize: 17, weight: .semibold),
             .foregroundColor: UIColor(AppColors.primaryText)
         ]
         
         appearance.largeTitleTextAttributes = [
-            .font: UIFont.systemFont(ofSize: 34, weight: .bold, design: .serif),
+            .font: UIFont(name: "Times New Roman", size: 34) ?? UIFont.systemFont(ofSize: 34, weight: .bold),
             .foregroundColor: UIColor(AppColors.primaryText)
         ]
         
