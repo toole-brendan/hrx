@@ -357,6 +357,16 @@ jobs:
           # Deploy or update Backend API using CLI parameters
           if az containerapp show --name ${{ env.BACKEND_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
             echo "🔄 Updating existing Backend API..."
+            
+            # Update secrets first
+            az containerapp secret set \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --secrets \
+                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                storage-connection-string="$STORAGE_CONNECTION_STRING" \
+                jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
             az containerapp update \
               --name ${{ env.BACKEND_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
@@ -435,6 +445,14 @@ jobs:
           # Deploy or update Worker
           if az containerapp show --name ${{ env.WORKER_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
             echo "🔄 Updating existing Worker..."
+            
+            # Update secrets first
+            az containerapp secret set \
+              --name ${{ env.WORKER_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --secrets \
+                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+                storage-connection-string="$STORAGE_CONNECTION_STRING"
             az containerapp update \
               --name ${{ env.WORKER_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
