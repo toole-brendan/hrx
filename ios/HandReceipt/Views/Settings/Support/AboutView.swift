@@ -5,19 +5,25 @@ struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Spacer for header
-                Color.clear
-                    .frame(height: 36)
-                
-                // App Info Content
-                VStack(spacing: 0) {
+        VStack(spacing: 0) {
+            MinimalNavigationBar(
+                title: "ABOUT",
+                titleStyle: .mono,
+                showBackButton: true,
+                backAction: { dismiss() }
+            )
+            
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Top padding
+                    Color.clear.frame(height: 16)
+                    
+                    // App Info Content
                     VStack(spacing: 24) {
                         // App Icon and Title
                         VStack(spacing: 16) {
-                            Image(systemName: "shippingbox.fill")
-                                .font(.system(size: 80, weight: .thin))
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 64, weight: .thin))
                                 .foregroundColor(AppColors.accent)
                             
                             Text("HandReceipt")
@@ -43,140 +49,145 @@ struct AboutView: View {
                                 .multilineTextAlignment(.center)
                         }
                     }
-                    .padding(32)
-                }
-                .cleanCard()
-                .padding(.horizontal)
-                
-                // App Details Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Application Details", style: .uppercase)
+                    .cleanCard(padding: 24)
+                    .padding(.horizontal, 24)
                     
-                    VStack(spacing: 0) {
-                        AboutDetailRow(
-                            label: "Version",
-                            value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-                            icon: "info.circle"
-                        )
+                    // App Details Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        ElegantSectionHeader(title: "Application Details", style: .uppercase)
+                            .padding(.horizontal, 24)
                         
-                        Divider().background(AppColors.border)
-                        
-                        AboutDetailRow(
-                            label: "Build",
-                            value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
-                            icon: "hammer"
-                        )
-                        
-                        Divider().background(AppColors.border)
-                        
-                        AboutDetailRow(
-                            label: "Platform",
-                            value: "iOS \(UIDevice.current.systemVersion)",
-                            icon: "iphone"
-                        )
-                        
-                        Divider().background(AppColors.border)
-                        
-                        AboutDetailRow(
-                            label: "Device",
-                            value: UIDevice.current.model,
-                            icon: "display"
-                        )
-                    }
-                    .cleanCard()
-                    .padding(.horizontal)
-                }
-                
-                // Credits Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Credits", style: .uppercase)
-                    
-                    VStack(spacing: 16) {
-                        VStack(spacing: 8) {
-                            Text("Development Team")
-                                .font(AppFonts.bodyMedium)
-                                .foregroundColor(AppColors.primaryText)
+                        VStack(spacing: 0) {
+                            AboutDetailRow(
+                                label: "Version",
+                                value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                                icon: "info.circle"
+                            )
                             
-                            Text("Built with dedication for military personnel and their mission-critical operations.")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        VStack(spacing: 8) {
-                            Text("Open Source Libraries")
-                                .font(AppFonts.bodyMedium)
-                                .foregroundColor(AppColors.primaryText)
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
                             
-                            Text("This application utilizes various open source components and libraries.")
-                                .font(AppFonts.caption)
-                                .foregroundColor(AppColors.secondaryText)
-                                .multilineTextAlignment(.center)
+                            AboutDetailRow(
+                                label: "Build",
+                                value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                                icon: "hammer"
+                            )
+                            
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
+                            
+                            AboutDetailRow(
+                                label: "Platform",
+                                value: "iOS \(UIDevice.current.systemVersion)",
+                                icon: "iphone"
+                            )
+                            
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
+                            
+                            AboutDetailRow(
+                                label: "Device",
+                                value: UIDevice.current.model,
+                                icon: "display"
+                            )
                         }
+                        .cleanCard(padding: 0)
+                        .padding(.horizontal, 24)
                     }
-                    .padding()
-                    .cleanCard(padding: 0)
-                    .padding(.horizontal)
-                }
-                
-                // Legal Section
-                VStack(alignment: .leading, spacing: 0) {
-                    ElegantSectionHeader(title: "Legal", style: .uppercase)
                     
-                    VStack(spacing: 0) {
-                        AboutActionRow(
-                            title: "Privacy Policy",
-                            icon: "hand.raised"
-                        ) {
-                            // TODO: Show privacy policy
+                    // Credits Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        ElegantSectionHeader(title: "Credits", style: .uppercase)
+                            .padding(.horizontal, 24)
+                        
+                        VStack(spacing: 16) {
+                            VStack(spacing: 8) {
+                                Text("Development Team")
+                                    .font(AppFonts.bodyMedium)
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                Text("Built with dedication for military personnel and their mission-critical operations.")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .multilineTextAlignment(.center)
+                            }
+                            
+                            VStack(spacing: 8) {
+                                Text("Open Source Libraries")
+                                    .font(AppFonts.bodyMedium)
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                Text("This application utilizes various open source components and libraries.")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
-                        
-                        Divider().background(AppColors.border)
-                        
-                        AboutActionRow(
-                            title: "Terms of Service",
-                            icon: "doc.text"
-                        ) {
-                            // TODO: Show terms of service
-                        }
-                        
-                        Divider().background(AppColors.border)
-                        
-                        AboutActionRow(
-                            title: "Licenses",
-                            icon: "scroll"
-                        ) {
-                            // TODO: Show open source licenses
-                        }
+                        .cleanCard(padding: 20)
+                        .padding(.horizontal, 24)
                     }
-                    .cleanCard()
-                    .padding(.horizontal)
-                }
-                
-                // Copyright
-                VStack(spacing: 8) {
-                    Text("© 2024 HandReceipt")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.tertiaryText)
                     
-                    Text("All rights reserved.")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.tertiaryText)
+                    // Legal Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        ElegantSectionHeader(title: "Legal", style: .uppercase)
+                            .padding(.horizontal, 24)
+                        
+                        VStack(spacing: 0) {
+                            AboutActionRow(
+                                title: "Privacy Policy",
+                                icon: "hand.raised"
+                            ) {
+                                // TODO: Show privacy policy
+                            }
+                            
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
+                            
+                            AboutActionRow(
+                                title: "Terms of Service",
+                                icon: "doc.text"
+                            ) {
+                                // TODO: Show terms of service
+                            }
+                            
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
+                            
+                            AboutActionRow(
+                                title: "Licenses",
+                                icon: "scroll"
+                            ) {
+                                // TODO: Show open source licenses
+                            }
+                        }
+                        .cleanCard(padding: 0)
+                        .padding(.horizontal, 24)
+                    }
+                    
+                    // Copyright
+                    VStack(spacing: 4) {
+                        Text("© 2024 HandReceipt")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                        
+                        Text("All rights reserved.")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                    }
+                    .padding(.top, 8)
+                    
+                    // Bottom spacer
+                    Color.clear.frame(height: 40)
                 }
-                .padding(.top, 16)
-                
-                // Bottom spacer
-                Spacer()
-                    .frame(height: 100)
             }
         }
-        .background(AppColors.appBackground.ignoresSafeArea(.all))
-        .minimalNavigation(
-            title: "About",
-            titleStyle: .minimal,
-            showBackButton: true,
-            backAction: { dismiss() }
-        )
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .navigationBarHidden(true)
     }
 }
 
@@ -188,9 +199,9 @@ struct AboutDetailRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: 16, weight: .light))
                 .foregroundColor(AppColors.accent)
-                .frame(width: 24)
+                .frame(width: 20)
             
             Text(label)
                 .font(AppFonts.body)
@@ -202,7 +213,8 @@ struct AboutDetailRow: View {
                 .font(AppFonts.monoBody)
                 .foregroundColor(AppColors.primaryText)
         }
-        .padding()
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
     }
 }
 
@@ -215,9 +227,9 @@ struct AboutActionRow: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(.system(size: 16, weight: .light))
                     .foregroundColor(AppColors.accent)
-                    .frame(width: 24)
+                    .frame(width: 20)
                 
                 Text(title)
                     .font(AppFonts.body)
@@ -226,10 +238,11 @@ struct AboutActionRow: View {
                 Spacer()
                 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(.system(size: 12, weight: .light))
                     .foregroundColor(AppColors.tertiaryText)
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())

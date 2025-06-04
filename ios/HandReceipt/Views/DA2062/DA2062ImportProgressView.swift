@@ -46,51 +46,58 @@ struct DA2062ImportProgressView: View {
     @State private var showingErrors = false
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 30) {
+        VStack(spacing: 0) {
+            MinimalNavigationBar(
+                title: "IMPORT PROGRESS",
+                titleStyle: .mono,
+                showBackButton: false,
+                trailingItems: []
+            )
+            
+            VStack(spacing: 40) {
                 Spacer()
                 
                 // Status Icon and Text
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     if isImporting {
                         ProgressView()
-                            .scaleEffect(2.0)
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
                         
                         Text("Importing Items...")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(AppFonts.serifHeadline)
+                            .foregroundColor(AppColors.primaryText)
                         
                         Text("Creating property records in your inventory")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
                             .multilineTextAlignment(.center)
                     } else if let error = importError {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 48))
-                            .foregroundColor(.red)
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 64, weight: .thin))
+                            .foregroundColor(AppColors.destructive)
                         
                         Text("Import Failed")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(AppFonts.serifHeadline)
+                            .foregroundColor(AppColors.primaryText)
                         
                         Text(error)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                            .padding(.horizontal, 24)
                     } else {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 48))
-                            .foregroundColor(.green)
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 64, weight: .thin))
+                            .foregroundColor(AppColors.success)
                         
                         Text("Import Complete!")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(AppFonts.serifHeadline)
+                            .foregroundColor(AppColors.primaryText)
                         
                         Text("Your DA-2062 items have been added to your inventory")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
                             .multilineTextAlignment(.center)
                     }
                 }
@@ -102,17 +109,16 @@ struct DA2062ImportProgressView: View {
                     Button(importError != nil ? "Try Again" : "Done") {
                         onDismiss()
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(importError != nil ? Color.orange : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                    .buttonStyle(MinimalPrimaryButtonStyle())
+                    .padding(.horizontal, 24)
                 }
+                
+                // Bottom spacer
+                Color.clear.frame(height: 40)
             }
-            .navigationTitle("Import Progress")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .navigationBarHidden(true)
     }
 }
 
@@ -165,32 +171,32 @@ struct PhaseIndicator: View {
             ZStack {
                 Circle()
                     .fill(backgroundColor)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 20, height: 20)
                 
                 if isCompleted {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.white)
                 } else if isActive {
                     Circle()
-                        .fill(Color.white)
-                        .frame(width: 8, height: 8)
+                        .fill(.white)
+                        .frame(width: 6, height: 6)
                 }
             }
             
             Text(phaseShortName)
-                .font(.system(size: 9))
-                .foregroundColor(isActive || isCompleted ? .primary : .secondary)
+                .font(AppFonts.caption)
+                .foregroundColor(isActive || isCompleted ? AppColors.primaryText : AppColors.tertiaryText)
         }
     }
     
     private var backgroundColor: Color {
         if isCompleted {
-            return .green
+            return AppColors.success
         } else if isActive {
-            return .blue
+            return AppColors.accent
         } else {
-            return .gray.opacity(0.3)
+            return AppColors.border
         }
     }
     
@@ -212,8 +218,8 @@ struct PhaseConnector: View {
     
     var body: some View {
         Rectangle()
-            .fill(isCompleted ? Color.green : Color.gray.opacity(0.3))
-            .frame(width: 20, height: 2)
+            .fill(isCompleted ? AppColors.success : AppColors.border)
+            .frame(width: 16, height: 1)
     }
 }
 
@@ -224,40 +230,47 @@ struct ImportErrorsView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
+        VStack(spacing: 0) {
+            MinimalNavigationBar(
+                title: "IMPORT ISSUES",
+                titleStyle: .mono,
+                showBackButton: false,
+                trailingItems: [
+                    .init(text: "Done", style: .text, action: { dismiss() })
+                ]
+            )
+            
             List {
                 ForEach(errors) { error in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(error.itemName)
-                            .font(.headline)
+                            .font(AppFonts.bodyMedium)
+                            .foregroundColor(AppColors.primaryText)
                         
                         Text(error.error)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
                         
                         if error.recoverable {
                             Text("This item will be imported with limited information")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.warning)
                         } else {
                             Text("This item could not be imported")
-                                .font(.caption2)
-                                .foregroundColor(.red)
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.destructive)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 8)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             }
-            .navigationTitle("Import Issues")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+            .listStyle(PlainListStyle())
+            .background(AppColors.appBackground)
         }
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .navigationBarHidden(true)
     }
 }
 
@@ -270,80 +283,95 @@ struct DA2062ImportSummaryView: View {
     let onDismiss: () -> Void
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Success Icon
-            Image(systemName: successfulItems == totalItems ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .font(.system(size: 64))
-                .foregroundColor(successfulItems == totalItems ? .green : .orange)
+        VStack(spacing: 0) {
+            MinimalNavigationBar(
+                title: "IMPORT SUMMARY",
+                titleStyle: .mono,
+                showBackButton: false,
+                trailingItems: []
+            )
             
-            // Summary Text
-            VStack(spacing: 8) {
-                Text("Import Complete")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Text("\(successfulItems) of \(totalItems) items imported successfully")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            // Statistics
-            HStack(spacing: 40) {
-                StatView(
-                    value: "\(successfulItems)",
-                    label: "Imported",
-                    color: .green
-                )
-                
-                if errors.count > 0 {
-                    StatView(
-                        value: "\(errors.count)",
-                        label: "Errors",
-                        color: .red
-                    )
-                }
-            }
-            .padding()
-            
-            // Error List (if any)
-            if !errors.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Failed Items:")
-                        .font(.headline)
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Top padding
+                    Color.clear.frame(height: 16)
                     
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(errors) { error in
-                                HStack {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.red)
-                                        .font(.caption)
-                                    
-                                    Text(error.itemName)
-                                        .font(.caption)
-                                        .lineLimit(1)
-                                }
-                            }
+                    // Success Icon
+                    Image(systemName: successfulItems == totalItems ? "checkmark.circle" : "exclamationmark.triangle")
+                        .font(.system(size: 64, weight: .thin))
+                        .foregroundColor(successfulItems == totalItems ? AppColors.success : AppColors.warning)
+                    
+                    // Summary Text
+                    VStack(spacing: 12) {
+                        Text("Import Complete")
+                            .font(AppFonts.serifHeadline)
+                            .foregroundColor(AppColors.primaryText)
+                        
+                        Text("\(successfulItems) of \(totalItems) items imported successfully")
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                    
+                    // Statistics
+                    HStack(spacing: 40) {
+                        StatView(
+                            value: "\(successfulItems)",
+                            label: "Imported",
+                            color: AppColors.success
+                        )
+                        
+                        if errors.count > 0 {
+                            StatView(
+                                value: "\(errors.count)",
+                                label: "Errors",
+                                color: AppColors.destructive
+                            )
                         }
                     }
-                    .frame(maxHeight: 100)
+                    
+                    // Error List (if any)
+                    if !errors.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Failed Items:")
+                                .font(AppFonts.bodyMedium)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(errors) { error in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundColor(AppColors.destructive)
+                                                .font(.caption)
+                                            
+                                            Text(error.itemName)
+                                                .font(AppFonts.caption)
+                                                .foregroundColor(AppColors.primaryText)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: 100)
+                        }
+                        .cleanCard(padding: 16)
+                        .padding(.horizontal, 24)
+                    }
+                    
+                    // Action Button
+                    Button("View My Properties") {
+                        onDismiss()
+                    }
+                    .buttonStyle(MinimalPrimaryButtonStyle())
+                    .padding(.horizontal, 24)
+                    
+                    // Bottom spacer
+                    Color.clear.frame(height: 40)
                 }
-                .padding()
-                .background(Color.red.opacity(0.1))
-                .cornerRadius(8)
             }
-            
-            // Action Button
-            Button("View My Properties") {
-                onDismiss()
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
         }
-        .padding()
+        .background(AppColors.appBackground.ignoresSafeArea())
+        .navigationBarHidden(true)
     }
 }
 
@@ -355,13 +383,12 @@ struct StatView: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.title)
-                .fontWeight(.bold)
+                .font(AppFonts.monoHeadline)
                 .foregroundColor(color)
             
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
         }
     }
 }
