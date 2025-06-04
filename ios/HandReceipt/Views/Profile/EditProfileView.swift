@@ -41,7 +41,7 @@ struct EditProfileView: View {
                                 title: "Personal Information",
                                 style: .uppercase
                             )
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                             
                             VStack(spacing: 0) {
                                 ModernFormField(
@@ -60,7 +60,7 @@ struct EditProfileView: View {
                                 )
                             }
                             .cleanCard(padding: 0)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                         }
                         
                         // Contact Information
@@ -69,7 +69,7 @@ struct EditProfileView: View {
                                 title: "Contact Information",
                                 style: .uppercase
                             )
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                             
                             VStack(spacing: 0) {
                                 ModernFormField(
@@ -81,7 +81,7 @@ struct EditProfileView: View {
                                 )
                             }
                             .cleanCard(padding: 0)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                         }
                         
                         // Military Information
@@ -90,7 +90,7 @@ struct EditProfileView: View {
                                 title: "Military Information",
                                 style: .uppercase
                             )
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                             
                             VStack(spacing: 0) {
                                 ModernFormField(
@@ -109,7 +109,7 @@ struct EditProfileView: View {
                                 )
                             }
                             .cleanCard(padding: 0)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                         }
                         
                         // Error Message
@@ -117,7 +117,7 @@ struct EditProfileView: View {
                             Text(error)
                                 .font(AppFonts.caption)
                                 .foregroundColor(AppColors.destructive)
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 20)
                         }
                         
                         // Save Button
@@ -137,7 +137,7 @@ struct EditProfileView: View {
                         }
                         .buttonStyle(MinimalPrimaryButtonStyle())
                         .disabled(!formIsValid || isLoading)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 20)
                         
                         // Bottom safe area
                         Color.clear.frame(height: 80)
@@ -246,8 +246,8 @@ struct ModernFormField: View {
                     .autocapitalization(.none)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }
 

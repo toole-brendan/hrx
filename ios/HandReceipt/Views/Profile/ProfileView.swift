@@ -25,6 +25,9 @@ struct ProfileView: View {
                         // Quick Actions Section
                         quickActionsSection
                         
+                        // Support Section
+                        supportSection
+                        
                         // Account Actions Section
                         accountActionsSection
                         
@@ -128,6 +131,48 @@ struct ProfileView: View {
                             ? "\(documentService.unreadCount) unread" 
                             : "View inbox",
                         badge: documentService.unreadCount > 0 ? "\(documentService.unreadCount)" : nil
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .cleanCard(padding: 0)
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var supportSection: some View {
+        VStack(spacing: 16) {
+            ProfileSectionHeader(title: "SUPPORT")
+                .padding(.horizontal, 20)
+            
+            VStack(spacing: 0) {
+                NavigationLink(destination: AboutView()) {
+                    ProfileActionRow(
+                        label: "About",
+                        icon: "info.circle",
+                        description: "Learn more about the app"
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                ProfileDivider()
+                
+                NavigationLink(destination: HelpView()) {
+                    ProfileActionRow(
+                        label: "Help",
+                        icon: "questionmark.circle",
+                        description: "Get assistance"
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                ProfileDivider()
+                
+                NavigationLink(destination: ReportIssueView()) {
+                    ProfileActionRow(
+                        label: "Report Issue",
+                        icon: "exclamationmark.triangle",
+                        description: "Report a problem"
                     )
                 }
                 .buttonStyle(PlainButtonStyle())

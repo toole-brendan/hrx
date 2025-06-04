@@ -354,7 +354,7 @@ public struct MinimalBackButton: View {
                 Text(label)
                     .font(AppFonts.body)
             }
-            .foregroundColor(AppColors.secondaryText)
+            .foregroundColor(AppColors.accent)
         }
         .buttonStyle(PlainButtonStyle())
     }
