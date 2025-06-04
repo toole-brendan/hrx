@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State private var navigateToMaintenance = false
     @State private var navigateToSensitiveItems = false
     @State private var showingSearch = false
+    @State private var showingDA2062Scan = false
     
     // Tab switching callback
     var onTabSwitch: ((Int) -> Void)?
@@ -89,6 +90,9 @@ struct DashboardView: View {
         .background(navigationLinks)
         .fullScreenCover(isPresented: $showingSearch) {
             MinimalSearchView(isPresented: $showingSearch)
+        }
+        .sheet(isPresented: $showingDA2062Scan) {
+            DA2062ScanView()
         }
         .task {
             await loadData()
@@ -194,7 +198,10 @@ struct DashboardView: View {
                 style: .serif
             )
             
-            HStack(spacing: 16) {
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 16) {
                 ActionButton(
                     icon: "arrow.left.arrow.right",
                     title: "Transfer",
@@ -217,6 +224,12 @@ struct DashboardView: View {
                     icon: "wrench",
                     title: "Maintain",
                     action: { navigateToMaintenance = true }
+                )
+                
+                ActionButton(
+                    icon: "doc.text.viewfinder",
+                    title: "Import DA-2062",
+                    action: { showingDA2062Scan = true }
                 )
             }
         }

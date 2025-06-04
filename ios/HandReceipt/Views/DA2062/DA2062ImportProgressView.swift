@@ -114,32 +114,6 @@ struct DA2062ImportProgressView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
     }
-    
-    private var progressIcon: String {
-        switch viewModel.progress.currentPhase {
-        case .scanning, .extracting:
-            return "doc.text.viewfinder"
-        case .parsing:
-            return "text.alignleft"
-        case .validating:
-            return "checkmark.shield"
-        case .enriching:
-            return "magnifyingglass"
-        case .creating:
-            return "square.and.arrow.down"
-        case .complete:
-            return "checkmark.circle.fill"
-        }
-    }
-    
-    private var progressColor: Color {
-        switch viewModel.progress.currentPhase {
-        case .complete:
-            return .green
-        case .scanning, .extracting, .parsing, .validating, .enriching, .creating:
-            return .blue
-        }
-    }
 }
 
 // MARK: - Phase Indicator View

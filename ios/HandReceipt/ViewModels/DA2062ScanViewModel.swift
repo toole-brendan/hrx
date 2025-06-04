@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
 import Combine
+import PDFKit
+import UIKit
 
 class DA2062ScanViewModel: ObservableObject {
     @Published var currentForm: DA2062Form?

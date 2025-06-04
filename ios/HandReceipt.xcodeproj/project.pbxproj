@@ -77,6 +77,8 @@
 		BF4A1C952DEF34C20066ADD9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C792DEF34C20066ADD9 /* DashboardView.swift */; };
 		BF4A1C982DEF52C50066ADD9 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C972DEF52C50066ADD9 /* EditProfileView.swift */; };
 		BF4A1C992DEF52C50066ADD9 /* ChangePasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C962DEF52C50066ADD9 /* ChangePasswordView.swift */; };
+		BF4A1C9C2DF06CAB0066ADD9 /* ConnectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C9A2DF06CAB0066ADD9 /* ConnectionService.swift */; };
+		BF4A1C9D2DF06CAB0066ADD9 /* PDFCreationUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4A1C9B2DF06CAB0066ADD9 /* PDFCreationUtility.swift */; };
 		BFA128032DEA165E00C12800 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA128022DEA165E00C12800 /* RegisterView.swift */; };
 		BFA128072DEA210F00C12800 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFA128042DEA1E3300C12800 /* Assets.xcassets */; };
 		BFA128092DEA22E700C12800 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */; };
@@ -173,6 +175,8 @@
 		BF4A1C892DEF34C20066ADD9 /* TransfersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransfersView.swift; sourceTree = "<group>"; };
 		BF4A1C962DEF52C50066ADD9 /* ChangePasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangePasswordView.swift; sourceTree = "<group>"; };
 		BF4A1C972DEF52C50066ADD9 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
+		BF4A1C9A2DF06CAB0066ADD9 /* ConnectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionService.swift; sourceTree = "<group>"; };
+		BF4A1C9B2DF06CAB0066ADD9 /* PDFCreationUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFCreationUtility.swift; sourceTree = "<group>"; };
 		BFA128022DEA165E00C12800 /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
 		BFA128042DEA1E3300C12800 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BFA128082DEA22E700C12800 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = HandReceipt/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -246,6 +250,8 @@
 		9AD52AE44496465F5F0F3B16 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BF4A1C9A2DF06CAB0066ADD9 /* ConnectionService.swift */,
+				BF4A1C9B2DF06CAB0066ADD9 /* PDFCreationUtility.swift */,
 				BF4A1C5F2DEE70C20066ADD9 /* DocumentService.swift */,
 				BF4A1C4F2DECD0A40066ADD9 /* NSNService.swift */,
 				BF4A1C492DECCFA10066ADD9 /* DA2062Patterns.swift */,
@@ -505,6 +511,8 @@
 				BF4A1C8C2DEF34C20066ADD9 /* MinimalTabBar.swift in Sources */,
 				BF4A1C8D2DEF34C20066ADD9 /* HelpView.swift in Sources */,
 				BF4A1C8E2DEF34C20066ADD9 /* SettingsView.swift in Sources */,
+				BF4A1C9C2DF06CAB0066ADD9 /* ConnectionService.swift in Sources */,
+				BF4A1C9D2DF06CAB0066ADD9 /* PDFCreationUtility.swift in Sources */,
 				BF4A1C8F2DEF34C20066ADD9 /* MyPropertiesView.swift in Sources */,
 				BF4A1C902DEF34C20066ADD9 /* ProfileView.swift in Sources */,
 				BF4A1C912DEF34C20066ADD9 /* TransfersView.swift in Sources */,

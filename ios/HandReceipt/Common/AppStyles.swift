@@ -80,8 +80,6 @@ public struct AppFonts {
 
 // MARK: - Minimal Button Styles
 public struct MinimalPrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -92,9 +90,7 @@ public struct MinimalPrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .background(
                 Group {
-                    if !isEnabled {
-                        AppColors.primaryText.opacity(0.3)
-                    } else if configuration.isPressed {
+                    if configuration.isPressed {
                         AppColors.primaryText.opacity(0.8)
                     } else {
                         AppColors.primaryText
@@ -107,8 +103,6 @@ public struct MinimalPrimaryButtonStyle: ButtonStyle {
 }
 
 public struct MinimalSecondaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -125,14 +119,11 @@ public struct MinimalSecondaryButtonStyle: ButtonStyle {
                         lineWidth: 1
                     )
             )
-            .opacity(isEnabled ? 1.0 : 0.5)
             .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
 public struct TextLinkButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    
     public init() {}
     
     public func makeBody(configuration: Configuration) -> some View {
@@ -140,14 +131,12 @@ public struct TextLinkButtonStyle: ButtonStyle {
             configuration.label
                 .font(AppFonts.body)
                 .foregroundColor(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
-                .opacity(isEnabled ? 1.0 : 0.5)
             
             // Custom underline for backwards compatibility
             if configuration.isPressed {
                 Rectangle()
                     .fill(configuration.isPressed ? AppColors.accentHover : AppColors.accent)
                     .frame(height: 1)
-                    .opacity(isEnabled ? 1.0 : 0.5)
             }
         }
     }

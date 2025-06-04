@@ -2,9 +2,9 @@ import Foundation
 import UIKit
 import PDFKit
 
-class PDFCreationUtility {
+public class PDFCreationUtility {
     
-    static func createPDF(from images: [UIImage], fileName: String = "DA2062_Scan") -> Data? {
+    public static func createPDF(from images: [UIImage], fileName: String = "DA2062_Scan") -> Data? {
         let pdfMetaData = [
             kCGPDFContextCreator: "HandReceipt iOS App",
             kCGPDFContextAuthor: "U.S. Army",
@@ -41,15 +41,15 @@ class PDFCreationUtility {
                 let drawRect = CGRect(x: x, y: y, width: scaledWidth, height: scaledHeight)
                 image.draw(in: drawRect)
                 
-                debugPrint("Added page \(index + 1) to PDF with size: \(scaledWidth) x \(scaledHeight)")
+                handReceiptDebugPrint("Added page \(index + 1) to PDF with size: \(scaledWidth) x \(scaledHeight)")
             }
         }
         
-        debugPrint("Created PDF with \(images.count) pages, size: \(pdfData.count) bytes")
+        handReceiptDebugPrint("Created PDF with \(images.count) pages, size: \(pdfData.count) bytes")
         return pdfData
     }
     
-    static func createPDFFromScannedPages(_ pages: [DA2062DocumentScannerViewModel.ScannedPage]) -> Data? {
+    internal static func createPDFFromScannedPages(_ pages: [DA2062DocumentScannerViewModel.ScannedPage]) -> Data? {
         let images = pages.map { $0.image }
         let fileName = "DA2062_\(Int(Date().timeIntervalSince1970))"
         return createPDF(from: images, fileName: fileName)
@@ -57,7 +57,7 @@ class PDFCreationUtility {
 }
 
 // Debug print function to avoid cluttering 
-private func debugPrint(_ items: Any..., function: String = #function, file: String = #file, line: Int = #line) {
+private func handReceiptDebugPrint(_ items: Any..., function: String = #function, file: String = #file, line: Int = #line) {
     #if DEBUG
     let fileName = (file as NSString).lastPathComponent
     print("DEBUG: [\(fileName):\(line)] \(function) - ", terminator: "")

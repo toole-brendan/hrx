@@ -11,8 +11,7 @@ public class ConnectionService: ObservableObject {
         isLoading = true
         
         do {
-            let response = try await APIService.shared.getConnections()
-            connections = response.connections
+            connections = try await APIService.shared.getConnections()
         } catch {
             print("Failed to load connections: \(error)")
         }
@@ -24,55 +23,25 @@ public class ConnectionService: ObservableObject {
         await loadConnections()
     }
     
-    public func sendConnectionRequest(to user: User) async throws {
-        _ = try await APIService.shared.sendConnectionRequest(userId: user.id)
+    public func sendConnectionRequest(to user: UserSummary) async throws {
+        _ = try await APIService.shared.sendConnectionRequest(targetUserId: user.id)
         await loadConnections()
     }
     
     public func acceptConnectionRequest(_ connection: UserConnection) async throws {
-        _ = try await APIService.shared.acceptConnectionRequest(connectionId: connection.id)
+        _ = try await APIService.shared.updateConnectionStatus(connectionId: connection.id, status: "accepted")
         await loadConnections()
     }
     
     public func rejectConnectionRequest(_ connection: UserConnection) async throws {
-        _ = try await APIService.shared.rejectConnectionRequest(connectionId: connection.id)
+        _ = try await APIService.shared.updateConnectionStatus(connectionId: connection.id, status: "rejected")
         await loadConnections()
     }
 }
 
 // MARK: - Connection Response Models
 
-struct ConnectionsResponse: Codable {
-    let connections: [UserConnection]
-    let count: Int
-}
-
 struct ConnectionResponse: Codable {
     let connection: UserConnection
     let message: String
-}
-
-// MARK: - API Extensions
-
-extension APIService {
-    func getConnections() async throws -> ConnectionsResponse {
-        let endpoint = "/api/connections"
-        return try await makeRequest(endpoint: endpoint, method: .GET)
-    }
-    
-    func sendConnectionRequest(userId: Int) async throws -> ConnectionResponse {
-        let endpoint = "/api/connections/request"
-        let body = ["user_id": userId]
-        return try await makeRequest(endpoint: endpoint, method: .POST, body: body)
-    }
-    
-    func acceptConnectionRequest(connectionId: String) async throws -> ConnectionResponse {
-        let endpoint = "/api/connections/\(connectionId)/accept"
-        return try await makeRequest(endpoint: endpoint, method: .POST)
-    }
-    
-    func rejectConnectionRequest(connectionId: String) async throws -> ConnectionResponse {
-        let endpoint = "/api/connections/\(connectionId)/reject"
-        return try await makeRequest(endpoint: endpoint, method: .POST)
-    }
 } 
