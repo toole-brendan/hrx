@@ -31,14 +31,10 @@ struct MyPropertiesView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom minimal navigation bar
+                // Custom minimal navigation bar - matches TransfersView
                 MinimalNavigationBar(
-                    title: "PROPERTY",
-                    titleStyle: .mono,
-                    trailingItems: [
-                        .init(icon: "plus", action: { showingAddMenu = true }),
-                        .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
-                    ]
+                    title: "PROPERTY BOOK",
+                    titleStyle: .mono
                 )
                 .background(AppColors.secondaryBackground)
                 .zIndex(1)
@@ -47,9 +43,8 @@ struct MyPropertiesView: View {
                 if viewModel.isOffline {
                     OfflineBanner()
                 }
-            }
-            
-            ScrollView {
+                
+                ScrollView {
                 VStack(spacing: 24) {
                     // Just the item count, no title
                     HStack {
@@ -119,6 +114,7 @@ struct MyPropertiesView: View {
                     viewModel.loadProperties()
                 }
             }
+            } // End of VStack containing navigation bar and content
             
             // Floating export button when items are selected
             if isSelectMode && !selectedPropertiesForExport.isEmpty {
@@ -150,7 +146,6 @@ struct MyPropertiesView: View {
         }
         .navigationTitle("")
         .navigationBarHidden(true)
-        .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $showingCreateProperty) {
             CreatePropertyView()
                 .onDisappear {
