@@ -346,6 +346,14 @@ jobs:
           POSTGRES_FQDN="${{ needs.setup.outputs.postgres_fqdn }}"
           IMMUDB_URL="${{ steps.get_immudb_url.outputs.immudb_url }}"
           
+          # Get storage account key for connection string
+          STORAGE_ACCOUNT_KEY=$(az storage account keys list \
+            --account-name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[0].value" \
+            --output tsv)
+          STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=$STORAGE_ACCOUNT_KEY;EndpointSuffix=core.windows.net"
+          
           # Deploy or update Backend API using CLI parameters
           if az containerapp show --name ${{ env.BACKEND_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
             echo "🔄 Updating existing Backend API..."
@@ -374,12 +382,7 @@ jobs:
                 HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
                 HANDRECEIPT_MINIO_ENABLED=false \
                 HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
-                HANDRECEIPT_CONFIG_NAME=config.azure \
-              --secrets \
-                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net" \
-                jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+                HANDRECEIPT_CONFIG_NAME=config.azure
           else
             echo "🚀 Creating new Backend API..."
             az containerapp create \
@@ -397,7 +400,7 @@ jobs:
               --secrets \
                 postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
                 immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net" \
+                storage-connection-string="$STORAGE_CONNECTION_STRING" \
                 jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=" \
               --env-vars \
                 HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
@@ -450,10 +453,7 @@ jobs:
                 HANDRECEIPT_STORAGE_CONTAINER_NAME=documents \
                 HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
                 HANDRECEIPT_MINIO_ENABLED=false \
-                HANDRECEIPT_CONFIG_NAME=config.azure \
-              --secrets \
-                postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net"
+                HANDRECEIPT_CONFIG_NAME=config.azure
           else
             echo "🚀 Creating new Worker..."
             az containerapp create \
@@ -468,7 +468,7 @@ jobs:
               --registry-server $REGISTRY_URL \
               --secrets \
                 postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=PLACEHOLDER;EndpointSuffix=core.windows.net" \
+                storage-connection-string="$STORAGE_CONNECTION_STRING" \
               --env-vars \
                 HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
                 HANDRECEIPT_DATABASE_USER=hradmin \
