@@ -155,7 +155,7 @@ public class APIService: APIServiceProtocol {
     private let urlSession: URLSession
 
     // Allow injecting a custom URLSession (e.g., for testing or specific configurations)
-    public init(urlSession: URLSession = .shared, baseURLString: String = "https://api.handreceipt.com") {
+    public init(urlSession: URLSession = .shared, baseURLString: String = "https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io") {
         debugPrint("Initializing APIService with baseURL: \(baseURLString)")
         
         if let url = URL(string: baseURLString) {
@@ -163,7 +163,7 @@ public class APIService: APIServiceProtocol {
         } else {
             debugPrint("ERROR: Invalid base URL provided: \(baseURLString). Using fallback URL.")
             // Fallback URL in case of invalid string
-            self.baseURL = URL(string: "https://api.handreceipt.com")!
+            self.baseURL = URL(string: "https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io")!
         }
         
         self.urlSession = urlSession
