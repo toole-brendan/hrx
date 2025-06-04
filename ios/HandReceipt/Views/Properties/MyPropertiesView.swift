@@ -62,10 +62,18 @@ struct MyPropertiesView: View {
                 MinimalNavigationBar(
                     title: "PROPERTY",
                     titleStyle: .mono,
-                    trailingItems: []  // Removed all trailing items to make title centered
+                    trailingItems: [
+                        .init(icon: "plus", action: { showingAddMenu = true }),
+                        .init(icon: "line.3.horizontal.decrease", action: { showingSortOptions = true })
+                    ]
                 )
                 .background(AppColors.secondaryBackground)
                 .zIndex(1)
+                
+                // Offline banner
+                if viewModel.isOffline {
+                    OfflineBanner()
+                }
             
             ScrollView {
                 VStack(spacing: 24) {
@@ -122,8 +130,12 @@ struct MyPropertiesView: View {
             .background(AppColors.appBackground)
             .minimalRefreshable {
                 await MainActor.run {
-                    viewModel.loadProperties()
+                    viewModel.refreshData()
                 }
+            }
+            .task {
+                // Load properties when the view appears
+                viewModel.loadProperties()
             }
             
             // Floating export button when items are selected
@@ -158,13 +170,13 @@ struct MyPropertiesView: View {
         .sheet(isPresented: $showingCreateProperty) {
             CreatePropertyView()
                 .onDisappear {
-                    viewModel.loadProperties()
+                    viewModel.refreshData()
                 }
         }
         .sheet(isPresented: $showingDA2062Scan) {
             DA2062ScanView()
                 .onDisappear {
-                    viewModel.loadProperties()
+                    viewModel.refreshData()
                 }
         }
         .sheet(isPresented: $showingDA2062Export) {
@@ -182,7 +194,7 @@ struct MyPropertiesView: View {
             if let property = selectedPropertyForTransfer {
                 PropertyTransferSheet(property: property) {
                     // Refresh properties after transfer
-                    viewModel.loadProperties()
+                    viewModel.refreshData()
                     showingTransferSheet = false
                     selectedPropertyForTransfer = nil
                 }
@@ -226,13 +238,13 @@ struct MyPropertiesView: View {
                             .foregroundColor(AppColors.tertiaryText)
                             .font(.system(size: 16, weight: .light))
                         
-                        TextField("Search properties...", text: $searchText)
+                        TextField("Search properties...", text: $viewModel.searchText)
                             .textFieldStyle(PlainTextFieldStyle())
                             .foregroundColor(AppColors.primaryText)
                             .font(AppFonts.body)
                         
-                        if !searchText.isEmpty {
-                            Button(action: { searchText = "" }) {
+                        if !viewModel.searchText.isEmpty {
+                            Button(action: { viewModel.searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(AppColors.tertiaryText)
                                     .font(.system(size: 14, weight: .light))
@@ -278,31 +290,20 @@ struct MyPropertiesView: View {
                 }
                 .padding(.horizontal, 24)
                 
-                // Filter chips
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(PropertyFilter.allCases, id: \.self) { filter in
-                            MinimalFilterChip(
-                                title: filter.rawValue,
-                                icon: filter.icon,
-                                isSelected: selectedFilter == filter
-                            ) {
-                                selectedFilter = filter
-                            }
-                        }
-                        
-                        // Unverified toggle
-                        MinimalFilterChip(
-                            title: "Unverified",
-                            icon: "exclamationmark.triangle",
-                            isSelected: showingUnverifiedOnly,
-                            count: viewModel.unverifiedCount > 0 ? viewModel.unverifiedCount : nil
+                // Filter buttons
+                HStack(spacing: 12) {
+                    ForEach(PropertyFilter.allCases, id: \.self) { filter in
+                        FilterButton(
+                            title: filter.title,
+                            isSelected: viewModel.selectedFilter == filter
                         ) {
-                            showingUnverifiedOnly.toggle()
+                            viewModel.selectedFilter = filter
                         }
                     }
-                    .padding(.horizontal, 24)
+                    
+                    Spacer()
                 }
+                .padding(.horizontal, 24)
             }
         }
     }
@@ -311,8 +312,8 @@ struct MyPropertiesView: View {
     
     private var propertiesContent: some View {
         VStack(spacing: 0) {
-            switch viewModel.loadingState {
-            case .idle, .loading:
+            // Show loading state only when loading and no properties and not offline
+            if viewModel.isLoading && viewModel.allProperties.isEmpty && !viewModel.isOffline {
                 VStack(spacing: 20) {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
@@ -324,85 +325,90 @@ struct MyPropertiesView: View {
                         .kerning(AppFonts.wideKerning)
                 }
                 .padding(.vertical, 80)
-                
-            case .success(_):
-                if filteredProperties.isEmpty {
-                    MinimalEmptyState(
-                        icon: emptyStateIcon,
-                        title: emptyStateTitle,
-                        message: emptyStateMessage,
-                        action: viewModel.loadProperties,
-                        actionLabel: "Refresh"
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 80)
-                } else {
-                    LazyVStack(spacing: 16) {
-                        ForEach(filteredProperties) { property in
-                            if isSelectMode {
-                                MinimalPropertyCard(
-                                    property: property,
-                                    isSelected: selectedPropertiesForExport.contains(property.id),
-                                    isSelectMode: true
-                                ) {
-                                    if selectedPropertiesForExport.contains(property.id) {
-                                        selectedPropertiesForExport.remove(property.id)
-                                    } else {
-                                        selectedPropertiesForExport.insert(property.id)
-                                    }
+            } else if let error = viewModel.error, viewModel.allProperties.isEmpty {
+                // Show error only if we have no properties to display
+                MinimalEmptyState(
+                    icon: "exclamationmark.triangle",
+                    title: "Error Loading Properties",
+                    message: error,
+                    action: { 
+                        Task { 
+                            await MainActor.run {
+                                viewModel.loadProperties()
+                            }
+                        }
+                    },
+                    actionLabel: "Retry"
+                )
+                .padding(.horizontal, 24)
+                .padding(.vertical, 80)
+            } else if filteredProperties.isEmpty {
+                // Empty state when no properties match filters
+                MinimalEmptyState(
+                    icon: emptyStateIcon,
+                    title: emptyStateTitle,
+                    message: emptyStateMessage,
+                    action: viewModel.refreshData,
+                    actionLabel: "Refresh"
+                )
+                .padding(.horizontal, 24)
+                .padding(.vertical, 80)
+            } else {
+                // Properties list
+                LazyVStack(spacing: 16) {
+                    ForEach(filteredProperties) { property in
+                        if isSelectMode {
+                            MinimalPropertyCard(
+                                property: property,
+                                isSelected: selectedPropertiesForExport.contains(property.id),
+                                isSelectMode: true
+                            ) {
+                                if selectedPropertiesForExport.contains(property.id) {
+                                    selectedPropertiesForExport.remove(property.id)
+                                } else {
+                                    selectedPropertiesForExport.insert(property.id)
                                 }
-                            } else {
-                                NavigationLink(destination: PropertyDetailView(propertyId: property.id)) {
-                                    MinimalPropertyCard(property: property) {
-                                        if property.needsVerification {
-                                            selectedProperty = property
-                                            showingVerificationSheet = true
-                                        }
-                                    }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .contextMenu {
-                                    // Transfer Action
-                                    Button(action: {
-                                        selectedPropertyForTransfer = property
-                                        showingTransferSheet = true
-                                    }) {
-                                        Label("Transfer Property", systemImage: "arrow.triangle.2.circlepath")
-                                    }
-                                    
-                                    // View Details Action
-                                    Button(action: {
-                                        // Navigation is handled by NavigationLink
-                                    }) {
-                                        Label("View Details", systemImage: "info.circle")
-                                    }
-                                    
-                                    // Verify Action (if needed)
+                            }
+                        } else {
+                            NavigationLink(destination: PropertyDetailView(propertyId: property.id)) {
+                                MinimalPropertyCard(property: property) {
                                     if property.needsVerification {
-                                        Button(action: {
-                                            selectedProperty = property
-                                            showingVerificationSheet = true
-                                        }) {
-                                            Label("Verify Property", systemImage: "checkmark.circle")
-                                        }
+                                        selectedProperty = property
+                                        showingVerificationSheet = true
+                                    }
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .contextMenu {
+                                // Transfer Action
+                                Button(action: {
+                                    selectedPropertyForTransfer = property
+                                    showingTransferSheet = true
+                                }) {
+                                    Label("Transfer Property", systemImage: "arrow.triangle.2.circlepath")
+                                }
+                                
+                                // View Details Action
+                                Button(action: {
+                                    // Navigation is handled by NavigationLink
+                                }) {
+                                    Label("View Details", systemImage: "info.circle")
+                                }
+                                
+                                // Verify Action (if needed)
+                                if property.needsVerification {
+                                    Button(action: {
+                                        selectedProperty = property
+                                        showingVerificationSheet = true
+                                    }) {
+                                        Label("Verify Property", systemImage: "checkmark.circle")
                                     }
                                 }
                             }
                         }
                     }
-                    .padding(.horizontal, 24)
                 }
-                
-            case .error(let message):
-                MinimalEmptyState(
-                    icon: "exclamationmark.triangle",
-                    title: "Error Loading Properties",
-                    message: message,
-                    action: viewModel.loadProperties,
-                    actionLabel: "Retry"
-                )
                 .padding(.horizontal, 24)
-                .padding(.vertical, 80)
             }
         }
     }

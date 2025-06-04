@@ -1,6 +1,15 @@
 import Foundation
 import Combine // For ObservableObject
 
+// MARK: - Property Filter Enum
+enum PropertyFilter: String, CaseIterable {
+    case all = "ALL"
+    case operational = "OPERATIONAL"
+    case maintenance = "MAINTENANCE"
+    
+    var title: String { rawValue }
+}
+
 // Enum to represent the state of loading user properties
 enum MyPropertiesLoadingState: Equatable {
     case idle
@@ -24,9 +33,15 @@ enum MyPropertiesLoadingState: Equatable {
 class MyPropertiesViewModel: ObservableObject {
     
     @Published var loadingState: MyPropertiesLoadingState = .idle
+    @Published var allProperties: [Property] = []
     @Published var isOffline: Bool = false
     @Published var isSyncing: Bool = false
     @Published var lastSyncDate: Date?
+    @Published var isLoading = false
+    @Published var error: String?
+    @Published var searchText = ""
+    @Published var selectedFilter: PropertyFilter = .all
+    private var hasLoadedInitialData = false
     
     let apiService: APIServiceProtocol
     private let coreDataStack = CoreDataStack.shared
@@ -45,10 +60,42 @@ class MyPropertiesViewModel: ObservableObject {
         return properties
     }
     
+    // Filtered properties for search and filter functionality
+    var filteredProperties: [Property] {
+        var filtered = allProperties
+        
+        // Apply search filter
+        if !searchText.isEmpty {
+            filtered = filtered.filter { property in
+                property.itemName.localizedCaseInsensitiveContains(searchText) ||
+                property.serialNumber.localizedCaseInsensitiveContains(searchText) ||
+                property.nsn?.localizedCaseInsensitiveContains(searchText) == true
+            }
+        }
+        
+        // Apply status filter
+        switch selectedFilter {
+        case .all:
+            break
+        case .operational:
+            filtered = filtered.filter { 
+                let status = ($0.currentStatus ?? $0.status ?? "").lowercased()
+                return status == "operational" || status == "active"
+            }
+        case .maintenance:
+            filtered = filtered.filter {
+                let status = ($0.currentStatus ?? $0.status ?? "").lowercased()
+                return status == "maintenance" || status == "needs_maintenance" || $0.needsMaintenance
+            }
+        }
+        
+        return filtered
+    }
+    
     init(apiService: APIServiceProtocol = APIService()) {
         self.apiService = apiService
         setupObservers()
-        loadProperties()
+        // Don't load properties automatically - let the view trigger this with .task
     }
     
     private func setupObservers() {
@@ -68,7 +115,13 @@ class MyPropertiesViewModel: ObservableObject {
     func loadProperties() {
         guard loadingState != .loading else { return }
         
-        loadingState = .loading
+        // Only show loading state if this is the first load
+        if !hasLoadedInitialData {
+            isLoading = true
+            loadingState = .loading
+        }
+        
+        error = nil
         print("MyPropertiesViewModel: Loading properties...")
         
         // First, load from cache for immediate display
@@ -135,12 +188,16 @@ class MyPropertiesViewModel: ObservableObject {
                 // }
                 
                 loadingState = .success(properties)
+                allProperties = properties
                 lastSyncDate = Date()
                 isSyncing = false
+                isLoading = false
+                hasLoadedInitialData = true
                 print("MyPropertiesViewModel: Successfully synced \(properties.count) properties from server")
                 
             } catch let apiError as APIService.APIError {
                 isSyncing = false
+                isLoading = false
                 print("MyPropertiesViewModel: API Error loading properties - \(apiError.localizedDescription)")
                 
                 // Don't show error if we have cached data
@@ -158,16 +215,20 @@ class MyPropertiesViewModel: ObservableObject {
                     default: message = apiError.localizedDescription
                     }
                     loadingState = .error(message)
+                    error = message
                 }
             } catch {
                 isSyncing = false
+                isLoading = false
                 print("MyPropertiesViewModel: Unknown error loading properties - \(error.localizedDescription)")
                 
                 // Don't show error if we have cached data
                 if case .success = loadingState {
                     print("MyPropertiesViewModel: Using cached data due to sync error")
                 } else {
-                    loadingState = .error("An unexpected error occurred.")
+                    let errorMessage = "An unexpected error occurred."
+                    loadingState = .error(errorMessage)
+                    self.error = errorMessage
                 }
             }
         }
@@ -220,8 +281,52 @@ class MyPropertiesViewModel: ObservableObject {
         print("MyPropertiesViewModel: Created property offline - queued for sync")
     }
     
+    func loadCachedProperties() async {
+        // Load from cache immediately (no loading state)
+        print("MyPropertiesViewModel: Loading cached properties...")
+        
+        // TODO: Implement when Core Data entities are ready
+        /*
+        let cachedProperties = coreDataStack.getCachedProperties()
+        
+        // Convert CachedProperty to Property
+        let properties = cachedProperties.compactMap { cached -> Property? in
+            guard let itemName = cached.itemName,
+                  let serialNumber = cached.serialNumber else { return nil }
+            
+            return Property(
+                id: Int(cached.id),
+                serialNumber: serialNumber,
+                nsn: cached.nsn ?? "",
+                lin: cached.lin,
+                itemName: itemName,
+                description: cached.itemDescription,
+                manufacturer: nil,
+                imageUrl: cached.photoUrl,
+                status: "Operational", // Default status
+                assignedToUserId: Int(cached.currentHolderId),
+                location: nil,
+                lastVerificationDate: cached.updatedAt,
+                acquisitionDate: cached.createdAt,
+                notes: nil
+            )
+        }
+        
+        if !properties.isEmpty {
+            allProperties = properties
+            print("MyPropertiesViewModel: Loaded \(properties.count) properties from cache")
+        }
+        */
+    }
+    
     func refreshData() {
-        loadProperties()
+        // For manual refresh, always sync with server but don't show loading state
+        if !offlineSync.isOnline {
+            isOffline = true
+            print("MyPropertiesViewModel: Offline mode - cannot refresh")
+        } else {
+            syncWithServer()
+        }
     }
     
     // Update a property after verification
