@@ -1,12 +1,48 @@
 -- Migration: 015_seed_test_user_mock_data.sql
--- Description: Populate comprehensive mock data for test user (toole.brendan@gmail.com) across all features
+-- Description: Populate comprehensive mock data for test user (toole.brendan@gmail.com) with new transfer offers system
 
--- 1. Ensure the test user exists and create peer accounts for connections/transfers
--- Note: Production schema uses 'name' field instead of separate first_name/last_name
+-- Clear existing data first (optional - use with caution in production)
+-- Delete in proper order to respect foreign key constraints
+
+-- Get user IDs first
+DO $$
+DECLARE
+    user_ids INTEGER[];
+BEGIN
+    SELECT ARRAY(SELECT id FROM users WHERE username IN ('toole.brendan', 'john.doe', 'sarah.thompson', 'james.wilson', 'alice.smith')) INTO user_ids;
+    
+    -- Delete transfer offer recipients first
+    DELETE FROM transfer_offer_recipients WHERE transfer_offer_id IN (
+        SELECT id FROM transfer_offers WHERE offering_user_id = ANY(user_ids)
+    );
+    
+    -- Delete transfer offers
+    DELETE FROM transfer_offers WHERE offering_user_id = ANY(user_ids);
+    
+    -- Delete activities
+    DELETE FROM activities WHERE user_id = ANY(user_ids);
+    
+    -- Delete documents (sender and recipient)
+    DELETE FROM documents WHERE sender_user_id = ANY(user_ids) OR recipient_user_id = ANY(user_ids);
+    
+    -- Delete transfers
+    DELETE FROM transfers WHERE from_user_id = ANY(user_ids) OR to_user_id = ANY(user_ids);
+    
+    -- Delete properties
+    DELETE FROM properties WHERE assigned_to_user_id = ANY(user_ids);
+    
+    -- Delete user connections (both directions)
+    DELETE FROM user_connections WHERE user_id = ANY(user_ids) OR connected_user_id = ANY(user_ids);
+    
+    -- Finally delete users
+    DELETE FROM users WHERE id = ANY(user_ids);
+END $$;
+
+-- 1. Create test users with updated password hash
 INSERT INTO users (username, email, password, "name", rank, unit, phone, dodid, created_at, updated_at)
 VALUES 
     ('toole.brendan', 'toole.brendan@gmail.com', 
-     '$2a$10$EQH.9cO8a4.2vWJwF7EqHeQOhm1a6YwzqA7fC8lOa78H3v6Y1mQtO',  -- bcrypt hash for "Yankees1!"
+     '$2a$10$uXXIHlchMkLfpttincKE5.Kq1rqYt4.PcQXYVonISEZqogbSJW0F6',  -- bcrypt hash for "Yankees1!"
      'Brendan Toole', '1LT', '2-506, 3BCT', '910-555-0123', '1234567890', NOW(), NOW()),
     ('john.doe', 'john.doe@example.mil',
      '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',  -- bcrypt hash for "password123"
@@ -29,11 +65,20 @@ VALUES
     ((SELECT id FROM users WHERE username = 'toole.brendan'),
      (SELECT id FROM users WHERE username = 'john.doe'),
      'accepted', NOW(), NOW()),
+    ((SELECT id FROM users WHERE username = 'john.doe'),
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     'accepted', NOW(), NOW()),
     ((SELECT id FROM users WHERE username = 'toole.brendan'),
      (SELECT id FROM users WHERE username = 'sarah.thompson'),
      'accepted', NOW(), NOW()),
+    ((SELECT id FROM users WHERE username = 'sarah.thompson'),
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     'accepted', NOW(), NOW()),
     ((SELECT id FROM users WHERE username = 'toole.brendan'),
      (SELECT id FROM users WHERE username = 'james.wilson'),
+     'accepted', NOW(), NOW()),
+    ((SELECT id FROM users WHERE username = 'james.wilson'),
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
      'accepted', NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
@@ -46,7 +91,7 @@ VALUES (
 ) ON CONFLICT DO NOTHING;
 
 -- 3. Insert properties (inventory items)
--- M4 Carbines for the test user: one active, one undergoing maintenance
+-- Brendan's properties
 INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, photo_url, created_at, updated_at)
 VALUES 
     ('M4 Carbine', 'M4-2025-000001',
@@ -60,103 +105,89 @@ VALUES
      'maintenance', 'needs_repair',
      (SELECT id FROM users WHERE username = 'toole.brendan'),
      '1005-01-231-0973', 'Maintenance Bay 2', 3200.00, 1,
-     NULL, NOW(), NOW())
-ON CONFLICT (serial_number) DO NOTHING;
-
--- Night Vision Goggles assigned to the test user (received from Sarah)
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, photo_url, is_attachable, attachment_points, created_at, updated_at)
-VALUES (
-    'AN/PVS-14 Night Vision', 'NVG-2025-000001',
-    'AN/PVS-14 Night Vision Monocular (NSN 5855-01-534-5931)', 
-    'active', 'serviceable',
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    '5855-01-534-5931', 'Individual Kit', 4500.00, 1,
-    'https://via.placeholder.com/400x300.png?text=Night+Vision',
-    false, NULL,
-    NOW(), NOW()
-) ON CONFLICT (serial_number) DO NOTHING;
-
--- PRC-152A Radios for the test user (one will be loaned out)
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, created_at, updated_at)
-VALUES 
+     NULL, NOW(), NOW()),
+    ('AN/PVS-14 Night Vision', 'NVG-2025-000001',
+     'AN/PVS-14 Night Vision Monocular (NSN 5855-01-534-5931)', 
+     'active', 'serviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     '5855-01-534-5931', 'Individual Kit', 4500.00, 1,
+     'https://via.placeholder.com/400x300.png?text=Night+Vision',
+     NOW(), NOW()),
     ('AN/PRC-152A Radio', 'RADIO-2025-000001',
      'AN/PRC-152A Multiband Radio (NSN 5820-01-451-8250)', 
      'active', 'serviceable',
      (SELECT id FROM users WHERE username = 'toole.brendan'),
      '5820-01-451-8250', 'Individual Kit', 6800.00, 1,
-     NOW(), NOW()),
+     NULL, NOW(), NOW()),
     ('AN/PRC-152A Radio', 'RADIO-2025-000002',
      'AN/PRC-152A Multiband Radio (NSN 5820-01-451-8250) - spare unit', 
      'active', 'serviceable',
      (SELECT id FROM users WHERE username = 'toole.brendan'),
      '5820-01-451-8250', 'Individual Kit', 6800.00, 1,
-     NOW(), NOW())
+     NULL, NOW(), NOW()),
+    ('IOTV Body Armor', 'IOTV-2025-000001',
+     'Improved Outer Tactical Vest (IOTV) - Medium', 
+     'active', 'serviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     '8470-01-580-1200', 'Individual Kit', 850.00, 1,
+     NULL, NOW(), NOW()),
+    ('ACH Helmet', 'ACH-2025-000001',
+     'Advanced Combat Helmet - Large', 
+     'active', 'serviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     '8470-01-534-8800', 'Individual Kit', 320.00, 1,
+     NULL, NOW(), NOW()),
+    ('Lensatic Compass', 'COMP-2025-000001',
+     'Lensatic Compass for land navigation', 
+     'lost', 'unserviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     '6605-01-196-6971', 'Unknown', 45.00, 1,
+     NULL, NOW(), NOW())
 ON CONFLICT (serial_number) DO NOTHING;
 
--- A field item (Lensatic Compass) that was lost by the test user (non-operational example)
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, created_at, updated_at)
-VALUES (
-    'Lensatic Compass', 'COMP-2025-000001',
-    'Lensatic Compass for land navigation', 
-    'lost', 'unserviceable',
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    '6605-01-196-6971', 'Unknown', 45.00, 1,
-    NOW(), NOW()
-) ON CONFLICT (serial_number) DO NOTHING;
-
--- IOTV Body Armor assigned to test user
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, created_at, updated_at)
-VALUES (
-    'IOTV Body Armor', 'IOTV-2025-000001',
-    'Improved Outer Tactical Vest (IOTV) - Medium', 
-    'active', 'serviceable',
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    '8470-01-580-1200', 'Individual Kit', 850.00, 1,
-    NOW(), NOW()
-) ON CONFLICT (serial_number) DO NOTHING;
-
--- ACH Helmet assigned to test user
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, created_at, updated_at)
-VALUES (
-    'ACH Helmet', 'ACH-2025-000001',
-    'Advanced Combat Helmet - Large', 
-    'active', 'serviceable',
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    '8470-01-534-8800', 'Individual Kit', 320.00, 1,
-    NOW(), NOW()
-) ON CONFLICT (serial_number) DO NOTHING;
-
--- Properties assigned to other users (for transfer scenarios):
--- Crew-served weapon (M240B Machine Gun) still assigned to John Doe (he will offer it to Brendan)
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, created_at, updated_at)
+-- John Doe's properties
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, photo_url, created_at, updated_at)
 VALUES (
     'M240B Machine Gun', 'M240B-2025-000001',
     'M240B 7.62mm Machine Gun (NSN 1005-01-565-7445)', 
     'active', 'serviceable',
     (SELECT id FROM users WHERE username = 'john.doe'),
     '1005-01-565-7445', 'Arms Room - Rack 1A', 14500.00, 1,
-    NOW(), NOW()
+    NULL, NOW(), NOW()
 ) ON CONFLICT (serial_number) DO NOTHING;
 
--- Enhanced Night Vision Goggle (ENVG) assigned to Sarah Thompson (Brendan requested it but it was not transferred)
-INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, created_at, updated_at)
+-- Sarah Thompson's properties
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, photo_url, created_at, updated_at)
 VALUES (
     'AN/PSQ-20 ENVG', 'ENVG-2025-000001',
     'AN/PSQ-20 Enhanced Night Vision Goggle (NSN 5855-01-647-6498)', 
     'active', 'serviceable',
     (SELECT id FROM users WHERE username = 'sarah.thompson'),
     '5855-01-647-6498', 'Individual Kit', 8200.00, 1,
-    NOW(), NOW()
+    NULL, NOW(), NOW()
 ) ON CONFLICT (serial_number) DO NOTHING;
 
--- 4. Insert transfer records (hand receipts / property transfers)
+-- James Wilson's properties  
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, nsn, location, unit_price, quantity, photo_url, created_at, updated_at)
+VALUES (
+    'M249 SAW', 'SAW-2025-000001',
+    'M249 Squad Automatic Weapon (NSN 1005-01-357-5339)', 
+    'active', 'serviceable',
+    (SELECT id FROM users WHERE username = 'james.wilson'),
+    '1005-01-357-5339', 'Arms Room - Rack 2B', 7200.00, 1,
+    NULL, NOW(), NOW()
+) ON CONFLICT (serial_number) DO NOTHING;
+
+-- 4. Insert completed transfer records (historical transfers)
 -- Completed transfer: John Doe issued an M4 Carbine to Brendan 30 days ago
-INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes, created_at, updated_at)
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, transfer_type, initiator_id, request_date, resolved_date, notes, created_at, updated_at)
 SELECT 
     p.id,
     (SELECT id FROM users WHERE username = 'john.doe'),
     (SELECT id FROM users WHERE username = 'toole.brendan'),
-    'completed',
+    'accepted',
+    'offer',
+    (SELECT id FROM users WHERE username = 'john.doe'),
     NOW() - INTERVAL '30 days',
     NOW() - INTERVAL '30 days' + INTERVAL '2 hours',
     'Initial issue of M4 Carbine to 1LT Toole',
@@ -167,12 +198,14 @@ WHERE p.serial_number = 'M4-2025-000001'
 ON CONFLICT DO NOTHING;
 
 -- Completed transfer: Sarah Thompson transferred AN/PVS-14 NVGs to Brendan 60 days ago
-INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes, created_at, updated_at)
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, transfer_type, initiator_id, request_date, resolved_date, notes, created_at, updated_at)
 SELECT 
     p.id,
     (SELECT id FROM users WHERE username = 'sarah.thompson'),
     (SELECT id FROM users WHERE username = 'toole.brendan'),
-    'completed',
+    'accepted',
+    'offer',
+    (SELECT id FROM users WHERE username = 'sarah.thompson'),
     NOW() - INTERVAL '60 days',
     NOW() - INTERVAL '60 days' + INTERVAL '1 hour',
     'Transfer of night vision goggles to 1LT Toole for deployment',
@@ -182,70 +215,110 @@ WHERE p.serial_number = 'NVG-2025-000001'
   AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
 ON CONFLICT DO NOTHING;
 
--- Completed transfer: John Doe issued IOTV to Brendan 45 days ago  
-INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes, created_at, updated_at)
+-- 5. Insert ACTIVE transfer offers (using new transfer_offers system)
+-- Active offer: John Doe is offering his M240B to Brendan (created 2 days ago)
+INSERT INTO transfer_offers (property_id, offering_user_id, offer_status, notes, expires_at, created_at)
 SELECT 
     p.id,
     (SELECT id FROM users WHERE username = 'john.doe'),
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    'completed',
-    NOW() - INTERVAL '45 days',
-    NOW() - INTERVAL '45 days' + INTERVAL '30 minutes',
-    'Initial issue of body armor to 1LT Toole',
-    NOW(), NOW()
-FROM properties p
-WHERE p.serial_number = 'IOTV-2025-000001' 
-  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
-ON CONFLICT DO NOTHING;
-
--- Pending incoming transfer: John Doe has offered Brendan a M240B (awaiting Brendan's approval)
-INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, notes, created_at, updated_at)
-SELECT 
-    p.id,
-    (SELECT id FROM users WHERE username = 'john.doe'),
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    'pending',
-    NOW() - INTERVAL '2 days',
-    'Offer: M240B Machine Gun for temporary attachment to unit',
-    NOW(), NOW()
+    'active',
+    'Offering M240B for upcoming training exercise. Available for 7 days.',
+    NOW() + INTERVAL '5 days',
+    NOW() - INTERVAL '2 days'
 FROM properties p
 WHERE p.serial_number = 'M240B-2025-000001' 
   AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'john.doe')
 ON CONFLICT DO NOTHING;
 
--- Pending outgoing transfer: Brendan is lending a spare radio to James Wilson (awaiting James's acceptance)
-INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, notes, created_at, updated_at)
+-- Add Brendan as recipient of John's M240B offer
+INSERT INTO transfer_offer_recipients (transfer_offer_id, recipient_user_id)
 SELECT 
-    p.id,
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    (SELECT id FROM users WHERE username = 'james.wilson'),
-    'pending',
-    NOW() - INTERVAL '1 day',
-    'Loan of AN/PRC-152A Radio (spare) for training exercise',
-    NOW(), NOW()
-FROM properties p
-WHERE p.serial_number = 'RADIO-2025-000002' 
-  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+    to_table.id,
+    (SELECT id FROM users WHERE username = 'toole.brendan')
+FROM transfer_offers to_table
+JOIN properties p ON to_table.property_id = p.id
+WHERE p.serial_number = 'M240B-2025-000001'
+  AND to_table.offering_user_id = (SELECT id FROM users WHERE username = 'john.doe')
 ON CONFLICT DO NOTHING;
 
--- Rejected transfer: Brendan requested Sarah's ENVG 5 days ago, but Sarah rejected it 4 days ago
-INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes, created_at, updated_at)
+-- Active offer: Sarah is offering her ENVG to both Brendan and James (created 1 day ago)
+INSERT INTO transfer_offers (property_id, offering_user_id, offer_status, notes, expires_at, created_at)
 SELECT 
     p.id,
     (SELECT id FROM users WHERE username = 'sarah.thompson'),
-    (SELECT id FROM users WHERE username = 'toole.brendan'),
-    'rejected',
-    NOW() - INTERVAL '5 days',
-    NOW() - INTERVAL '4 days',
-    'Request for ENVG denied: item already assigned to another unit',
-    NOW(), NOW()
+    'active',
+    'Enhanced NVGs available for mission. First come, first served.',
+    NOW() + INTERVAL '3 days',
+    NOW() - INTERVAL '1 day'
 FROM properties p
 WHERE p.serial_number = 'ENVG-2025-000001' 
   AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'sarah.thompson')
 ON CONFLICT DO NOTHING;
 
--- 5. Insert documents (digital transfer forms)
--- DA 2062 form for the M4 issue
+-- Add recipients for Sarah's ENVG offer (multiple recipients)
+INSERT INTO transfer_offer_recipients (transfer_offer_id, recipient_user_id, viewed_at)
+SELECT 
+    to_table.id,
+    users.id,
+    CASE 
+        WHEN users.username = 'toole.brendan' THEN NOW() - INTERVAL '6 hours'
+        ELSE NULL
+    END
+FROM transfer_offers to_table
+JOIN properties p ON to_table.property_id = p.id
+CROSS JOIN (
+    SELECT id, username FROM users WHERE username IN ('toole.brendan', 'james.wilson')
+) users
+WHERE p.serial_number = 'ENVG-2025-000001'
+  AND to_table.offering_user_id = (SELECT id FROM users WHERE username = 'sarah.thompson')
+ON CONFLICT DO NOTHING;
+
+-- Brendan is offering his spare radio to James (created 4 hours ago)
+INSERT INTO transfer_offers (property_id, offering_user_id, offer_status, notes, created_at)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'active',
+    'Spare PRC-152A available for loan. Need it back after training.',
+    NOW() - INTERVAL '4 hours'
+FROM properties p
+WHERE p.serial_number = 'RADIO-2025-000002' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+ON CONFLICT DO NOTHING;
+
+-- Add James as recipient of Brendan's radio offer
+INSERT INTO transfer_offer_recipients (transfer_offer_id, recipient_user_id)
+SELECT 
+    to_table.id,
+    (SELECT id FROM users WHERE username = 'james.wilson')
+FROM transfer_offers to_table
+JOIN properties p ON to_table.property_id = p.id
+WHERE p.serial_number = 'RADIO-2025-000002'
+  AND to_table.offering_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+ON CONFLICT DO NOTHING;
+
+-- 6. Insert some pending traditional transfers (using transfers table)
+-- Brendan requested James's M249 SAW (using serial number request)
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, transfer_type, initiator_id, requested_serial_number, include_components, request_date, notes, created_at, updated_at)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'james.wilson'),
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'pending',
+    'request',
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'SAW-2025-000001',
+    false,
+    NOW() - INTERVAL '6 hours',
+    'Requesting M249 for range training next week',
+    NOW(), NOW()
+FROM properties p
+WHERE p.serial_number = 'SAW-2025-000001' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'james.wilson')
+ON CONFLICT DO NOTHING;
+
+-- 7. Insert documents (digital transfer forms)
+-- DA 2062 form for the completed M4 transfer
 INSERT INTO documents (type, subtype, title, sender_user_id, recipient_user_id, property_id, form_data, status, sent_at, created_at, updated_at)
 SELECT 
     'transfer_form', 'DA2062',
@@ -262,7 +335,7 @@ SELECT
         'date', (NOW() - INTERVAL '29 days')::text,
         'unit', '2-506, 3BCT'
     ),
-    'unread',
+    'read',
     NOW() - INTERVAL '29 days',
     NOW(), NOW()
 FROM properties p
@@ -320,7 +393,7 @@ WHERE p.serial_number = 'M4-2025-000002'
   AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
 ON CONFLICT DO NOTHING;
 
--- 6. Insert activity records to populate the activity feed
+-- 8. Insert activity records to populate the activity feed
 INSERT INTO activities (type, description, user_id, related_property_id, related_transfer_id, "timestamp")
 SELECT 
     'transfer_completed',
@@ -332,7 +405,7 @@ SELECT
 FROM properties p
 JOIN transfers t ON t.property_id = p.id
 WHERE p.serial_number = 'M4-2025-000001'
-  AND t.status = 'completed'
+  AND t.status = 'accepted'
   AND t.to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
 ON CONFLICT DO NOTHING;
 
@@ -347,7 +420,7 @@ SELECT
 FROM properties p
 JOIN transfers t ON t.property_id = p.id
 WHERE p.serial_number = 'NVG-2025-000001'
-  AND t.status = 'completed'
+  AND t.status = 'accepted'
   AND t.to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
 ON CONFLICT DO NOTHING;
 
@@ -375,21 +448,33 @@ WHERE p.serial_number = 'COMP-2025-000001'
   AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO activities (type, description, user_id, related_transfer_id, "timestamp")
+-- Activity for new transfer offer
+INSERT INTO activities (type, description, user_id, related_property_id, "timestamp")
 SELECT 
-    'transfer_rejected',
-    'Request for AN/PSQ-20 ENVG was rejected by Sarah Thompson',
+    'offer_received',
+    'John Doe offered you M240B Machine Gun',
     (SELECT id FROM users WHERE username = 'toole.brendan'),
-    t.id,
-    NOW() - INTERVAL '4 days'
-FROM transfers t
-JOIN properties p ON t.property_id = p.id
-WHERE p.serial_number = 'ENVG-2025-000001'
-  AND t.status = 'rejected'
-  AND t.to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+    p.id,
+    NOW() - INTERVAL '2 days'
+FROM properties p
+WHERE p.serial_number = 'M240B-2025-000001'
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'john.doe')
 ON CONFLICT DO NOTHING;
 
--- 7. Add some NSN records for the items we've created
+-- Activity for transfer request sent
+INSERT INTO activities (type, description, user_id, related_property_id, "timestamp")
+SELECT 
+    'transfer_requested',
+    'Requested M249 SAW from James Wilson',
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    p.id,
+    NOW() - INTERVAL '6 hours'
+FROM properties p
+WHERE p.serial_number = 'SAW-2025-000001'
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'james.wilson')
+ON CONFLICT DO NOTHING;
+
+-- 9. Update NSN records for all the items we've created
 INSERT INTO nsn_records (nsn, item_name, description, category, created_at, updated_at)
 VALUES 
     ('1005-01-231-0973', 'Rifle, 5.56mm, M4A1', 'M4A1 Carbine with collapsible stock', 'Weapons', NOW(), NOW()),
@@ -399,5 +484,25 @@ VALUES
     ('8470-01-580-1200', 'Vest, Body Armor', 'Improved Outer Tactical Vest (IOTV)', 'Body Armor', NOW(), NOW()),
     ('8470-01-534-8800', 'Helmet, Combat', 'Advanced Combat Helmet (ACH)', 'Body Armor', NOW(), NOW()),
     ('1005-01-565-7445', 'Machine Gun, 7.62mm', 'M240B Medium Machine Gun', 'Weapons', NOW(), NOW()),
-    ('5855-01-647-6498', 'Goggle, Night Vision', 'AN/PSQ-20 Enhanced Night Vision Goggle', 'Optics', NOW(), NOW())
+    ('5855-01-647-6498', 'Goggle, Night Vision', 'AN/PSQ-20 Enhanced Night Vision Goggle', 'Optics', NOW(), NOW()),
+    ('1005-01-357-5339', 'Machine Gun, 5.56mm', 'M249 Squad Automatic Weapon', 'Weapons', NOW(), NOW())
 ON CONFLICT (nsn) DO NOTHING;
+
+-- Summary of test data created:
+-- Users: 5 (Brendan + 4 friends)
+-- User connections: 3 accepted, 1 pending
+-- Properties: 11 total (8 for Brendan, 1 each for John, Sarah, James)
+-- Transfer offers: 3 active offers showing different scenarios
+-- Traditional transfers: 2 completed (historical), 1 pending request
+-- Documents: 3 DA forms
+-- Activities: 7 activities showing recent events
+-- NSN records: 9 items with full metadata
+
+-- This provides a comprehensive test environment showing:
+-- ✅ Active transfer offers (new system)
+-- ✅ Traditional transfer requests 
+-- ✅ Completed historical transfers
+-- ✅ User connections and networking
+-- ✅ Property maintenance and loss scenarios
+-- ✅ Document management
+-- ✅ Activity tracking and notifications
