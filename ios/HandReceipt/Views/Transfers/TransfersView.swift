@@ -25,8 +25,14 @@ struct TransfersView: View {
             AppColors.appBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom navigation header
-                navigationHeader
+                // Custom minimal navigation bar - matches MyPropertiesView
+                MinimalNavigationBar(
+                    title: "TRANSFERS",
+                    titleStyle: .mono,
+                    trailingItems: [
+                        .init(text: "New", style: .text, action: { showingTransferOptions = true })
+                    ]
+                )
                 
                 // Tab selector with proper styling
                 tabSelector
@@ -75,43 +81,7 @@ struct TransfersView: View {
         }
     }
     
-    // MARK: - Navigation Header
-    private var navigationHeader: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 20) {
-                // Brand mark
-                Text("HR")
-                    .font(AppFonts.monoBody)
-                    .foregroundColor(AppColors.secondaryText)
-                    .frame(minWidth: 60, alignment: .leading)
-                
-                Spacer()
-                
-                // Title
-                Text("Transfers")
-                    .font(AppFonts.serifHeadline)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Spacer()
-                
-                // Action button
-                Button(action: { showingTransferOptions = true }) {
-                    Text("New")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.accent)
-                }
-                .frame(minWidth: 60, alignment: .trailing)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 14)
-            .background(AppColors.appBackground)
-            
-            // Subtle divider
-            Rectangle()
-                .fill(AppColors.divider)
-                .frame(height: 1)
-        }
-    }
+
     
     // MARK: - Tab Selector
     private var tabSelector: some View {
@@ -130,7 +100,7 @@ struct TransfersView: View {
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 10)
+            .padding(.vertical, 14)
             .background(AppColors.tertiaryBackground)
             
             Rectangle()
@@ -150,11 +120,11 @@ struct TransfersView: View {
                 VStack(spacing: 8) {
                     Text(title.uppercased())
                         .font(AppFonts.captionMedium)
-                        .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
+                        .foregroundColor(isSelected ? AppColors.accent : AppColors.tertiaryText)
                         .compatibleKerning(AppFonts.wideKerning)
                     
                     Rectangle()
-                        .fill(isSelected ? AppColors.primaryText : Color.clear)
+                        .fill(isSelected ? AppColors.accent : Color.clear)
                         .frame(height: 2)
                         .animation(.easeInOut(duration: 0.2), value: isSelected)
                 }
@@ -167,10 +137,26 @@ struct TransfersView: View {
     @ViewBuilder
     private var transferMainContent: some View {
         let transfers = viewModel.filteredTransfers.filter { transfer in
+            guard let currentUserId = viewModel.currentUserId else { return false }
+            
             if selectedTab == .incoming {
-                return viewModel.currentUserId != nil && transfer.toUserId == viewModel.currentUserId
+                // Incoming: transfers TO you or transfers initiated BY others affecting you
+                if transfer.transferType?.lowercased() == "request" {
+                    // For requests: incoming means someone else requested something from you
+                    return transfer.initiatorId != currentUserId && transfer.fromUserId == currentUserId
+                } else {
+                    // For direct transfers: incoming means transfers coming to you
+                    return transfer.toUserId == currentUserId
+                }
             } else {
-                return viewModel.currentUserId != nil && transfer.fromUserId == viewModel.currentUserId
+                // Outgoing: transfers FROM you or transfers initiated BY you
+                if transfer.transferType?.lowercased() == "request" {
+                    // For requests: outgoing means you requested something from someone
+                    return transfer.initiatorId == currentUserId
+                } else {
+                    // For direct transfers: outgoing means transfers going from you
+                    return transfer.fromUserId == currentUserId
+                }
             }
         }
         
@@ -227,12 +213,6 @@ struct TransfersView: View {
     @ViewBuilder
     private var offersSection: some View {
         VStack(spacing: 12) {
-            ElegantSectionHeader(
-                title: "Property Offers",
-                subtitle: isLoadingOffers ? nil : (activeOffers.isEmpty ? "No active offers" : "Items offered by your connections"),
-                style: .uppercase
-            )
-            
             if isLoadingOffers {
                 HStack(spacing: 12) {
                     ProgressView()
@@ -281,26 +261,18 @@ struct TransfersView: View {
     private func transfersSection(transfers: [Transfer]) -> some View {
         if !transfers.isEmpty {
             VStack(spacing: 12) {
-                ElegantSectionHeader(
-                    title: selectedTab == .incoming ? "Incoming Transfers" : "Outgoing Transfers",
-                    subtitle: "\(transfers.count) transfer\(transfers.count == 1 ? "" : "s")",
-                    style: .serif
-                )
-                
-                VStack(spacing: 12) {
-                    ForEach(transfers) { transfer in
-                        ElegantTransferCard(
-                            transfer: transfer,
-                            isIncoming: selectedTab == .incoming,
-                            onTap: { selectedTransfer = transfer },
-                            onQuickApprove: {
-                                viewModel.approveTransfer(transferId: transfer.id)
-                            },
-                            onQuickReject: {
-                                viewModel.rejectTransfer(transferId: transfer.id)
-                            }
-                        )
-                    }
+                ForEach(transfers) { transfer in
+                    ElegantTransferCard(
+                        transfer: transfer,
+                        isIncoming: selectedTab == .incoming,
+                        onTap: { selectedTransfer = transfer },
+                        onQuickApprove: {
+                            viewModel.approveTransfer(transferId: transfer.id)
+                        },
+                        onQuickReject: {
+                            viewModel.rejectTransfer(transferId: transfer.id)
+                        }
+                    )
                 }
             }
         } else if !isLoadingOffers && activeOffers.isEmpty {
@@ -493,7 +465,7 @@ struct ElegantOfferCard: View {
             // Offer details with improved typography
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("OFFERED BY")
+                    Text("SENT BY")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.tertiaryText)
                         .compatibleKerning(AppFonts.wideKerning)
@@ -533,15 +505,28 @@ struct ElegantOfferCard: View {
                     Text("DECLINE")
                         .font(AppFonts.captionMedium)
                         .compatibleKerning(AppFonts.wideKerning)
+                        .foregroundColor(AppColors.destructive)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 14)
+                        .background(Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.destructive, lineWidth: 1)
+                        )
                 }
-                .buttonStyle(MinimalSecondaryButtonStyle())
+                .buttonStyle(PlainButtonStyle())
                 
                 Button(action: { showingAcceptDialog = true }) {
                     Text("ACCEPT")
                         .font(AppFonts.captionMedium)
                         .compatibleKerning(AppFonts.wideKerning)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 14)
+                        .background(AppColors.success)
+                        .cornerRadius(4)
                 }
-                .buttonStyle(MinimalPrimaryButtonStyle())
+                .buttonStyle(PlainButtonStyle())
             }
         }
         .cleanCard()
@@ -592,24 +577,7 @@ enum TransferAction {
     case reject
 }
 
-// MARK: - Extension for compatibility
-extension View {
-    func compatibleKerning(_ value: CGFloat) -> some View {
-        if #available(iOS 16.0, *) {
-            return self.tracking(value)
-        } else {
-            return self
-        }
-    }
-    
-    func minimalRefreshable(action: @escaping () async -> Void) -> some View {
-        if #available(iOS 15.0, *) {
-            return self.refreshable(action: action)
-        } else {
-            return self
-        }
-    }
-}
+
 
 // MARK: - Previews
 struct TransfersView_Previews: PreviewProvider {

@@ -60,6 +60,8 @@ public struct Transfer: Codable, Identifiable, Hashable {
     public let fromUserId: Int
     public let toUserId: Int
     public let status: String // Changed to String to handle lowercase status from API
+    public let transferType: String? // Added for request vs direct transfer
+    public let initiatorId: Int? // Added to track who initiated the transfer
     public let requestDate: Date // Changed from requestTimestamp
     public let resolvedDate: Date? // Changed from approvalTimestamp
     public let notes: String? // Added notes property
@@ -68,8 +70,8 @@ public struct Transfer: Codable, Identifiable, Hashable {
     
     enum CodingKeys: String, CodingKey {
         case id, propertyId, propertySerialNumber, propertyName
-        case fromUserId, toUserId, status, requestDate, resolvedDate
-        case notes, createdAt, updatedAt
+        case fromUserId, toUserId, status, transferType, initiatorId
+        case requestDate, resolvedDate, notes, createdAt, updatedAt
     }
     
     // Computed property for status enum

@@ -11,18 +11,16 @@ struct TransferDetailView: View {
     @State private var isProcessing = false
     
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             AppColors.appBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Spacer for header
-                Color.clear.frame(height: 36)
+                // Custom navigation header
+                navigationHeader
                 
-                ScrollView {
-                    VStack(spacing: 40) {
-                        // Top padding
-                        Color.clear.frame(height: 24)
-                        
+                // Main content
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 24) {
                         // Status header
                         statusHeader
                         
@@ -43,27 +41,13 @@ struct TransferDetailView: View {
                         }
                         
                         // Bottom padding
-                        Color.clear.frame(height: 80)
+                        Color.clear.frame(height: 40)
                     }
                     .padding(.horizontal, 24)
+                    .padding(.top, 20)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            
-            // Header
-            UniversalHeaderView(
-                title: "Transfer Details",
-                showBackButton: true,
-                backButtonAction: { dismiss() },
-                trailingButton: {
-                    AnyView(
-                        Button(action: {}) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(AppColors.accent)
-                        }
-                    )
-                }
-            )
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -89,17 +73,61 @@ struct TransferDetailView: View {
         }
     }
     
+    // MARK: - Navigation Header
+    private var navigationHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 20) {
+                // Back button
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .regular))
+                        Text("Back")
+                            .font(AppFonts.body)
+                    }
+                    .foregroundColor(AppColors.secondaryText)
+                }
+                .frame(minWidth: 60, alignment: .leading)
+                
+                Spacer()
+                
+                // Title
+                Text("Transfer Details")
+                    .font(AppFonts.serifHeadline)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Spacer()
+                
+                // Share button
+                Button(action: {}) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundColor(AppColors.primaryText)
+                }
+                .frame(minWidth: 60, alignment: .trailing)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
+            .background(AppColors.appBackground)
+            
+            // Subtle divider
+            Rectangle()
+                .fill(AppColors.divider)
+                .frame(height: 1)
+        }
+    }
+    
     // MARK: - Status Header
     private var statusHeader: some View {
         let statusColor = statusColor(for: transfer.status)
         
-        return VStack(spacing: 20) {
+        return VStack(spacing: 16) {
             Circle()
                 .fill(statusColor.opacity(0.1))
-                .frame(width: 80, height: 80)
+                .frame(width: 64, height: 64)
                 .overlay(
                     Image(systemName: statusIcon(for: transfer.status))
-                        .font(.system(size: 32, weight: .light))
+                        .font(.system(size: 28, weight: .light))
                         .foregroundColor(statusColor)
                 )
             
@@ -109,56 +137,64 @@ struct TransferDetailView: View {
                 .compatibleKerning(AppFonts.ultraWideKerning)
         }
         .frame(maxWidth: .infinity)
-        .cleanCard()
+        .cleanCard(padding: 20)
     }
     
     // MARK: - Property Section
     private var propertySection: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             ElegantSectionHeader(
                 title: "Property Details",
                 style: .serif
             )
             
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 CleanDetailRow(label: "ITEM NAME", value: transfer.propertyName ?? "Unknown Item")
                 CleanDetailRow(label: "SERIAL NUMBER", value: transfer.propertySerialNumber ?? "Unknown", isMonospaced: true)
                 CleanDetailRow(label: "PROPERTY ID", value: "#\(transfer.propertyId)", isMonospaced: true)
             }
-            .cleanCard()
+            .cleanCard(padding: 20)
         }
     }
     
     // MARK: - Transfer Section
     private var transferSection: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             ElegantSectionHeader(
                 title: "Transfer Information",
                 style: .serif
             )
             
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 if let fromUser = transfer.fromUser {
                     CleanUserRow(label: "FROM", user: fromUser)
                 }
+                
+                Divider()
+                    .background(AppColors.divider)
                 
                 if let toUser = transfer.toUser {
                     CleanUserRow(label: "TO", user: toUser)
                 }
                 
+                Divider()
+                    .background(AppColors.divider)
+                
                 CleanDetailRow(label: "REQUESTED", value: formatDate(transfer.requestDate))
                 
                 if let approvalDate = transfer.resolvedDate {
+                    Divider()
+                        .background(AppColors.divider)
                     CleanDetailRow(label: "COMPLETED", value: formatDate(approvalDate))
                 }
             }
-            .cleanCard()
+            .cleanCard(padding: 20)
         }
     }
     
     // MARK: - Notes Section
     private func notesSection(_ notes: String) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             ElegantSectionHeader(
                 title: "Notes",
                 style: .serif
@@ -168,19 +204,19 @@ struct TransferDetailView: View {
                 .font(AppFonts.body)
                 .foregroundColor(AppColors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .cleanCard()
+                .cleanCard(padding: 20)
         }
     }
     
     // MARK: - Action Section
     private var actionSection: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Text("PENDING YOUR APPROVAL")
                 .font(AppFonts.captionMedium)
                 .foregroundColor(AppColors.warning)
                 .compatibleKerning(AppFonts.ultraWideKerning)
             
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Button(action: {
                     pendingAction = .reject
                     showingActionConfirmation = true
@@ -215,6 +251,7 @@ struct TransferDetailView: View {
                 .disabled(isProcessing)
             }
         }
+        .padding(.top, 16)
     }
     
     // MARK: - Helper Methods
@@ -274,7 +311,7 @@ struct CleanDetailRow: View {
                 .font(AppFonts.caption)
                 .foregroundColor(AppColors.tertiaryText)
                 .compatibleKerning(AppFonts.wideKerning)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 100, alignment: .leading)
             
             Text(value)
                 .font(isMonospaced ? AppFonts.monoBody : AppFonts.body)
@@ -294,7 +331,7 @@ struct CleanUserRow: View {
                 .font(AppFonts.caption)
                 .foregroundColor(AppColors.tertiaryText)
                 .compatibleKerning(AppFonts.wideKerning)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 100, alignment: .leading)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(user.rank ?? "") \(user.lastName ?? "")")
@@ -311,5 +348,7 @@ struct CleanUserRow: View {
         }
     }
 }
+
+
 
  
