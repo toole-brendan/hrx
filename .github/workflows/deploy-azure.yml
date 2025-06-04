@@ -38,7 +38,6 @@ env:
   # Container Apps
   BACKEND_APP_NAME: handreceipt-backend
   WORKER_APP_NAME: handreceipt-worker
-  IMMUDB_APP_NAME: immudb
   CONTAINER_ENVIRONMENT_NAME: handreceipt-${{ github.event.inputs.environment }}-cae
 
 permissions:
@@ -54,7 +53,6 @@ jobs:
       resource_group_exists: ${{ steps.check_rg.outputs.exists }}
       infrastructure_exists: ${{ steps.check_infrastructure.outputs.exists }}
       postgres_fqdn: ${{ steps.get_postgres.outputs.fqdn }}
-      immudb_internal_url: ${{ steps.get_immudb.outputs.internal_url }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -121,18 +119,6 @@ jobs:
             --output tsv 2>/dev/null || echo "")
           echo "fqdn=$POSTGRES_FQDN" >> $GITHUB_OUTPUT
           echo "PostgreSQL FQDN: $POSTGRES_FQDN"
-
-      - name: Get ImmuDB Internal URL
-        id: get_immudb
-        if: steps.check_infrastructure.outputs.exists == 'true'
-        run: |
-          IMMUDB_URL=$(az containerapp show \
-            --name ${{ env.IMMUDB_APP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query "properties.configuration.ingress.fqdn" \
-            --output tsv 2>/dev/null || echo "")
-          echo "internal_url=$IMMUDB_URL" >> $GITHUB_OUTPUT
-          echo "ImmuDB Internal URL: $IMMUDB_URL"
 
   deploy-infrastructure:
     name: Deploy Azure Infrastructure
@@ -296,72 +282,10 @@ jobs:
         run: |
           az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
 
-      - name: Deploy ImmuDB
-        run: |
-          # Check if ImmuDB already exists
-          if az containerapp show --name ${{ env.IMMUDB_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
-            echo "🔄 Updating existing ImmuDB..."
-            
-            # Update ImmuDB with correct configuration
-            az containerapp update \
-              --name ${{ env.IMMUDB_APP_NAME }} \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --set-env-vars \
-                IMMUDB_ADMIN_PASSWORD="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                IMMUDB_DATABASE=defaultdb \
-                IMMUDB_PORT=3322 \
-                IMMUDB_ADDRESS=0.0.0.0 \
-                IMMUDB_DIR=/var/lib/immudb \
-                IMMUDB_PIDFILE=/var/lib/immudb/immudb.pid \
-                IMMUDB_LOGFILE=/var/lib/immudb/immudb.log \
-                IMMUDB_AUTH=true \
-                IMMUDB_DEVMODE=false
-          else
-            echo "🚀 Deploying ImmuDB..."
-            az containerapp create \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --environment ${{ env.CONTAINER_ENVIRONMENT_NAME }} \
-              --name ${{ env.IMMUDB_APP_NAME }} \
-              --image codenotary/immudb:1.4.1 \
-              --target-port 3322 \
-              --ingress internal \
-              --min-replicas 1 \
-              --max-replicas 1 \
-              --cpu 0.5 \
-              --memory 1Gi \
-              --env-vars \
-                IMMUDB_ADMIN_PASSWORD="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                IMMUDB_DATABASE=defaultdb \
-                IMMUDB_PORT=3322 \
-                IMMUDB_ADDRESS=0.0.0.0 \
-                IMMUDB_DIR=/var/lib/immudb \
-                IMMUDB_PIDFILE=/var/lib/immudb/immudb.pid \
-                IMMUDB_LOGFILE=/var/lib/immudb/immudb.log \
-                IMMUDB_AUTH=true \
-                IMMUDB_DEVMODE=false
-          fi
-
-      - name: Wait for ImmuDB
-        run: |
-          echo "⏳ Waiting for ImmuDB to be ready..."
-          sleep 30
-
-      - name: Get ImmuDB Internal URL
-        id: get_immudb_url
-        run: |
-          IMMUDB_URL=$(az containerapp show \
-            --name ${{ env.IMMUDB_APP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query "properties.configuration.ingress.fqdn" \
-            --output tsv)
-          echo "immudb_url=$IMMUDB_URL" >> $GITHUB_OUTPUT
-          echo "ImmuDB URL: $IMMUDB_URL"
-
       - name: Deploy Backend API
         run: |
           REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
           POSTGRES_FQDN="${{ needs.setup.outputs.postgres_fqdn }}"
-          IMMUDB_URL="${{ steps.get_immudb_url.outputs.immudb_url }}"
           
           # Get storage account key for connection string
           STORAGE_ACCOUNT_KEY=$(az storage account keys list \
@@ -391,11 +315,6 @@ jobs:
             az containerapp secret set \
               --name ${{ env.BACKEND_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --secrets immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}"
-            
-            az containerapp secret set \
-              --name ${{ env.BACKEND_APP_NAME }} \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --secrets storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=$STORAGE_ACCOUNT_KEY;EndpointSuffix=core.windows.net"
             
             az containerapp secret set \
@@ -419,12 +338,7 @@ jobs:
                 HANDRECEIPT_DATABASE_PORT=5432 \
                 HANDRECEIPT_DATABASE_SSL_MODE=require \
                 HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
-                HANDRECEIPT_IMMUDB_ENABLED=true \
-                HANDRECEIPT_IMMUDB_HOST="immudb" \
-                HANDRECEIPT_IMMUDB_PORT=3322 \
-                HANDRECEIPT_IMMUDB_USERNAME=immudb \
-                HANDRECEIPT_IMMUDB_PASSWORD=secretref:immudb-password \
-                HANDRECEIPT_IMMUDB_DATABASE=defaultdb \
+                HANDRECEIPT_LEDGER_ENABLED=true \
                 HANDRECEIPT_SERVER_PORT=8080 \
                 HANDRECEIPT_SERVER_ENVIRONMENT=production \
                 HANDRECEIPT_STORAGE_TYPE=azure_blob \
@@ -452,7 +366,6 @@ jobs:
               --registry-server $REGISTRY_URL \
               --secrets \
                 postgres-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-                immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
                 storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=$STORAGE_ACCOUNT_KEY;EndpointSuffix=core.windows.net" \
                 jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=" \
                 azure-ocr-key="8xV5rQq1XSkAoQmvDMJoGkM5OxsPz6Z4q88wE8j3VN7xhPzPaMUQJQQJ99BFACHYHv6XJ3w3AAAFACOG9Li2" \
@@ -463,12 +376,7 @@ jobs:
                 HANDRECEIPT_DATABASE_PORT=5432 \
                 HANDRECEIPT_DATABASE_SSL_MODE=require \
                 HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
-                HANDRECEIPT_IMMUDB_ENABLED=true \
-                HANDRECEIPT_IMMUDB_HOST="immudb" \
-                HANDRECEIPT_IMMUDB_PORT=3322 \
-                HANDRECEIPT_IMMUDB_USERNAME=immudb \
-                HANDRECEIPT_IMMUDB_PASSWORD=secretref:immudb-password \
-                HANDRECEIPT_IMMUDB_DATABASE=defaultdb \
+                HANDRECEIPT_LEDGER_ENABLED=true \
                 HANDRECEIPT_SERVER_PORT=8080 \
                 HANDRECEIPT_SERVER_ENVIRONMENT=production \
                 HANDRECEIPT_STORAGE_TYPE=azure_blob \
@@ -486,7 +394,6 @@ jobs:
         run: |
           REGISTRY_URL="${{ needs.setup.outputs.registry_url }}"
           POSTGRES_FQDN="${{ needs.setup.outputs.postgres_fqdn }}"
-          IMMUDB_URL="${{ steps.get_immudb_url.outputs.immudb_url }}"
           
           # Deploy or update Worker
           if az containerapp show --name ${{ env.WORKER_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} >/dev/null 2>&1; then
@@ -513,7 +420,7 @@ jobs:
                 HANDRECEIPT_DATABASE_PORT=5432 \
                 HANDRECEIPT_DATABASE_SSL_MODE=require \
                 HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
-                HANDRECEIPT_IMMUDB_ENABLED=false \
+                HANDRECEIPT_LEDGER_ENABLED=false \
                 HANDRECEIPT_SERVER_ENVIRONMENT=development \
                 HANDRECEIPT_STORAGE_TYPE=azure_blob \
                 HANDRECEIPT_STORAGE_ACCOUNT_NAME=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
@@ -543,7 +450,7 @@ jobs:
                 HANDRECEIPT_DATABASE_PORT=5432 \
                 HANDRECEIPT_DATABASE_SSL_MODE=require \
                 HANDRECEIPT_DATABASE_PASSWORD=secretref:postgres-password \
-                HANDRECEIPT_IMMUDB_ENABLED=false \
+                HANDRECEIPT_LEDGER_ENABLED=false \
                 HANDRECEIPT_SERVER_ENVIRONMENT=development \
                 HANDRECEIPT_STORAGE_TYPE=azure_blob \
                 HANDRECEIPT_STORAGE_ACCOUNT_NAME=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
@@ -664,14 +571,16 @@ jobs:
           echo "Backend URL: ${{ steps.get_url.outputs.backend_url }}"
           echo ""
           echo "📊 Deployment Summary:"
-          echo "✅ ImmuDB: Internal service running"
           echo "✅ Backend API: ${{ steps.get_url.outputs.backend_url }}"
           echo "✅ Worker: Background processing active"
+          echo "✅ PostgreSQL Ledger: Immutable audit trail enabled"
           echo ""
           echo "🔗 Next Steps:"
           echo "1. Test the API endpoints"
           echo "2. Configure custom domain if needed"
           echo "3. Monitor logs and metrics"
+          echo ""
+          echo "📝 Note: Using PostgreSQL-based ledger service for immutable audit trail"
 
       - name: Deployment Failure
         if: ${{ needs.health-check.result == 'failure' }}
