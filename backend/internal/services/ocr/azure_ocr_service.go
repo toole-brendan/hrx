@@ -368,9 +368,10 @@ func (s *AzureOCRService) extractFormNumber(lines []string) string {
 	return fmt.Sprintf("DA2062-OCR-%d", time.Now().Unix())
 }
 
-// parseLineItems parses individual property line items
+// parseLineItems parses individual property line items with improved multi-line grouping
 func (s *AzureOCRService) parseLineItems(lines []string) ([]DA2062ParsedItem, error) {
 	var items []DA2062ParsedItem
+	var currentItem *DA2062ParsedItem
 	lineNumber := 1
 
 	for _, line := range lines {
@@ -379,14 +380,72 @@ func (s *AzureOCRService) parseLineItems(lines []string) ([]DA2062ParsedItem, er
 			continue
 		}
 
-		// Simple parsing - each non-header line becomes an item
-		if item := s.parseSimpleItem(line, lineNumber); item != nil {
-			items = append(items, *item)
-			lineNumber++
+		// Check if this line starts a new item
+		if s.isNewItemLine(line) {
+			// Save previous item if exists
+			if currentItem != nil {
+				items = append(items, *currentItem)
+				lineNumber++
+			}
+
+			// Start new item
+			currentItem = s.parseSimpleItem(line, lineNumber)
+		} else if currentItem != nil {
+			// This is a continuation line - check for serial number or additional info
+			if currentItem.SerialNumber == "" {
+				// Try to extract serial number from continuation line
+				serialPatterns := []string{
+					`(?i)s[\./\s]*n[\./\s]*:?\s*([A-Z0-9]{6,20})`,
+					`(?i)serial[\s:]*([A-Z0-9]{6,20})`,
+					`^([A-Z0-9]{6,20})$`, // Line with just alphanumeric could be serial
+				}
+
+				for _, pattern := range serialPatterns {
+					re := regexp.MustCompile(pattern)
+					if matches := re.FindStringSubmatch(line); len(matches) > 1 {
+						currentItem.SerialNumber = strings.ToUpper(matches[1])
+						currentItem.HasExplicitSerial = true
+						break
+					}
+				}
+			}
+
+			// If not a serial number, append to description
+			if currentItem.SerialNumber == "" || !strings.Contains(strings.ToUpper(line), currentItem.SerialNumber) {
+				currentItem.ItemDescription = strings.TrimSpace(currentItem.ItemDescription + " " + line)
+			}
 		}
 	}
 
+	// Don't forget the last item
+	if currentItem != nil {
+		items = append(items, *currentItem)
+	}
+
 	return items, nil
+}
+
+// isNewItemLine checks if a line starts a new item (has NSN or starts with a number)
+func (s *AzureOCRService) isNewItemLine(line string) bool {
+	// Check for NSN pattern
+	nsnPattern := regexp.MustCompile(`\b(\d{4}[\-\s]?\d{2}[\-\s]?\d{3}[\-\s]?\d{4})\b`)
+	if nsnPattern.MatchString(line) {
+		return true
+	}
+
+	// Check if line starts with a line number (1., 2., etc.)
+	lineNumberPattern := regexp.MustCompile(`^\d+[\.\)]`)
+	if lineNumberPattern.MatchString(line) {
+		return true
+	}
+
+	// Check if line has typical item structure (quantity at beginning)
+	quantityPattern := regexp.MustCompile(`^\d{1,3}\s+[A-Z]`)
+	if quantityPattern.MatchString(strings.ToUpper(line)) {
+		return true
+	}
+
+	return false
 }
 
 // isHeaderLine checks if a line is a form header
@@ -446,6 +505,14 @@ func (s *AzureOCRService) parseSimpleItem(line string, lineNumber int) *DA2062Pa
 		if qty, err := strconv.Atoi(matches[1]); err == nil && qty > 0 && qty <= 999 {
 			item.Quantity = qty
 		}
+	}
+
+	// Extract condition code (A, B, C, etc.)
+	conditionPattern := regexp.MustCompile(`\b([A-F])\b`)
+	conditionMatches := conditionPattern.FindAllStringSubmatch(line, -1)
+	if len(conditionMatches) > 0 {
+		// Take the last single letter match as condition (often appears after quantity)
+		item.Condition = conditionMatches[len(conditionMatches)-1][1]
 	}
 
 	// The rest becomes description

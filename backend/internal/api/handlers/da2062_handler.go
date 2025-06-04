@@ -382,7 +382,9 @@ func (h *DA2062Handler) UploadDA2062(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "OCR processing failed: " + err.Error()})
 			return
 		}
-		h.respondWithParsedForm(c, parsedForm, userID)
+		// Pass the blob storage path as document URL
+		documentURL := fmt.Sprintf("/storage/%s", objectName)
+		h.respondWithParsedForm(c, parsedForm, userID, documentURL)
 		return
 	}
 
@@ -394,7 +396,9 @@ func (h *DA2062Handler) UploadDA2062(c *gin.Context) {
 		return
 	}
 
-	h.respondWithParsedForm(c, parsedForm, userID)
+	// Pass the blob storage path as document URL
+	documentURL := fmt.Sprintf("/storage/%s", objectName)
+	h.respondWithParsedForm(c, parsedForm, userID, documentURL)
 }
 
 // isValidImageType checks if the content type is supported
@@ -417,7 +421,7 @@ func isValidImageType(contentType string) bool {
 }
 
 // respondWithParsedForm converts OCR results to API response format
-func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA2062ParsedForm, userID uint) {
+func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA2062ParsedForm, userID uint, sourceDocumentURL string) {
 	// Convert OCR parsed items to API format
 	var items []models.DA2062ImportItem
 
@@ -438,6 +442,7 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 			OriginalQuantity:     ocrItem.Quantity,
 			RequiresVerification: len(ocrItem.VerificationReasons) > 0 || ocrItem.Confidence < 0.7,
 			VerificationReasons:  ocrItem.VerificationReasons,
+			SourceDocumentURL:    sourceDocumentURL,
 		}
 
 		item := models.DA2062ImportItem{
@@ -635,16 +640,29 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 	}
 
 	fromUserInfo := pdf.UserInfo{
-		Name:  fromUser.Name,
-		Rank:  fromUser.Rank,
-		Title: title,
-		Phone: fromUser.Phone,
+		Name:         fromUser.Name,
+		Rank:         fromUser.Rank,
+		Title:        title,
+		Phone:        fromUser.Phone,
+		SignatureURL: "",
+	}
+
+	// Include signature URL if available
+	if fromUser.SignatureURL != nil && *fromUser.SignatureURL != "" {
+		fromUserInfo.SignatureURL = *fromUser.SignatureURL
 	}
 
 	// Set to user info (same as from for self hand receipt)
 	toUserInfo := fromUserInfo
 	if req.ToUser.Name != "" {
 		toUserInfo = req.ToUser
+		// If a specific to-user is provided, try to fetch their signature
+		if req.ToUserID != 0 {
+			toUserData, err := h.Repo.GetUserByID(req.ToUserID)
+			if err == nil && toUserData.SignatureURL != nil && *toUserData.SignatureURL != "" {
+				toUserInfo.SignatureURL = *toUserData.SignatureURL
+			}
+		}
 	}
 
 	// Convert unit info
@@ -740,6 +758,7 @@ type GeneratePDFRequest struct {
 	FromUser        pdf.UserInfo `json:"from_user" binding:"required"`
 	ToUser          pdf.UserInfo `json:"to_user"`
 	UnitInfo        pdf.UnitInfo `json:"unit_info" binding:"required"`
+	ToUserID        uint         `json:"to_user_id"`
 }
 
 // Helper functions

@@ -22,10 +22,11 @@ type UnitInfo struct {
 }
 
 type UserInfo struct {
-	Name  string `json:"name"`
-	Rank  string `json:"rank"`
-	Title string `json:"title"`
-	Phone string `json:"phone"`
+	Name         string `json:"name"`
+	Rank         string `json:"rank"`
+	Title        string `json:"title"`
+	Phone        string `json:"phone"`
+	SignatureURL string `json:"signature_url"`
 }
 
 type GenerateOptions struct {
@@ -260,7 +261,24 @@ func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser
 	pdf.CellFormat(10, 5, "", "0", 0, "L", false, 0, "")
 	pdf.CellFormat(90, 5, "TO (Signature and Date):", "T", 1, "L", false, 0, "")
 
-	pdf.Ln(10)
+	// Add signature images if available
+	signatureY := pdf.GetY() + 2
+	signatureHeight := 15.0
+
+	// From user signature
+	if fromUser.SignatureURL != "" {
+		// Try to add signature image
+		// Note: This assumes the signature is accessible as a file or needs to be downloaded
+		// You may need to implement signature fetching logic
+		pdf.Image(fromUser.SignatureURL, 10, signatureY, 60, signatureHeight, false, "", 0, "")
+	}
+
+	// To user signature
+	if toUser.SignatureURL != "" {
+		pdf.Image(toUser.SignatureURL, 110, signatureY, 60, signatureHeight, false, "", 0, "")
+	}
+
+	pdf.SetY(signatureY + signatureHeight + 2)
 
 	// Typed names
 	pdf.CellFormat(90, 5, fmt.Sprintf("%s %s", fromUser.Rank, fromUser.Name), "0", 0, "L", false, 0, "")
