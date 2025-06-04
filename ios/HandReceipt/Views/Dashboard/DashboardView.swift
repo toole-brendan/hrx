@@ -89,7 +89,7 @@ struct DashboardView: View {
         .navigationBarHidden(true)
         .background(navigationLinks)
         .fullScreenCover(isPresented: $showingSearch) {
-            MinimalSearchView(isPresented: $showingSearch)
+            MinimalSearchView(isPresented: $showingSearch, apiService: apiService)
         }
         .sheet(isPresented: $showingDA2062Scan) {
             DA2062ScanView()

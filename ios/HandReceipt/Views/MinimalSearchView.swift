@@ -11,32 +11,49 @@ import Combine
 // MARK: - Search View
 struct MinimalSearchView: View {
     @Binding var isPresented: Bool
-    @StateObject private var viewModel = SearchViewModel()
+    @StateObject private var viewModel: SearchViewModel
     @FocusState private var isSearchFieldFocused: Bool
+    
+    init(isPresented: Binding<Bool>, apiService: APIServiceProtocol = APIService()) {
+        self._isPresented = isPresented
+        self._viewModel = StateObject(wrappedValue: SearchViewModel(apiService: apiService))
+    }
     
     var body: some View {
         VStack(spacing: 0) {
             // Search header
             searchHeader
             
-            // Content
-            if viewModel.searchText.isEmpty && viewModel.recentSearches.isEmpty {
-                // Empty state
-                emptySearchState
-            } else if viewModel.searchText.isEmpty {
-                // Recent searches
-                recentSearchesView
-            } else if viewModel.isSearching {
-                // Loading state
-                searchLoadingState
-            } else {
-                // Search results
-                searchResultsView
+            // Content with proper layout
+            ZStack {
+                Color.clear // Invisible background to maintain consistent layout
+                
+                if viewModel.searchText.isEmpty && viewModel.recentSearches.isEmpty {
+                    // Empty state
+                    emptySearchState
+                } else if viewModel.searchText.isEmpty {
+                    // Recent searches
+                    VStack {
+                        recentSearchesView
+                        Spacer()
+                    }
+                } else if viewModel.isSearching {
+                    // Loading state
+                    searchLoadingState
+                } else {
+                    // Search results
+                    searchResultsView
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(AppColors.appBackground)
+        .ignoresSafeArea(.keyboard) // Better keyboard handling
         .onAppear {
-            isSearchFieldFocused = true
+            // Slight delay to ensure view is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isSearchFieldFocused = true
+            }
         }
     }
     
@@ -44,25 +61,30 @@ struct MinimalSearchView: View {
     private var searchHeader: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
-                // Search field
+                // Search field container
                 HStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .light))
                         .foregroundColor(AppColors.tertiaryText)
                     
-                    TextField("Search properties, people, or transfers", text: $viewModel.searchText)
+                    TextField("Search...", text: $viewModel.searchText)
                         .font(AppFonts.body)
                         .foregroundColor(AppColors.primaryText)
                         .focused($isSearchFieldFocused)
                         .submitLabel(.search)
+                        .autocorrectionDisabled(true)
+                        .textInputAutocapitalization(.never)
                         .onSubmit {
                             viewModel.performSearch()
                         }
                     
                     if !viewModel.searchText.isEmpty {
-                        Button(action: { viewModel.searchText = "" }) {
+                        Button(action: { 
+                            viewModel.searchText = ""
+                            viewModel.results = []
+                        }) {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16, weight: .light))
+                                .font(.system(size: 16, weight: .regular))
                                 .foregroundColor(AppColors.tertiaryText)
                         }
                         .transition(.scale.combined(with: .opacity))
@@ -78,22 +100,27 @@ struct MinimalSearchView: View {
                     isPresented = false
                 }
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
+                .foregroundColor(AppColors.primaryText)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .animation(.easeInOut(duration: 0.2), value: viewModel.searchText.isEmpty)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
             
-            // Filter pills
-            if !viewModel.searchText.isEmpty {
+            // Filter pills - only show when searching
+            if !viewModel.searchText.isEmpty && !viewModel.results.isEmpty {
                 filterPillsView
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .opacity
+                    ))
             }
             
             Divider()
                 .background(AppColors.divider)
         }
-        .animation(.easeInOut(duration: 0.3), value: !viewModel.searchText.isEmpty)
+        .background(AppColors.appBackground)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.searchText.isEmpty)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.results.isEmpty)
     }
     
     // MARK: - Filter Pills
@@ -116,95 +143,114 @@ struct MinimalSearchView: View {
     
     // MARK: - Empty Search State
     private var emptySearchState: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // Geometric pattern
-            GeometricSearchPattern()
-                .frame(width: 120, height: 120)
-                .opacity(0.1)
-            
-            VStack(spacing: 16) {
-                Text("SEARCH HANDRECEIPT")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.primaryText)
-                    .kerning(AppFonts.wideKerning)
+        ScrollView {
+            VStack(spacing: 40) {
+                // Spacer for top padding
+                Color.clear.frame(height: 40)
                 
-                Text("Find properties, people, transfers, and more")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Quick search suggestions
-            VStack(alignment: .leading, spacing: 16) {
-                Text("TRY SEARCHING FOR")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.tertiaryText)
-                    .kerning(AppFonts.ultraWideKerning)
+                // Geometric pattern - smaller and more subtle
+                GeometricSearchPattern()
+                    .frame(width: 80, height: 80)
+                    .opacity(0.05)
                 
-                VStack(spacing: 12) {
-                    QuickSearchItem(icon: "shippingbox", text: "M4 Carbine", action: {
-                        viewModel.searchText = "M4 Carbine"
-                    })
+                VStack(spacing: 16) {
+                    Text("SEARCH")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .kerning(AppFonts.ultraWideKerning)
                     
-                    QuickSearchItem(icon: "person", text: "Recent transfers", action: {
-                        viewModel.searchText = "transfers"
-                    })
-                    
-                    QuickSearchItem(icon: "wrench", text: "Maintenance due", action: {
-                        viewModel.searchText = "maintenance"
-                    })
+                    Text("Find properties, people, or transfers")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
                 }
+                
+                // Quick search suggestions
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("QUICK SEARCHES")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .kerning(AppFonts.ultraWideKerning)
+                    
+                    VStack(spacing: 12) {
+                        QuickSearchItem(icon: "shippingbox", text: "Active Properties", action: {
+                            viewModel.searchText = "active"
+                            viewModel.performSearch()
+                        })
+                        
+                        QuickSearchItem(icon: "arrow.left.arrow.right", text: "Recent Transfers", action: {
+                            viewModel.searchText = "transfers"
+                            viewModel.performSearch()
+                        })
+                        
+                        QuickSearchItem(icon: "wrench", text: "Maintenance Due", action: {
+                            viewModel.searchText = "maintenance"
+                            viewModel.performSearch()
+                        })
+                        
+                        QuickSearchItem(icon: "person.2", text: "My Team", action: {
+                            viewModel.searchText = "team"
+                            viewModel.performSearch()
+                        })
+                    }
+                }
+                .padding(.horizontal, 24)
+                
+                // Bottom spacing
+                Color.clear.frame(height: 60)
             }
-            .padding(.horizontal, 24)
-            
-            Spacer()
         }
-        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Recent Searches
     private var recentSearchesView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Text("RECENT")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.tertiaryText)
-                    .kerning(AppFonts.ultraWideKerning)
-                
-                Spacer()
-                
-                if !viewModel.recentSearches.isEmpty {
-                    Button("Clear") {
-                        viewModel.clearRecentSearches()
-                    }
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.accent)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 20)
-            
-            // Recent items
-            VStack(spacing: 0) {
-                ForEach(viewModel.recentSearches) { recent in
-                    RecentSearchRow(
-                        search: recent,
-                        onTap: {
-                            viewModel.searchText = recent.query
-                            viewModel.performSearch()
-                        },
-                        onRemove: {
-                            viewModel.removeRecentSearch(recent)
-                        }
-                    )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                HStack {
+                    Text("RECENT")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .kerning(AppFonts.ultraWideKerning)
                     
-                    if recent.id != viewModel.recentSearches.last?.id {
-                        Divider()
-                            .background(AppColors.divider)
-                            .padding(.leading, 56)
+                    Spacer()
+                    
+                    if !viewModel.recentSearches.isEmpty {
+                        Button("Clear") {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.clearRecentSearches()
+                            }
+                        }
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.accent)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+                
+                // Recent items
+                VStack(spacing: 0) {
+                    ForEach(viewModel.recentSearches) { recent in
+                        RecentSearchRow(
+                            search: recent,
+                            onTap: {
+                                viewModel.searchText = recent.query
+                                viewModel.performSearch()
+                            },
+                            onRemove: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    viewModel.removeRecentSearch(recent)
+                                }
+                            }
+                        )
+                        
+                        if recent.id != viewModel.recentSearches.last?.id {
+                            Divider()
+                                .background(AppColors.divider)
+                                .padding(.leading, 60)
+                        }
                     }
                 }
             }
@@ -214,14 +260,15 @@ struct MinimalSearchView: View {
     // MARK: - Loading State
     private var searchLoadingState: some View {
         VStack {
-            Spacer()
+            // Small top padding
+            Color.clear.frame(height: 60)
             
             VStack(spacing: 20) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
-                    .scaleEffect(0.8)
+                // Custom geometric loader instead of standard ProgressView
+                SearchGeometricLoader()
+                    .frame(width: 40, height: 40)
                 
-                Text("SEARCHING")
+                Text("SEARCHING...")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
                     .kerning(AppFonts.wideKerning)
@@ -689,6 +736,12 @@ struct RecentSearch: Identifiable {
     let date: Date
 }
 
+struct RecentSearchData: Codable {
+    let query: String
+    let subtitle: String?
+    let date: Date
+}
+
 struct SearchResultGroup: Identifiable {
     let id = UUID()
     let category: SearchFilter
@@ -704,20 +757,31 @@ class SearchViewModel: ObservableObject {
     @Published var recentSearches: [RecentSearch] = []
     
     private var cancellables = Set<AnyCancellable>()
+    private let apiService: APIServiceProtocol
     
-    init() {
-        // Debounce search
+    init(apiService: APIServiceProtocol = APIService()) {
+        self.apiService = apiService
+        setupSearchDebounce()
+        loadRecentSearches()
+    }
+    
+    private func setupSearchDebounce() {
         $searchText
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .removeDuplicates()
             .sink { [weak self] text in
-                if !text.isEmpty {
-                    self?.performSearch()
+                guard let self = self else { return }
+                
+                if text.isEmpty {
+                    // Clear results immediately when text is cleared
+                    self.results = []
+                    self.isSearching = false
+                } else if text.count >= 2 {
+                    // Only search if we have at least 2 characters
+                    self.performSearch()
                 }
             }
             .store(in: &cancellables)
-        
-        loadRecentSearches()
     }
     
     var totalResults: Int {
@@ -746,12 +810,27 @@ class SearchViewModel: ObservableObject {
     }
     
     func performSearch() {
+        guard !searchText.isEmpty else { return }
+        
         isSearching = true
         
-        // Simulate search
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            self?.generateMockResults()
-            self?.isSearching = false
+        Task {
+            do {
+                let searchResults = try await performUnifiedSearch(query: searchText)
+                
+                await MainActor.run {
+                    self.results = searchResults
+                    self.isSearching = false
+                    // Add to recent searches after successful search
+                    self.addSearchToRecentSearches()
+                }
+            } catch {
+                await MainActor.run {
+                    debugPrint("Search error: \(error)")
+                    self.results = []
+                    self.isSearching = false
+                }
+            }
         }
     }
     
@@ -759,6 +838,26 @@ class SearchViewModel: ObservableObject {
         let recent = RecentSearch(
             query: result.title,
             subtitle: result.subtitle,
+            date: Date()
+        )
+        
+        recentSearches.insert(recent, at: 0)
+        if recentSearches.count > 10 {
+            recentSearches.removeLast()
+        }
+        
+        saveRecentSearches()
+    }
+    
+    func addSearchToRecentSearches() {
+        guard !searchText.isEmpty else { return }
+        
+        // Remove any existing search with the same query
+        recentSearches.removeAll { $0.query.lowercased() == searchText.lowercased() }
+        
+        let recent = RecentSearch(
+            query: searchText,
+            subtitle: "\(totalResults) result\(totalResults == 1 ? "" : "s")",
             date: Date()
         )
         
@@ -792,50 +891,200 @@ class SearchViewModel: ObservableObject {
     }
     
     private func loadRecentSearches() {
-        // Load from UserDefaults or Core Data
-        recentSearches = [
-            RecentSearch(query: "M4 Carbine", subtitle: "3 results", date: Date().addingTimeInterval(-3600)),
-            RecentSearch(query: "maintenance", subtitle: "12 results", date: Date().addingTimeInterval(-7200))
-        ]
+        if let data = UserDefaults.standard.data(forKey: "RecentSearches"),
+           let decoded = try? JSONDecoder().decode([RecentSearchData].self, from: data) {
+            recentSearches = decoded.map { data in
+                RecentSearch(
+                    query: data.query,
+                    subtitle: data.subtitle,
+                    date: data.date
+                )
+            }
+        }
     }
     
     private func saveRecentSearches() {
-        // Save to UserDefaults or Core Data
+        let recentSearchData = recentSearches.map { search in
+            RecentSearchData(
+                query: search.query,
+                subtitle: search.subtitle,
+                date: search.date
+            )
+        }
+        
+        if let encoded = try? JSONEncoder().encode(recentSearchData) {
+            UserDefaults.standard.set(encoded, forKey: "RecentSearches")
+        }
     }
     
-    private func generateMockResults() {
-        // Generate mock search results for demo
-        results = [
-            SearchResult(
+    // MARK: - Unified Search Implementation
+    
+    private func performUnifiedSearch(query: String) async throws -> [SearchResult] {
+        var allResults: [SearchResult] = []
+        
+        // Perform parallel searches across different endpoints
+        async let propertiesTask = searchProperties(query: query)
+        async let usersTask = searchUsers(query: query)
+        async let transfersTask = searchTransfers(query: query)
+        async let nsnTask = searchNSNItems(query: query)
+        
+        // Wait for all searches to complete
+        let (properties, users, transfers, nsnItems) = await (
+            try? propertiesTask,
+            try? usersTask,
+            try? transfersTask,
+            try? nsnTask
+        )
+        
+        // Add results from each search
+        if let properties = properties {
+            allResults.append(contentsOf: properties)
+        }
+        
+        if let users = users {
+            allResults.append(contentsOf: users)
+        }
+        
+        if let transfers = transfers {
+            allResults.append(contentsOf: transfers)
+        }
+        
+        if let nsnItems = nsnItems {
+            allResults.append(contentsOf: nsnItems)
+        }
+        
+        // Sort by relevance score (highest first)
+        return allResults.sorted { $0.relevanceScore > $1.relevanceScore }
+    }
+    
+    // MARK: - Individual Search Methods
+    
+    private func searchProperties(query: String) async throws -> [SearchResult] {
+        let properties = try await apiService.getMyProperties()
+        
+        return properties.compactMap { property in
+            let title = property.name
+            let subtitle = "SN: \(property.serialNumber)"
+            
+            // Check if query matches property data
+            let queryLower = query.lowercased()
+            let titleMatch = title.lowercased().contains(queryLower)
+            let serialMatch = property.serialNumber.lowercased().contains(queryLower)
+            let descriptionMatch = (property.description ?? "").lowercased().contains(queryLower)
+            let nsnMatch = (property.nsn ?? "").lowercased().contains(queryLower)
+            
+            // Return nil if no match (this is correct for compactMap)
+            guard titleMatch || serialMatch || descriptionMatch || nsnMatch else {
+                return nil
+            }
+            
+            // Calculate relevance score
+            var relevanceScore = 0.0
+            if titleMatch { relevanceScore += 0.4 }
+            if serialMatch { relevanceScore += 0.3 }
+            if nsnMatch { relevanceScore += 0.2 }
+            if descriptionMatch { relevanceScore += 0.1 }
+            
+            return SearchResult(
                 type: .property,
-                title: "M4 Carbine",
-                subtitle: "SN: M4-12345",
+                title: title,
+                subtitle: subtitle,
                 metadata: [
-                    .init(icon: "location", value: "Building A"),
-                    .init(icon: "person", value: "CPT Smith")
+                    .init(icon: "person", value: property.assignedToUser?.name ?? "Unassigned"),
+                    .init(icon: "circle", value: property.currentStatus.capitalized)
                 ],
-                relevanceScore: 0.95
-            ),
+                relevanceScore: relevanceScore
+            )
+        }
+    }
+    
+    private func searchUsers(query: String) async throws -> [SearchResult] {
+        let users = try await apiService.searchUsers(query: query)
+        
+        return users.map { user in
             SearchResult(
                 type: .person,
-                title: "CPT John Smith",
-                subtitle: "Current holder of 12 items",
+                title: "\(user.rank ?? "") \(user.name)",
+                subtitle: user.username,
                 metadata: [
-                    .init(icon: "envelope", value: "john.smith@army.mil")
+                    .init(icon: "at", value: "@\(user.username)"),
+                    .init(icon: "building", value: user.unit ?? "Unknown Unit")
                 ],
-                relevanceScore: 0.85
-            ),
-            SearchResult(
-                type: .transfer,
-                title: "Transfer #T-2024-001",
-                subtitle: "M4 Carbine to CPT Smith",
-                metadata: [
-                    .init(icon: "calendar", value: "2 days ago"),
-                    .init(icon: "checkmark.circle", value: "Completed")
-                ],
-                relevanceScore: 0.75
+                relevanceScore: 0.8 // Fixed relevance for user results
             )
-        ]
+        }
+    }
+    
+    private func searchTransfers(query: String) async throws -> [SearchResult] {
+        let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
+        
+        return transfers.compactMap { transfer in
+            let queryLower = query.lowercased()
+            
+            // Simple matching on transfer ID or status
+            let statusMatch = transfer.status.lowercased().contains(queryLower)
+            let idMatch = String(transfer.id).contains(queryLower)
+            
+            guard statusMatch || idMatch else {
+                return nil
+            }
+            
+            let title = "Transfer #\(transfer.id)"
+            let subtitle = "Status: \(transfer.status.capitalized)"
+            
+            return SearchResult(
+                type: .transfer,
+                title: title,
+                subtitle: subtitle,
+                metadata: [
+                    .init(icon: "calendar", value: RelativeDateFormatter.shared.string(from: transfer.requestDate)),
+                    .init(icon: "arrow.right", value: "Property #\(transfer.propertyId)")
+                ],
+                relevanceScore: 0.6
+            )
+        }
+    }
+    
+    private func searchNSNItems(query: String) async throws -> [SearchResult] {
+        let response = try await apiService.universalSearchNSN(query: query, limit: 10)
+        
+        return response.data.map { nsnItem in
+            SearchResult(
+                type: .document,
+                title: nsnItem.nomenclature,
+                subtitle: "NSN: \(nsnItem.nsn)",
+                metadata: [
+                    .init(icon: "doc", value: nsnItem.fsc ?? "Unknown FSC"),
+                    .init(icon: "building.2", value: nsnItem.manufacturer ?? "Unknown Mfg")
+                ],
+                relevanceScore: 0.7
+            )
+        }
+    }
+}
+
+// MARK: - Search Geometric Loader
+struct SearchGeometricLoader: View {
+    @State private var rotation: Double = 0
+    
+    var body: some View {
+        ZStack {
+            // Outer square
+            Rectangle()
+                .stroke(AppColors.tertiaryText.opacity(0.3), lineWidth: 1)
+                .rotationEffect(.degrees(rotation))
+            
+            // Inner square
+            Rectangle()
+                .stroke(AppColors.primaryText.opacity(0.8), lineWidth: 1)
+                .scaleEffect(0.7)
+                .rotationEffect(.degrees(-rotation * 1.5))
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+        }
     }
 }
 

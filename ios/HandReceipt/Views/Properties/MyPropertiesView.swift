@@ -189,7 +189,7 @@ struct MyPropertiesView: View {
             }
         }
         .fullScreenCover(isPresented: $showingSearch) {
-            MinimalSearchView(isPresented: $showingSearch)
+            MinimalSearchView(isPresented: $showingSearch, apiService: viewModel.apiService)
         }
         .actionSheet(isPresented: $showingSortOptions) {
             ActionSheet(

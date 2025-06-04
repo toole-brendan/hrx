@@ -28,7 +28,7 @@ class MyPropertiesViewModel: ObservableObject {
     @Published var isSyncing: Bool = false
     @Published var lastSyncDate: Date?
     
-    private let apiService: APIServiceProtocol
+    let apiService: APIServiceProtocol
     private let coreDataStack = CoreDataStack.shared
     private let offlineSync = OfflineSyncService.shared
     private var cancellables = Set<AnyCancellable>()
