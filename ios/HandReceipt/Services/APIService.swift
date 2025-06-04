@@ -92,7 +92,7 @@ public protocol APIServiceProtocol {
     
     // MARK: - Transfer Offer Endpoints
     func requestTransferBySerial(serialNumber: String, notes: String?) async throws -> Transfer
-    func createTransferOffer(propertyIds: [Int], recipientIds: [Int], notes: String?) async throws -> TransferOffer
+    func createTransferOffer(propertyId: Int, recipientIds: [Int], notes: String?, expiresInDays: Int?) async throws -> TransferOffer
     func getActiveOffers() async throws -> [TransferOffer]
     func acceptOffer(offerId: Int) async throws -> TransferOffer
     func getTransferById(transferId: Int) async throws -> Transfer
@@ -756,26 +756,22 @@ public class APIService: APIServiceProtocol {
         return transfer
     }
     
-    public func createTransferOffer(propertyIds: [Int], recipientIds: [Int], notes: String? = nil) async throws -> TransferOffer {
-        debugPrint("Creating transfer offer for \(propertyIds.count) items to \(recipientIds.count) recipients")
+    public func createTransferOffer(propertyId: Int, recipientIds: [Int], notes: String? = nil, expiresInDays: Int? = nil) async throws -> TransferOffer {
+        debugPrint("Creating transfer offer for property \(propertyId) to \(recipientIds.count) recipients")
         let endpoint = baseURL.appendingPathComponent("/api/transfers/offer")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let offerRequest = TransferOfferRequest(
-            propertyIds: propertyIds,
+            propertyId: propertyId,
             recipientIds: recipientIds,
-            notes: notes
+            notes: notes,
+            expiresInDays: expiresInDays
         )
         
-        do {
-            request.httpBody = try encoder.encode(offerRequest)
-            debugPrint("Successfully encoded transfer offer")
-        } catch {
-            debugPrint("ERROR: Failed to encode offer: \(error)")
-            throw APIError.encodingError(error)
-        }
+        request.httpBody = try encoder.encode(offerRequest)
+        debugPrint("Successfully encoded transfer offer")
         
         let offer = try await performRequest(request: request) as TransferOffer
         debugPrint("Successfully created transfer offer: \(offer.id)")

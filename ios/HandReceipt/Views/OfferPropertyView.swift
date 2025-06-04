@@ -194,13 +194,11 @@ struct OfferPropertyView: View {
                 for recipientIdString in selectedFriends {
                     guard let recipientId = Int(recipientIdString) else { continue }
                     
-                    let expiresAt = Calendar.current.date(byAdding: .day, value: expiresInDays, to: Date())
-                    
-                    _ = try await TransferService.shared.createOffer(
+                    _ = try await TransferService.shared.createOfferToUser(
                         propertyId: property.id,
-                        offeredToUserId: recipientId,
+                        recipientUserId: recipientId,
                         notes: notes.isEmpty ? nil : notes,
-                        expiresAt: expiresAt
+                        expiresInDays: expiresInDays
                     )
                 }
                 

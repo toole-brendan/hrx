@@ -16,22 +16,23 @@ public class TransferService: ObservableObject {
         return try await apiService.getActiveOffers()
     }
     
-    /// Create a transfer offer (supports single property to single user)
-    public func createOffer(propertyId: Int, offeredToUserId: Int, notes: String? = nil, expiresAt: Date? = nil) async throws -> TransferOffer {
-        // Convert single property/user to arrays for bulk endpoint
+    /// Create a transfer offer (supports single property to multiple users)
+    public func createOffer(propertyId: Int, recipientIds: [Int], notes: String? = nil, expiresInDays: Int? = nil) async throws -> TransferOffer {
         return try await apiService.createTransferOffer(
-            propertyIds: [propertyId],
-            recipientIds: [offeredToUserId],
-            notes: notes
+            propertyId: propertyId,
+            recipientIds: recipientIds,
+            notes: notes,
+            expiresInDays: expiresInDays
         )
     }
     
-    /// Create a bulk transfer offer (multiple properties to multiple users)
-    public func createBulkOffer(propertyIds: [Int], recipientIds: [Int], notes: String? = nil) async throws -> TransferOffer {
-        return try await apiService.createTransferOffer(
-            propertyIds: propertyIds,
-            recipientIds: recipientIds,
-            notes: notes
+    /// Convenience method for single property to single user
+    public func createOfferToUser(propertyId: Int, recipientUserId: Int, notes: String? = nil, expiresInDays: Int? = nil) async throws -> TransferOffer {
+        return try await createOffer(
+            propertyId: propertyId,
+            recipientIds: [recipientUserId],
+            notes: notes,
+            expiresInDays: expiresInDays
         )
     }
     

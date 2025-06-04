@@ -1189,9 +1189,9 @@ struct PropertyTransferSheet: View {
         
         Task {
             do {
-                let _ = try await transferService.createOffer(
+                let _ = try await transferService.createOfferToUser(
                     propertyId: property.id,
-                    offeredToUserId: connectedUser.id,
+                    recipientUserId: connectedUser.id,
                     notes: notes.isEmpty ? nil : notes
                 )
                 
