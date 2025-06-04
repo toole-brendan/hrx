@@ -390,14 +390,14 @@ WHERE p.serial_number = 'ENVG-2025-000001'
 ON CONFLICT DO NOTHING;
 
 -- 7. Add some NSN records for the items we've created
-INSERT INTO nsn_records (nsn, item_name, description, category, unit_of_issue, unit_price, created_at, updated_at)
+INSERT INTO nsn_records (nsn, item_name, description, category, created_at, updated_at)
 VALUES 
-    ('1005-01-231-0973', 'Rifle, 5.56mm, M4A1', 'M4A1 Carbine with collapsible stock', 'Weapons', 'EA', 3200.00, NOW(), NOW()),
-    ('5855-01-534-5931', 'Monocular, Night Vision', 'AN/PVS-14 Night Vision Monocular', 'Optics', 'EA', 4500.00, NOW(), NOW()),
-    ('5820-01-451-8250', 'Radio Set, Tactical', 'AN/PRC-152A Multiband Radio', 'Communications', 'EA', 6800.00, NOW(), NOW()),
-    ('6605-01-196-6971', 'Compass, Magnetic', 'Lensatic Compass', 'Navigation', 'EA', 45.00, NOW(), NOW()),
-    ('8470-01-580-1200', 'Vest, Body Armor', 'Improved Outer Tactical Vest (IOTV)', 'Body Armor', 'EA', 850.00, NOW(), NOW()),
-    ('8470-01-534-8800', 'Helmet, Combat', 'Advanced Combat Helmet (ACH)', 'Body Armor', 'EA', 320.00, NOW(), NOW()),
-    ('1005-01-565-7445', 'Machine Gun, 7.62mm', 'M240B Medium Machine Gun', 'Weapons', 'EA', 14500.00, NOW(), NOW()),
-    ('5855-01-647-6498', 'Goggle, Night Vision', 'AN/PSQ-20 Enhanced Night Vision Goggle', 'Optics', 'EA', 8200.00, NOW(), NOW())
+    ('1005-01-231-0973', 'Rifle, 5.56mm, M4A1', 'M4A1 Carbine with collapsible stock', 'Weapons', NOW(), NOW()),
+    ('5855-01-534-5931', 'Monocular, Night Vision', 'AN/PVS-14 Night Vision Monocular', 'Optics', NOW(), NOW()),
+    ('5820-01-451-8250', 'Radio Set, Tactical', 'AN/PRC-152A Multiband Radio', 'Communications', NOW(), NOW()),
+    ('6605-01-196-6971', 'Compass, Magnetic', 'Lensatic Compass', 'Navigation', NOW(), NOW()),
+    ('8470-01-580-1200', 'Vest, Body Armor', 'Improved Outer Tactical Vest (IOTV)', 'Body Armor', NOW(), NOW()),
+    ('8470-01-534-8800', 'Helmet, Combat', 'Advanced Combat Helmet (ACH)', 'Body Armor', NOW(), NOW()),
+    ('1005-01-565-7445', 'Machine Gun, 7.62mm', 'M240B Medium Machine Gun', 'Weapons', NOW(), NOW()),
+    ('5855-01-647-6498', 'Goggle, Night Vision', 'AN/PSQ-20 Enhanced Night Vision Goggle', 'Optics', NOW(), NOW())
 ON CONFLICT (nsn) DO NOTHING;
