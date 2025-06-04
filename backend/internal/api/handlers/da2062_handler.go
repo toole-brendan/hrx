@@ -97,18 +97,25 @@ func (h *DA2062Handler) BatchCreateInventory(c *gin.Context) {
 			}
 		}
 
+		// Extract source document URL from metadata if available
+		var sourceDocumentURL *string
+		if item.ImportMetadata != nil && item.ImportMetadata.SourceDocumentURL != "" {
+			sourceDocumentURL = &item.ImportMetadata.SourceDocumentURL
+		}
+
 		// Create Property object
 		property := domain.Property{
-			Name:             item.Name,
-			SerialNumber:     item.SerialNumber,
-			Description:      &item.Description,
-			NSN:              &item.NSN,
-			Quantity:         item.Quantity,
-			CurrentStatus:    "Active",
-			SourceType:       &req.Source,
-			SourceRef:        &item.SourceRef,
-			ImportMetadata:   &metadataJSON,
-			AssignedToUserID: &userID,
+			Name:              item.Name,
+			SerialNumber:      item.SerialNumber,
+			Description:       &item.Description,
+			NSN:               &item.NSN,
+			Quantity:          item.Quantity,
+			CurrentStatus:     "Active",
+			SourceType:        &req.Source,
+			SourceRef:         &item.SourceRef,
+			SourceDocumentURL: sourceDocumentURL,
+			ImportMetadata:    &metadataJSON,
+			AssignedToUserID:  &userID,
 		}
 
 		// Set defaults

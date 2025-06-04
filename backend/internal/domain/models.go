@@ -6,17 +6,18 @@ import (
 
 // User represents a user in the system with military-specific fields
 type User struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	Username  string    `json:"username" gorm:"uniqueIndex;not null"`
-	Email     string    `json:"email" gorm:"uniqueIndex;not null"`
-	Password  string    `json:"-" gorm:"not null"` // Password is omitted from JSON responses
-	Name      string    `json:"name" gorm:"not null"`
-	Rank      string    `json:"rank" gorm:"not null"`
-	Unit      string    `json:"unit"`
-	Phone     string    `json:"phone"`                            // NEW: Added for contact info
-	DoDID     string    `json:"dodid" gorm:"column:dodid;unique"` // NEW: Department of Defense ID
-	CreatedAt time.Time `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	ID           uint      `json:"id" gorm:"primaryKey"`
+	Username     string    `json:"username" gorm:"uniqueIndex;not null"`
+	Email        string    `json:"email" gorm:"uniqueIndex;not null"`
+	Password     string    `json:"-" gorm:"not null"` // Password is omitted from JSON responses
+	Name         string    `json:"name" gorm:"not null"`
+	Rank         string    `json:"rank" gorm:"not null"`
+	Unit         string    `json:"unit"`
+	Phone        string    `json:"phone"`                                    // NEW: Added for contact info
+	DoDID        string    `json:"dodid" gorm:"column:dodid;unique"`         // NEW: Department of Defense ID
+	SignatureURL *string   `json:"signatureUrl" gorm:"column:signature_url"` // NEW: URL to stored signature image
+	CreatedAt    time.Time `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt    time.Time `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
 }
 
 // UserConnection represents a friendship/connection between users (like Venmo)
@@ -59,6 +60,7 @@ type Property struct {
 	Version           int        `json:"version" gorm:"default:1"`                                // NEW: For conflict resolution
 	SourceType        *string    `json:"sourceType" gorm:"column:source_type"`                    // NEW: manual, da2062_scan, etc
 	SourceRef         *string    `json:"sourceRef" gorm:"column:source_ref"`                      // NEW: Reference to source document
+	SourceDocumentURL *string    `json:"sourceDocumentUrl" gorm:"column:source_document_url"`     // NEW: URL to original scanned form
 	ImportMetadata    *string    `json:"importMetadata" gorm:"column:import_metadata;type:jsonb"` // NEW: Import metadata as JSONB
 	Verified          bool       `json:"verified" gorm:"default:false"`                           // NEW: Whether item has been verified
 	VerifiedAt        *time.Time `json:"verifiedAt" gorm:"column:verified_at"`                    // NEW: When item was verified

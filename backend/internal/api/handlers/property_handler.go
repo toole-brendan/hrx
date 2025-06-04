@@ -341,3 +341,74 @@ func (h *PropertyHandler) GetPropertyBySerialNumber(c *gin.Context) {
 
 	c.JSON(http.StatusOK, property) // Return the found property directly
 }
+
+// GetPropertyTransferHistory returns the complete transfer history for a property
+func (h *PropertyHandler) GetPropertyTransferHistory(c *gin.Context) {
+	// Parse serial number from URL parameter
+	serialNumber := c.Param("serialNumber")
+	if serialNumber == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Serial number parameter is required"})
+		return
+	}
+
+	// Fetch the property by serial number to get its ID
+	property, err := h.Repo.GetPropertyBySerialNumber(serialNumber)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Property not found for serial number: " + serialNumber})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property by serial number: " + err.Error()})
+		}
+		return
+	}
+
+	// Get user ID from context to fetch transfers
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	// Get all transfers for the current user and filter by property ID
+	allTransfers, err := h.Repo.ListTransfers(userID, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch transfer records: " + err.Error()})
+		return
+	}
+
+	// Filter transfers for this specific property
+	var propertyTransfers []domain.Transfer
+	for _, transfer := range allTransfers {
+		if transfer.PropertyID == property.ID {
+			propertyTransfers = append(propertyTransfers, transfer)
+		}
+	}
+
+	// Get ledger history for complete audit trail
+	ledgerHistory, err := h.Ledger.GetPropertyHistory(property.ID)
+	if err != nil {
+		log.Printf("WARNING: Failed to fetch ledger history for property %d: %v", property.ID, err)
+		// Continue without ledger data rather than failing completely
+		ledgerHistory = []map[string]interface{}{}
+	}
+
+	// Combine transfer records with ledger events for complete history
+	response := gin.H{
+		"property": gin.H{
+			"id":           property.ID,
+			"serialNumber": property.SerialNumber,
+			"name":         property.Name,
+			"currentOwner": property.AssignedToUser,
+		},
+		"transfers":      propertyTransfers,
+		"ledgerHistory":  ledgerHistory,
+		"totalTransfers": len(propertyTransfers),
+	}
+
+	c.JSON(http.StatusOK, response)
+}

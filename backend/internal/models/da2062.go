@@ -17,6 +17,7 @@ type ImportMetadata struct {
 	QuantityIndex        int       `json:"quantity_index,omitempty"`
 	RequiresVerification bool      `json:"requires_verification"`
 	VerificationReasons  []string  `json:"verification_reasons,omitempty"`
+	SourceDocumentURL    string    `json:"source_document_url,omitempty"` // URL to original scanned form
 }
 
 // DA2062ImportItem represents an item being imported from a DA-2062 form

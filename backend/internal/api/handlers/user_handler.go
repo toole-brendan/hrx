@@ -1,25 +1,36 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserHandler handles user-related API requests
 type UserHandler struct {
-	repo repository.Repository
+	repo           repository.Repository
+	StorageService storage.StorageService
 }
 
 // NewUserHandler creates a new UserHandler
-func NewUserHandler(repo repository.Repository) *UserHandler {
-	return &UserHandler{repo: repo}
+func NewUserHandler(repo repository.Repository, storageService storage.StorageService) *UserHandler {
+	return &UserHandler{
+		repo:           repo,
+		StorageService: storageService,
+	}
 }
 
 // Helper function to get user ID from session (placeholder implementation)
@@ -432,4 +443,111 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	// TODO: Invalidate other sessions/tokens for this user for security
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+// UploadSignature handles user signature upload
+func (h *UserHandler) UploadSignature(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	// Get uploaded file
+	file, header, err := c.Request.FormFile("signature")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No signature file uploaded"})
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	contentType := header.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only images are supported"})
+		return
+	}
+
+	// Read file data
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+
+	// Upload to storage service (assuming Azure Blob or similar)
+	ctx := context.Background()
+	objectName := fmt.Sprintf("signatures/%d/%d-%s", userID, time.Now().Unix(), header.Filename)
+
+	// Assuming you have a storage service available
+	// You'll need to inject this into the handler
+	if h.StorageService != nil {
+		err = h.StorageService.UploadFile(ctx, objectName, bytes.NewReader(fileData), int64(len(fileData)), contentType)
+		if err != nil {
+			log.Printf("Failed to upload signature to storage: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store signature"})
+			return
+		}
+
+		// Get the URL for the uploaded signature
+		signatureURL, err := h.StorageService.GetPresignedURL(ctx, objectName, 365*24*time.Hour) // 1 year expiry
+		if err != nil {
+			// Use direct URL if presigned fails
+			signatureURL = fmt.Sprintf("/storage/%s", objectName)
+		}
+
+		// Update user with signature URL
+		user, err := h.repo.GetUserByID(userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+			return
+		}
+
+		user.SignatureURL = &signatureURL
+		if err := h.repo.UpdateUser(user); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user signature"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":      "Signature uploaded successfully",
+			"signatureUrl": signatureURL,
+		})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Storage service not configured"})
+	}
+}
+
+// GetSignature retrieves the user's signature URL
+func (h *UserHandler) GetSignature(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	user, err := h.repo.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+		return
+	}
+
+	if user.SignatureURL == nil || *user.SignatureURL == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No signature found for user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"signatureUrl": *user.SignatureURL,
+	})
 }

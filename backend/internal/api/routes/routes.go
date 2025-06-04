@@ -44,7 +44,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	correctionHandler := handlers.NewCorrectionHandler(ledgerService)
 	ledgerHandler := handlers.NewLedgerHandler(ledgerService)                     // Create ledger handler
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
-	userHandler := handlers.NewUserHandler(repo)                                  // Added User handler
+	userHandler := handlers.NewUserHandler(repo, storageService)                  // Added User handler with storage service
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
 	// Create PDF and email services for DA2062 functionality
 	pdfGenerator := pdf.NewDA2062Generator(repo)
@@ -102,6 +102,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			property.GET("/user/:userId", propertyHandler.GetPropertysByUser)
 			property.GET("/history/:serialNumber", propertyHandler.GetPropertyHistory)
 			property.GET("/serial/:serialNumber", propertyHandler.GetPropertyBySerialNumber)
+			property.GET("/serial/:serialNumber/transfers", propertyHandler.GetPropertyTransferHistory)
 			// Move specific routes BEFORE wildcard routes to prevent conflicts
 			property.GET("/:id", propertyHandler.GetProperty)
 			property.PATCH("/:id/status", propertyHandler.UpdatePropertyStatus)
@@ -180,6 +181,10 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			users.PATCH("/:id", userHandler.UpdateUserProfile)
 			users.POST("/:id/password", userHandler.ChangePassword)
 			// POST /api/users from Node is handled by POST /api/auth/register
+
+			// Signature management routes
+			users.POST("/signature", userHandler.UploadSignature)
+			users.GET("/signature", userHandler.GetSignature)
 
 			// User connections/friends routes
 			connections := users.Group("/connections")
