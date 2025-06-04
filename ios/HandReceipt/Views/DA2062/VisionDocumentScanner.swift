@@ -22,7 +22,7 @@ struct VisionDocumentScanner: UIViewControllerRepresentable {
             appearance.configureWithOpaqueBackground()
             appearance.backgroundColor = UIColor(AppColors.appBackground)
             appearance.titleTextAttributes = [
-                .font: UIFont.systemFont(ofSize: 17, weight: .regular, design: .monospaced),
+                .font: UIFont.monospacedSystemFont(ofSize: 17, weight: .regular),
                 .foregroundColor: UIColor(AppColors.primaryText)
             ]
             appearance.shadowColor = .clear
