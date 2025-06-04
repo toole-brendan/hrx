@@ -21,33 +21,26 @@ struct TransfersView: View {
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                AppColors.appBackground.ignoresSafeArea()
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom navigation header
+                navigationHeader
                 
-                VStack(spacing: 0) {
-                    // Custom minimal navigation bar
-                    MinimalNavigationBar(
-                        title: "TRANSFERS",
-                        titleStyle: .mono,
-                        trailingItems: [
-                            .init(text: "New", style: .text, action: { showingTransferOptions = true })
-                        ]
-                    )
-                    
-                    ScrollView(.vertical, showsIndicators: true) {
-                        VStack(spacing: 12) {
-                            // Filter tabs with minimal spacing
-                            tabSelector
-                            
-                            // Main content with improved layout
-                            transferMainContent
-                                .padding(.horizontal, 24)
-                            
-                            // Bottom padding for tab bar
-                            Color.clear.frame(height: 100)
-                        }
-                        .frame(minHeight: geometry.size.height - 100) // Ensure minimum height
+                // Tab selector with proper styling
+                tabSelector
+                
+                // Main content
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 32) {
+                        // Content with proper spacing
+                        transferMainContent
+                            .padding(.horizontal, 24)
+                            .padding(.top, 24)
+                        
+                        // Bottom padding for tab bar
+                        Color.clear.frame(height: 100)
                     }
                 }
             }
@@ -81,30 +74,63 @@ struct TransfersView: View {
         }
     }
     
-    // MARK: - Tab Selector (8VC-inspired minimal tabs)
+    // MARK: - Navigation Header
+    private var navigationHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 20) {
+                // Brand mark
+                Text("HR")
+                    .font(AppFonts.monoBody)
+                    .foregroundColor(AppColors.secondaryText)
+                    .frame(minWidth: 60, alignment: .leading)
+                
+                Spacer()
+                
+                // Title
+                Text("Transfers")
+                    .font(AppFonts.serifHeadline)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Spacer()
+                
+                // Action button
+                Button(action: { showingTransferOptions = true }) {
+                    Text("New")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.accent)
+                }
+                .frame(minWidth: 60, alignment: .trailing)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+            .background(AppColors.appBackground)
+            
+            // Subtle divider
+            Rectangle()
+                .fill(AppColors.divider)
+                .frame(height: 1)
+        }
+    }
+    
+    // MARK: - Tab Selector
     private var tabSelector: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 32) {
+            HStack(spacing: 40) {
                 ForEach(TransferTab.allCases, id: \.self) { tab in
-                    VStack(spacing: 6) {
-                        Text(tab.title.uppercased())
-                            .font(AppFonts.captionBold)
-                            .foregroundColor(selectedTab == tab ? AppColors.primaryText : AppColors.tertiaryText)
-                            .compatibleKerning(1.5)
-                        
-                        Rectangle()
-                            .fill(selectedTab == tab ? AppColors.primaryText : Color.clear)
-                            .frame(height: 2)
-                    }
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            selectedTab = tab
+                    TabButton(
+                        title: tab.title,
+                        isSelected: selectedTab == tab,
+                        action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = tab
+                            }
                         }
-                    }
+                    )
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
+            .background(AppColors.tertiaryBackground)
             
             Rectangle()
                 .fill(AppColors.border)
@@ -112,53 +138,28 @@ struct TransfersView: View {
         }
     }
     
-    // MARK: - Loading View
-    private var loadingView: some View {
-        HStack(spacing: 12) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
-                .scaleEffect(0.8)
-            
-            Text("LOADING TRANSFERS")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.secondaryText)
-                .kerning(AppFonts.wideKerning)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-    }
-    
-    // MARK: - Empty State
-    private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: selectedTab == .incoming ? "arrow.down" : "arrow.up")
-                .font(.system(size: 32, weight: .thin))
-                .foregroundColor(AppColors.tertiaryText)
-            
-            VStack(spacing: 8) {
-                Text("No \(selectedTab.title) Transfers")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.primaryText)
-                
-                Text(selectedTab == .incoming ? 
-                    "Transfer requests from your connections will appear here." : 
-                    "Your outgoing transfer requests will appear here.")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            
-            if selectedTab == .outgoing {
-                Button(action: { showingTransferOptions = true }) {
-                    Text("Create Transfer")
-                        .font(AppFonts.bodyBold)
+    // MARK: - Tab Button Component
+    struct TabButton: View {
+        let title: String
+        let isSelected: Bool
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                VStack(spacing: 8) {
+                    Text(title.uppercased())
+                        .font(AppFonts.captionMedium)
+                        .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
+                        .compatibleKerning(AppFonts.wideKerning)
+                    
+                    Rectangle()
+                        .fill(isSelected ? AppColors.primaryText : Color.clear)
+                        .frame(height: 2)
+                        .animation(.easeInOut(duration: 0.2), value: isSelected)
                 }
-                .buttonStyle(.primary)
             }
+            .buttonStyle(PlainButtonStyle())
         }
-        .padding(.vertical, 32)
-        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Transfer Main Content
@@ -175,24 +176,60 @@ struct TransfersView: View {
         if case .loading = viewModel.loadingState {
             loadingView
         } else {
-            // Combined transfers and offers section
-            combinedTransfersSection(transfers: transfers)
-                .minimalRefreshable {
-                    await MainActor.run {
-                        viewModel.fetchTransfers()
-                    }
-                    await loadActiveOffers()
+            VStack(spacing: 32) {
+                // Active offers section (only for incoming tab)
+                if selectedTab == .incoming {
+                    offersSection
                 }
+                
+                // Transfer requests section
+                transfersSection(transfers: transfers)
+            }
+            .minimalRefreshable {
+                await MainActor.run {
+                    viewModel.fetchTransfers()
+                }
+                await loadActiveOffers()
+            }
         }
+    }
+    
+    // MARK: - Loading View
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                .scaleEffect(0.8)
+            
+            Text("Loading transfers...")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+    
+    // MARK: - Empty State
+    private var emptyStateView: some View {
+        MinimalEmptyState(
+            icon: selectedTab == .incoming ? "arrow.down.circle" : "arrow.up.circle",
+            title: "No \(selectedTab.title) Transfers",
+            message: selectedTab == .incoming ?
+                "Transfer requests from your connections will appear here." :
+                "Your outgoing transfer requests will appear here.",
+            action: selectedTab == .outgoing ? { showingTransferOptions = true } : nil,
+            actionLabel: selectedTab == .outgoing ? "Create Transfer" : nil
+        )
     }
     
     // MARK: - Offers Section
     @ViewBuilder
     private var offersSection: some View {
-        VStack(spacing: 12) {
-            ModernSectionHeader(
+        VStack(spacing: 16) {
+            ElegantSectionHeader(
                 title: "Property Offers",
-                subtitle: isLoadingOffers ? "Loading offers..." : (activeOffers.isEmpty ? "No active offers" : "Items offered by your connections")
+                subtitle: isLoadingOffers ? nil : (activeOffers.isEmpty ? "No active offers" : "Items offered by your connections"),
+                style: .uppercase
             )
             
             if isLoadingOffers {
@@ -207,17 +244,16 @@ struct TransfersView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-                .background(AppColors.secondaryBackground.opacity(0.5))
-                .cornerRadius(4)
+                .cleanCard(showShadow: false)
             } else if activeOffers.isEmpty {
                 HStack(spacing: 16) {
                     Image(systemName: "tray")
-                        .font(.system(size: 20, weight: .light))
+                        .font(.system(size: 24, weight: .thin))
                         .foregroundColor(AppColors.tertiaryText)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("No Property Offers")
-                            .font(AppFonts.bodyBold)
+                            .font(AppFonts.bodyMedium)
                             .foregroundColor(AppColors.secondaryText)
                         
                         Text("Offers from connections will appear here")
@@ -227,116 +263,32 @@ struct TransfersView: View {
                     
                     Spacer()
                 }
-                .padding(16)
-                .background(AppColors.secondaryBackground.opacity(0.5))
-                .cornerRadius(4)
+                .padding(20)
+                .cleanCard(showShadow: false)
             } else {
                 VStack(spacing: 12) {
                     ForEach(activeOffers) { offer in
-                        CleanOfferCard(offer: offer)
+                        ElegantOfferCard(offer: offer)
                     }
                 }
             }
         }
     }
     
-    // MARK: - Combined Transfers Section
-    @ViewBuilder
-    private func combinedTransfersSection(transfers: [Transfer]) -> some View {
-        VStack(spacing: 20) {
-            // For incoming tab, show offers first, then transfers
-            if selectedTab == .incoming {
-                // Property offers section (compact)
-                if !isLoadingOffers && !activeOffers.isEmpty {
-                    VStack(spacing: 16) {
-                        ModernSectionHeader(
-                            title: "Property Offers",
-                            subtitle: "\(activeOffers.count) active offer\(activeOffers.count == 1 ? "" : "s")"
-                        )
-                        
-                        VStack(spacing: 12) {
-                            ForEach(activeOffers) { offer in
-                                CompactOfferCard(offer: offer)
-                            }
-                        }
-                    }
-                }
-                
-                // Transfer requests section
-                if !transfers.isEmpty {
-                    VStack(spacing: 16) {
-                        ModernSectionHeader(
-                            title: "Transfer Requests",
-                            subtitle: "\(transfers.count) request\(transfers.count == 1 ? "" : "s")"
-                        )
-                        
-                        VStack(spacing: 12) {
-                            ForEach(transfers) { transfer in
-                                CleanTransferCard(
-                                    transfer: transfer,
-                                    isIncoming: selectedTab == .incoming,
-                                    onTap: { selectedTransfer = transfer },
-                                    onQuickApprove: {
-                                        viewModel.approveTransfer(transferId: transfer.id)
-                                    },
-                                    onQuickReject: {
-                                        viewModel.rejectTransfer(transferId: transfer.id)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                
-                // Empty state only if both offers and transfers are empty
-                if transfers.isEmpty && activeOffers.isEmpty && !isLoadingOffers {
-                    emptyStateView
-                }
-            } else {
-                // For outgoing tab, only show transfers
-                if !transfers.isEmpty {
-                    VStack(spacing: 16) {
-                        ModernSectionHeader(
-                            title: "Outgoing Transfers",
-                            subtitle: "\(transfers.count) transfer\(transfers.count == 1 ? "" : "s")"
-                        )
-                        
-                        VStack(spacing: 12) {
-                            ForEach(transfers) { transfer in
-                                CleanTransferCard(
-                                    transfer: transfer,
-                                    isIncoming: selectedTab == .incoming,
-                                    onTap: { selectedTransfer = transfer },
-                                    onQuickApprove: {
-                                        viewModel.approveTransfer(transferId: transfer.id)
-                                    },
-                                    onQuickReject: {
-                                        viewModel.rejectTransfer(transferId: transfer.id)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    emptyStateView
-                }
-            }
-        }
-    }
-    
-    // MARK: - Transfers Section (Legacy - kept for reference)
+    // MARK: - Transfers Section
     @ViewBuilder
     private func transfersSection(transfers: [Transfer]) -> some View {
         if !transfers.isEmpty {
             VStack(spacing: 16) {
-                ModernSectionHeader(
+                ElegantSectionHeader(
                     title: selectedTab == .incoming ? "Incoming Transfers" : "Outgoing Transfers",
-                    subtitle: "\(transfers.count) transfer\(transfers.count == 1 ? "" : "s")"
+                    subtitle: "\(transfers.count) transfer\(transfers.count == 1 ? "" : "s")",
+                    style: .serif
                 )
                 
                 VStack(spacing: 12) {
                     ForEach(transfers) { transfer in
-                        CleanTransferCard(
+                        ElegantTransferCard(
                             transfer: transfer,
                             isIncoming: selectedTab == .incoming,
                             onTap: { selectedTransfer = transfer },
@@ -351,7 +303,6 @@ struct TransfersView: View {
                 }
             }
         } else if !isLoadingOffers && activeOffers.isEmpty {
-            // Only show empty state if both offers and transfers are empty and not loading
             emptyStateView
         }
     }
@@ -374,8 +325,8 @@ struct TransfersView: View {
     }
 }
 
-// MARK: - Clean Transfer Card (8VC-styled)
-struct CleanTransferCard: View {
+// MARK: - Elegant Transfer Card (8VC-styled)
+struct ElegantTransferCard: View {
     let transfer: Transfer
     let isIncoming: Bool
     let onTap: () -> Void
@@ -383,8 +334,6 @@ struct CleanTransferCard: View {
     let onQuickReject: () -> Void
     
     @State private var isPressed = false
-    @State private var isOtherUserConnected = false
-    @StateObject private var connectionsVM = ConnectionsViewModel()
     
     private var statusColor: Color {
         switch transfer.status.lowercased() {
@@ -399,29 +348,29 @@ struct CleanTransferCard: View {
         Button(action: onTap) {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Property header
+                    // Property header with serif font
                     VStack(alignment: .leading, spacing: 8) {
                         Text(transfer.propertyName ?? "Unknown Item")
-                            .font(.system(size: 22, weight: .semibold, design: .serif))
+                            .font(AppFonts.serifHeadline)
                             .foregroundColor(AppColors.primaryText)
                         
                         Text("SN: \(transfer.propertySerialNumber ?? "Unknown")")
-                            .font(.system(size: 13, design: .monospaced))
+                            .font(AppFonts.monoCaption)
                             .foregroundColor(AppColors.secondaryText)
                     }
                     
-                    // Transfer participants
-                    HStack(spacing: 24) {
+                    // Transfer participants with improved layout
+                    HStack(spacing: 32) {
                         // From
                         VStack(alignment: .leading, spacing: 4) {
                             Text("FROM")
                                 .font(AppFonts.caption)
                                 .foregroundColor(AppColors.tertiaryText)
-                                .compatibleKerning(1.5)
+                                .compatibleKerning(AppFonts.wideKerning)
                             
                             if let fromUser = transfer.fromUser {
                                 Text("\(fromUser.rank ?? "") \(fromUser.lastName ?? "")")
-                                    .font(AppFonts.bodyBold)
+                                    .font(AppFonts.bodyMedium)
                                     .foregroundColor(AppColors.primaryText)
                                 Text("@\(fromUser.username)")
                                     .font(AppFonts.caption)
@@ -431,18 +380,18 @@ struct CleanTransferCard: View {
                         
                         Image(systemName: "arrow.right")
                             .font(.system(size: 16, weight: .light))
-                            .foregroundColor(AppColors.accent)
+                            .foregroundColor(AppColors.tertiaryText)
                         
                         // To
                         VStack(alignment: .leading, spacing: 4) {
                             Text("TO")
                                 .font(AppFonts.caption)
                                 .foregroundColor(AppColors.tertiaryText)
-                                .compatibleKerning(1.5)
+                                .compatibleKerning(AppFonts.wideKerning)
                             
                             if let toUser = transfer.toUser {
                                 Text("\(toUser.rank ?? "") \(toUser.lastName ?? "")")
-                                    .font(AppFonts.bodyBold)
+                                    .font(AppFonts.bodyMedium)
                                     .foregroundColor(AppColors.primaryText)
                                 Text("@\(toUser.username)")
                                     .font(AppFonts.caption)
@@ -454,14 +403,14 @@ struct CleanTransferCard: View {
                     // Status and timestamp
                     HStack {
                         Text(transfer.status.uppercased())
-                            .font(AppFonts.captionBold)
+                            .font(AppFonts.captionMedium)
                             .foregroundColor(statusColor)
-                            .compatibleKerning(1.5)
+                            .compatibleKerning(AppFonts.wideKerning)
                         
                         Spacer()
                         
                         Text(formatDate(transfer.requestDate))
-                            .font(AppFonts.caption)
+                            .font(AppFonts.monoCaption)
                             .foregroundColor(AppColors.tertiaryText)
                     }
                 }
@@ -475,9 +424,9 @@ struct CleanTransferCard: View {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 14, weight: .regular))
                                 Text("REJECT")
-                                    .compatibleKerning(1.5)
+                                    .compatibleKerning(AppFonts.wideKerning)
                             }
-                            .font(AppFonts.captionBold)
+                            .font(AppFonts.captionMedium)
                             .foregroundColor(AppColors.destructive)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -492,9 +441,9 @@ struct CleanTransferCard: View {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 14, weight: .regular))
                                 Text("APPROVE")
-                                    .compatibleKerning(1.5)
+                                    .compatibleKerning(AppFonts.wideKerning)
                             }
-                            .font(AppFonts.captionBold)
+                            .font(AppFonts.captionMedium)
                             .foregroundColor(AppColors.success)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -505,20 +454,13 @@ struct CleanTransferCard: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
-        .modernCard()
+        .cleanCard()
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity, pressing: { pressing in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isPressed = pressing
             }
         }, perform: {})
-        .task {
-            let otherUserId = isIncoming ? transfer.fromUserId : transfer.toUserId
-            await connectionsVM.refresh()
-            isOtherUserConnected = connectionsVM.connections.contains { 
-                $0.connectedUserId == otherUserId && $0.connectionStatus == .accepted
-            }
-        }
     }
     
     private func formatDate(_ date: Date) -> String {
@@ -528,35 +470,35 @@ struct CleanTransferCard: View {
     }
 }
 
-// MARK: - Clean Offer Card (8VC-styled)
-struct CleanOfferCard: View {
+// MARK: - Elegant Offer Card (8VC-styled)
+struct ElegantOfferCard: View {
     let offer: TransferOffer
     @State private var showingAcceptDialog = false
     @State private var showingRejectDialog = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Property info
+        VStack(alignment: .leading, spacing: 24) {
+            // Property info with serif heading
             VStack(alignment: .leading, spacing: 8) {
                 Text(offer.property?.name ?? "Unknown Item")
-                    .font(.system(size: 22, weight: .semibold, design: .serif))
+                    .font(AppFonts.serifHeadline)
                     .foregroundColor(AppColors.primaryText)
                 
                 Text("SN: \(offer.property?.serialNumber ?? "")")
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(AppFonts.monoCaption)
                     .foregroundColor(AppColors.secondaryText)
             }
             
-            // Offer details
+            // Offer details with improved typography
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("OFFERED BY")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.tertiaryText)
-                        .compatibleKerning(1.5)
+                        .compatibleKerning(AppFonts.wideKerning)
                     
                     Text(offer.offeringUserDisplayName)
-                        .font(AppFonts.bodyBold)
+                        .font(AppFonts.bodyMedium)
                         .foregroundColor(AppColors.primaryText)
                 }
                 
@@ -567,40 +509,41 @@ struct CleanOfferCard: View {
                         Text("EXPIRES")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.tertiaryText)
-                            .compatibleKerning(1.5)
+                            .compatibleKerning(AppFonts.wideKerning)
                         
                         Text(formatRelativeDate(expiresAt))
-                            .font(AppFonts.captionBold)
+                            .font(AppFonts.captionMedium)
                             .foregroundColor(AppColors.warning)
                     }
                 }
             }
             
-            // Notes if any
+            // Notes with serif italic
             if let notes = offer.notes, !notes.isEmpty {
                 Text(notes)
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.secondaryText)
+                    .italic()
             }
             
-            // Action buttons
+            // Action buttons with 8VC styling
             HStack(spacing: 16) {
                 Button(action: { showingRejectDialog = true }) {
                     Text("DECLINE")
-                        .font(AppFonts.captionBold)
-                        .compatibleKerning(1.5)
+                        .font(AppFonts.captionMedium)
+                        .compatibleKerning(AppFonts.wideKerning)
                 }
-                .buttonStyle(.secondary)
+                .buttonStyle(MinimalSecondaryButtonStyle())
                 
                 Button(action: { showingAcceptDialog = true }) {
                     Text("ACCEPT")
-                        .font(AppFonts.captionBold)
-                        .compatibleKerning(1.5)
+                        .font(AppFonts.captionMedium)
+                        .compatibleKerning(AppFonts.wideKerning)
                 }
-                .buttonStyle(.primary)
+                .buttonStyle(MinimalPrimaryButtonStyle())
             }
         }
-        .modernCard()
+        .cleanCard()
         .alert("Accept Offer?", isPresented: $showingAcceptDialog) {
             Button("Cancel", role: .cancel) { }
             Button("Accept") {
@@ -627,438 +570,10 @@ struct CleanOfferCard: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
-    }
-}
-
-// MARK: - Compact Offer Card (More integrated design)
-struct CompactOfferCard: View {
-    let offer: TransferOffer
-    @State private var showingAcceptDialog = false
-    @State private var showingRejectDialog = false
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header with property name and offering user
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(offer.property?.name ?? "Unknown Item")
-                        .font(.system(size: 18, weight: .semibold, design: .serif))
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Text("SN: \(offer.property?.serialNumber ?? "")")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(AppColors.secondaryText)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("FROM")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.tertiaryText)
-                        .compatibleKerning(1.5)
-                    
-                    Text(offer.offeringUserDisplayName)
-                        .font(AppFonts.captionBold)
-                        .foregroundColor(AppColors.primaryText)
-                        .multilineTextAlignment(.trailing)
-                    
-                    if let expiresAt = offer.expiresAt {
-                        Text("Expires \(formatRelativeDate(expiresAt))")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(AppColors.warning)
-                    }
-                }
-            }
-            
-            // Notes if any (compact)
-            if let notes = offer.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.system(size: 14, design: .default))
-                    .foregroundColor(AppColors.secondaryText)
-                    .lineLimit(2)
-            }
-            
-            // Compact action buttons
-            HStack(spacing: 12) {
-                Button(action: { showingRejectDialog = true }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
-                        Text("DECLINE")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(AppColors.destructive)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    .background(AppColors.destructive.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                
-                Button(action: { showingAcceptDialog = true }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16))
-                        Text("ACCEPT")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    .background(AppColors.success)
-                    .cornerRadius(8)
-                }
-                
-                Spacer()
-            }
-        }
-        .padding(16)
-        .background(AppColors.secondaryBackground.opacity(0.3))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
-        )
-        .alert("Accept Offer?", isPresented: $showingAcceptDialog) {
-            Button("Cancel", role: .cancel) { }
-            Button("Accept") {
-                Task {
-                    try? await TransferService.shared.acceptOffer(offer.id)
-                }
-            }
-        } message: {
-            Text("Accept this property transfer offer from \(offer.offeringUserDisplayName)?")
-        }
-        .alert("Decline Offer?", isPresented: $showingRejectDialog) {
-            Button("Cancel", role: .cancel) { }
-            Button("Decline", role: .destructive) {
-                Task {
-                    try? await TransferService.shared.rejectOffer(offer.id)
-                }
-            }
-        } message: {
-            Text("Decline this property transfer offer?")
-        }
-    }
-    
-    private func formatRelativeDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-}
-
-// MARK: - Transfer Detail View (Updated with existing components)
-struct TransferDetailView: View {
-    @Environment(\.dismiss) private var dismiss
-    let transfer: Transfer
-    @ObservedObject var viewModel: TransfersViewModel
-    @State private var showingActionConfirmation = false
-    @State private var pendingAction: TransferAction?
-    @State private var rejectionNotes = ""
-    @State private var isProcessing = false
-    
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppColors.appBackground.ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Spacer for header
-                Color.clear.frame(height: 36)
-                
-                ScrollView {
-                    VStack(spacing: 40) {
-                        // Top padding
-                        Color.clear.frame(height: 24)
-                        
-                        // Status header
-                        statusHeader
-                        
-                        // Property information
-                        propertySection
-                        
-                        // Transfer information
-                        transferSection
-                        
-                        // Notes if available
-                        if let notes = transfer.notes, !notes.isEmpty {
-                            notesSection(notes)
-                        }
-                        
-                        // Actions for pending incoming transfers
-                        if viewModel.currentUserId == transfer.toUserId && transfer.status.lowercased() == "pending" {
-                            actionSection
-                        }
-                        
-                        // Bottom padding
-                        Color.clear.frame(height: 80)
-                    }
-                    .padding(.horizontal, 24)
-                }
-            }
-            
-            // Header
-            UniversalHeaderView(
-                title: "Transfer Details",
-                showBackButton: true,
-                backButtonAction: { dismiss() },
-                trailingButton: {
-                    AnyView(
-                        Button(action: {}) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(AppColors.accent)
-                        }
-                    )
-                }
-            )
-        }
-        .navigationTitle("")
-        .navigationBarHidden(true)
-        .alert("Confirm Action", isPresented: $showingActionConfirmation) {
-            if pendingAction == .reject {
-                TextField("Rejection reason (optional)", text: $rejectionNotes)
-            }
-            
-            Button("Cancel", role: .cancel) {
-                pendingAction = nil
-                rejectionNotes = ""
-            }
-            
-            Button(pendingAction == .approve ? "Approve" : "Reject", role: pendingAction == .approve ? .none : .destructive) {
-                if let action = pendingAction {
-                    Task {
-                        await performAction(action)
-                    }
-                }
-            }
-        } message: {
-            Text("Are you sure you want to \(pendingAction == .approve ? "approve" : "reject") this transfer?")
-        }
-    }
-    
-    // MARK: - Status Header
-    private var statusHeader: some View {
-        let statusColor = statusColor(for: transfer.status)
-        
-        return VStack(spacing: 20) {
-            Circle()
-                .fill(statusColor.opacity(0.1))
-                .frame(width: 80, height: 80)
-                .overlay(
-                    Image(systemName: statusIcon(for: transfer.status))
-                        .font(.system(size: 32, weight: .light))
-                        .foregroundColor(statusColor)
-                )
-            
-            Text(transfer.status.uppercased())
-                .font(.system(size: 24, weight: .medium, design: .monospaced))
-                .foregroundColor(statusColor)
-                .compatibleKerning(2.0)
-        }
-        .frame(maxWidth: .infinity)
-        .modernCard()
-    }
-    
-    // MARK: - Property Section
-    private var propertySection: some View {
-        VStack(spacing: 24) {
-            ModernSectionHeader(
-                title: "Property Details"
-            )
-            
-            VStack(spacing: 16) {
-                CleanDetailRow(label: "ITEM NAME", value: transfer.propertyName ?? "Unknown Item")
-                CleanDetailRow(label: "SERIAL NUMBER", value: transfer.propertySerialNumber ?? "Unknown", isMonospaced: true)
-                CleanDetailRow(label: "PROPERTY ID", value: "#\(transfer.propertyId)", isMonospaced: true)
-            }
-            .modernCard()
-        }
-    }
-    
-    // MARK: - Transfer Section
-    private var transferSection: some View {
-        VStack(spacing: 24) {
-            ModernSectionHeader(
-                title: "Transfer Information"
-            )
-            
-            VStack(spacing: 16) {
-                if let fromUser = transfer.fromUser {
-                    CleanUserRow(label: "FROM", user: fromUser)
-                }
-                
-                if let toUser = transfer.toUser {
-                    CleanUserRow(label: "TO", user: toUser)
-                }
-                
-                CleanDetailRow(label: "REQUESTED", value: formatDate(transfer.requestDate))
-                
-                if let approvalDate = transfer.resolvedDate {
-                    CleanDetailRow(label: "COMPLETED", value: formatDate(approvalDate))
-                }
-            }
-            .modernCard()
-        }
-    }
-    
-    // MARK: - Notes Section
-    private func notesSection(_ notes: String) -> some View {
-        VStack(spacing: 24) {
-            ModernSectionHeader(
-                title: "Notes"
-            )
-            
-            Text(notes)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .modernCard()
-        }
-    }
-    
-    // MARK: - Action Section
-    private var actionSection: some View {
-        VStack(spacing: 24) {
-            Text("PENDING YOUR APPROVAL")
-                .font(AppFonts.captionBold)
-                .foregroundColor(AppColors.warning)
-                .compatibleKerning(2.0)
-            
-            HStack(spacing: 16) {
-                Button(action: {
-                    pendingAction = .reject
-                    showingActionConfirmation = true
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "xmark")
-                        Text("REJECT")
-                            .compatibleKerning(1.5)
-                    }
-                    .font(AppFonts.bodyBold)
-                }
-                .buttonStyle(.secondary)
-                .disabled(isProcessing)
-                
-                Button(action: {
-                    pendingAction = .approve
-                    showingActionConfirmation = true
-                }) {
-                    if isProcessing {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark")
-                            Text("APPROVE")
-                                .compatibleKerning(1.5)
-                        }
-                        .font(AppFonts.bodyBold)
-                    }
-                }
-                .buttonStyle(.primary)
-                .disabled(isProcessing)
-            }
-        }
-    }
-    
-    // MARK: - Helper Methods
-    private func performAction(_ action: TransferAction) async {
-        isProcessing = true
-        
-        switch action {
-        case .approve:
-            viewModel.approveTransfer(transferId: transfer.id)
-        case .reject:
-            viewModel.rejectTransfer(transferId: transfer.id)
-        }
-        
-        dismiss()
-        viewModel.fetchTransfers()
-        
-        isProcessing = false
-        pendingAction = nil
-        rejectionNotes = ""
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMM yyyy HH:mm"
-        return formatter.string(from: date).uppercased()
-    }
-    
-    private func statusColor(for status: String) -> Color {
-        switch status.lowercased() {
-        case "pending": return AppColors.warning
-        case "completed", "approved": return AppColors.success
-        case "rejected": return AppColors.destructive
-        default: return AppColors.secondaryText
-        }
-    }
-    
-    private func statusIcon(for status: String) -> String {
-        switch status.lowercased() {
-        case "pending": return "clock"
-        case "completed", "approved": return "checkmark.circle"
-        case "rejected": return "xmark.circle"
-        default: return "questionmark.circle"
-        }
-    }
-}
-
-// MARK: - Supporting Views
-
-struct CleanDetailRow: View {
-    let label: String
-    let value: String
-    var isMonospaced: Bool = false
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
-                .compatibleKerning(1.5)
-                .frame(width: 120, alignment: .leading)
-            
-            Text(value)
-                .font(isMonospaced ? .system(size: 16, design: .monospaced) : AppFonts.body)
-                .foregroundColor(AppColors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-struct CleanUserRow: View {
-    let label: String
-    let user: UserSummary
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
-                .compatibleKerning(1.5)
-                .frame(width: 120, alignment: .leading)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(user.rank ?? "") \(user.lastName ?? "")")
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.primaryText)
-                Text("@\(user.username)")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-                Text("ID: #\(user.id)")
-                    .font(.system(size: 13, design: .monospaced))
-                    .foregroundColor(AppColors.tertiaryText)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 }
 
 // MARK: - Supporting Types
-
 enum TransferTab: String, CaseIterable {
     case incoming
     case outgoing
@@ -1069,18 +584,30 @@ enum TransferTab: String, CaseIterable {
         case .outgoing: return "Outgoing"
         }
     }
-    
-    var icon: String {
-        switch self {
-        case .incoming: return "arrow.down"
-        case .outgoing: return "arrow.up"
-        }
-    }
 }
 
 enum TransferAction {
     case approve
     case reject
+}
+
+// MARK: - Extension for compatibility
+extension View {
+    func compatibleKerning(_ value: CGFloat) -> some View {
+        if #available(iOS 16.0, *) {
+            return self.tracking(value)
+        } else {
+            return self
+        }
+    }
+    
+    func minimalRefreshable(action: @escaping () async -> Void) -> some View {
+        if #available(iOS 15.0, *) {
+            return self.refreshable(action: action)
+        } else {
+            return self
+        }
+    }
 }
 
 // MARK: - Previews
