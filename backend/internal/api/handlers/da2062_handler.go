@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,16 +19,20 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
+	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
+	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
 )
 
 // DA2062Handler handles DA2062-related operations
 type DA2062Handler struct {
-	Ledger       ledger.LedgerService
-	Repo         repository.Repository
-	PDFGenerator *pdf.DA2062Generator
-	EmailService *email.DA2062EmailService
+	Ledger         ledger.LedgerService
+	Repo           repository.Repository
+	PDFGenerator   *pdf.DA2062Generator
+	EmailService   *email.DA2062EmailService
+	OCRService     *ocr.AzureOCRService
+	StorageService storage.StorageService
 }
 
 // NewDA2062Handler creates a new DA2062 handler
@@ -35,12 +41,16 @@ func NewDA2062Handler(
 	repo repository.Repository,
 	pdfGenerator *pdf.DA2062Generator,
 	emailService *email.DA2062EmailService,
+	ocrService *ocr.AzureOCRService,
+	storageService storage.StorageService,
 ) *DA2062Handler {
 	return &DA2062Handler{
-		Ledger:       ledgerService,
-		Repo:         repo,
-		PDFGenerator: pdfGenerator,
-		EmailService: emailService,
+		Ledger:         ledgerService,
+		Repo:           repo,
+		PDFGenerator:   pdfGenerator,
+		EmailService:   emailService,
+		OCRService:     ocrService,
+		StorageService: storageService,
 	}
 }
 
@@ -309,13 +319,163 @@ func (h *DA2062Handler) GetUnverifiedItems(c *gin.Context) {
 	})
 }
 
-// UploadDA2062 handles DA2062 form upload (placeholder - actual OCR happens on mobile)
+// UploadDA2062 handles DA2062 form upload with Azure OCR processing
 func (h *DA2062Handler) UploadDA2062(c *gin.Context) {
-	// This endpoint would typically receive the parsed DA2062 data from the mobile app
-	// after OCR processing. For now, it's a placeholder.
-	c.JSON(http.StatusOK, gin.H{
-		"message": "DA2062 upload endpoint - processing happens on mobile client",
-	})
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	// Get uploaded file
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	contentType := header.Header.Get("Content-Type")
+	if !isValidImageType(contentType) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only images and PDFs are supported"})
+		return
+	}
+
+	// Read file data
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+
+	// Upload to Azure Blob Storage for OCR processing
+	ctx := context.Background()
+	objectName := fmt.Sprintf("da2062-scans/%d/%d-%s", userID, time.Now().Unix(), header.Filename)
+
+	err = h.StorageService.UploadFile(ctx, objectName, strings.NewReader(string(fileData)), int64(len(fileData)), contentType)
+	if err != nil {
+		log.Printf("Failed to upload file to storage: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store file"})
+		return
+	}
+
+	// Get presigned URL for Azure OCR
+	imageURL, err := h.StorageService.GetPresignedURL(ctx, objectName, 1*time.Hour)
+	if err != nil {
+		log.Printf("Failed to get presigned URL: %v", err)
+		// Fallback to direct bytes processing
+		parsedForm, err := h.OCRService.ProcessImageFromBytes(ctx, fileData, contentType)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "OCR processing failed: " + err.Error()})
+			return
+		}
+		h.respondWithParsedForm(c, parsedForm, userID)
+		return
+	}
+
+	// Process with Azure OCR using URL
+	parsedForm, err := h.OCRService.ProcessImageFromURL(ctx, imageURL)
+	if err != nil {
+		log.Printf("Azure OCR failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "OCR processing failed: " + err.Error()})
+		return
+	}
+
+	h.respondWithParsedForm(c, parsedForm, userID)
+}
+
+// isValidImageType checks if the content type is supported
+func isValidImageType(contentType string) bool {
+	supportedTypes := []string{
+		"image/jpeg",
+		"image/jpg",
+		"image/png",
+		"image/tiff",
+		"image/bmp",
+		"application/pdf",
+	}
+
+	for _, validType := range supportedTypes {
+		if contentType == validType {
+			return true
+		}
+	}
+	return false
+}
+
+// respondWithParsedForm converts OCR results to API response format
+func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA2062ParsedForm, userID uint) {
+	// Convert OCR parsed items to API format
+	var items []models.DA2062ImportItem
+
+	for _, ocrItem := range parsedForm.Items {
+		// Generate or use existing serial number
+		serialNumber := ocrItem.SerialNumber
+		if serialNumber == "" {
+			// Generate a placeholder serial for items without serials
+			serialNumber = fmt.Sprintf("NOSERIAL-%s-%d", ocrItem.NSN, time.Now().Unix())
+		}
+
+		// Create import metadata
+		importMetadata := models.ImportMetadata{
+			Source:               "azure_ocr",
+			FormNumber:           parsedForm.FormNumber,
+			ScanConfidence:       ocrItem.Confidence,
+			SerialSource:         getSerialSource(ocrItem),
+			OriginalQuantity:     ocrItem.Quantity,
+			RequiresVerification: len(ocrItem.VerificationReasons) > 0 || ocrItem.Confidence < 0.7,
+			VerificationReasons:  ocrItem.VerificationReasons,
+		}
+
+		item := models.DA2062ImportItem{
+			Name:           ocrItem.ItemDescription,
+			Description:    ocrItem.ItemDescription,
+			SerialNumber:   serialNumber,
+			NSN:            ocrItem.NSN,
+			Quantity:       ocrItem.Quantity,
+			SourceRef:      parsedForm.FormNumber,
+			ImportMetadata: &importMetadata,
+		}
+
+		items = append(items, item)
+	}
+
+	// Build response
+	response := gin.H{
+		"success": true,
+		"form_info": gin.H{
+			"unit_name":   parsedForm.UnitName,
+			"dodaac":      parsedForm.DODAAC,
+			"form_number": parsedForm.FormNumber,
+			"confidence":  parsedForm.Confidence,
+		},
+		"items":       items,
+		"total_items": len(items),
+		"metadata":    parsedForm.Metadata,
+		"next_steps": gin.H{
+			"verification_needed": parsedForm.Metadata.RequiresVerification,
+			"message":             "Review items and submit for creation",
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// getSerialSource determines how the serial number was obtained
+func getSerialSource(item ocr.DA2062ParsedItem) string {
+	if item.SerialNumber == "" {
+		return "none"
+	}
+	if item.HasExplicitSerial {
+		return "ocr_explicit"
+	}
+	return "ocr_inferred"
 }
 
 // SearchDA2062Forms searches for DA2062 forms

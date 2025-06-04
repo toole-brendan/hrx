@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
+	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
@@ -47,7 +49,16 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Create PDF and email services for DA2062 functionality
 	pdfGenerator := pdf.NewDA2062Generator(repo)
 	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
-	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService)
+
+	// Initialize Azure OCR service
+	azureOCREndpoint := os.Getenv("AZURE_OCR_ENDPOINT")
+	azureOCRKey := os.Getenv("AZURE_OCR_KEY")
+	var ocrService *ocr.AzureOCRService
+	if azureOCREndpoint != "" && azureOCRKey != "" {
+		ocrService = ocr.NewAzureOCRService(azureOCREndpoint, azureOCRKey)
+	}
+
+	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService, ocrService, storageService)
 
 	// Add component handler
 	componentHandler := handlers.NewComponentHandler(componentService, ledgerService)
