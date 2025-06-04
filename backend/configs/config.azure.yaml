@@ -33,6 +33,13 @@ immudb:
   password: ""  # Uses HANDRECEIPT_IMMUDB_PASSWORD env var
   database: "defaultdb"
 
+# Azure OCR Configuration
+ocr:
+  type: "azure"
+  endpoint: ""  # Uses AZURE_OCR_ENDPOINT env var
+  api_key: ""   # Uses AZURE_OCR_KEY env var
+  enabled: true
+
 # Security - Azure-specific CORS
 security:
   cors_allowed_origins:

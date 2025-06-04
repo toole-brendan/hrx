@@ -385,6 +385,12 @@ jobs:
               --name ${{ env.BACKEND_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --secrets jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+            
+            az containerapp secret set \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --secrets azure-ocr-key="8xV5rQq1XSkAoQmvDMJoGkM5OxsPz6Z4q88wE8j3VN7xhPzPaMUQJQQJ99BFACHYHv6XJ3w3AAAFACOG9Li2"
+            
             az containerapp update \
               --name ${{ env.BACKEND_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
@@ -410,7 +416,9 @@ jobs:
                 HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
                 HANDRECEIPT_MINIO_ENABLED=false \
                 HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
-                HANDRECEIPT_CONFIG_NAME=config.azure
+                HANDRECEIPT_CONFIG_NAME=config.azure \
+                AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
+                AZURE_OCR_KEY=secretref:azure-ocr-key
           else
             echo "🚀 Creating new Backend API..."
             az containerapp create \
@@ -430,6 +438,7 @@ jobs:
                 immudb-password="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
                 storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=$STORAGE_ACCOUNT_KEY;EndpointSuffix=core.windows.net" \
                 jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=" \
+                azure-ocr-key="8xV5rQq1XSkAoQmvDMJoGkM5OxsPz6Z4q88wE8j3VN7xhPzPaMUQJQQJ99BFACHYHv6XJ3w3AAAFACOG9Li2" \
               --env-vars \
                 HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
                 HANDRECEIPT_DATABASE_USER=hradmin \
@@ -451,7 +460,9 @@ jobs:
                 HANDRECEIPT_STORAGE_CONNECTION_STRING=secretref:storage-connection-string \
                 HANDRECEIPT_MINIO_ENABLED=false \
                 HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
-                HANDRECEIPT_CONFIG_NAME=config.azure
+                HANDRECEIPT_CONFIG_NAME=config.azure \
+                AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
+                AZURE_OCR_KEY=secretref:azure-ocr-key
           fi
 
       - name: Deploy Worker
