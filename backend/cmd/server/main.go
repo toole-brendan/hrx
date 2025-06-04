@@ -142,7 +142,17 @@ func main() {
 	// Initialize Ledger Service based on configuration
 	var ledgerService ledger.LedgerService
 
-	if environment == "production" || viper.GetBool("immudb.enabled") {
+	// Debug logging for ImmuDB configuration
+	immudbEnabled := viper.GetBool("immudb.enabled")
+	immudbEnabledEnv := os.Getenv("HANDRECEIPT_IMMUDB_ENABLED")
+	log.Printf("DEBUG: environment=%s, viper.GetBool('immudb.enabled')=%v, HANDRECEIPT_IMMUDB_ENABLED=%s",
+		environment, immudbEnabled, immudbEnabledEnv)
+
+	// Check if ImmuDB should be enabled - handle string "true" from environment variable
+	shouldUseImmuDB := environment == "production" || immudbEnabled || immudbEnabledEnv == "true"
+	log.Printf("DEBUG: shouldUseImmuDB=%v", shouldUseImmuDB)
+
+	if shouldUseImmuDB {
 		// Use ImmuDB for ledger service
 		immuHost := viper.GetString("immudb.host")
 		immuPort := viper.GetInt("immudb.port")
