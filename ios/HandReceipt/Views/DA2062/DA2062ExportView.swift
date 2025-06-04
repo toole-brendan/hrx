@@ -14,129 +14,122 @@ struct DA2062ExportView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color(UIColor.systemGroupedBackground)
-                    .ignoresSafeArea()
+        ZStack {
+            // Light background
+            AppColors.appBackground
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom navigation bar
+                MinimalNavigationBar(
+                    title: "Export DA 2062",
+                    titleStyle: .mono,
+                    showBackButton: false,
+                    trailingItems: [
+                        .init(text: "Cancel", style: .text, action: { dismiss() })
+                    ]
+                )
                 
                 ScrollView {
-                    VStack(spacing: 20) {
-                        // Unit Information Card
-                        unitInfoCard
+                    VStack(spacing: 24) {
+                        // Unit Information Section
+                        unitInfoSection
                         
-                        // Property Selection Card
-                        propertySelectionCard
+                        // Property Selection Section
+                        propertySelectionSection
                         
-                        // Export Options Card
-                        exportOptionsCard
+                        // Export Options Section
+                        exportOptionsSection
                         
                         // Action Buttons
                         actionButtons
                     }
-                    .padding()
-                }
-                
-                if isGenerating {
-                    LoadingOverlay(message: "Generating DA 2062...")
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Export DA 2062")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
+            
+            if isGenerating {
+                MinimalLoadingOverlay(message: "Generating DA 2062...")
             }
-            .sheet(isPresented: $showingMailComposer) {
-                if let pdfData = generatedPDF {
-                    MailComposerView(
-                        subject: "DA Form 2062 - \(viewModel.formNumber)",
-                        body: generateEmailBody(),
-                        recipients: emailRecipients.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) },
-                        attachments: [(data: pdfData, mimeType: "application/pdf", fileName: "DA2062_\(viewModel.formNumber).pdf")]
-                    )
-                }
+        }
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingMailComposer) {
+            if let pdfData = generatedPDF {
+                MailComposerView(
+                    subject: "DA Form 2062 - \(viewModel.formNumber)",
+                    body: generateEmailBody(),
+                    recipients: emailRecipients.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) },
+                    attachments: [(data: pdfData, mimeType: "application/pdf", fileName: "DA2062_\(viewModel.formNumber).pdf")]
+                )
             }
-            .sheet(isPresented: $showingShareSheet) {
-                if let pdfData = generatedPDF {
-                    ShareSheet(items: [pdfData])
-                }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let pdfData = generatedPDF {
+                ShareSheet(items: [pdfData])
             }
-            .alert("Export Error", isPresented: $showError) {
-                Button("OK") { }
-            } message: {
-                Text(errorMessage)
-            }
-            .task {
-                await viewModel.loadUserProperties()
-            }
+        }
+        .alert("Export Error", isPresented: $showError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
+        }
+        .task {
+            await viewModel.loadUserProperties()
         }
     }
     
     // MARK: - View Components
     
-    private var unitInfoCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "building.2")
-                    .foregroundColor(.blue)
-                Text("Unit Information")
-                    .font(.headline)
-                Spacer()
-                Button("Edit") {
-                    // Show unit info editor
-                }
-                .font(.caption)
-            }
+    private var unitInfoSection: some View {
+        VStack(spacing: 16) {
+            ElegantSectionHeader(
+                title: "Unit Information",
+                subtitle: "Organization details for this hand receipt",
+                style: .serif,
+                action: { /* Show unit info editor */ },
+                actionLabel: "Edit"
+            )
             
-            Divider()
-            
-            VStack(alignment: .leading, spacing: 8) {
-                InfoRow(label: "Unit", value: viewModel.unitInfo.unitName)
-                InfoRow(label: "DODAAC", value: viewModel.unitInfo.dodaac)
-                InfoRow(label: "Location", value: viewModel.unitInfo.location)
+            VStack(spacing: 12) {
+                MinimalInfoRow(label: "UNIT", value: viewModel.unitInfo.unitName, valueFont: .mono)
+                MinimalInfoRow(label: "DODAAC", value: viewModel.unitInfo.dodaac, valueFont: .mono)
+                MinimalInfoRow(label: "LOCATION", value: viewModel.unitInfo.location)
             }
+            .cleanCard(padding: 16)
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
     }
     
-    private var propertySelectionCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "list.bullet.rectangle")
-                    .foregroundColor(.green)
-                Text("Select Properties")
-                    .font(.headline)
-                Spacer()
-                Text("\(viewModel.selectedPropertyIDs.count) selected")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Divider()
+    private var propertySelectionSection: some View {
+        VStack(spacing: 16) {
+            ElegantSectionHeader(
+                title: "Select Properties",
+                subtitle: "\(viewModel.selectedPropertyIDs.count) of \(viewModel.properties.count) items selected",
+                style: .serif
+            )
             
             if viewModel.properties.isEmpty {
-                Text("No properties available")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical)
+                CompactEmptyState(
+                    icon: "shippingbox",
+                    title: "No Properties Available",
+                    message: "You don't have any properties to export"
+                )
+                .padding(.vertical, 32)
+                .cleanCard(showShadow: false)
             } else {
-                VStack(spacing: 8) {
-                    // Quick actions
-                    HStack(spacing: 12) {
+                VStack(spacing: 16) {
+                    // Quick actions with minimal styling
+                    HStack(spacing: 20) {
                         Button("Select All") {
                             viewModel.selectAll()
                         }
-                        .font(.caption)
+                        .buttonStyle(.textLink)
                         
                         Button("Clear") {
                             viewModel.clearSelection()
                         }
-                        .font(.caption)
+                        .buttonStyle(.textLink)
                         
                         Spacer()
                         
@@ -151,72 +144,64 @@ struct DA2062ExportView: View {
                                 viewModel.selectSensitiveItems()
                             }
                         } label: {
-                            Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
-                                .font(.caption)
+                            HStack(spacing: 6) {
+                                Text("FILTER")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.secondaryText)
+                                    .kerning(AppFonts.wideKerning)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 10, weight: .regular))
+                                    .foregroundColor(AppColors.secondaryText)
+                            }
                         }
                     }
                     
-                    // Property list
-                    ForEach(viewModel.properties) { property in
-                        PropertySelectionRow(
-                            property: property,
-                            isSelected: viewModel.selectedPropertyIDs.contains(property.id),
-                            onToggle: {
-                                viewModel.toggleSelection(for: property.id)
-                            }
-                        )
+                    // Property list with minimal cards
+                    VStack(spacing: 8) {
+                        ForEach(viewModel.properties) { property in
+                            MinimalPropertySelectionRow(
+                                property: property,
+                                isSelected: viewModel.selectedPropertyIDs.contains(property.id),
+                                onToggle: {
+                                    viewModel.toggleSelection(for: property.id)
+                                }
+                            )
+                        }
                     }
                 }
+                .cleanCard(padding: 16)
             }
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
     }
     
-    private var exportOptionsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "gearshape")
-                    .foregroundColor(.orange)
-                Text("Export Options")
-                    .font(.headline)
-                Spacer()
-            }
+    private var exportOptionsSection: some View {
+        VStack(spacing: 16) {
+            ElegantSectionHeader(
+                title: "Export Options",
+                style: .uppercase
+            )
             
-            Divider()
-            
-            VStack(spacing: 12) {
-                Toggle(isOn: $viewModel.groupByCategory) {
-                    HStack {
-                        Image(systemName: "folder")
-                            .foregroundColor(.secondary)
-                        VStack(alignment: .leading) {
-                            Text("Group by Category")
-                            Text("Organize items by type")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
+            VStack(spacing: 0) {
+                MinimalToggleRow(
+                    isOn: $viewModel.groupByCategory,
+                    icon: "folder",
+                    title: "Group by Category",
+                    subtitle: "Organize items by type"
+                )
                 
-                Toggle(isOn: $viewModel.includeQRCodes) {
-                    HStack {
-                        Image(systemName: "qrcode")
-                            .foregroundColor(.secondary)
-                        VStack(alignment: .leading) {
-                            Text("Include QR Codes")
-                            Text("Add QR codes for each item")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
+                Divider()
+                    .background(AppColors.divider)
+                    .padding(.leading, 44)
+                
+                MinimalToggleRow(
+                    isOn: $viewModel.includeQRCodes,
+                    icon: "qrcode",
+                    title: "Include QR Codes",
+                    subtitle: "Add QR codes for each item"
+                )
             }
+            .cleanCard(padding: 0)
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
     }
     
     private var actionButtons: some View {
@@ -224,14 +209,12 @@ struct DA2062ExportView: View {
             Button(action: generateAndShare) {
                 HStack {
                     Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .regular))
                     Text("Generate & Share")
+                        .font(AppFonts.bodyMedium)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
             }
+            .buttonStyle(.minimalPrimary)
             .disabled(viewModel.selectedPropertyIDs.isEmpty)
             
             Button(action: {
@@ -239,14 +222,12 @@ struct DA2062ExportView: View {
             }) {
                 HStack {
                     Image(systemName: "envelope")
+                        .font(.system(size: 16, weight: .regular))
                     Text("Email PDF")
+                        .font(AppFonts.bodyMedium)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(viewModel.selectedPropertyIDs.isEmpty ? Color.gray : Color.green)
-                .foregroundColor(.white)
-                .cornerRadius(10)
             }
+            .buttonStyle(.minimalSecondary)
             .disabled(viewModel.selectedPropertyIDs.isEmpty || !MFMailComposeViewController.canSendMail())
             .alert("Email Recipients", isPresented: $showingRecipientInput) {
                 TextField("Enter email addresses", text: $emailRecipients)
@@ -297,12 +278,10 @@ struct DA2062ExportView: View {
         isGenerating = true
         do {
             if emailRecipients.isEmpty {
-                // Generate PDF and show mail composer
                 generatedPDF = try await viewModel.generatePDF()
                 isGenerating = false
                 showingMailComposer = true
             } else {
-                // Send directly via backend
                 let recipients = emailRecipients
                     .components(separatedBy: ",")
                     .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -311,7 +290,6 @@ struct DA2062ExportView: View {
                 try await viewModel.emailPDF(to: recipients)
                 isGenerating = false
                 
-                // Show success
                 errorMessage = "DA 2062 sent successfully to \(recipients.count) recipient(s)"
                 showError = true
             }
@@ -325,30 +303,61 @@ struct DA2062ExportView: View {
 
 // MARK: - Supporting Views
 
-struct PropertySelectionRow: View {
+struct CompactEmptyState: View {
+    let icon: String
+    let title: String
+    let message: String
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 40, weight: .thin))
+                .foregroundColor(AppColors.tertiaryText)
+            
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(AppFonts.headline)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text(message)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.secondaryText)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct MinimalPropertySelectionRow: View {
     let property: Property
     let isSelected: Bool
     let onToggle: () -> Void
     
     var body: some View {
-        HStack {
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(isSelected ? .blue : .secondary)
+        HStack(spacing: 12) {
+            // Clean checkbox style
+            Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                .font(.system(size: 20, weight: .light))
+                .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
                 .onTapGesture {
                     onToggle()
                 }
             
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(property.name)
-                    .font(.subheadline)
-                HStack {
+                    .font(AppFonts.bodyMedium)
+                    .foregroundColor(AppColors.primaryText)
+                
+                HStack(spacing: 12) {
                     Text("SN: \(property.serialNumber)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(AppFonts.monoCaption)
+                        .foregroundColor(AppColors.secondaryText)
+                    
                     if let nsn = property.nsn {
-                        Text("• NSN: \(nsn)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Text("NSN: \(nsn)")
+                            .font(AppFonts.monoCaption)
+                            .foregroundColor(AppColors.secondaryText)
                     }
                 }
             }
@@ -356,41 +365,134 @@ struct PropertySelectionRow: View {
             Spacer()
             
             if property.isSensitive {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
-                    .font(.caption)
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 14, weight: .light))
+                    .foregroundColor(AppColors.warning)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
         .contentShape(Rectangle())
         .onTapGesture {
             onToggle()
         }
+        .background(isSelected ? AppColors.accentMuted : Color.clear)
+        .cornerRadius(4)
     }
 }
 
-// InfoRow is imported from DocumentsView
+struct MinimalInfoRow: View {
+    let label: String
+    let value: String
+    var valueFont: FontType = .sans
+    
+    enum FontType {
+        case sans, mono, serif
+    }
+    
+    var body: some View {
+        HStack {
+            Text(label.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.tertiaryText)
+                .kerning(AppFonts.wideKerning)
+                .frame(width: 100, alignment: .leading)
+            
+            switch valueFont {
+            case .sans:
+                Text(value)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.primaryText)
+            case .mono:
+                Text(value)
+                    .font(AppFonts.monoBody)
+                    .foregroundColor(AppColors.primaryText)
+            case .serif:
+                Text(value)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.primaryText)
+            }
+            
+            Spacer()
+        }
+    }
+}
 
-struct LoadingOverlay: View {
+struct MinimalToggleRow: View {
+    @Binding var isOn: Bool
+    let icon: String
+    let title: String
+    let subtitle: String
+    
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundColor(AppColors.tertiaryText)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(AppFonts.bodyMedium)
+                        .foregroundColor(AppColors.primaryText)
+                    Text(subtitle)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+            }
+        }
+        .toggleStyle(MinimalToggleStyle())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
+
+struct MinimalToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            Spacer()
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(configuration.isOn ? AppColors.primaryText : AppColors.tertiaryBackground)
+                    .frame(width: 48, height: 28)
+                
+                Circle()
+                    .fill(AppColors.secondaryBackground)
+                    .frame(width: 24, height: 24)
+                    .offset(x: configuration.isOn ? 10 : -10)
+            }
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    configuration.isOn.toggle()
+                }
+            }
+        }
+    }
+}
+
+struct MinimalLoadingOverlay: View {
     let message: String
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.4)
+            AppColors.overlayBackground
                 .ignoresSafeArea()
             
-            VStack(spacing: 16) {
+            VStack(spacing: 20) {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.5)
+                    .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                    .scaleEffect(0.8)
                 
                 Text(message)
-                    .foregroundColor(.white)
-                    .font(.headline)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.primaryText)
             }
-            .padding(24)
-            .background(Color.black.opacity(0.8))
-            .cornerRadius(12)
+            .padding(32)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(8)
+            .shadow(color: AppColors.shadowColor, radius: 8, y: 4)
         }
     }
 }
