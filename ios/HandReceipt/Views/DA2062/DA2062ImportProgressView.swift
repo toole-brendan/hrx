@@ -40,101 +40,78 @@ struct ImportError: Identifiable {
 // MARK: - Progress View
 
 struct DA2062ImportProgressView: View {
-    @ObservedObject var viewModel: DA2062ImportViewModel
+    @Binding var isImporting: Bool
+    @Binding var importError: String?
+    let onDismiss: () -> Void
     @State private var showingErrors = false
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: progressIcon)
-                    .font(.system(size: 48))
-                    .foregroundColor(progressColor)
+        NavigationView {
+            VStack(spacing: 30) {
+                Spacer()
                 
-                Text(viewModel.progress.currentPhase.rawValue)
-                    .font(.headline)
-                
-                if !viewModel.progress.currentItem.isEmpty {
-                    Text(viewModel.progress.currentItem)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                }
-            }
-            .padding()
-            
-            // Progress Bar
-            VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: viewModel.progress.progress)
-                    .progressViewStyle(LinearProgressViewStyle())
-                    .scaleEffect(x: 1, y: 2, anchor: .center)
-                
-                HStack {
-                    Text("\(viewModel.progress.processedItems) of \(viewModel.progress.totalItems) items")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Text("\(viewModel.progress.progressPercentage)%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal)
-            
-            // Phase Indicators
-            PhaseIndicatorView(currentPhase: viewModel.progress.currentPhase)
-                .padding()
-            
-            // Error Summary (if any)
-            if !viewModel.progress.errors.isEmpty {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    
-                    Text("\(viewModel.progress.errors.count) items need review")
-                        .font(.caption)
-                    
-                    Spacer()
-                    
-                    Button("View") {
-                        showingErrors = true
+                // Status Icon and Text
+                VStack(spacing: 16) {
+                    if isImporting {
+                        ProgressView()
+                            .scaleEffect(2.0)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                        
+                        Text("Importing Items...")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Creating property records in your inventory")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    } else if let error = importError {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.red)
+                        
+                        Text("Import Failed")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text(error)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.green)
+                        
+                        Text("Import Complete!")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Your DA-2062 items have been added to your inventory")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .font(.caption)
                 }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal)
-            }
-            
-            // Action Buttons
-            HStack(spacing: 16) {
-                if viewModel.progress.currentPhase != .complete {
-                    Button("Cancel") {
-                        viewModel.cancelImport()
+                
+                Spacer()
+                
+                // Action Button
+                if !isImporting {
+                    Button(importError != nil ? "Try Again" : "Done") {
+                        onDismiss()
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.secondary.opacity(0.2))
-                    .cornerRadius(8)
-                } else {
-                    Button("Done") {
-                        viewModel.completeImport()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
+                    .background(importError != nil ? Color.orange : Color.blue)
                     .foregroundColor(.white)
-                    .cornerRadius(8)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
                 }
             }
-            .padding()
-        }
-        .sheet(isPresented: $showingErrors) {
-            ImportErrorsView(errors: viewModel.progress.errors)
+            .navigationTitle("Import Progress")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
     

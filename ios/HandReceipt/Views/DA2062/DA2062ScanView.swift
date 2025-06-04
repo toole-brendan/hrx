@@ -4,12 +4,9 @@ import VisionKit
 struct DA2062ScanView: View {
     @StateObject private var scannerViewModel = DA2062DocumentScannerViewModel()
     @StateObject private var da2062ViewModel = DA2062ScanViewModel()
-    @StateObject private var importViewModel = DA2062ImportViewModel()
     @State private var showingScanner = false
     @State private var showingProcessingView = false
     @State private var showingReviewSheet = false
-    @State private var showingImportProgress = false
-    @State private var showingImportSummary = false
     @State private var scannerAvailable = VNDocumentCameraViewController.isSupported
     @Environment(\.dismiss) private var dismiss
     
@@ -114,21 +111,35 @@ struct DA2062ScanView: View {
             }
             .sheet(isPresented: $showingProcessingView) {
                 ProcessingView(viewModel: scannerViewModel, da2062ViewModel: da2062ViewModel) {
-                    // Processing complete
+                    // Processing complete - use Azure OCR as primary method
                     showingProcessingView = false
                     
-                    // Parse the extracted text into DA2062 form
-                    da2062ViewModel.processExtractedText(
-                        scannerViewModel.extractedText,
-                        pages: scannerViewModel.scannedPages.map { $0.image },
-                        confidence: scannerViewModel.ocrConfidence
-                    ) { result in
+                    Task {
+                        let result = await da2062ViewModel.uploadScannedFormToAzure(pages: scannerViewModel.scannedPages)
+                        
                         switch result {
                         case .success:
                             showingReviewSheet = true
                         case .failure(let error):
-                            // Show error alert
-                            print("Error processing DA2062: \(error)")
+                            print("Azure OCR failed: \(error)")
+                            
+                            // Fallback to on-device OCR if Azure fails
+                            if da2062ViewModel.useAzureOCR {
+                                print("Falling back to on-device OCR...")
+                                da2062ViewModel.processExtractedText(
+                                    scannerViewModel.extractedText,
+                                    pages: scannerViewModel.scannedPages.map { $0.image },
+                                    confidence: scannerViewModel.ocrConfidence
+                                ) { fallbackResult in
+                                    switch fallbackResult {
+                                    case .success:
+                                        showingReviewSheet = true
+                                    case .failure(let fallbackError):
+                                        print("Fallback OCR also failed: \(fallbackError)")
+                                        // Show error to user
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -138,40 +149,11 @@ struct DA2062ScanView: View {
                     form: da2062ViewModel.currentForm,
                     scannedPages: scannerViewModel.scannedPages,
                     onConfirm: { items in
-                        // Start the import process with progress tracking
+                        // Legacy callback - not used in Azure OCR workflow
+                        // Import is handled directly in DA2062ReviewSheet
                         showingReviewSheet = false
-                        showingImportProgress = true
-                        
-                        Task {
-                            // Use the first scanned image for processing
-                            if let firstImage = scannerViewModel.scannedPages.first?.image {
-                                await importViewModel.processDA2062WithProgress(image: firstImage)
-                            }
-                        }
                     }
                 )
-            }
-            .sheet(isPresented: $showingImportProgress) {
-                DA2062ImportProgressView(viewModel: importViewModel)
-                    .interactiveDismissDisabled(importViewModel.isImporting)
-            }
-            .sheet(isPresented: $showingImportSummary) {
-                DA2062ImportSummaryView(
-                    totalItems: importViewModel.importSummary.total,
-                    successfulItems: importViewModel.importSummary.successful,
-                    errors: importViewModel.progress.errors,
-                    onDismiss: {
-                        showingImportSummary = false
-                        // Reset import view model
-                        importViewModel.progress = ImportProgress(totalItems: 0)
-                    }
-                )
-            }
-            .onChange(of: importViewModel.showingSummary) { showingSummary in
-                if showingSummary {
-                    showingImportProgress = false
-                    showingImportSummary = true
-                }
             }
         }
     }
@@ -195,13 +177,13 @@ struct ProcessingView: View {
                         .frame(width: 120, height: 120)
                     
                     Circle()
-                        .trim(from: 0, to: viewModel.processingProgress)
+                        .trim(from: 0, to: da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress)
                         .stroke(Color.blue, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                         .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut, value: viewModel.processingProgress)
+                        .animation(.easeInOut, value: da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress)
                     
-                    Text("\(Int(viewModel.processingProgress * 100))%")
+                    Text("\(Int((da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress) * 100))%")
                         .font(.title2)
                         .fontWeight(.semibold)
                 }
@@ -216,7 +198,14 @@ struct ProcessingView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
-                    if viewModel.processingProgress == 1.0 {
+                    if da2062ViewModel.isProcessing && !da2062ViewModel.processingMethod.isEmpty {
+                        Text("Method: \(da2062ViewModel.processingMethod)")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.top, 2)
+                    }
+                    
+                    if viewModel.processingProgress == 1.0 || da2062ViewModel.processingProgress == 1.0 {
                         Label("Complete", systemImage: "checkmark.circle.fill")
                             .foregroundColor(.green)
                             .padding(.top)
@@ -224,9 +213,9 @@ struct ProcessingView: View {
                     
                     // Recognition level info
                     HStack {
-                        Image(systemName: "info.circle")
+                        Image(systemName: da2062ViewModel.useAzureOCR ? "cloud" : "info.circle")
                             .foregroundColor(.blue)
-                        Text("Using accurate recognition for best results")
+                        Text(da2062ViewModel.useAzureOCR ? "Using Azure Cloud OCR for best accuracy" : "Using on-device recognition")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -235,7 +224,7 @@ struct ProcessingView: View {
                 
                 Spacer()
                 
-                if viewModel.processingProgress == 1.0 {
+                if viewModel.processingProgress == 1.0 || da2062ViewModel.processingProgress == 1.0 {
                     Button("Continue") {
                         onComplete()
                     }

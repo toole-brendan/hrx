@@ -8,6 +8,10 @@ struct DA2062ReviewSheet: View {
     @State private var editableItems: [EditableDA2062Item] = []
     @State private var selectedPageIndex = 0
     @State private var showingPagePreview = false
+    @State private var isImporting = false
+    @State private var importError: String?
+    @State private var showingImportProgress = false
+    @StateObject private var scanViewModel = DA2062ScanViewModel()
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -91,20 +95,17 @@ struct DA2062ReviewSheet: View {
                     .foregroundColor(.primary)
                     .cornerRadius(8)
                     
-                    Button("Create Properties") {
-                        // Use the enhanced property creation method from view model
-                        let viewModel = DA2062ScanViewModel()
-                        viewModel.currentForm = form
-                        let requests = viewModel.createPropertiesFromParsedItems(editableItems)
-                        onConfirm(requests)
-                        presentationMode.wrappedValue.dismiss()
+                    Button("Import Items") {
+                        Task {
+                            await importItemsToBackend()
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(editableItems.contains { $0.isValid } ? Color.blue : Color.gray)
+                    .background(editableItems.contains { $0.isValid && $0.isSelected } ? Color.blue : Color.gray)
                     .foregroundColor(.white)
                     .cornerRadius(8)
-                    .disabled(!editableItems.contains { $0.isValid })
+                    .disabled(isImporting || !editableItems.contains { $0.isValid && $0.isSelected })
                 }
                 .padding()
             }
@@ -123,9 +124,48 @@ struct DA2062ReviewSheet: View {
                     onDismiss: { showingPagePreview = false }
                 )
             }
+            .sheet(isPresented: $showingImportProgress) {
+                DA2062ImportProgressView(
+                    isImporting: $isImporting,
+                    importError: $importError,
+                    onDismiss: {
+                        showingImportProgress = false
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                )
+            }
         }
         .onAppear {
             loadEditableItems()
+        }
+    }
+    
+    // MARK: - Azure OCR Import Methods
+    
+    private func importItemsToBackend() async {
+        isImporting = true
+        importError = nil
+        showingImportProgress = true
+        
+        // Set the current form in the scan view model for context
+        scanViewModel.currentForm = form
+        
+        let result = await scanViewModel.importVerifiedItems(editableItems)
+        
+        switch result {
+        case .success(let response):
+            print("Successfully imported \(response.createdCount) items")
+            isImporting = false
+            
+            // Show success and dismiss after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showingImportProgress = false
+                presentationMode.wrappedValue.dismiss()
+            }
+            
+        case .failure(let error):
+            importError = error.localizedDescription
+            isImporting = false
         }
     }
     

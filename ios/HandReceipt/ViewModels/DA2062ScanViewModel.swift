@@ -9,9 +9,12 @@ class DA2062ScanViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var processingProgress: Double = 0.0
     @Published var processingMessage: String = ""
+    @Published var useAzureOCR = true  // Primary OCR method
+    @Published var processingMethod: String = ""
     
     private var cancellables = Set<AnyCancellable>()
     private let ocrService = DA2062OCRService()
+    private let apiService = APIService.shared
     private var progressTimer: Timer?
     
     // MARK: - Enhanced Property Creation with Quantity Handling
@@ -261,6 +264,7 @@ class DA2062ScanViewModel: ObservableObject {
         
         isProcessing = true
         processingProgress = 0.1
+        processingMethod = "On-Device OCR"
         
         // Show appropriate messaging for accurate processing
         processingMessage = "Analyzing document with high accuracy..."
@@ -343,6 +347,160 @@ class DA2062ScanViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Azure OCR Integration
+    
+    // Upload scanned pages to Azure OCR for processing
+    func uploadScannedFormToAzure(pages: [DA2062DocumentScannerViewModel.ScannedPage]) async -> Result<Void, Error> {
+        isProcessing = true
+        processingProgress = 0.0
+        processingMethod = "Azure Cloud OCR"
+        processingMessage = "Preparing document for upload..."
+        errorMessage = nil
+        
+        do {
+            // Step 1: Create PDF from scanned pages
+            processingProgress = 0.1
+            processingMessage = "Creating PDF from scanned pages..."
+            
+            guard let pdfData = PDFCreationUtility.createPDFFromScannedPages(pages) else {
+                throw NSError(domain: "PDFCreation", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create PDF from scanned images"])
+            }
+            
+            // Step 2: Upload to Azure OCR
+            processingProgress = 0.3
+            processingMessage = "Uploading to Azure OCR service..."
+            
+            let fileName = "DA2062_\(Int(Date().timeIntervalSince1970)).pdf"
+            let response = try await apiService.uploadDA2062Form(pdfData: pdfData, fileName: fileName)
+            
+            // Step 3: Process Azure OCR response
+            processingProgress = 0.8
+            processingMessage = "Processing OCR results..."
+            
+            await MainActor.run {
+                self.currentForm = self.convertAzureResponseToForm(response)
+                self.processingProgress = 1.0
+                self.processingMessage = "Azure OCR processing complete!"
+                self.isProcessing = false
+                
+                // Add to recent scans
+                let scan = DA2062Scan(
+                    date: Date(),
+                    pageCount: pages.count,
+                    itemCount: response.items.count,
+                    confidence: response.formInfo.confidence,
+                    formNumber: response.formInfo.formNumber,
+                    requiresVerification: response.nextSteps.verificationNeeded
+                )
+                self.recentScans.insert(scan, at: 0)
+                
+                // Keep only last 10 scans
+                if self.recentScans.count > 10 {
+                    self.recentScans = Array(self.recentScans.prefix(10))
+                }
+            }
+            
+            return .success(())
+            
+        } catch {
+            await MainActor.run {
+                self.isProcessing = false
+                self.processingProgress = 0.0
+                self.errorMessage = error.localizedDescription
+                self.processingMessage = "Azure OCR processing failed"
+            }
+            
+            return .failure(error)
+        }
+    }
+    
+    // Convert Azure OCR response to local DA2062Form model
+    private func convertAzureResponseToForm(_ response: AzureOCRResponse) -> DA2062Form {
+        let items = response.items.map { azureItem in
+            DA2062Item(
+                lineNumber: 0, // Azure doesn't provide line numbers
+                stockNumber: azureItem.nsn,
+                itemDescription: azureItem.description,
+                quantity: azureItem.quantity,
+                unitOfIssue: azureItem.unit,
+                serialNumber: azureItem.serialNumber,
+                condition: azureItem.condition,
+                confidence: azureItem.importMetadata.confidence,
+                quantityConfidence: azureItem.importMetadata.confidence, // Use same confidence for quantity
+                hasExplicitSerial: azureItem.serialNumber?.contains("NOSERIAL") != true
+            )
+        }
+        
+        return DA2062Form(
+            unitName: response.formInfo.unitName,
+            dodaac: response.formInfo.dodaac,
+            dateCreated: Date(),
+            items: items,
+            formNumber: response.formInfo.formNumber,
+            confidence: response.formInfo.confidence
+        )
+    }
+    
+    // Import verified items to backend
+    func importVerifiedItems(_ editableItems: [EditableDA2062Item]) async -> Result<BatchImportResponse, Error> {
+        // Convert editable items to batch items
+        let batchItems = editableItems.filter { $0.isSelected }.map { item in
+            let quantity = Int(item.quantity) ?? 1
+            
+            return DA2062BatchItem(
+                name: item.description,
+                description: buildEnhancedDescription(for: item),
+                serialNumber: item.serialNumber.isEmpty ? generatePlaceholderSerial(for: item, index: 1, total: quantity) : item.serialNumber,
+                nsn: item.nsn.isEmpty ? nil : item.nsn,
+                quantity: quantity,
+                unit: item.unit ?? "EA",
+                category: categorizeItem(item.description),
+                importMetadata: BatchImportMetadata(
+                    confidence: item.confidence,
+                    requiresVerification: item.needsVerification,
+                    verificationReasons: getVerificationReasons(for: item),
+                    sourceDocumentUrl: nil, // Will be filled by backend
+                    originalQuantity: quantity > 1 ? quantity : nil,
+                    quantityIndex: nil
+                )
+            )
+        }
+        
+        do {
+            let response = try await apiService.importDA2062Items(
+                items: batchItems,
+                source: "da2062_scan",
+                sourceReference: currentForm?.formNumber
+            )
+            return .success(response)
+        } catch {
+            return .failure(error)
+        }
+    }
+    
+    // Helper methods for batch import
+    private func getVerificationReasons(for item: EditableDA2062Item) -> [String] {
+        var reasons: [String] = []
+        
+        if item.confidence < 0.7 {
+            reasons.append("Low OCR confidence (\(Int(item.confidence * 100))%)")
+        }
+        
+        if !item.hasExplicitSerial && !item.serialNumber.isEmpty {
+            reasons.append("Serial number was auto-generated")
+        }
+        
+        if item.quantityConfidence < 0.8 && Int(item.quantity) ?? 1 > 1 {
+            reasons.append("Quantity field had low confidence")
+        }
+        
+        if item.nsn.isEmpty {
+            reasons.append("No NSN detected")
+        }
+        
+        return reasons
     }
     
     // Parse DA2062 text format (simplified for compatibility)

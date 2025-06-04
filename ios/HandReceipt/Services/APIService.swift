@@ -124,6 +124,10 @@ public protocol APIServiceProtocol {
     func getDocuments() async throws -> DocumentsResponse
     func markDocumentAsRead(documentId: Int) async throws -> DocumentResponse
     func sendMaintenanceForm(_ formRequest: CreateMaintenanceFormRequest) async throws -> SendMaintenanceFormResponse
+    
+    // MARK: - DA2062 Azure OCR Endpoints
+    func uploadDA2062Form(pdfData: Data, fileName: String) async throws -> AzureOCRResponse
+    func importDA2062Items(items: [DA2062BatchItem], source: String, sourceReference: String?) async throws -> BatchImportResponse
 }
 
 // Debug print function to avoid cluttering 
@@ -1500,6 +1504,61 @@ public class APIService: APIServiceProtocol {
         return response
     }
 
+    // MARK: - DA2062 Azure OCR Implementation
+    
+    public func uploadDA2062Form(pdfData: Data, fileName: String) async throws -> AzureOCRResponse {
+        debugPrint("Uploading DA2062 form for Azure OCR processing: \(fileName)")
+        let endpoint = baseURL.appendingPathComponent("/api/da2062/upload")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        
+        // Create multipart form data
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        
+        // Add file data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
+        body.append(pdfData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        let response = try await performRequest(request: request) as AzureOCRResponse
+        debugPrint("DA2062 Azure OCR processing completed with \(response.items.count) items")
+        return response
+    }
+    
+    public func importDA2062Items(items: [DA2062BatchItem], source: String, sourceReference: String?) async throws -> BatchImportResponse {
+        debugPrint("Importing \(items.count) DA2062 items via batch API")
+        let endpoint = baseURL.appendingPathComponent("/api/inventory/batch")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let batchRequest = BatchCreateRequest(
+            source: source,
+            sourceReference: sourceReference,
+            items: items
+        )
+        
+        do {
+            request.httpBody = try encoder.encode(batchRequest)
+            debugPrint("Successfully encoded batch import request")
+        } catch {
+            debugPrint("ERROR: Failed to encode batch import: \(error)")
+            throw APIError.encodingError(error)
+        }
+        
+        let response = try await performRequest(request: request) as BatchImportResponse
+        debugPrint("Successfully imported \(response.createdCount) items")
+        return response
+    }
+
     // --- User Profile Functions ---
     
     public func updateUserProfile(userId: Int, profileData: [String: Any]) async throws -> LoginResponse.User {
@@ -1696,6 +1755,186 @@ public struct AvailableComponentsResponse: Decodable {
 
 public struct UpdatePositionRequest: Codable {
     public let position: String
+}
+
+// MARK: - Azure OCR Response Models
+
+public struct AzureOCRResponse: Codable {
+    public let success: Bool
+    public let formInfo: AzureFormInfo
+    public let items: [AzureOCRItem]
+    public let metadata: AzureOCRMetadata
+    public let nextSteps: AzureNextSteps
+    
+    private enum CodingKeys: String, CodingKey {
+        case success
+        case formInfo = "form_info"
+        case items
+        case metadata
+        case nextSteps = "next_steps"
+    }
+}
+
+public struct AzureFormInfo: Codable {
+    public let unitName: String?
+    public let dodaac: String?
+    public let formNumber: String?
+    public let confidence: Double
+    
+    private enum CodingKeys: String, CodingKey {
+        case unitName = "unit_name"
+        case dodaac
+        case formNumber = "form_number"
+        case confidence
+    }
+}
+
+public struct AzureOCRItem: Codable {
+    public let name: String
+    public let description: String
+    public let nsn: String?
+    public let serialNumber: String?
+    public let quantity: Int
+    public let unit: String?
+    public let condition: String?
+    public let importMetadata: AzureImportMetadata
+    
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case description
+        case nsn
+        case serialNumber = "serial_number"
+        case quantity
+        case unit
+        case condition
+        case importMetadata = "import_metadata"
+    }
+}
+
+public struct AzureImportMetadata: Codable {
+    public let confidence: Double
+    public let requiresVerification: Bool
+    public let verificationReasons: [String]
+    public let sourceDocumentUrl: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case confidence
+        case requiresVerification = "requires_verification"
+        case verificationReasons = "verification_reasons"
+        case sourceDocumentUrl = "source_document_url"
+    }
+}
+
+public struct AzureOCRMetadata: Codable {
+    public let processingTime: Double
+    public let pages: Int
+    public let averageConfidence: Double
+    public let sourceDocumentUrl: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case processingTime = "processing_time"
+        case pages
+        case averageConfidence = "average_confidence"
+        case sourceDocumentUrl = "source_document_url"
+    }
+}
+
+public struct AzureNextSteps: Codable {
+    public let verificationNeeded: Bool
+    public let itemsNeedingReview: Int
+    public let suggestedAction: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case verificationNeeded = "verification_needed"
+        case itemsNeedingReview = "items_needing_review"
+        case suggestedAction = "suggested_action"
+    }
+}
+
+// MARK: - Batch Import Models
+
+public struct BatchCreateRequest: Codable {
+    public let source: String
+    public let sourceReference: String?
+    public let items: [DA2062BatchItem]
+    
+    private enum CodingKeys: String, CodingKey {
+        case source
+        case sourceReference = "source_reference"
+        case items
+    }
+}
+
+public struct DA2062BatchItem: Codable {
+    public let name: String
+    public let description: String
+    public let serialNumber: String?
+    public let nsn: String?
+    public let quantity: Int
+    public let unit: String?
+    public let category: String?
+    public let importMetadata: BatchImportMetadata?
+    
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case description
+        case serialNumber = "serial_number"
+        case nsn
+        case quantity
+        case unit
+        case category
+        case importMetadata = "import_metadata"
+    }
+}
+
+public struct BatchImportMetadata: Codable {
+    public let confidence: Double?
+    public let requiresVerification: Bool?
+    public let verificationReasons: [String]?
+    public let sourceDocumentUrl: String?
+    public let originalQuantity: Int?
+    public let quantityIndex: Int?
+    
+    private enum CodingKeys: String, CodingKey {
+        case confidence
+        case requiresVerification = "requires_verification"
+        case verificationReasons = "verification_reasons"
+        case sourceDocumentUrl = "source_document_url"
+        case originalQuantity = "original_quantity"
+        case quantityIndex = "quantity_index"
+    }
+}
+
+public struct BatchImportResponse: Codable {
+    public let success: Bool
+    public let createdCount: Int
+    public let failedCount: Int
+    public let items: [BatchImportItem]
+    public let errors: [String]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case success
+        case createdCount = "created_count"
+        case failedCount = "failed_count"
+        case items
+        case errors
+    }
+}
+
+public struct BatchImportItem: Codable {
+    public let id: Int?
+    public let name: String
+    public let serialNumber: String?
+    public let status: String
+    public let error: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case serialNumber = "serial_number"
+        case status
+        case error
+    }
 }
 
  
