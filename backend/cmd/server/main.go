@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -142,122 +141,61 @@ func main() {
 	// Initialize Ledger Service based on configuration
 	var ledgerService ledger.LedgerService
 
-	// Debug logging for ImmuDB configuration
-	immudbEnabled := viper.GetBool("immudb.enabled")
-	immudbEnabledEnv := os.Getenv("HANDRECEIPT_IMMUDB_ENABLED")
-	log.Printf("DEBUG: environment=%s, viper.GetBool('immudb.enabled')=%v, HANDRECEIPT_IMMUDB_ENABLED=%s",
-		environment, immudbEnabled, immudbEnabledEnv)
+	// Debug logging for ledger configuration
+	log.Printf("Initializing ledger service for environment: %s", environment)
 
-	// Check if ImmuDB should be enabled - handle string "true" from environment variable
-	shouldUseImmuDB := environment == "production" || immudbEnabled || immudbEnabledEnv == "true"
-	log.Printf("DEBUG: shouldUseImmuDB=%v", shouldUseImmuDB)
-
-	if shouldUseImmuDB {
-		// Use ImmuDB for ledger service
-		immuHost := viper.GetString("immudb.host")
-		immuPort := viper.GetInt("immudb.port")
-		immuUsername := viper.GetString("immudb.username")
-		immuPassword := viper.GetString("immudb.password")
-		immuDatabase := viper.GetString("immudb.database")
-
-		// Manual fallbacks for environment variables (fix for Azure deployment)
-		if immuHost == "" {
-			immuHost = os.Getenv("HANDRECEIPT_IMMUDB_HOST")
-		}
-		if immuPort == 0 {
-			if portStr := os.Getenv("HANDRECEIPT_IMMUDB_PORT"); portStr != "" {
-				fmt.Sscan(portStr, &immuPort)
-			}
-			if immuPort == 0 {
-				immuPort = 3322 // Default port
-			}
-		}
-		if immuUsername == "" {
-			immuUsername = os.Getenv("HANDRECEIPT_IMMUDB_USERNAME")
-			if immuUsername == "" {
-				immuUsername = "immudb" // Default username
-			}
-		}
-		if immuPassword == "" {
-			immuPassword = os.Getenv("HANDRECEIPT_IMMUDB_PASSWORD")
-		}
-		if immuDatabase == "" {
-			immuDatabase = os.Getenv("HANDRECEIPT_IMMUDB_DATABASE")
-			if immuDatabase == "" {
-				immuDatabase = "defaultdb" // Default database
-			}
-		}
-
-		// Debug log the ImmuDB connection parameters (mask password)
-		maskedPassword := "<empty>"
-		if immuPassword != "" {
-			if len(immuPassword) <= 3 {
-				maskedPassword = "***"
-			} else {
-				maskedPassword = immuPassword[:3] + "***"
-			}
-		}
-		log.Printf("ImmuDB config: host=%s, port=%d, username=%s, password=%s, database=%s",
-			immuHost, immuPort, immuUsername, maskedPassword, immuDatabase)
-
-		// Try to connect to ImmuDB with retries and graceful degradation
-		var err error
-		maxRetries := 3
-		retryDelay := 5 // seconds
-
-		for attempt := 1; attempt <= maxRetries; attempt++ {
-			log.Printf("Attempting to connect to ImmuDB (attempt %d/%d)...", attempt, maxRetries)
-			ledgerService, err = ledger.NewImmuDBLedgerService(immuHost, immuPort, immuUsername, immuPassword, immuDatabase)
-			if err == nil {
-				log.Println("✅ Successfully connected to ImmuDB Ledger")
-				break
-			}
-
-			log.Printf("❌ ImmuDB connection attempt %d failed: %v", attempt, err)
-			if attempt < maxRetries {
-				log.Printf("⏳ Retrying in %d seconds...", retryDelay)
-				time.Sleep(time.Duration(retryDelay) * time.Second)
-			}
-		}
-
+	// In production or when explicitly enabled, use a real ledger service
+	if environment == "production" || viper.GetBool("ledger.enabled") {
+		// Try PostgreSQL Ledger Service first (uses same DB connection)
+		log.Println("Attempting to initialize PostgreSQL Ledger service...")
+		postgresLedger, err := ledger.NewPostgresLedgerService(db)
 		if err != nil {
-			log.Printf("⚠️  WARNING: Failed to initialize ImmuDB Ledger service after %d attempts: %v", maxRetries, err)
-			log.Printf("🔄 Application will continue without ledger functionality. ImmuDB can be connected later.")
-			log.Printf("💡 Troubleshooting tips:")
-			log.Printf("   - Check if ImmuDB container is running: az containerapp show --name immudb --resource-group handreceipt-prod-rg")
-			log.Printf("   - Verify ImmuDB logs: az containerapp logs show --name immudb --resource-group handreceipt-prod-rg")
-			log.Printf("   - Ensure ImmuDB authentication is configured correctly")
+			log.Printf("Failed to initialize PostgreSQL Ledger service: %v", err)
 
-			// Don't fail fatally - continue without ledger service
-			ledgerService = nil
-		}
-	} else {
-		// Fallback to Azure SQL for development/testing if needed
-		connectionString := os.Getenv("AZURE_SQL_LEDGER_CONNECTION_STRING")
-		if connectionString != "" {
-			var err error
-			ledgerService, err = ledger.NewAzureSqlLedgerService(connectionString)
-			if err != nil {
-				log.Printf("⚠️  WARNING: Failed to initialize Azure SQL Ledger service: %v", err)
-				log.Printf("🔄 Application will continue without ledger functionality.")
-				ledgerService = nil
+			// Try Azure SQL Ledger as fallback
+			azureConnectionString := os.Getenv("AZURE_SQL_LEDGER_CONNECTION_STRING")
+			if azureConnectionString != "" {
+				log.Println("Attempting to initialize Azure SQL Ledger service as fallback...")
+				azureLedger, err := ledger.NewAzureSqlLedgerService(azureConnectionString)
+				if err != nil {
+					log.Printf("Failed to initialize Azure SQL Ledger service: %v", err)
+					log.Printf("WARNING: No ledger service available - audit trail functionality will be disabled")
+					ledgerService = nil
+				} else {
+					ledgerService = azureLedger
+					log.Println("Successfully initialized Azure SQL Ledger service")
+				}
 			} else {
-				log.Println("Using Azure SQL Ledger (fallback)")
+				log.Printf("WARNING: No Azure SQL connection string provided")
+				log.Printf("WARNING: No ledger service available - audit trail functionality will be disabled")
+				ledgerService = nil
 			}
 		} else {
-			log.Println("No ledger service configured - ledger functionality disabled")
-			// Ledger service will be nil - routes should handle this gracefully
+			ledgerService = postgresLedger
+			log.Println("Successfully initialized PostgreSQL Ledger service")
+		}
+	} else {
+		// In development, ledger is optional
+		log.Println("Development environment - ledger service is optional")
+
+		// Still try to use PostgreSQL ledger if available
+		postgresLedger, err := ledger.NewPostgresLedgerService(db)
+		if err != nil {
+			log.Printf("INFO: Ledger service not initialized in development: %v", err)
+			ledgerService = nil
+		} else {
+			ledgerService = postgresLedger
+			log.Println("PostgreSQL Ledger service initialized for development")
 		}
 	}
 
 	if ledgerService != nil {
 		if err := ledgerService.Initialize(); err != nil {
-			log.Printf("⚠️  WARNING: Failed to initialize Ledger service: %v", err)
-			log.Printf("🔄 Application will continue without ledger functionality.")
+			log.Printf("WARNING: Failed to initialize Ledger service: %v", err)
+			log.Printf("Application will continue without ledger functionality.")
 			ledgerService = nil
 		}
-		// Ensure Close is called on shutdown (using defer in main is tricky, consider signal handling)
-		// defer ledgerService.Close()
+		// Note: Consider adding proper shutdown handling to call ledgerService.Close()
 	}
 
 	// Initialize NSN Service

@@ -23,15 +23,19 @@ type ImmuDBLedgerService struct {
 
 // NewImmuDBLedgerService creates a new ImmuDB ledger service
 func NewImmuDBLedgerService(host string, port int, username, password, database string) (*ImmuDBLedgerService, error) {
+	log.Printf("Creating ImmuDB client with host=%s, port=%d, database=%s", host, port, database)
+
 	opts := immuclient.DefaultOptions().
 		WithAddress(host).
 		WithPort(port)
 
 	client := immuclient.NewClient().WithOptions(opts)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Increase timeout to 30 seconds for Azure Container Apps networking
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	log.Printf("Attempting to open ImmuDB session...")
 	if err := client.OpenSession(ctx, []byte(username), []byte(password), database); err != nil {
 		return nil, fmt.Errorf("failed to connect to ImmuDB: %w", err)
 	}
