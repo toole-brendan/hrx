@@ -42,19 +42,19 @@ END $$;
 INSERT INTO users (username, email, password, "name", rank, unit, phone, dodid, created_at, updated_at)
 VALUES 
     ('toole.brendan', 'toole.brendan@gmail.com', 
-     '$2a$10$uXXIHlchMkLfpttincKE5.Kq1rqYt4.PcQXYVonISEZqogbSJW0F6',  -- bcrypt hash for "Yankees1!"
+     '$2a$10$D78v.wjjIXZNvKA5r/COb.jpm10XGmg5.gO0m0hKqAMuztodFqYW2',  -- bcrypt hash for "Yankees1!"
      'Brendan Toole', '1LT', '2-506, 3BCT', '910-555-0123', '1234567890', NOW(), NOW()),
     ('john.doe', 'john.doe@example.mil',
-     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',  -- bcrypt hash for "password123"
+     '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
      'John Doe', 'SFC', '2-506, 3BCT', '910-555-0124', '1234567891', NOW(), NOW()),
     ('sarah.thompson', 'sarah.thompson@example.mil',
-     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
      'Sarah Thompson', '1LT', '2-506, 3BCT', '910-555-0125', '1234567892', NOW(), NOW()),
     ('james.wilson', 'james.wilson@example.mil',
-     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
      'James Wilson', 'SSG', '2-506, 3BCT', '910-555-0126', '1234567893', NOW(), NOW()),
     ('alice.smith', 'alice.smith@example.mil',
-     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
      'Alice Smith', 'CPT', '2-506, 3BCT', '910-555-0127', '1234567894', NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
