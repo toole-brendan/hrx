@@ -11,296 +11,316 @@ struct DA2062ScanView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                // Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Import DA-2062")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text("Scan your DA-2062 form to quickly digitize your property book")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                
-                // Scanner Availability Check
-                if !scannerAvailable {
-                    WarningCard(
-                        icon: "exclamationmark.triangle.fill",
-                        message: "Document scanner not available on this device"
-                    )
-                    .padding(.horizontal)
-                }
-                
-                // Scan Button
-                Button(action: { showingScanner = true }) {
-                    HStack {
-                        Image(systemName: "doc.text.viewfinder")
-                            .font(.title2)
-                        Text("Scan DA-2062 Form")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(scannerAvailable ? Color.blue : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .disabled(!scannerAvailable)
-                .padding(.horizontal)
-                
-                // Features List
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Scanner Features:")
-                        .font(.headline)
-                    
-                    FeatureRow(icon: "doc.on.doc", text: "Multi-page scanning support")
-                    FeatureRow(icon: "viewfinder.rectangular", text: "Automatic edge detection")
-                    FeatureRow(icon: "perspective", text: "Perspective correction")
-                    FeatureRow(icon: "text.viewfinder", text: "Enhanced OCR accuracy")
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(12)
-                .padding(.horizontal)
-                
-                Spacer()
-                
-                // Recent Scans
-                if !da2062ViewModel.recentScans.isEmpty {
-                    RecentScansSection(
-                        scans: da2062ViewModel.recentScans,
-                        onSelect: { scan in
-                            da2062ViewModel.selectScan(scan)
-                            showingReviewSheet = true
-                        }
-                    )
-                }
-            }
-            .navigationBarTitle("", displayMode: .inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.accent)
-                }
-                
-                ToolbarItem(placement: .principal) {
-                    Text("IMPORT DA-2062")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(AppColors.primaryText)
-                        .compatibleKerning(1.2)
-                }
-            }
-            .fullScreenCover(isPresented: $showingScanner) {
-                VisionDocumentScanner(
-                    onCompletion: { images in
-                        showingScanner = false
-                        showingProcessingView = true
-                        scannerViewModel.processScannedDocuments(images)
-                    },
-                    onCancel: {
-                        showingScanner = false
-                    }
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom navigation bar
+                MinimalNavigationBar(
+                    title: "Import DA 2062",
+                    titleStyle: .mono,
+                    showBackButton: false,
+                    trailingItems: [
+                        .init(text: "Cancel", style: .text, action: { dismiss() })
+                    ]
                 )
-            }
-            .sheet(isPresented: $showingProcessingView) {
-                ProcessingView(viewModel: scannerViewModel, da2062ViewModel: da2062ViewModel) {
-                    // Processing complete - use Azure OCR as primary method
-                    showingProcessingView = false
-                    
-                    Task {
-                        let result = await da2062ViewModel.uploadScannedFormToAzure(pages: scannerViewModel.scannedPages)
-                        
-                        switch result {
-                        case .success:
-                            showingReviewSheet = true
-                        case .failure(let error):
-                            print("Azure OCR failed: \(error)")
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Scan Your Form")
+                                .font(AppFonts.serifTitle)
+                                .foregroundColor(AppColors.primaryText)
                             
-                            // Fallback to on-device OCR if Azure fails
-                            if da2062ViewModel.useAzureOCR {
-                                print("Falling back to on-device OCR...")
-                                da2062ViewModel.processExtractedText(
-                                    scannerViewModel.extractedText,
-                                    pages: scannerViewModel.scannedPages.map { $0.image },
-                                    confidence: scannerViewModel.ocrConfidence
-                                ) { fallbackResult in
-                                    switch fallbackResult {
-                                    case .success:
-                                        showingReviewSheet = true
-                                    case .failure(let fallbackError):
-                                        print("Fallback OCR also failed: \(fallbackError)")
-                                        // Show error to user
+                            Text("Digitize your DA-2062 form to quickly import property records")
+                                .font(AppFonts.body)
+                                .foregroundColor(AppColors.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        
+                        // Scanner Availability Warning
+                        if !scannerAvailable {
+                            MinimalWarningCard(
+                                message: "Document scanner not available on this device"
+                            )
+                            .padding(.horizontal, 20)
+                        }
+                        
+                        // Main Scan Button
+                        Button(action: { showingScanner = true }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "doc.text.viewfinder")
+                                    .font(.system(size: 20, weight: .light))
+                                Text("Scan DA-2062 Form")
+                                    .font(AppFonts.bodyMedium)
+                            }
+                        }
+                        .buttonStyle(.minimalPrimary)
+                        .disabled(!scannerAvailable)
+                        .padding(.horizontal, 20)
+                        
+                        // Features Section
+                        VStack(spacing: 16) {
+                            ElegantSectionHeader(
+                                title: "Scanner Features",
+                                style: .uppercase
+                            )
+                            
+                            VStack(spacing: 12) {
+                                MinimalFeatureRow(icon: "doc.on.doc", text: "Multi-page scanning support")
+                                MinimalFeatureRow(icon: "viewfinder.rectangular", text: "Automatic edge detection")
+                                MinimalFeatureRow(icon: "perspective", text: "Perspective correction")
+                                MinimalFeatureRow(icon: "text.viewfinder", text: "Enhanced OCR accuracy")
+                            }
+                            .cleanCard(padding: 16)
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Recent Scans Section
+                        if !da2062ViewModel.recentScans.isEmpty {
+                            VStack(spacing: 16) {
+                                ElegantSectionHeader(
+                                    title: "Recent Scans",
+                                    subtitle: "\(da2062ViewModel.recentScans.count) saved",
+                                    style: .uppercase
+                                )
+                                
+                                VStack(spacing: 8) {
+                                    ForEach(da2062ViewModel.recentScans) { scan in
+                                        MinimalRecentScanRow(scan: scan) {
+                                            da2062ViewModel.selectScan(scan)
+                                            showingReviewSheet = true
+                                        }
                                     }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                        
+                        // Bottom padding
+                        Color.clear.frame(height: 20)
+                    }
+                }
+            }
+        }
+        .navigationBarHidden(true)
+        .fullScreenCover(isPresented: $showingScanner) {
+            VisionDocumentScanner(
+                onCompletion: { images in
+                    showingScanner = false
+                    showingProcessingView = true
+                    scannerViewModel.processScannedDocuments(images)
+                },
+                onCancel: {
+                    showingScanner = false
+                }
+            )
+        }
+        .sheet(isPresented: $showingProcessingView) {
+            MinimalProcessingView(
+                viewModel: scannerViewModel,
+                da2062ViewModel: da2062ViewModel
+            ) {
+                // Processing complete
+                showingProcessingView = false
+                
+                Task {
+                    let result = await da2062ViewModel.uploadScannedFormToAzure(
+                        pages: scannerViewModel.scannedPages
+                    )
+                    
+                    switch result {
+                    case .success:
+                        showingReviewSheet = true
+                    case .failure(let error):
+                        print("Azure OCR failed: \(error)")
+                        
+                        // Fallback to on-device OCR
+                        if da2062ViewModel.useAzureOCR {
+                            print("Falling back to on-device OCR...")
+                            da2062ViewModel.processExtractedText(
+                                scannerViewModel.extractedText,
+                                pages: scannerViewModel.scannedPages.map { $0.image },
+                                confidence: scannerViewModel.ocrConfidence
+                            ) { fallbackResult in
+                                switch fallbackResult {
+                                case .success:
+                                    showingReviewSheet = true
+                                case .failure(let fallbackError):
+                                    print("Fallback OCR also failed: \(fallbackError)")
                                 }
                             }
                         }
                     }
                 }
             }
-            .sheet(isPresented: $showingReviewSheet) {
-                DA2062ReviewSheet(
-                    form: da2062ViewModel.currentForm,
-                    scannedPages: scannerViewModel.scannedPages,
-                    onConfirm: { items in
-                        // Legacy callback - not used in Azure OCR workflow
-                        // Import is handled directly in DA2062ReviewSheet
-                        showingReviewSheet = false
-                    }
-                )
-            }
+        }
+        .sheet(isPresented: $showingReviewSheet) {
+            DA2062ReviewSheet(
+                form: da2062ViewModel.currentForm,
+                scannedPages: scannerViewModel.scannedPages,
+                onConfirm: { items in
+                    showingReviewSheet = false
+                }
+            )
         }
     }
 }
 
-// Processing View to show OCR progress
-struct ProcessingView: View {
+// MARK: - Minimal Processing View
+struct MinimalProcessingView: View {
     @ObservedObject var viewModel: DA2062DocumentScannerViewModel
     @ObservedObject var da2062ViewModel: DA2062ScanViewModel
     let onComplete: () -> Void
     
+    var progress: Double {
+        da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress
+    }
+    
     var body: some View {
-        NavigationView {
-            VStack(spacing: 30) {
-                Spacer()
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                MinimalNavigationBar(
+                    title: "Processing",
+                    titleStyle: .mono,
+                    showBackButton: false
+                )
                 
-                // Progress Indicator
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 8)
-                        .frame(width: 120, height: 120)
+                VStack(spacing: 32) {
+                    Spacer()
                     
-                    Circle()
-                        .trim(from: 0, to: da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress)
-                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .frame(width: 120, height: 120)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut, value: da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress)
-                    
-                    Text("\(Int((da2062ViewModel.isProcessing ? da2062ViewModel.processingProgress : viewModel.processingProgress) * 100))%")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                }
-                
-                VStack(spacing: 8) {
-                    Text("Processing Document")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text(da2062ViewModel.processingMessage.isEmpty ? "Extracting text from \(viewModel.scannedPages.count) pages" : da2062ViewModel.processingMessage)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    if da2062ViewModel.isProcessing && !da2062ViewModel.processingMethod.isEmpty {
-                        Text("Method: \(da2062ViewModel.processingMethod)")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.top, 2)
+                    // Minimal Progress Indicator
+                    ZStack {
+                        Circle()
+                            .stroke(AppColors.border, lineWidth: 2)
+                            .frame(width: 100, height: 100)
+                        
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(AppColors.primaryText, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                            .frame(width: 100, height: 100)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut, value: progress)
+                        
+                        Text("\(Int(progress * 100))%")
+                            .font(AppFonts.monoHeadline)
+                            .foregroundColor(AppColors.primaryText)
                     }
                     
-                    if viewModel.processingProgress == 1.0 || da2062ViewModel.processingProgress == 1.0 {
-                        Label("Complete", systemImage: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .padding(.top)
+                    VStack(spacing: 16) {
+                        Text("PROCESSING DOCUMENT")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                            .kerning(AppFonts.ultraWideKerning)
+                        
+                        Text(da2062ViewModel.processingMessage.isEmpty ? 
+                             "Extracting text from \(viewModel.scannedPages.count) pages" : 
+                             da2062ViewModel.processingMessage)
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 300)
+                        
+                        if da2062ViewModel.isProcessing && !da2062ViewModel.processingMethod.isEmpty {
+                            Text(da2062ViewModel.processingMethod.uppercased())
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.accent)
+                                .kerning(AppFonts.wideKerning)
+                        }
+                        
+                        if progress == 1.0 {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.system(size: 16, weight: .light))
+                                    .foregroundColor(AppColors.success)
+                                Text("COMPLETE")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.success)
+                                    .kerning(AppFonts.wideKerning)
+                            }
+                        }
+                        
+                        // OCR Method Info
+                        HStack(spacing: 8) {
+                            Image(systemName: da2062ViewModel.useAzureOCR ? "cloud" : "cpu")
+                                .font(.system(size: 14, weight: .light))
+                                .foregroundColor(AppColors.accent)
+                            Text(da2062ViewModel.useAzureOCR ? 
+                                 "Using cloud OCR for best accuracy" : 
+                                 "Using on-device recognition")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.tertiaryText)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(AppColors.accentMuted)
+                        .cornerRadius(4)
                     }
                     
-                    // Recognition level info
-                    HStack {
-                        Image(systemName: da2062ViewModel.useAzureOCR ? "cloud" : "info.circle")
-                            .foregroundColor(.blue)
-                        Text(da2062ViewModel.useAzureOCR ? "Using Azure Cloud OCR for best accuracy" : "Using on-device recognition")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    Spacer()
+                    
+                    if progress == 1.0 {
+                        Button("Continue") {
+                            onComplete()
+                        }
+                        .buttonStyle(.minimalPrimary)
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.top, 8)
-                }
-                
-                Spacer()
-                
-                if viewModel.processingProgress == 1.0 || da2062ViewModel.processingProgress == 1.0 {
-                    Button("Continue") {
-                        onComplete()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                    .padding(.horizontal)
+                    
+                    Spacer()
+                        .frame(height: 40)
                 }
             }
-            .navigationBarTitle("Processing", displayMode: .inline)
         }
+        .navigationBarHidden(true)
     }
 }
 
-struct FeatureRow: View {
+// MARK: - Supporting Views
+
+struct MinimalFeatureRow: View {
     let icon: String
     let text: String
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .font(.system(size: 20, weight: .light))
+                .foregroundColor(AppColors.accent)
                 .frame(width: 24)
             Text(text)
-                .font(.subheadline)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
+            Spacer()
         }
     }
 }
 
-struct WarningCard: View {
-    let icon: String
+struct MinimalWarningCard: View {
     let message: String
     
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(.orange)
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.warning)
             Text(message)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
         }
-        .padding()
-        .background(Color.orange.opacity(0.1))
-        .cornerRadius(8)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.warning.opacity(0.1))
+        .cornerRadius(4)
     }
 }
 
-// Recent Scans Section
-struct RecentScansSection: View {
-    let scans: [DA2062Scan]
-    let onSelect: (DA2062Scan) -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Scans")
-                .font(.headline)
-                .padding(.horizontal)
-            
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(scans) { scan in
-                        RecentScanRow(scan: scan) {
-                            onSelect(scan)
-                        }
-                    }
-                }
-                .padding(.horizontal)
-            }
-        }
-        .frame(maxHeight: 200)
-    }
-}
-
-struct RecentScanRow: View {
+struct MinimalRecentScanRow: View {
     let scan: DA2062Scan
     let onTap: () -> Void
     
@@ -313,30 +333,64 @@ struct RecentScanRow: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 16) {
+                // Date icon
+                Image(systemName: "calendar")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundColor(AppColors.tertiaryText)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 6) {
                     Text(dateFormatter.string(from: scan.date))
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
+                        .font(AppFonts.bodyMedium)
+                        .foregroundColor(AppColors.primaryText)
                     
-                    HStack(spacing: 12) {
-                        Label("\(scan.pageCount) pages", systemImage: "doc.on.doc")
-                        Label("\(scan.itemCount) items", systemImage: "cube.box")
-                        Label("\(Int(scan.confidence * 100))%", systemImage: "checkmark.shield")
+                    HStack(spacing: 16) {
+                        HStack(spacing: 4) {
+                            Text("\(scan.pageCount)")
+                                .font(AppFonts.monoCaption)
+                                .foregroundColor(AppColors.secondaryText)
+                            Text("PAGES")
+                                .font(.system(size: 10))
+                                .foregroundColor(AppColors.tertiaryText)
+                                .kerning(AppFonts.wideKerning)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Text("\(scan.itemCount)")
+                                .font(AppFonts.monoCaption)
+                                .foregroundColor(AppColors.secondaryText)
+                            Text("ITEMS")
+                                .font(.system(size: 10))
+                                .foregroundColor(AppColors.tertiaryText)
+                                .kerning(AppFonts.wideKerning)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Text("\(Int(scan.confidence * 100))%")
+                                .font(AppFonts.monoCaption)
+                                .foregroundColor(AppColors.accent)
+                            Text("ACCURACY")
+                                .font(.system(size: 10))
+                                .foregroundColor(AppColors.tertiaryText)
+                                .kerning(AppFonts.wideKerning)
+                        }
                     }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 14, weight: .light))
+                    .foregroundColor(AppColors.tertiaryText)
             }
-            .padding()
-            .background(Color.secondary.opacity(0.1))
-            .cornerRadius(8)
+            .padding(12)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .shadow(color: AppColors.shadowColor, radius: 2, y: 1)
         }
         .buttonStyle(PlainButtonStyle())
     }
-} 
+}
+
+ 
