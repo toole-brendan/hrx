@@ -22,7 +22,6 @@ struct EditProfileView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Custom minimal navigation bar
             MinimalNavigationBar(
                 title: "EDIT PROFILE",
                 titleStyle: .mono,
@@ -31,12 +30,12 @@ struct EditProfileView: View {
             )
             
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 32) {
                     // Top padding
-                    Color.clear.frame(height: 4)
+                    Color.clear.frame(height: 16)
                     
                     // Personal Information Section
-                    VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 16) {
                         ElegantSectionHeader(title: "Personal Information", style: .serif)
                             .padding(.horizontal, 24)
                         
@@ -44,23 +43,25 @@ struct EditProfileView: View {
                             ModernFormField(
                                 label: "First Name",
                                 text: $firstName,
-                                icon: "person.fill"
+                                icon: "person"
                             )
                             
-                            Divider().background(AppColors.border)
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
                             
                             ModernFormField(
                                 label: "Last Name",
                                 text: $lastName,
-                                icon: "person.fill"
+                                icon: "person"
                             )
                         }
-                        .modernCard()
+                        .cleanCard(padding: 0)
                         .padding(.horizontal, 24)
                     }
                     
                     // Contact Information Section
-                    VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 16) {
                         ElegantSectionHeader(title: "Contact Information", style: .serif)
                             .padding(.horizontal, 24)
                         
@@ -68,17 +69,17 @@ struct EditProfileView: View {
                             ModernFormField(
                                 label: "Email",
                                 text: $email,
-                                icon: "envelope.fill",
+                                icon: "envelope",
                                 keyboardType: .emailAddress,
                                 textContentType: .emailAddress
                             )
                         }
-                        .modernCard()
+                        .cleanCard(padding: 0)
                         .padding(.horizontal, 24)
                     }
                     
                     // Military Information Section
-                    VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 16) {
                         ElegantSectionHeader(title: "Military Information", style: .serif)
                             .padding(.horizontal, 24)
                         
@@ -86,18 +87,20 @@ struct EditProfileView: View {
                             ModernFormField(
                                 label: "Rank",
                                 text: $rank,
-                                icon: "star.fill"
+                                icon: "star"
                             )
                             
-                            Divider().background(AppColors.border)
+                            Rectangle()
+                                .fill(AppColors.divider)
+                                .frame(height: 1)
                             
                             ModernFormField(
                                 label: "Unit/Organization",
                                 text: $unit,
-                                icon: "building.2.fill"
+                                icon: "building.2"
                             )
                         }
-                        .modernCard()
+                        .cleanCard(padding: 0)
                         .padding(.horizontal, 24)
                     }
                     
@@ -112,38 +115,32 @@ struct EditProfileView: View {
                     // Save Button
                     Button(action: saveProfile) {
                         if isLoading {
-                            HStack {
+                            HStack(spacing: 8) {
                                 ProgressView()
                                     .scaleEffect(0.8)
                                     .tint(.white)
                                 Text("Saving...")
                                     .font(AppFonts.bodyMedium)
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(AppColors.accent.opacity(0.7))
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         } else {
                             Text("Save Changes")
                                 .font(AppFonts.bodyMedium)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(formIsValid ? AppColors.accent : AppColors.border)
-                                .foregroundColor(formIsValid ? .white : AppColors.tertiaryText)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(formIsValid ? AppColors.accent : AppColors.border)
+                    .foregroundColor(formIsValid ? .white : AppColors.tertiaryText)
+                    .cornerRadius(4)
                     .disabled(!formIsValid || isLoading)
                     .padding(.horizontal, 24)
                     
                     // Bottom spacer
-                    Color.clear.frame(height: 80)
+                    Color.clear.frame(height: 40)
                 }
             }
-            .background(AppColors.appBackground)
         }
-        .navigationTitle("")
+        .background(AppColors.appBackground.ignoresSafeArea())
         .navigationBarHidden(true)
         .onAppear {
             loadCurrentUserData()
@@ -195,7 +192,6 @@ struct EditProfileView: View {
                 )
                 
                 await MainActor.run {
-                    // Update the auth manager with the new user data
                     authManager.currentUser = updatedUser
                     isLoading = false
                     showSaveConfirmation = true
@@ -227,9 +223,9 @@ struct ModernFormField: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .light))
+                .font(.system(size: 16, weight: .light))
                 .foregroundColor(AppColors.accent)
-                .frame(width: 28)
+                .frame(width: 20)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(label)

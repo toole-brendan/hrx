@@ -15,6 +15,23 @@ struct VisionDocumentScanner: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
         let scannerViewController = VNDocumentCameraViewController()
         scannerViewController.delegate = context.coordinator
+        
+        // Apply 8VC-inspired styling to the scanner
+        if let navigationBar = scannerViewController.navigationController?.navigationBar {
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor(AppColors.appBackground)
+            appearance.titleTextAttributes = [
+                .font: UIFont.systemFont(ofSize: 17, weight: .regular, design: .monospaced),
+                .foregroundColor: UIColor(AppColors.primaryText)
+            ]
+            appearance.shadowColor = .clear
+            
+            navigationBar.standardAppearance = appearance
+            navigationBar.scrollEdgeAppearance = appearance
+            navigationBar.tintColor = UIColor(AppColors.accent)
+        }
+        
         return scannerViewController
     }
     
