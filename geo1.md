@@ -1,188 +1,284 @@
-Great — I’ll review your `hrx` GitHub repo and recommend how to implement the DA 2062 export functionality. This will include generating a complete and printable DA 2062 (with components), embedding user signatures, aligning with Immudb records, and integrating into the current transfer workflow from the iOS app or backend service.
+Thanks! I’ll take a look through your iOS application to get a sense of its features, and also review the `handreceipt/sql` directory to understand the schema and identify opportunities for mock data insertion. I’ll then create a SQL migration script that populates your test account (`toole.brendan@gmail.com`) with representative mock data across all features.
 
-I’ll provide architectural and code-level guidance for the most modern and professional approach, including any suggestions for new supporting services if needed. I’ll let you know as soon as the recommendations are ready.
+I’ll let you know when the mock data migration is ready for your review.
 
 
-# Implementing DA 2062 Export for Property Transfers
+# SQL Migration to Seed Test User Data Across All Features
 
-## Overview of the DA 2062 Hand Receipt
+To populate the **test account** (Brendan Toole) with comprehensive mock data, we will insert sample records for every major feature of the HandReceipt application. This includes creating additional users (for connections and transfers), inventory properties assigned to the test user, transfer records (completed, pending, and even a rejected example), a document (digital hand receipt form), and network connections. Below, we outline the approach and then provide the SQL migration script.
 
-A DA Form 2062 (Hand Receipt/Annex) is a standardized form used to transfer accountability of Army property. In our app, the goal is to **digitize this form generation** so that when a user “signs over” an item to another user, the system automatically creates a DA 2062 PDF with all required data (including any attached components) and delivers it to the recipient. This ensures a proper record of the transfer and provides both parties with an official hand receipt.
+## Approach Overview
 
-The **key steps** in this new feature will be:
+* **Test User and Peers:** Ensure the test user (`toole.brendan`) exists, then create a few **peer users** to simulate connections and transfers. We’ll assign realistic names, ranks, and use a default password hash (e.g. bcrypt of "password123") for these users. All new users will have role `user` by default and status `active`.
+* **Inventory Properties:** Populate the test user’s **Property Book** with several items (weapons, optics, radios, etc.), using the schema defined in the `properties` table. We will vary their `current_status` to showcase different conditions:
 
-1. **Triggering the transfer:** The current owner selects an item in their property book, chooses a “Transfer” action, and selects a recipient (from their “Connections” network, similar to Venmo contacts).
-2. **Transfer record creation:** The backend creates a transfer offer/request entry (with status “Requested” or “offer”), logging the intent to transfer. (This part is largely implemented already via `TransferHandler.CreateTransfer` and `TransferOffer` logic in the repository.)
-3. **Recipient acceptance:** The recipient is notified (e.g. via the app’s Transfers screen) and must accept the transfer. Upon acceptance, the backend finalizes the transfer: updating ownership of the item (and optionally its components) and generating the DA 2062 form.
-4. **DA 2062 generation and delivery:** The system compiles all relevant information (item details, attached components, “From” and “To” info, unit info, signatures, etc.), generates a PDF hand receipt, and sends it to the recipient’s inbox (via email and/or in-app document).
+  * *Active/Assigned Items:* e.g. an M4 Carbine rifle, Night Vision Goggles – these appear as operational gear.
+  * *Maintenance Item:* an item marked with `current_status = 'maintenance'` (and condition `needs_repair`) to appear under “In Maintenance” on the dashboard.
+  * *Lost Item:* an item marked `current_status = 'lost'` to count as non-operational.
+  * Each item will be assigned to the test user via `assigned_to_user_id`, except items still held by other users (for pending transfers).
+  * We’ll also set a **photo URL** on one item to test image display (the app shows an “Add Photo” prompt if none). For example, the Night Vision device can have a placeholder image URL in its `photo_url` field.
+* **Transfers (Hand Receipts):** Create records in the `transfers` table to simulate:
 
-Below we break down the requirements and implementation details for generating and integrating the DA 2062 at transfer time.
+  * *Completed incoming transfers:* gear that the test user received from others (e.g. an M4 from a supply NCO, NVGs from another unit). These will have `status = 'completed'` and include a `from_user_id` (the giver) and `to_user_id` (the test user). We use realistic timestamps in `request_date` and `resolved_date` to place these events in the past.
+  * *Pending incoming transfer:* an offer awaiting the test user’s acceptance (e.g. a crew-served weapon offered by the supply NCO). This will have `status = 'pending'` and a recent `request_date` (no `resolved_date` yet).
+  * *Pending outgoing transfer:* an item the test user is loaning out to a friend (e.g. a spare radio) with `status = 'pending'`. The item remains assigned to the test user until accepted, so it stays in their inventory during the pending state.
+  * *Rejected transfer:* an example where a request was **denied**. We simulate the test user requesting an item from another user who rejects it (marked `status = 'rejected'` with a `resolved_date` and note). This populates the “Recent Activity” feed with a rejected event.
+  * **Note:** We omit the `transfer_type` and `initiator_id` fields in inserts – the schema defaults `transfer_type` to "offer", and these details aren’t critical for basic UI display.
+* **User Connections:** Establish **social network links** in the `user_connections` table:
 
-## DA 2062 Fields and Data Requirements
+  * Accepted connections between the test user and each peer user (so they appear in the test user’s network list). We insert one row per connection with `connection_status = 'accepted'`.
+  * A pending connection request from a new user to the test user (`connection_status = 'pending'`) to surface an inbound request notification. In the dashboard, `pendingConnectionRequests` will reflect this.
+* **Documents (Maintenance/Transfer Forms):** Insert a record into the `documents` table to simulate an **unread document** in the test user’s inbox. For example, after the test user received the M4, the supply NCO sends a digital DA-2062 **transfer form** for them to sign:
 
-A DA 2062 includes three main sections – **Header, Line-Item Table, and Signature Block** – each of which we need to populate with the correct data:
+  * `type = 'transfer_form'` (subtype "DA2062"), with `sender_user_id` as the supply NCO and `recipient_user_id` as the test user.
+  * We include a JSON payload in `form_data` (e.g. basic form info) and mark `status = 'unread'`. This will trigger the “Documents Inbox” card on the dashboard (since `unreadCount > 0`).
+  * (If needed, maintenance forms could also be represented similarly with `type = 'maintenance_form'`, but here we focus on a transfer form for brevity.)
 
-* **Header section:** Contains administrative info:
+Using the above strategy, the SQL migration below inserts the mock data. It uses **`ON CONFLICT ... DO NOTHING`** for idempotency (so running it won’t duplicate entries if they already exist). Make sure to run this against the same database the app uses (e.g. development or test environment).
 
-  * **Hand Receipt/Annex Number:** A reference number for the document. (In an Army supply context this might be a locally assigned number; we can generate one programmatically, e.g. `HR-YYYYMMDD-<UserID>` as the code is doing.)
-  * **From (issuing organization/person):** In an official form, this is usually the unit name/UIC of the issuing authority. In our app’s peer-to-peer context, we will use the current owner’s name and rank as the “From” and their unit info separately. The PDF generator currently prints `FROM: <Rank> <Name>`. We should ensure the owner’s Unit name and DODAAC (unit code) appear as well – the generator places those in a separate “Unit” field in the header.
-  * **To (receiving person):** The name, rank, and duty position of the person receiving the item. Our generator prints `TO: <Rank> <Name>` for the recipient. We will supply the recipient’s info here.
-  * **Date prepared:** The date the form is generated (could be included as part of the form header or in the footer; our implementation can timestamp it in the PDF or simply rely on the email timestamp).
-  * **Page count:** If the form spans multiple pages, indicate “Page X of Y”. (The PDF generator already handles adding page numbers in the footer via `addPageNumbers`.)
+## SQL Migration Script
 
-* **Line-item table (Columns a–j):** Lists the item(s) being transferred. For each item, we need to fill:
+```sql
+-- 1. Ensure the test user exists (Brendan Toole) and create peer accounts
+INSERT INTO users (username, email, password, name, rank)
+VALUES 
+    ('toole.brendan', 'toole.brendan@gmail.com', 
+     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',  -- bcrypt hash for "password123"
+     'Brendan Toole', 'SPC'),   -- Specialist rank for example
+    ('john.doe', 'john.doe@example.mil',
+     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     'John Doe', 'SFC'),       -- John Doe (Supply NCO, Sergeant First Class)
+    ('sarah.thompson', 'sarah.thompson@example.mil',
+     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     'Sarah Thompson', '1LT'), -- Sarah Thompson (Platoon Leader, 1st Lieutenant)
+    ('james.wilson', 'james.wilson@example.mil',
+     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     'James Wilson', 'SSG'),   -- James Wilson (Squad Leader, Staff Sergeant)
+    ('alice.smith', 'alice.smith@example.mil',
+     '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6',
+     'Alice Smith', 'CPT')     -- Alice Smith (Company Commander, Captain)
+ON CONFLICT (username) DO NOTHING;
 
-  * **NSN (National Stock Number)** – the stock number or part number (column a). Our system should use the item’s `NSN` field if available. The PDF generator already pulls `property.NSN` for this column.
-  * **Item Description** – nomenclature of the item, and include the serial number if the item is serialized (column b). In code, the generator combines the property name, optional description, and serial number into this field. We should ensure the item’s name and SN are present here (the code appends “SN:<serial>” automatically). For component items, their names/SNs will appear similarly.
-  * **SEC (security classification)** – often blank for unclassified equipment (column c). Our generator currently leaves this blank unless we decide to implement using a property’s classification in future.
-  * **UI (Unit of Issue)** – the two-letter code indicating how the item is counted (column d). Common codes include “EA” (each), “PR” (pair), “KT” (kit), etc. **This is tied to the NSN** in official records. We should populate this accurately to avoid quantity miscounts. Our current generator defaults the UI to `"EA"` for every item. This is a safe default (meaning one each), but if our integrated PUB LOG/NSN database provides a unit-of-issue for the item’s NSN, we should use that. For example, if an NSN corresponds to a kit or pair, we’d use “KT” or “PR” accordingly. (The user’s notes remind us that the UI code is fixed per NSN and affects pricing and accountability.) In summary, ensure the `property.NSN` is set (our PubLog integration can auto-set NSN on item creation) and consider looking up its UI code. If no data is available, “EA” is acceptable as a default.
-  * **Qty Authorized** – how many of the item are authorized to be on hand (column f on the form). In our context this will typically be `1` for individually tracked items. Our `Property.Quantity` field is used here.
-  * **Qty on Hand** – how many are actually issued in this hand receipt (this might correspond to the same number if we’re issuing the full quantity). The PDF template has multiple sub-columns A–F for different counts (like Qty on hand, Qty short, etc.). Our implementation writes the quantity again in column “A” as the on-hand count and leaves the other sub-columns blank (since we’re not using the shortage annex in this scenario). This is fine as we assume no shortages – the full item is being transferred.
-  * **Components:** If the transferred item has attached components (e.g. a rifle with an optic, foregrip, etc.), **each component should be listed as its own line-item** on the DA 2062 as well. In an official hand receipt, these could be listed on a component hand receipt or shortage annex, but we can simplify by including them in the same list for clarity. We will retrieve all attached components and include their NSN, description (name + SN), and quantity in the table just like primary items.
+-- 2. Establish user connections (network)
+-- Accepted connections: Test user <-> John, Sarah, James
+INSERT INTO user_connections (user_id, connected_user_id, connection_status, created_at)
+VALUES 
+    ((SELECT id FROM users WHERE username = 'toole.brendan'),
+     (SELECT id FROM users WHERE username = 'john.doe'),
+     'accepted', NOW()),
+    ((SELECT id FROM users WHERE username = 'toole.brendan'),
+     (SELECT id FROM users WHERE username = 'sarah.thompson'),
+     'accepted', NOW()),
+    ((SELECT id FROM users WHERE username = 'toole.brendan'),
+     (SELECT id FROM users WHERE username = 'james.wilson'),
+     'accepted', NOW())
+ON CONFLICT DO NOTHING;
 
-* **Signature block (bottom of form):** Both parties will sign to validate the transfer. The form typically has a space for the **hand receipt holder’s signature** (“TO” person) and the **issuer’s signature** (“FROM” person), along with date signed. Our PDF generator already includes a signature section if we request it: it labels “FROM (Signature and Date)” and “TO (Signature and Date)”. We have the capability to embed signature images on the form: the code checks `fromUser.SignatureURL` and `toUser.SignatureURL` and will draw those images if available. To use this:
+-- Pending connection: Alice Smith -> Brendan (Alice sent request that Brendan has not accepted yet)
+INSERT INTO user_connections (user_id, connected_user_id, connection_status, created_at)
+VALUES (
+    (SELECT id FROM users WHERE username = 'alice.smith'),
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'pending', NOW()
+) ON CONFLICT DO NOTHING;
 
-  * Ensure each user can save their signature image ahead of time. (We likely have a feature where a user creates or uploads a digital signature – possibly via drawing on the app or scanning – which gets stored and its URL saved in `User.SignatureURL`.) The user’s note confirms this: once a user provides a signature once, it’s stored for future use.
-  * When generating the PDF, set `IncludeSignatures = true` and supply the `SignatureURL` for each party in the `UserInfo`. The code path for PDF generation in our backend sets this to true by default and copies over the signature URLs, so signatures will print on the form. (If a signature image isn’t available for one or both users, the form will just have a blank line for that person to sign manually.)
-  * The signature block also has a date. We can simply have the date typed or the user can write it when signing. We might choose to print the prepared date near the signatures for completeness.
+-- 3. Insert properties (inventory items)
+-- Two M4 carbines for the test user: one active, one undergoing maintenance
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, photo_url, created_at)
+VALUES 
+    ('M4 Carbine', 'M4-2025-000001',
+     'M4 Carbine, 5.56mm rifle (NSN 1005-01-231-0973)', 
+     'active', 'serviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     NULL, NOW()),
+    ('M4 Carbine', 'M4-2025-000002',
+     'M4 Carbine, 5.56mm rifle - undergoing repairs', 
+     'maintenance', 'needs_repair',     -- Mark this one as in maintenance:contentReference[oaicite:20]{index=20}:contentReference[oaicite:21]{index=21}
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     NULL, NOW())
+ON CONFLICT (serial_number) DO NOTHING;
 
-With these fields in mind, we can proceed to implement the generation and integration.
+-- Night Vision Goggles assigned to the test user (received from Sarah)
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, photo_url, created_at)
+VALUES (
+    'AN/PVS-14 Night Vision', 'NVG-2025-000001',
+    'AN/PVS-14 Night Vision Monocular (NSN 5855-01-534-5931)', 
+    'active', 'serviceable',
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'https://via.placeholder.com/400x300.png?text=Night+Vision',  -- sample image URL:contentReference[oaicite:22]{index=22}
+    NOW()
+) ON CONFLICT (serial_number) DO NOTHING;
 
-## Backend: Generating & Sending the DA 2062 on Transfer Acceptance
+-- Two PRC-152A Radios for the test user (one will be loaned out)
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, created_at)
+VALUES 
+    ('AN/PRC-152A Radio', 'RADIO-2025-000001',
+     'AN/PRC-152A Multiband Radio (NSN 5820-01-451-8250)', 
+     'active', 'serviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     NOW()),
+    ('AN/PRC-152A Radio', 'RADIO-2025-000002',
+     'AN/PRC-152A Multiband Radio (NSN 5820-01-451-8250) - spare unit', 
+     'active', 'serviceable',
+     (SELECT id FROM users WHERE username = 'toole.brendan'),
+     NOW())
+ON CONFLICT (serial_number) DO NOTHING;
 
-To automate the DA 2062 export when a transfer is completed, we will extend the backend transfer acceptance logic to generate the PDF and deliver it. Key steps:
+-- A field item (Lensatic Compass) that was lost by the test user (non-operational example)
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, created_at)
+VALUES (
+    'Lensatic Compass', 'COMP-2025-000001',
+    'Lensatic Compass for land navigation', 
+    'lost', 'unserviceable',    -- Mark as lost/unserviceable (non-operational):contentReference[oaicite:23]{index=23}:contentReference[oaicite:24]{index=24}
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    NOW()
+) ON CONFLICT (serial_number) DO NOTHING;
 
-1. **Hook into the transfer acceptance event:** In `TransferHandler.UpdateTransferStatus`, when a transfer’s status is set to “accepted”, that’s the moment to produce the hand receipt. The transfer handler already updates ownership and (optionally) components when accepted. Specifically, after setting `transfer.Status = "accepted"` and saving, it calls `h.Repo.UpdateProperty(item)` to assign the item to the new user, and if `transfer.IncludeComponents` is true, it calls the ComponentService to transfer all attached components as well. We will add our DA 2062 generation *after* these steps (so that the database reflects the new ownership), but still within the acceptance block (before sending the HTTP response). This ensures we only generate the form if the transfer was successfully finalized.
+-- Properties assigned to other users (for transfer scenarios):
+-- Crew-served weapon (M240B Machine Gun) still assigned to John Doe (he will offer it to Brendan)
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, created_at)
+VALUES (
+    'M240B Machine Gun', 'M240B-2025-000001',
+    'M240B 7.62mm Machine Gun (NSN 1005-01-565-7445)', 
+    'active', 'serviceable',
+    (SELECT id FROM users WHERE username = 'john.doe'),
+    NOW()
+) ON CONFLICT (serial_number) DO NOTHING;
 
-2. **Gather required data for the form:** We need to collect:
+-- Enhanced Night Vision Goggle (ENVG) assigned to Sarah Thompson (Brendan requested it but it was not transferred)
+INSERT INTO properties (name, serial_number, description, current_status, condition, assigned_to_user_id, created_at)
+VALUES (
+    'AN/PSQ-20 ENVG', 'ENVG-2025-000001',
+    'AN/PSQ-20 Enhanced Night Vision Goggle (NSN 5855-01-647-6498)', 
+    'active', 'serviceable',
+    (SELECT id FROM users WHERE username = 'sarah.thompson'),
+    NOW()
+) ON CONFLICT (serial_number) DO NOTHING;
 
-   * The **property item** being transferred (we already fetched it as `item` in the handler). After acceptance, `item.AssignedToUserID` has been updated to the new owner.
-   * Any **attached components** of that item, if `IncludeComponents` was selected. We should query the repository for attachments. We can use `Repo.GetPropertyComponents(item.ID)` which returns all `PropertyComponent` records for the given parent ID. The repository preloads the actual component property data (`ComponentProperty` field) in those records, so we can extract each `component.ComponentProperty` as a `domain.Property`. This gives us the list of child items.
-   * The **“From” user info:** This is the user who is giving up the item (the current owner, i.e. `transfer.FromUserID`). We should fetch their User record (`Repo.GetUserByID(FromUserID)`) to get name, rank, unit, phone, and signature URL. We will map this into the `pdf.UserInfo` struct expected by the generator. For example:
+-- 4. Insert transfer records (hand receipts / property transfers)
+-- Completed transfer: John Doe issued an M4 Carbine to Brendan 30 days ago (now reflected in Brendan's inventory)
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'john.doe'),
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'completed',
+    NOW() - INTERVAL '30 days',
+    NOW() - INTERVAL '30 days' + INTERVAL '2 hours',
+    'Initial issue of M4 Carbine to SPC Toole'
+FROM properties p
+WHERE p.serial_number = 'M4-2025-000001' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+ON CONFLICT DO NOTHING;
 
-     ```go
-     fromUser, _ := h.Repo.GetUserByID(transfer.FromUserID)
-     fromInfo := pdf.UserInfo{
-         Name: fromUser.Name,
-         Rank: fromUser.Rank,
-         Title: fromUser.Unit,    // possibly use Unit as title/position
-         Phone: fromUser.Phone,
-         SignatureURL: ""
-     }
-     if fromUser.SignatureURL != nil {
-         fromInfo.SignatureURL = *fromUser.SignatureURL
-     }
-     ```
+-- Completed transfer: Sarah Thompson transferred AN/PVS-14 NVGs to Brendan 60 days ago
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'sarah.thompson'),
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'completed',
+    NOW() - INTERVAL '60 days',
+    NOW() - INTERVAL '60 days' + INTERVAL '1 hour',
+    'Transfer of night vision goggles to SPC Toole for deployment'
+FROM properties p
+WHERE p.serial_number = 'NVG-2025-000001' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+ON CONFLICT DO NOTHING;
 
-     This mirrors what the existing GeneratePDF endpoint does when preparing `fromUserInfo`. Note: we use `fromUser.Unit` as the title (in absence of a formal title field) so that the unit name appears somewhere (the design doc shows “Unit: Alpha Company…” in the form header, which we handle separately via UnitInfo, but title could be something like “Supply Sergeant” or similar if we had it – using Unit as a placeholder title is what the code does now).
-   * The **“To” user info:** Similarly, fetch the new owner (recipient) via `Repo.GetUserByID(transfer.ToUserID)`. Prepare `toInfo := pdf.UserInfo{...}` with their name, rank, etc. Include their signature URL if available.
-   * The **Unit information:** We need Unit/UIC data for the header. Ideally, this is the **issuing organization’s info**. In our peer-to-peer context, we might use the *sender’s* unit and DODAAC, since they are the one handing over accountability. If the app is primarily used within one unit, this could also be a fixed value configured in the user profile. From the UI design, it looks like the “Unit Information” card is pre-filled but editable, suggesting we have some default from the user’s profile. We can retrieve the fromUser’s unit name and perhaps a stored DODAAC if available. If not, these fields might be blank or require user input at generation time. For now, using `fromUser.Unit` as UnitName and having a placeholder DODAAC (or if the user’s profile stores a DODAAC, use it) is acceptable. Construct `pdf.UnitInfo{ UnitName, DODAAC, StockNumber, Location }`. (“Stock Number” here might actually mean property book or account number; if unclear, we can leave it blank or use something like a property book ID if we have one. The UI design shows a “Stock Number: 12345” and “Phone: ...” in the Unit card – possibly a misnomer; we might ignore StockNumber field or use it for an internal reference.)
-   * **Form generation options:** We will include signatures (set `IncludeSignatures = true`) so that the signature block is added. We can also decide whether to group by category or include QR codes. For an automated transfer form, grouping by category isn’t crucial (especially if only one item plus components), and we likely don’t need QR codes on the form unless desired. We can set `GroupByCategory = false` and `IncludeQRCodes = false` for simplicity, or follow a default from user settings. (The UI gave an option for these, but for automation we can default them off unless needed.)
+-- Pending incoming transfer: John Doe has offered Brendan a M240B (awaiting Brendan's approval)
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, notes)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'john.doe'),
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'pending',
+    NOW() - INTERVAL '2 days',
+    'Offer: M240B Machine Gun for temporary attachment to unit'
+FROM properties p
+WHERE p.serial_number = 'M240B-2025-000001' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'john.doe')
+ON CONFLICT DO NOTHING;
 
-3. **Generate the PDF:** With the data above, we use our `DA2062Generator`. We will build a slice of `domain.Property` to pass in. For example:
+-- Pending outgoing transfer: Brendan is lending a spare radio to James Wilson (awaiting James's acceptance)
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, notes)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    (SELECT id FROM users WHERE username = 'james.wilson'),
+    'pending',
+    NOW() - INTERVAL '1 day',
+    'Loan of AN/PRC-152A Radio (spare) for training exercise'
+FROM properties p
+WHERE p.serial_number = 'RADIO-2025-000002' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+ON CONFLICT DO NOTHING;
 
-   ```go
-   properties := []domain.Property{ *item }  
-   if transfer.IncludeComponents {
-       comps, _ := h.Repo.GetPropertyComponents(item.ID)
-       for _, comp := range comps {
-           properties = append(properties, comp.ComponentProperty)
-       }
-   }
-   pdfBuf, err := h.PDFGenerator.GenerateDA2062(
-       properties,
-       fromInfo, toInfo,
-       unitInfo,
-       pdf.GenerateOptions{ GroupByCategory: false, IncludeSignatures: true, IncludeQRCodes: false },
-   )
-   ```
+-- Rejected transfer: Brendan requested Sarah's ENVG 5 days ago, but Sarah rejected it 4 days ago
+INSERT INTO transfers (property_id, from_user_id, to_user_id, status, request_date, resolved_date, notes)
+SELECT 
+    p.id,
+    (SELECT id FROM users WHERE username = 'sarah.thompson'),
+    (SELECT id FROM users WHERE username = 'toole.brendan'),
+    'rejected',
+    NOW() - INTERVAL '5 days',
+    NOW() - INTERVAL '4 days',
+    'Request for ENVG denied: item already assigned to another unit'
+FROM properties p
+WHERE p.serial_number = 'ENVG-2025-000001' 
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'sarah.thompson')
+ON CONFLICT DO NOTHING;
 
-   This will create a PDF in memory (`pdfBuf` as a bytes buffer). The `GenerateDA2062` method takes our list of properties and draws each as a line on the form. By appending attached components to the list, they will appear as additional line items (with their NSNs, names, serials, etc.). The generator automatically handles paging if the list is long, adds the signature section (since we set IncludeSignatures), and page numbers. We should verify that the attached components have their NSNs and other fields set; if an attached component lacks an NSN or other detail, it will still be listed by name/SN which is acceptable. (Optionally, one could annotate component lines in the description to indicate they are components of the main item, but that’s not strictly required by the form – it might be evident by nomenclature. For clarity, ensure the component names are descriptive, e.g. “Optic, SN:12345”). The generator uses a fixed format that aligns with the official form’s columns, so the output should resemble a real DA 2062.
+-- 5. Insert an unread document (digital transfer form) for the M4 issue
+INSERT INTO documents (type, subtype, title, sender_user_id, recipient_user_id, property_id, form_data, status, sent_at)
+SELECT 
+    'transfer_form', 'DA2062',
+    'Hand Receipt - M4 Carbine (DA 2062)',
+    (SELECT id FROM users WHERE username = 'john.doe'),        -- sender (John)
+    (SELECT id FROM users WHERE username = 'toole.brendan'),   -- recipient (Brendan)
+    p.id,
+    -- Minimal form data JSON (could include fields like item, sender, receiver, signatures, etc.)
+    '{"item":"M4 Carbine","serial":"M4-2025-000001","issuedBy":"John Doe","issuedTo":"Brendan Toole","form":"DA 2062"}'::jsonb,
+    'unread',
+    NOW() - INTERVAL '29 days'   -- sent one day after issue
+FROM properties p
+WHERE p.serial_number = 'M4-2025-000001'
+  AND p.assigned_to_user_id = (SELECT id FROM users WHERE username = 'toole.brendan')
+ON CONFLICT DO NOTHING;
+```
 
-4. **Deliver the PDF to the recipient:** Once the PDF is generated, we need to get it to the user. We have two mechanisms:
+**Explanation:**
 
-   * **Email:** We already have an email service for DA 2062 (`DA2062EmailService`). We can call `SendDA2062Email` to send the PDF as an attachment. In our existing bulk export flow, if `SendEmail` was requested, the handler does:
+* We first insert the test user and additional users (John, Sarah, James, Alice) if they don’t already exist. The `password` uses a bcrypt hash for "password123" for convenience. The `name` and `rank` fields are set for realism (email/unit can be adjusted as needed).
+* Next, we create connections. John, Sarah, and James are added as **accepted connections** for Brendan (so they appear in his network). We also insert a **pending connection** from Alice to Brendan (status 'pending') – when Brendan logs in, he’ll see a pending request from Alice.
+* Then we insert multiple **properties**. Most are assigned to the test user (using his user\_id). We add:
 
-     ```go
-     err = h.EmailService.SendDA2062Email(recipients, pdfBuffer, formNumber, senderInfo)
-     ```
+  * Two M4 Carbines: one active, one under maintenance (note the `maintenance` status and `needs_repair` condition on the second).
+  * Night Vision Goggles (NVG) assigned to Brendan (with a sample `photo_url` to illustrate the image feature).
+  * Two PRC-152A Radios assigned to Brendan (simulating he has a spare).
+  * A Lensatic Compass marked as `lost` (to represent a non-operational item in his list).
+    We also insert properties for other users where needed: a M240B machine gun still assigned to John (he hasn’t transferred it yet) and an ENVG assigned to Sarah (since Brendan’s request for it was denied, it remains with Sarah).
+* After seeding items, we create **transfer records** linking these items and users:
 
-     and then logs the result. We will do similar. The recipient’s email can be pulled from the `toUser` record (User.Email). We might also CC the sender or others if needed, but the primary target is the new owner. Use the form number or item info to construct a meaningful subject. The `DA2062EmailService` will embed a nice HTML body explaining the attachment and attach the PDF (it Base64-encodes the PDF bytes and sends it). We just need to pass the correct recipient list and a form identifier. For example:
+  * John → Brendan (M4 issue) and Sarah → Brendan (NVG transfer) are marked *completed*. These will show up as past events in “Recent Activity” with status completed.
+  * John → Brendan (M240B) is *pending*, awaiting Brendan’s action (it will increment the dashboard’s `pendingTransfers` count).
+  * Brendan → James (Radio loan) is *pending*, awaiting James’s acceptance. This simulates Brendan sharing equipment; it remains in his inventory until accepted.
+  * Sarah → Brendan (ENVG) is *rejected*, showing a request that was turned down. This populates the activity feed with a “rejected” entry and helps confirm that edge case in the UI.
+    All transfers use `NOW()` with offsets to spread out the timeline (e.g. 60 days ago, 30 days ago, last week) for realism. We include explanatory `notes` on each transfer (these might appear in detail views or audit logs).
+* Finally, we insert a **document** record: a *transfer\_form* (DA 2062 hand receipt) sent from John to Brendan for the M4 issuance. We mark it as `unread`, so when Brendan logs in, the dashboard will show a “Documents Inbox” card prompting him to view it. We attach a simple JSON `form_data` with key details (in a real scenario this would contain the full form fields).
 
-     ```go
-     recipients := []string{ toUser.Email }  
-     formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), transfer.ID)  
-     senderInfo := email.UserInfo{ Name: fromUser.Name, Rank: fromUser.Rank, Title: fromUser.Unit, Phone: fromUser.Phone }  
-     if err := h.EmailService.SendDA2062Email(recipients, pdfBuf, formNumber, senderInfo); err != nil {
-         log.Printf("Email sending failed: %v", err)
-         // (handle error, but do not abort the transfer at this point; maybe just log)
-     }
-     ```
+With this migration applied, the test user *Brendan Toole* will log in and see a richly populated app:
 
-     This will send an email to the new owner with the PDF attached. The backend will log a ledger event for the export as well (we should call `h.Ledger.LogDA2062Export(...)` similar to the existing code for audit trail).
-   * **In-App Document (Inbox):** In addition to email, we should consider saving a record of this hand receipt in our app’s **Documents** system so the user can retrieve it in the app. The `Document` model is designed for things like maintenance forms and transfer forms, with fields for sender, recipient, type, etc.. We can create a Document entry of type `"transfer_form"` and subtype `"DA2062"` for this hand receipt. For example:
+* **Property Book:** multiple items listed (weapons, equipment, etc.), with various statuses (most “Operational”, one “In Maintenance”, one “Lost” contributing to the dashboard’s status breakdown). The NVG item will display a photo (from `photo_url`) instead of the placeholder “Tap to add photo” prompt.
+* **Transfers/Activity:** the dashboard “Recent Activity” section will list recent transfers – e.g. the M4 and NVG transfers (completed), the pending offers, and the rejected request – each with appropriate labels/status. The *pending transfers count* on the dashboard will reflect the two pending transfers.
+* **Connections:** the **Network/Connections** section will show the test user has established connections with John, Sarah, and James (3 connections), and one pending request from Alice. In the app’s connections screen, Alice would appear under pending requests awaiting approval.
+* **Documents:** a **Documents Inbox** card will be visible on the dashboard (since an unread document exists). Brendan can open it to see the transfer form (DA 2062) that John sent, demonstrating the in-app PDF/document feature.
 
-     ```go
-     doc := &domain.Document{
-         Type: domain.DocumentTypeTransferForm,        // "transfer_form"
-         Subtype: utils.StringPtr("DA2062"),
-         Title: fmt.Sprintf("Hand Receipt for %s (SN:%s)", item.Name, item.SerialNumber),
-         SenderUserID: transfer.FromUserID,
-         RecipientUserID: transfer.ToUserID,
-         PropertyID: &item.ID,
-         Status: domain.DocumentStatusUnread,
-         SentAt: time.Now(),
-         FormData: "{}",  // we can store a JSON string of key info if needed
-     }
-     // Attachments: we can upload the PDF to storage and save the URL
-     fileKey := fmt.Sprintf("da2062/transfer_%d.pdf", transfer.ID)
-     err := h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuf.Bytes()), pdfBuf.Len(), "application/pdf")
-     if err == nil {
-         url, _ := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour)
-         // Store the URL (or the file key which can be fetched later)
-         attachments := []string{ url }
-         attachJSON, _ := json.Marshal(attachments)
-         doc.Attachments = utils.StringPtr(string(attachJSON))
-     }
-     h.Repo.CreateDocument(doc)
-     ```
+This seeded data covers **all major features** of the application – inventory management, transfers (issuing/requesting/loaning gear), maintenance status tracking, the user network, and document exchange – allowing you to observe how the app UI renders a fully populated scenario. Be sure to adjust any specific IDs or values as needed for your environment, and run the migration. Once applied, log into the iOS app with the test account to verify that all sections (Dashboard, Property list, Connections, Documents, etc.) show the expected mock data.
 
-     By doing this, the recipient can open the app and see an “Inbox” or “Documents” section with the new hand receipt listed (Title: “Hand Receipt for \[Item]”). They can open it to view details or click the attachment to download the PDF. This is a user-friendly complement to the email. It also means if the user loses the email, the document is still available in the app for reference. We mark it “unread” so the app can show a notification badge until they view it. (The exact implementation can vary: if our app has a document viewer, we could also store structured FormData to display the form content natively. But given we have the PDF, linking to it is simplest.)
+**Sources:**
 
-5. **Complete the response:** After attempting the above, the backend can respond to the transfer accept request. In the HTTP response for `UpdateTransferStatus`, we might just return the updated transfer status. We do not need to send the PDF bytes over this API, since we’re handling delivery via email/in-app. The transfer handler currently returns JSON `{"transfer": transfer}` on success. We’ll maintain that. If any step of PDF generation or email fails, we should log an error but still return success for the transfer (since the ownership change succeeded). Maybe also include in the response a message if email failed, but the user can still manually export if needed. Generally, these failures should be rare.
-
-**Error handling and performance considerations:** Generating the PDF and sending an email will add a bit of processing during the transfer acceptance request. The PDF generation uses the `gofpdf` library synchronously – for a handful of items this is very fast (a few milliseconds). Email sending might take a second or two if using an external SMTP/SendGrid, etc. This is probably acceptable for now. If it becomes an issue, we could offload the PDF/email work to a background worker (e.g., queue a job when transfer is accepted, and immediately return success to the user). Given the user is okay with adding new modules/services, a future enhancement could be a dedicated “DocumentService” or async job to handle form generation. But initially, implementing it inline is straightforward and reliable.
-
-Finally, we should log the event to our immutable ledger. We already log transfer events to Immudb in `LogTransferEvent` when transfers are created and completed. Additionally, the `LogDA2062Export` (as used in the generate handler) can log that a hand receipt was generated and emailed. We can call that as shown above to record an audit trail of the form export (including who sent it, how many items, and delivery method). This provides an extra layer of accountability – proving that a hand receipt was issued for that transfer.
-
-## Frontend: Integrating the Transfer & Receipt Workflow
-
-On the frontend (iOS app and web), most of the groundwork for initiating and handling transfers is likely in place, but a few points need attention to ensure the new feature works smoothly:
-
-* **Initiating a Transfer:** The UI should allow a user to transfer an item from their property list. It sounds like the “Connections” feature is already implemented to select a recipient. We need to make sure that when the user confirms a transfer, the app calls the appropriate API. In our case, it should call something like `POST /transfers` (or the transfer offer endpoint). The iOS `TransferService.createOffer(propertyId:offeredToUserId:)` suggests an API for creating a transfer offer. Ensure that this API call includes the `IncludeComponents` flag. If the UI has an option like “Include attached components?”, set it to true by default (since usually you would hand over the item with its accessories). If there is no UI toggle, we might want to always include components – the backend default is `false` unless specified, so adjusting the backend to default to including components could be wise. For example, in `CreateTransfer`, if `input.IncludeComponents` is not provided, we could infer it as true. The user specifically wants attached items to transfer, so this is important to avoid orphaned components. (We saw the backend is ready to handle it: `transfer.IncludeComponents = input.IncludeComponents` and it will transfer them on acceptance.)
-
-* **Accepting a Transfer:** When the recipient views the transfer offer and accepts it (e.g., tapping “Accept” in the app’s Transfers screen), the app calls the API to update status. In iOS, `TransferService.acceptOffer(offerId:)` calls `PATCH /transfers/{id}/status` with status “accepted”. The backend then triggers the generation and email. From the app perspective, we should provide feedback to the user that the hand receipt is being generated/sent. For instance, after acceptance, show a message like “Generating DA 2062 receipt…” and then “Transfer complete. A hand receipt has been sent to your email and inbox.” This sets the expectation. The process should be quick, but a small loading indicator could be used if needed.
-
-* **Viewing the Hand Receipt:** Since we plan to deliver via email, the recipient can check their email for the PDF. Additionally, if we implement the in-app Document record, the frontend should display it. Likely, we have a screen for documents or messages (the Domain model `Document` and related API `GetDocumentsForUser` suggests such a feature). We should ensure the frontend periodically fetches new documents or uses push notifications to alert the user. The document would be marked “unread”, so the app could show an indicator. The user can click it, see details (we could list the items or just a message), and have a button to **View PDF** which downloads from the stored URL. On iOS, we can use a web view or document viewer to show the PDF, or prompt to open it in another app. On web, we could simply provide a download link.
-
-* **Signature collection (if not already done):** Encourage users to add their signature in their profile settings. Since the signature is reused, having it on file means the PDF will come already signed by them. The first time a user attempts a transfer or receives one, if they haven’t stored a signature, the app might prompt them to create one (maybe using a signature pad UI). This is a UX consideration to ensure the feature is fully digital. (If not, the form will have to be printed and signed manually by one party.) The user’s request implies this was addressed (“User needs to do signature once... stored for future transfers”). So just verify that workflow is in place.
-
-* **Unit info input:** If the app requires unit details (Unit Name, DODAAC, Location) for the form, ensure the user can set or edit these either in their profile or during the export dialog. In the automated case, we took fromUser’s profile unit and some default DODAAC. If that data isn’t set, the form might have blanks. It might be acceptable, but ideally the issuing organization’s info should be there. Consider adding a setting in the app for the user’s UIC/DODAAC and default unit address, which can then be used whenever they are the “From” on a hand receipt.
-
-* **Testing the flow:** Once implemented, test a full cycle: user A transfers an item with components to user B. Accept as user B. Confirm that:
-
-  * The transfer status updates and item now shows under user B’s property list (and is removed from A’s list).
-  * The components also moved to user B (check that in the database or via UI that the attachments are still linked and now owned by B).
-  * User B receives an email with a PDF attachment. The PDF should list the main item and the components on separate lines, with correct NSNs, serials, and quantities. The header should show A in the FROM field (with A’s unit), B in the TO, and both signatures if available. Page numbering and formatting should look like a DA 2062 (compare against a blank form to ensure alignment).
-  * In the app, user B’s Documents/Inboxes shows a new “transfer\_form” entry (if implemented) that they can view. Marking it as read when opened would clear the unread status.
-  * The immutability/audit log in Immudb should now contain an event for the transfer (already implemented via `LogTransferEvent`) and an event for the DA 2062 export (if we logged it via `LogDA2062Export`). These can be used later to verify that every transfer had an associated hand receipt generated.
-
-By following these steps, we integrate the DA 2062 generation seamlessly into the transfer workflow. The result is a robust system where **no property changes hands without a proper digital paper trail.** Users gain confidence that their hand receipts are automatically created, stored, and sent – reducing manual paperwork. And because we’ve leveraged the existing PDF generator and email service in our codebase, the implementation effort is manageable.
-
-## Additional Notes: Unit of Issue and NSN integration
-
-As a final note, the **Unit of Issue (U/I)** field on the DA 2062 deserves special attention in the future. Currently, we default everything to EA (Each). If our “PUB LOG” NSN database integration is functioning (the background worker to refresh NSN data suggests we pull info nightly), we should enrich our `Property` records with correct NSN and U/I when items are created. That way, when generating the form, we could do: `ui = property.NSN’s unit_of_issue`. This ensures that if, for example, an item is cataloged as a kit of 10 or a pair, the form’s quantities and U/I reflect that accurately (so the hand receipt matches the property book). The user’s reference indicates the master list of U/I codes (over 250 codes) is standardized, and having a mismatch can cause cost/quantity discrepancies. Implementing this might involve storing an NSN lookup table of U/I codes (for instance, an NSN record with a `unit_of_issue` field). This is a refinement to plan, but not mandatory for initial deployment. For now, using EA is acceptable, with the understanding that the vast majority of individually tracked end-items are issued as “Each”.
-
-Finally, make sure **duplicate item prevention** is enforced (the user mentioned no new property with same Serial + NSN can be created twice). We already have a unique index on serial number, so that’s taken care of at the database level. If scanning forms (Batch import) tries to create a duplicate, it will fail – we can catch that and inform the user. This ensures our digital inventory stays clean.
-
-By addressing all the above, we will have a fully functional digital hand receipt feature: **one-click transfers with automatic DA 2062 generation**, including attached components, digital signatures, and audit logging. This will significantly streamline property accountability and hand receipt management for users.
+* HandReceipt schema definitions for users, properties, connections, transfers, etc.
+* Example dev seed data illustrating user and equipment inserts.
+* iOS Dashboard view logic showing unread documents and pending requests counts.
+* Domain and migration references for statuses (`maintenance`, `needs_repair`, etc.).
