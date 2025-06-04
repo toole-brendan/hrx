@@ -1,4 +1,4 @@
-// SettingsRowViews.swift - Reusable row components for settings screens
+// SettingsRowViews.swift - Reusable row components for settings screens (8VC styled)
 import SwiftUI
 
 // MARK: - Settings Row Components
@@ -11,21 +11,22 @@ struct SettingsRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(AppColors.accent)
-                .frame(width: 24)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.secondaryText)
+                .frame(width: 20)
             
             Text(label)
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
+                .foregroundColor(AppColors.primaryText)
             
             Spacer()
             
             Text(value)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.primaryText)
+                .font(AppFonts.monoBody)  // Monospace for values
+                .foregroundColor(AppColors.secondaryText)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 
@@ -43,33 +44,32 @@ struct SettingsToggleRow: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(AppColors.accent)
-                    .frame(width: 24)
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.secondaryText)
+                .frame(width: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.primaryText)
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(label)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    if let description = description {
-                        Text(description)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.tertiaryText)
-                    }
+                if let description = description {
+                    Text(description)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText)
                 }
-                
-                Spacer()
-                
-                Toggle("", isOn: $isOn)
-                    .labelsHidden()
-                    .tint(AppColors.accent)
             }
+            
+            Spacer()
+            
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(AppColors.accent)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, description != nil ? 10 : 12)
     }
 }
 
@@ -79,24 +79,22 @@ struct SettingsActionRow: View {
     let iconColor: Color
     let action: () -> Void
     let showProgress: Bool
-    let progress: Double
     
-    init(label: String, icon: String, iconColor: Color, action: @escaping () -> Void, showProgress: Bool = false, progress: Double = 0) {
+    init(label: String, icon: String, iconColor: Color, action: @escaping () -> Void, showProgress: Bool = false) {
         self.label = label
         self.icon = icon
         self.iconColor = iconColor
         self.action = action
         self.showProgress = showProgress
-        self.progress = progress
     }
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(.system(size: 16, weight: .light))
                     .foregroundColor(iconColor)
-                    .frame(width: 24)
+                    .frame(width: 20)
                 
                 Text(label)
                     .font(AppFonts.body)
@@ -107,14 +105,15 @@ struct SettingsActionRow: View {
                 if showProgress {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                        .scaleEffect(0.8)
+                        .scaleEffect(0.7)
                 } else {
                     Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(AppColors.tertiaryText)
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundColor(AppColors.quaternaryText)
                 }
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
@@ -129,21 +128,22 @@ struct SettingsInfoRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(AppColors.accent)
-                .frame(width: 24)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.secondaryText)
+                .frame(width: 20)
             
             Text(label)
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
+                .foregroundColor(AppColors.primaryText)
             
             Spacer()
             
             Text(value)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.primaryText)
+                .font(AppFonts.monoCaption)  // Monospace for technical values
+                .foregroundColor(AppColors.secondaryText)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 
@@ -156,9 +156,9 @@ struct SettingsNavigationRow: View {
         NavigationLink(destination: destination) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(AppColors.accent)
-                    .frame(width: 24)
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundColor(AppColors.secondaryText)
+                    .frame(width: 20)
                 
                 Text(label)
                     .font(AppFonts.body)
@@ -167,10 +167,11 @@ struct SettingsNavigationRow: View {
                 Spacer()
                 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(AppColors.tertiaryText)
+                    .font(.system(size: 12, weight: .light))
+                    .foregroundColor(AppColors.quaternaryText)
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
@@ -205,27 +206,28 @@ struct SettingsStatusRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(AppColors.accent)
-                .frame(width: 24)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.secondaryText)
+                .frame(width: 20)
             
             Text(label)
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.secondaryText)
+                .foregroundColor(AppColors.primaryText)
             
             Spacer()
             
             HStack(spacing: 6) {
                 Circle()
                     .fill(status.color)
-                    .frame(width: 8, height: 8)
+                    .frame(width: 6, height: 6)
                 
                 Text(status.text)
-                    .font(AppFonts.body)
+                    .font(AppFonts.monoCaption)  // Monospace for status
                     .foregroundColor(status.color)
             }
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 
@@ -235,26 +237,28 @@ struct SyncStatusOverlay: View {
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.5)
+            Color.black.opacity(0.3)
                 .ignoresSafeArea()
             
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 Text("SYNCING")
-                    .font(AppFonts.headline)
+                    .font(AppFonts.captionMedium)
                     .foregroundColor(AppColors.primaryText)
-                    .compatibleKerning(AppFonts.wideKerning)
+                    .kerning(AppFonts.ultraWideKerning)
                 
                 ProgressView(value: progress)
                     .progressViewStyle(LinearProgressViewStyle(tint: AppColors.accent))
-                    .frame(width: 200)
+                    .frame(width: 180)
                 
                 Text("\(Int(progress * 100))%")
                     .font(AppFonts.monoBody)
                     .foregroundColor(AppColors.secondaryText)
             }
-            .padding(30)
-            .cleanCard()
-            .frame(width: 280)
+            .padding(24)
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(4)
+            .shadow(color: AppColors.shadowColor, radius: 8, y: 4)
+            .frame(width: 240)
         }
     }
 } 

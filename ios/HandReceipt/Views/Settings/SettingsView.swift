@@ -1,4 +1,4 @@
-// SettingsView.swift - App preferences and configuration (updated with 8VC styling)
+// SettingsView.swift - App preferences and configuration (8VC styled)
 import SwiftUI
 
 // MARK: - Settings View
@@ -22,25 +22,24 @@ struct SettingsView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // Spacer for header
-                Color.clear
-                    .frame(height: 4)
+            VStack(spacing: 32) {
+                // Minimal top padding
+                Color.clear.frame(height: 8)
                 
                 // Preferences Section
-                VStack(alignment: .leading, spacing: 12) {
-                    ElegantSectionHeader(title: "Preferences", style: .serif)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(title: "PREFERENCES")
                         .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
                         SettingsToggleRow(
                             label: "Push Notifications",
-                            icon: "bell.fill",
+                            icon: "bell",
                             isOn: $notificationsEnabled,
                             description: "Receive alerts for transfers and maintenance"
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsToggleRow(
                             label: "Biometric Authentication",
@@ -49,7 +48,7 @@ struct SettingsView: View {
                             description: "Use Face ID or Touch ID to unlock"
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsToggleRow(
                             label: "Auto-Sync",
@@ -58,13 +57,15 @@ struct SettingsView: View {
                             description: "Automatically sync when online"
                         )
                     }
-                    .cleanCard()
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(4)
+                    .shadow(color: AppColors.shadowColor, radius: 2, y: 1)
                     .padding(.horizontal, 24)
                 }
                 
                 // Data & Storage Section
-                VStack(alignment: .leading, spacing: 12) {
-                    ElegantSectionHeader(title: "Data & Storage", style: .serif)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(title: "DATA & STORAGE")
                         .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
@@ -73,20 +74,19 @@ struct SettingsView: View {
                             icon: "arrow.triangle.2.circlepath",
                             iconColor: AppColors.accent,
                             action: performSync,
-                            showProgress: isSyncing,
-                            progress: syncProgress
+                            showProgress: isSyncing
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsActionRow(
                             label: "Clear Cache",
                             icon: "trash",
-                            iconColor: .orange,
+                            iconColor: AppColors.warning,
                             action: { showingClearCacheAlert = true }
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsInfoRow(
                             label: "Storage Used",
@@ -94,13 +94,15 @@ struct SettingsView: View {
                             value: calculateStorageUsed()
                         )
                     }
-                    .cleanCard()
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(4)
+                    .shadow(color: AppColors.shadowColor, radius: 2, y: 1)
                     .padding(.horizontal, 24)
                 }
                 
                 // Application Section
-                VStack(alignment: .leading, spacing: 12) {
-                    ElegantSectionHeader(title: "Application", style: .serif)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(title: "APPLICATION")
                         .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
@@ -110,7 +112,7 @@ struct SettingsView: View {
                             value: getAppVersion()
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsInfoRow(
                             label: "Build",
@@ -118,7 +120,7 @@ struct SettingsView: View {
                             value: getBuildNumber()
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsStatusRow(
                             label: "Server Status",
@@ -126,7 +128,7 @@ struct SettingsView: View {
                             status: .connected
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsInfoRow(
                             label: "Last Sync",
@@ -134,13 +136,15 @@ struct SettingsView: View {
                             value: getLastSyncTime()
                         )
                     }
-                    .cleanCard()
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(4)
+                    .shadow(color: AppColors.shadowColor, radius: 2, y: 1)
                     .padding(.horizontal, 24)
                 }
                 
                 // Support Section
-                VStack(alignment: .leading, spacing: 12) {
-                    ElegantSectionHeader(title: "Support", style: .serif)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel(title: "SUPPORT")
                         .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
@@ -150,7 +154,7 @@ struct SettingsView: View {
                             destination: AnyView(HelpView())
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsNavigationRow(
                             label: "Report an Issue",
@@ -158,7 +162,7 @@ struct SettingsView: View {
                             destination: AnyView(ReportIssueView())
                         )
                         
-                        Divider().background(AppColors.border)
+                        Divider().background(AppColors.divider)
                         
                         SettingsNavigationRow(
                             label: "About HandReceipt",
@@ -166,19 +170,20 @@ struct SettingsView: View {
                             destination: AnyView(AboutView())
                         )
                     }
-                    .cleanCard()
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(4)
+                    .shadow(color: AppColors.shadowColor, radius: 2, y: 1)
                     .padding(.horizontal, 24)
                 }
                 
-                // Bottom spacer
-                Spacer()
-                    .frame(height: 80)
+                // Bottom spacer - reduced from 80
+                Spacer().frame(height: 40)
             }
         }
-        .background(AppColors.appBackground.ignoresSafeArea(.all))
+        .background(AppColors.appBackground.ignoresSafeArea())
         .minimalNavigation(
             title: "SETTINGS",
-            titleStyle: .mono,
+            titleStyle: .mono,  // Official style for settings screens
             showBackButton: true,
             backAction: { dismiss() }
         )
@@ -244,5 +249,18 @@ struct SettingsView: View {
     private func getLastSyncTime() -> String {
         // TODO: Get actual last sync time
         return "2 minutes ago"
+    }
+}
+
+// MARK: - Section Label Component
+struct SectionLabel: View {
+    let title: String
+    
+    var body: some View {
+        Text(title)
+            .font(AppFonts.captionMedium)
+            .foregroundColor(AppColors.secondaryText)
+            .kerning(AppFonts.ultraWideKerning)
+            .padding(.bottom, 4)
     }
 } 
