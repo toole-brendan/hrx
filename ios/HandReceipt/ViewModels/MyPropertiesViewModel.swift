@@ -2,11 +2,12 @@ import Foundation
 import Combine // For ObservableObject
 
 // MARK: - Property Filter Enum
-enum PropertyFilter: String, CaseIterable {
+enum PropertyFilter: String, CaseIterable, Identifiable {
     case all = "ALL"
     case operational = "OPERATIONAL"
     case maintenance = "MAINTENANCE"
     
+    var id: String { rawValue }
     var title: String { rawValue }
 }
 

@@ -6,14 +6,10 @@ import Combine
 // Enhanced Properties List View
 struct MyPropertiesView: View {
     @StateObject private var viewModel: MyPropertiesViewModel
-    @State private var showingUnverifiedOnly = false
     @State private var selectedProperty: Property?
     @State private var showingVerificationSheet = false
-    @State private var searchText = ""
-    @State private var selectedFilter: PropertyFilter = .all
     @State private var showingCreateProperty = false
     @State private var showingSortOptions = false
-    @State private var selectedSortOption: SortOption = .name
     @State private var showingSearch = false
     @State private var showingDA2062Scan = false
     @State private var showingAddMenu = false
@@ -22,29 +18,6 @@ struct MyPropertiesView: View {
     @State private var selectedPropertiesForExport: Set<Int> = []
     @State private var showingTransferSheet = false
     @State private var selectedPropertyForTransfer: Property?
-    
-    enum PropertyFilter: String, CaseIterable {
-        case all = "All"
-        case operational = "Operational"
-        case maintenance = "Maintenance"
-        case sensitive = "Sensitive"
-        
-        var icon: String {
-            switch self {
-            case .all: return "list.bullet"
-            case .operational: return "checkmark.circle"
-            case .maintenance: return "wrench"
-            case .sensitive: return "lock.shield"
-            }
-        }
-    }
-    
-    enum SortOption: String, CaseIterable {
-        case name = "Name"
-        case serialNumber = "Serial Number"
-        case lastVerification = "Last Verification"
-        case status = "Status"
-    }
     
     init(viewModel: MyPropertiesViewModel? = nil) {
         let vm = viewModel ?? MyPropertiesViewModel(apiService: APIService())
@@ -79,13 +52,13 @@ struct MyPropertiesView: View {
                 VStack(spacing: 24) {
                     // Just the item count, no title
                     HStack {
-                        Text("\(filteredProperties.count) items tracked")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.tertiaryText)
-                        
-                        Spacer()
-                        
-                        if !isSelectMode && !filteredProperties.isEmpty {
+                                            Text("\(viewModel.filteredProperties.count) items tracked")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.tertiaryText)
+                    
+                    Spacer()
+                    
+                    if !isSelectMode && !viewModel.filteredProperties.isEmpty {
                             Button("Select") {
                                 isSelectMode = true
                             }
@@ -129,13 +102,21 @@ struct MyPropertiesView: View {
             }
             .background(AppColors.appBackground)
             .minimalRefreshable {
-                await MainActor.run {
-                    viewModel.refreshData()
+                // Only allow refresh if not offline
+                if !viewModel.isOffline {
+                    await MainActor.run {
+                        viewModel.loadProperties()
+                    }
                 }
             }
             .task {
-                // Load properties when the view appears
-                viewModel.loadProperties()
+                // Load from cache first (instant)
+                await viewModel.loadCachedProperties()
+                
+                // Then try to fetch from network if online
+                if !viewModel.isOffline {
+                    viewModel.loadProperties()
+                }
             }
             
             // Floating export button when items are selected
@@ -206,11 +187,12 @@ struct MyPropertiesView: View {
         .actionSheet(isPresented: $showingSortOptions) {
             ActionSheet(
                 title: Text("Sort Properties"),
-                buttons: SortOption.allCases.map { option in
-                    .default(Text(option.rawValue)) {
-                        selectedSortOption = option
-                    }
-                } + [.cancel()]
+                buttons: [
+                    .default(Text("By Name")) { },
+                    .default(Text("By Serial Number")) { },
+                    .default(Text("By Status")) { },
+                    .cancel()
+                ]
             )
         }
         .confirmationDialog("Add Property", isPresented: $showingAddMenu) {
@@ -292,7 +274,7 @@ struct MyPropertiesView: View {
                 
                 // Filter buttons
                 HStack(spacing: 12) {
-                    ForEach(PropertyFilter.allCases, id: \.self) { filter in
+                    ForEach(PropertyFilter.allCases) { filter in
                         FilterButton(
                             title: filter.title,
                             isSelected: viewModel.selectedFilter == filter
@@ -342,7 +324,7 @@ struct MyPropertiesView: View {
                 )
                 .padding(.horizontal, 24)
                 .padding(.vertical, 80)
-            } else if filteredProperties.isEmpty {
+            } else if viewModel.filteredProperties.isEmpty {
                 // Empty state when no properties match filters
                 MinimalEmptyState(
                     icon: emptyStateIcon,
@@ -356,7 +338,7 @@ struct MyPropertiesView: View {
             } else {
                 // Properties list
                 LazyVStack(spacing: 16) {
-                    ForEach(filteredProperties) { property in
+                    ForEach(viewModel.filteredProperties) { property in
                         if isSelectMode {
                             MinimalPropertyCard(
                                 property: property,
@@ -416,91 +398,110 @@ struct MyPropertiesView: View {
     // MARK: - Helper Properties
     
     private var emptyStateIcon: String {
-        if !searchText.isEmpty {
+        if !viewModel.searchText.isEmpty {
             return "magnifyingglass"
         }
-        switch selectedFilter {
+        
+        if viewModel.isOffline {
+            return "wifi.slash"
+        }
+        
+        switch viewModel.selectedFilter {
         case .all: return "shippingbox"
         case .operational: return "checkmark.circle"
         case .maintenance: return "wrench"
-        case .sensitive: return "lock.shield"
         }
     }
     
     private var emptyStateTitle: String {
-        if !searchText.isEmpty {
+        if !viewModel.searchText.isEmpty {
             return "No Results Found"
         }
-        switch selectedFilter {
+        
+        if viewModel.isOffline {
+            return "Offline Mode"
+        }
+        
+        switch viewModel.selectedFilter {
         case .all: return "No Properties Found"
         case .operational: return "No Operational Items"
         case .maintenance: return "No Maintenance Required"
-        case .sensitive: return "No Sensitive Items"
         }
     }
     
     private var emptyStateMessage: String {
-        if !searchText.isEmpty {
+        if !viewModel.searchText.isEmpty {
             return "Try adjusting your search terms or filters."
         }
-        switch selectedFilter {
+        
+        if viewModel.isOffline {
+            return "Properties will appear when connected to the network."
+        }
+        
+        switch viewModel.selectedFilter {
         case .all: return "Properties assigned to you will appear here."
         case .operational: return "You have no operational properties assigned."
         case .maintenance: return "Good news! No items require maintenance."
-        case .sensitive: return "You have no sensitive items assigned."
         }
     }
     
-    // Filter and sort logic
-    private func filterAndSort(_ properties: [Property]) -> [Property] {
-        var filtered = properties
-        
-        // Apply search filter
-        if !searchText.isEmpty {
-            filtered = filtered.filter { property in
-                property.itemName.localizedCaseInsensitiveContains(searchText) ||
-                property.serialNumber.localizedCaseInsensitiveContains(searchText) ||
-                (property.nsn ?? "").localizedCaseInsensitiveContains(searchText)
+    // Note: Filtering and sorting logic moved to view model
+}
+
+// MARK: - Supporting Components
+
+struct OfflineBanner: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.warning)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Offline Mode")
+                    .font(AppFonts.bodyMedium)
+                    .foregroundColor(AppColors.primaryText)
+                
+                Text("Changes will sync when connected")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.secondaryText)
             }
+            
+            Spacer()
         }
-        
-        // Apply unverified filter
-        if showingUnverifiedOnly {
-            filtered = filtered.filter { $0.needsVerification }
-        }
-        
-        // Apply status filter
-        switch selectedFilter {
-        case .all:
-            break
-        case .operational:
-            filtered = filtered.filter { ($0.status ?? "").lowercased() == "operational" }
-        case .maintenance:
-            filtered = filtered.filter { $0.needsMaintenance }
-        case .sensitive:
-            filtered = filtered.filter { $0.isSensitive }
-        }
-        
-        // Apply sorting
-        switch selectedSortOption {
-        case .name:
-            filtered.sort { $0.itemName < $1.itemName }
-        case .serialNumber:
-            filtered.sort { $0.serialNumber < $1.serialNumber }
-        case .lastVerification:
-            filtered.sort { ($0.lastInventoryDate ?? Date.distantPast) > ($1.lastInventoryDate ?? Date.distantPast) }
-        case .status:
-            filtered.sort { ($0.status ?? "") < ($1.status ?? "") }
-        }
-        
-        return filtered
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(AppColors.warning.opacity(0.1))
+        .overlay(
+            Rectangle()
+                .fill(AppColors.warning.opacity(0.3))
+                .frame(height: 1),
+            alignment: .bottom
+        )
     }
+}
+
+struct FilterButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
     
-    var filteredProperties: [Property] {
-        if case .success(let properties) = viewModel.loadingState {
-            return filterAndSort(properties)
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(AppFonts.caption)
+                .foregroundColor(isSelected ? .white : AppColors.secondaryText)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? AppColors.primaryText : AppColors.secondaryBackground)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(isSelected ? AppColors.primaryText : AppColors.border, lineWidth: 1)
+                )
+                .compatibleKerning(AppFonts.wideKerning)
         }
-        return []
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
