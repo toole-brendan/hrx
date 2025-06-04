@@ -29,154 +29,118 @@ struct CreatePropertyView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                AppColors.appBackground.ignoresSafeArea()
-                
-                if #available(iOS 16.0, *) {
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // Progress indicator
-                            ProgressIndicator(currentStep: currentStep, totalSteps: 3)
-                                .padding(.horizontal)
-                            
-                            // Photo Section
-                            photoSection
-                            
-                            // Form Fields
-                            VStack(spacing: 20) {
-                                // Serial Number Section
-                                serialNumberSection
-                                
-                                // NSN/LIN Lookup Section
-                                nsnLookupSection
-                                
-                                // Item Details Section
-                                itemDetailsSection
-                                
-                                // Status and Assignment Section
-                                statusAssignmentSection
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom navigation bar
+                MinimalNavigationBar(
+                    title: "Create Property",
+                    titleStyle: .mono,
+                    showBackButton: false,
+                    trailingItems: [
+                        .init(text: "Cancel", style: .text, action: {
+                            if hasUnsavedChanges {
+                                showingCancelConfirmation = true
+                            } else {
+                                dismiss()
                             }
-                            
-                            // Action Buttons
-                            actionButtons
-                        }
-                        .padding()
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                } else {
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // Progress indicator
-                            ProgressIndicator(currentStep: currentStep, totalSteps: 3)
-                                .padding(.horizontal)
-                            
-                            // Photo Section
-                            photoSection
-                            
-                            // Form Fields
-                            VStack(spacing: 20) {
-                                // Serial Number Section
-                                serialNumberSection
-                                
-                                // NSN/LIN Lookup Section
-                                nsnLookupSection
-                                
-                                // Item Details Section
-                                itemDetailsSection
-                                
-                                // Status and Assignment Section
-                                statusAssignmentSection
-                            }
-                            
-                            // Action Buttons
-                            actionButtons
-                        }
-                        .padding()
-                    }
-                }
-            }
-            .navigationTitle("Create Property")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        if hasUnsavedChanges {
-                            showingCancelConfirmation = true
-                        } else {
-                            dismiss()
-                        }
-                    }
-                    .foregroundColor(AppColors.accent)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if viewModel.isOffline {
-                        HStack(spacing: 4) {
-                            Image(systemName: "wifi.slash")
-                            Text("Offline")
-                        }
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.warning)
-                    }
-                }
-            }
-            .sheet(isPresented: $showingImagePicker) {
-                ImagePicker(image: $selectedImage, sourceType: .photoLibrary)
-            }
-            .sheet(isPresented: $showingCamera) {
-                ImagePicker(image: $selectedImage, sourceType: .camera)
-            }
-            .sheet(isPresented: $showingNSNSearch) {
-                NSNSearchView(
-                    searchQuery: $nsnSearchQuery,
-                    searchResults: $nsnSearchResults,
-                    isSearching: $isSearchingNSN,
-                    onSelect: { details in
-                        viewModel.applyNSNDetails(details)
-                        showingNSNSearch = false
-                    }
+                        })
+                    ]
                 )
-            }
-            .sheet(isPresented: $isShowingBarcodeScannerCreate) {
-                BarcodeScannerView { barcode in
-                    viewModel.serialNumber = barcode
-                    isShowingBarcodeScannerCreate = false
-                    validateSerialNumber()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Minimal progress indicator
+                        StepProgressIndicator(currentStep: currentStep, totalSteps: 3)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                        
+                        VStack(spacing: 20) {
+                            // Photo Section
+                            photoSection
+                            
+                            // Serial Number Section
+                            serialNumberSection
+                            
+                            // NSN/LIN Lookup Section
+                            nsnLookupSection
+                            
+                            // Item Details Section
+                            itemDetailsSection
+                            
+                            // Status Section
+                            statusSection
+                            
+                            // Assignment Section
+                            assignmentSection
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Action Buttons
+                        actionButtons
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
+                    }
                 }
             }
-            .alert("Success", isPresented: $showingSuccessAlert) {
-                Button("Create Another") {
-                    resetForm()
+        }
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: $selectedImage, sourceType: .photoLibrary)
+        }
+        .sheet(isPresented: $showingCamera) {
+            ImagePicker(image: $selectedImage, sourceType: .camera)
+        }
+        .sheet(isPresented: $showingNSNSearch) {
+            NSNSearchView(
+                searchQuery: $nsnSearchQuery,
+                searchResults: $nsnSearchResults,
+                isSearching: $isSearchingNSN,
+                onSelect: { details in
+                    viewModel.applyNSNDetails(details)
+                    showingNSNSearch = false
                 }
-                Button("Done", role: .cancel) {
-                    dismiss()
-                }
-            } message: {
-                Text("Property created successfully!")
+            )
+        }
+        .sheet(isPresented: $isShowingBarcodeScannerCreate) {
+            BarcodeScannerView { barcode in
+                viewModel.serialNumber = barcode
+                isShowingBarcodeScannerCreate = false
+                validateSerialNumber()
             }
-            .alert("Duplicate Serial Number", isPresented: $showingDuplicateAlert) {
-                Button("OK") {
-                    serialNumberError = "This serial number already exists"
-                }
-            } message: {
-                Text("A property with this serial number already exists in the system.")
+        }
+        .alert("Success", isPresented: $showingSuccessAlert) {
+            Button("Create Another") {
+                resetForm()
             }
-            .alert("Unsaved Changes", isPresented: $showingCancelConfirmation) {
-                Button("Discard Changes", role: .destructive) {
-                    dismiss()
-                }
-                Button("Keep Editing", role: .cancel) {}
-            } message: {
-                Text("You have unsaved changes. Are you sure you want to discard them?")
+            Button("Done", role: .cancel) {
+                dismiss()
             }
-            .alert("Error", isPresented: $viewModel.showingError) {
-                Button("OK") {
-                    viewModel.showingError = false
-                }
-            } message: {
-                Text(viewModel.errorMessage)
+        } message: {
+            Text("Property created successfully!")
+        }
+        .alert("Duplicate Serial Number", isPresented: $showingDuplicateAlert) {
+            Button("OK") {
+                serialNumberError = "This serial number already exists"
             }
+        } message: {
+            Text("A property with this serial number already exists in the system.")
+        }
+        .alert("Unsaved Changes", isPresented: $showingCancelConfirmation) {
+            Button("Discard Changes", role: .destructive) {
+                dismiss()
+            }
+            Button("Keep Editing", role: .cancel) {}
+        } message: {
+            Text("You have unsaved changes. Are you sure you want to discard them?")
+        }
+        .alert("Error", isPresented: $viewModel.showingError) {
+            Button("OK") {
+                viewModel.showingError = false
+            }
+        } message: {
+            Text(viewModel.errorMessage)
         }
     }
     
@@ -204,85 +168,77 @@ struct CreatePropertyView: View {
     
     private var photoSection: some View {
         VStack(spacing: 12) {
-            FormSectionHeader(title: "Property Photo", isOptional: true)
+            MinimalSectionHeader(title: "PHOTO", subtitle: "Optional")
             
             if let image = selectedImage {
                 ZStack(alignment: .topTrailing) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
-                        .frame(maxHeight: 200)
-                        .cornerRadius(12)
+                        .frame(maxHeight: 160)
+                        .frame(maxWidth: .infinity)
+                        .background(AppColors.tertiaryBackground)
+                        .cornerRadius(4)
                     
                     Button(action: { selectedImage = nil }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .background(Circle().fill(Color.black.opacity(0.6)))
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundColor(AppColors.primaryText)
+                            .background(Circle().fill(AppColors.secondaryBackground))
                     }
                     .padding(8)
                 }
             } else {
-                HStack(spacing: 16) {
-                    PhotoOptionButton(
-                        icon: "camera.fill",
+                HStack(spacing: 12) {
+                    MinimalPhotoButton(
+                        icon: "camera",
                         title: "Camera",
                         action: { showingCamera = true }
                     )
                     
-                    PhotoOptionButton(
-                        icon: "photo.fill",
+                    MinimalPhotoButton(
+                        icon: "photo",
                         title: "Library",
                         action: { showingImagePicker = true }
                     )
                 }
             }
         }
+        .cleanCard(padding: 16)
     }
     
     // MARK: - Serial Number Section
     
     private var serialNumberSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            FormSectionHeader(title: "Serial Number", isRequired: true)
+            MinimalSectionHeader(title: "SERIAL NUMBER", isRequired: true)
             
             HStack(spacing: 12) {
-                TextField("Enter serial number", text: $viewModel.serialNumber)
-                    .textFieldStyle(CustomTextFieldStyle())
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
-                    .onChange(of: viewModel.serialNumber) { _ in
-                        validateSerialNumber()
-                    }
+                MinimalTextField(
+                    text: $viewModel.serialNumber,
+                    placeholder: "Enter serial number",
+                    font: .mono,
+                    autocapitalization: .characters
+                )
+                .onChange(of: viewModel.serialNumber) { _ in
+                    validateSerialNumber()
+                }
                 
                 Button(action: { isShowingBarcodeScannerCreate = true }) {
                     Image(systemName: "barcode.viewfinder")
-                        .font(.title2)
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundColor(AppColors.primaryText)
                         .frame(width: 44, height: 44)
-                        .background(AppColors.secondaryBackground)
-                        .foregroundColor(AppColors.accent)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(AppColors.accent, lineWidth: 1)
-                        )
+                        .background(AppColors.tertiaryBackground)
+                        .cornerRadius(4)
                 }
             }
             
             if let error = serialNumberError {
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                    Text(error)
-                        .font(AppFonts.caption)
-                }
-                .foregroundColor(AppColors.destructive)
+                MinimalErrorText(error)
             }
-            
-            Text("Unique identifier for this specific item")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.tertiaryText)
         }
+        .cleanCard(padding: 16)
     }
     
     // MARK: - NSN Lookup Section
@@ -290,20 +246,21 @@ struct CreatePropertyView: View {
     private var nsnLookupSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                FormSectionHeader(title: "NSN/LIN Lookup", isOptional: true)
+                MinimalSectionHeader(title: "NSN/LIN LOOKUP", subtitle: "Auto-fill from database")
                 Spacer()
-                Text("AUTO-FILL FROM DATABASE")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.accent)
-                    .kerning(AppFonts.wideKerning)
+                if viewModel.isLookingUp {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+                        .scaleEffect(0.8)
+                }
             }
             
             HStack(spacing: 12) {
-                TextField("NSN or LIN (optional)", text: $viewModel.nsnLinInput)
-                    .textFieldStyle(CustomTextFieldStyle())
-                    .font(AppFonts.monoBody)
-                    .autocapitalization(.allCharacters)
-                    .disableAutocorrection(true)
+                MinimalTextField(
+                    text: $viewModel.nsnLinInput,
+                    placeholder: "Search or enter NSN/LIN",
+                    font: .mono
+                )
                 
                 Button(action: {
                     if viewModel.nsnLinInput.isEmpty {
@@ -314,192 +271,172 @@ struct CreatePropertyView: View {
                         }
                     }
                 }) {
-                    Group {
-                        if viewModel.isLookingUp {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .frame(width: 20, height: 20)
-                        } else {
-                            Image(systemName: viewModel.nsnLinInput.isEmpty ? "magnifyingglass" : "arrow.right.circle.fill")
-                                .font(.title2)
-                        }
-                    }
-                    .frame(width: 44, height: 44)
-                    .background(AppColors.accent)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+                    Image(systemName: viewModel.nsnLinInput.isEmpty ? "magnifyingglass" : "arrow.right")
+                        .font(.system(size: 16, weight: .regular))
                 }
+                .buttonStyle(.minimalPrimary)
+                .frame(width: 44, height: 44)
                 .disabled(viewModel.isLookingUp)
             }
             
             if let nsnDetails = viewModel.nsnDetails {
-                NSNDetailsCard(details: nsnDetails)
-                    .transition(.opacity.combined(with: .scale))
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Search or enter NSN/LIN to auto-populate item details")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.tertiaryText)
-                
-                // Visual emphasis box
-                HStack {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 14))
+                MinimalNSNDetailsCard(details: nsnDetails)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                // Help text
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb")
+                        .font(.system(size: 12, weight: .light))
                         .foregroundColor(AppColors.accent)
-                    Text("Tap the search icon to browse the NSN database")
+                    Text("Tap search to browse the NSN database")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.secondaryText)
                 }
-                .padding(12)
+                .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(AppColors.accent.opacity(0.1))
+                .background(AppColors.accentMuted)
                 .cornerRadius(4)
             }
         }
+        .cleanCard(padding: 16)
     }
     
     // MARK: - Item Details Section
     
     private var itemDetailsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 16) {
             // Item Name
             VStack(alignment: .leading, spacing: 12) {
-                FormSectionHeader(title: "Item Name", isRequired: true)
+                MinimalSectionHeader(title: "ITEM NAME", isRequired: true)
                 
-                TextField("Enter item name", text: $viewModel.itemName)
-                    .textFieldStyle(CustomTextFieldStyle())
-                    .onChange(of: viewModel.itemName) { _ in
-                        validateItemName()
-                    }
+                MinimalTextField(
+                    text: $viewModel.itemName,
+                    placeholder: "Enter item name"
+                )
+                .onChange(of: viewModel.itemName) { _ in
+                    validateItemName()
+                }
                 
                 if let error = itemNameError {
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                        Text(error)
-                            .font(AppFonts.caption)
-                    }
-                    .foregroundColor(AppColors.destructive)
+                    MinimalErrorText(error)
                 }
             }
+            .cleanCard(padding: 16)
             
             // Description
             VStack(alignment: .leading, spacing: 12) {
-                FormSectionHeader(title: "Description", isOptional: true)
+                MinimalSectionHeader(title: "DESCRIPTION", subtitle: "Optional")
                 
-                IndustrialTextEditor(
+                MinimalTextEditor(
                     text: $viewModel.description,
-                    placeholder: "Add additional details about this item..."
+                    placeholder: "Add additional details...",
+                    height: 80
                 )
-                .frame(height: 100)
             }
+            .cleanCard(padding: 16)
         }
     }
     
-    // MARK: - Status and Assignment Section
+    // MARK: - Status Section
     
-    private var statusAssignmentSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Status Selection
-            VStack(alignment: .leading, spacing: 12) {
-                FormSectionHeader(title: "Status", isRequired: true)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(PropertyStatus.allCases, id: \.self) { status in
-                            StatusSelectionPill(
-                                status: status,
-                                isSelected: viewModel.currentStatus == status
-                            ) {
-                                withAnimation {
-                                    viewModel.currentStatus = status
-                                }
+    private var statusSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            MinimalSectionHeader(title: "STATUS", isRequired: true)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(PropertyStatus.allCases, id: \.self) { status in
+                        MinimalStatusPill(
+                            status: status,
+                            isSelected: viewModel.currentStatus == status
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.currentStatus = status
                             }
                         }
                     }
                 }
             }
+        }
+        .cleanCard(padding: 16)
+    }
+    
+    // MARK: - Assignment Section
+    
+    private var assignmentSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            MinimalSectionHeader(title: "ASSIGN TO", subtitle: "Optional - defaults to you")
             
-            // Assign To
-            VStack(alignment: .leading, spacing: 12) {
-                FormSectionHeader(title: "Assign To", isOptional: true)
-                
-                if let assignedUser = viewModel.selectedUser {
-                    AssignedUserCard(user: assignedUser) {
-                        viewModel.selectedUser = nil
-                    }
-                } else {
-                    Button(action: {
-                        // TODO: Show user selection
-                    }) {
-                        HStack {
-                            Image(systemName: "person.badge.plus")
-                                .foregroundColor(AppColors.accent)
-                            Text("Select user (optional)")
-                                .foregroundColor(AppColors.secondaryText)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(AppColors.tertiaryText)
-                        }
-                        .padding()
-                        .background(AppColors.secondaryBackground)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(AppColors.border, lineWidth: 1)
-                        )
-                    }
+            if let assignedUser = viewModel.selectedUser {
+                MinimalAssignedUserCard(user: assignedUser) {
+                    viewModel.selectedUser = nil
                 }
-                
-                if viewModel.selectedUser == nil {
-                    Text("Leave empty to assign to yourself")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.tertiaryText)
+            } else {
+                Button(action: {
+                    // TODO: Show user selection
+                }) {
+                    HStack {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 16, weight: .light))
+                            .foregroundColor(AppColors.secondaryText)
+                        Text("Select user")
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .light))
+                            .foregroundColor(AppColors.tertiaryText)
+                    }
+                    .padding(12)
+                    .background(AppColors.tertiaryBackground)
+                    .cornerRadius(4)
                 }
             }
         }
+        .cleanCard(padding: 16)
     }
     
     // MARK: - Action Buttons
     
     private var actionButtons: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             if viewModel.isOffline {
                 HStack(spacing: 8) {
-                    Image(systemName: "info.circle")
-                    Text("This property will be created locally and synced when online")
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 12))
+                    Text("Will sync when online")
+                        .font(AppFonts.caption)
                 }
-                .font(AppFonts.caption)
                 .foregroundColor(AppColors.warning)
-                .padding()
+                .padding(8)
                 .frame(maxWidth: .infinity)
                 .background(AppColors.warning.opacity(0.1))
-                .cornerRadius(8)
+                .cornerRadius(4)
             }
             
             Button(action: createProperty) {
                 Group {
                     if viewModel.isCreating {
-                        HStack {
+                        HStack(spacing: 8) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
                             Text("Creating...")
                         }
                     } else {
-                        HStack {
-                            Image(systemName: viewModel.isOffline ? "square.and.arrow.down" : "plus.circle.fill")
+                        HStack(spacing: 8) {
+                            Image(systemName: viewModel.isOffline ? "square.and.arrow.down" : "plus")
+                                .font(.system(size: 16, weight: .regular))
                             Text(viewModel.isOffline ? "Save Locally" : "Create Property")
                         }
                     }
                 }
-                .font(AppFonts.bodyBold)
-                .frame(maxWidth: .infinity)
+                .font(AppFonts.bodyMedium)
             }
-            .buttonStyle(.primary)
+            .buttonStyle(.minimalPrimary)
             .disabled(viewModel.isCreating || !viewModel.isValid || serialNumberError != nil || itemNameError != nil)
         }
-        .padding(.top)
+        .padding(.top, 8)
     }
     
     // MARK: - Helper Methods
@@ -510,12 +447,10 @@ struct CreatePropertyView: View {
         guard !viewModel.serialNumber.isEmpty else { return }
         
         if viewModel.serialNumber.count < 3 {
-            serialNumberError = "Serial number must be at least 3 characters"
+            serialNumberError = "Must be at least 3 characters"
         } else if !viewModel.serialNumber.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" }) {
-            serialNumberError = "Only letters, numbers, and hyphens allowed"
+            serialNumberError = "Only letters, numbers, and hyphens"
         }
-        
-        // TODO: Check for duplicates via API
     }
     
     private func validateItemName() {
@@ -524,7 +459,7 @@ struct CreatePropertyView: View {
         guard !viewModel.itemName.isEmpty else { return }
         
         if viewModel.itemName.count < 2 {
-            itemNameError = "Item name must be at least 2 characters"
+            itemNameError = "Must be at least 2 characters"
         }
     }
     
@@ -552,54 +487,36 @@ struct CreatePropertyView: View {
 
 // MARK: - Supporting Views
 
-struct ProgressIndicator: View {
-    let currentStep: Int
-    let totalSteps: Int
+struct MinimalSectionHeader: View {
+    let title: String
+    var subtitle: String? = nil
+    var isRequired: Bool = false
     
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(1...totalSteps, id: \.self) { step in
-                Circle()
-                    .fill(step <= currentStep ? AppColors.accent : AppColors.tertiaryBackground)
-                    .frame(width: 8, height: 8)
-                
-                if step < totalSteps {
-                    Rectangle()
-                        .fill(step < currentStep ? AppColors.accent : AppColors.tertiaryBackground)
-                        .frame(height: 2)
-                }
-            }
-        }
-        .frame(height: 20)
-    }
-}
-
-struct FormSectionHeader: View {
-    let title: String
-    var isRequired: Bool = false
-    var isOptional: Bool = false
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(title.uppercased())
-                .font(AppFonts.captionBold)
+            Text(title)
+                .font(AppFonts.caption)
                 .foregroundColor(AppColors.secondaryText)
-                .compatibleKerning(1.2)
+                .kerning(AppFonts.wideKerning)
             
             if isRequired {
                 Text("*")
-                    .font(AppFonts.bodyBold)
+                    .font(AppFonts.body)
                     .foregroundColor(AppColors.destructive)
-            } else if isOptional {
-                Text("(OPTIONAL)")
+            }
+            
+            if let subtitle = subtitle {
+                Text("• \(subtitle)")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.tertiaryText)
             }
+            
+            Spacer()
         }
     }
 }
 
-struct PhotoOptionButton: View {
+struct MinimalPhotoButton: View {
     let icon: String
     let title: String
     let action: () -> Void
@@ -608,48 +525,97 @@ struct PhotoOptionButton: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 28))
+                    .font(.system(size: 24, weight: .light))
                 Text(title)
-                    .font(AppFonts.captionBold)
+                    .font(AppFonts.caption)
+                    .kerning(AppFonts.wideKerning)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 100)
-            .foregroundColor(AppColors.accent)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(12)
+            .frame(height: 80)
+            .foregroundColor(AppColors.secondaryText)
+            .background(AppColors.tertiaryBackground)
+            .cornerRadius(4)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                    .foregroundColor(AppColors.accent.opacity(0.5))
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    .foregroundColor(AppColors.border)
             )
         }
     }
 }
 
-struct NSNDetailsCard: View {
+struct MinimalTextField: View {
+    @Binding var text: String
+    let placeholder: String
+    var font: FontType = .sans
+    var autocapitalization: TextInputAutocapitalization = .never
+    
+    enum FontType {
+        case sans, mono
+    }
+    
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .font(font == .mono ? AppFonts.monoBody : AppFonts.body)
+            .padding(12)
+            .background(AppColors.tertiaryBackground)
+            .cornerRadius(4)
+            .textInputAutocapitalization(autocapitalization)
+            .disableAutocorrection(true)
+    }
+}
+
+struct MinimalTextEditor: View {
+    @Binding var text: String
+    let placeholder: String
+    let height: CGFloat
+    
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if text.isEmpty {
+                Text(placeholder)
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.tertiaryText)
+                    .padding(12)
+            }
+            
+            TextEditor(text: $text)
+                .font(AppFonts.body)
+                .padding(8)
+                .background(AppColors.tertiaryBackground)
+                .modifier(ScrollBackgroundModifier())
+        }
+        .frame(height: height)
+        .cornerRadius(4)
+    }
+}
+
+struct MinimalNSNDetailsCard: View {
     let details: NSNDetails
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
                     .foregroundColor(AppColors.success)
                 Text("NSN FOUND")
-                    .font(AppFonts.captionBold)
+                    .font(AppFonts.caption)
                     .foregroundColor(AppColors.success)
-                    .compatibleKerning(1.2)
+                    .kerning(AppFonts.wideKerning)
             }
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text(details.nomenclature)
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.primaryText)
-                
+            Text(details.nomenclature)
+                .font(AppFonts.bodyMedium)
+                .foregroundColor(AppColors.primaryText)
+            
+            HStack(spacing: 16) {
                 if let manufacturer = details.manufacturer {
-                    HStack {
-                        Text("Manufacturer:")
-                            .font(AppFonts.caption)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("MANUFACTURER")
+                            .font(.system(size: 10))
                             .foregroundColor(AppColors.tertiaryText)
+                            .kerning(AppFonts.wideKerning)
                         Text(manufacturer)
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
@@ -657,29 +623,30 @@ struct NSNDetailsCard: View {
                 }
                 
                 if let unitPrice = details.unitPrice {
-                    HStack {
-                        Text("Unit Price:")
-                            .font(AppFonts.caption)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("UNIT PRICE")
+                            .font(.system(size: 10))
                             .foregroundColor(AppColors.tertiaryText)
+                            .kerning(AppFonts.wideKerning)
                         Text("$\(String(format: "%.2f", unitPrice))")
-                            .font(AppFonts.caption)
+                            .font(AppFonts.monoCaption)
                             .foregroundColor(AppColors.secondaryText)
                     }
                 }
             }
         }
-        .padding()
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.success.opacity(0.1))
-        .cornerRadius(8)
+        .background(AppColors.success.opacity(0.05))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AppColors.success.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(AppColors.success.opacity(0.2), lineWidth: 1)
         )
+        .cornerRadius(4)
     }
 }
 
-struct StatusSelectionPill: View {
+struct MinimalStatusPill: View {
     let status: PropertyStatus
     let isSelected: Bool
     let action: () -> Void
@@ -688,112 +655,146 @@ struct StatusSelectionPill: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: status.icon)
-                    .font(.title3)
-                Text(status.displayName)
-                    .font(AppFonts.captionBold)
+                    .font(.system(size: 16, weight: .light))
+                Text(status.displayName.uppercased())
+                    .font(.system(size: 10, weight: .medium))
+                    .kerning(AppFonts.wideKerning)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .foregroundColor(isSelected ? .white : statusColor)
-            .background(isSelected ? statusColor : statusColor.opacity(0.1))
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(statusColor, lineWidth: isSelected ? 0 : 1)
-            )
-        }
-    }
-    
-    private var statusColor: Color {
-        switch status {
-        case .operational: return AppColors.success
-        case .nonOperational, .maintenance: return AppColors.warning
-        case .missing, .damaged: return AppColors.destructive
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .foregroundColor(isSelected ? .white : AppColors.primaryText)
+            .background(isSelected ? AppColors.primaryText : AppColors.tertiaryBackground)
+            .cornerRadius(4)
         }
     }
 }
 
-struct AssignedUserCard: View {
+struct MinimalAssignedUserCard: View {
     let user: UserSummary
     let onRemove: () -> Void
     
     var body: some View {
-        HStack {
-            Image(systemName: "person.circle.fill")
-                .font(.title2)
-                .foregroundColor(AppColors.accent)
+        HStack(spacing: 12) {
+            Image(systemName: "person.circle")
+                .font(.system(size: 24, weight: .light))
+                .foregroundColor(AppColors.secondaryText)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(user.rank ?? "") \(user.lastName ?? "")")
-                    .font(AppFonts.bodyBold)
+                    .font(AppFonts.bodyMedium)
                     .foregroundColor(AppColors.primaryText)
                 Text("@\(user.username)")
-                    .font(AppFonts.caption)
+                    .font(AppFonts.monoCaption)
                     .foregroundColor(AppColors.secondaryText)
             }
             
             Spacer()
             
             Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "xmark.circle")
+                    .font(.system(size: 20, weight: .light))
                     .foregroundColor(AppColors.tertiaryText)
             }
         }
-        .padding()
-        .background(AppColors.secondaryBackground)
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AppColors.accent.opacity(0.3), lineWidth: 1)
-        )
+        .padding(12)
+        .background(AppColors.tertiaryBackground)
+        .cornerRadius(4)
     }
 }
 
-struct CustomTextFieldStyle: TextFieldStyle {
-    func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
-            .padding()
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AppColors.secondaryText.opacity(0.2), lineWidth: 1)
-            )
+struct MinimalErrorText: View {
+    let text: String
+    
+    init(_ text: String) {
+        self.text = text
+    }
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 12))
+            Text(text)
+                .font(AppFonts.caption)
+        }
+        .foregroundColor(AppColors.destructive)
     }
 }
 
-// Barcode Scanner placeholder
+struct StepProgressIndicator: View {
+    let currentStep: Int
+    let totalSteps: Int
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(1...totalSteps, id: \.self) { step in
+                Circle()
+                    .fill(step <= currentStep ? AppColors.primaryText : AppColors.border)
+                    .frame(width: 6, height: 6)
+                
+                if step < totalSteps {
+                    Rectangle()
+                        .fill(step < currentStep ? AppColors.primaryText : AppColors.border)
+                        .frame(height: 1)
+                }
+            }
+        }
+        .frame(height: 16)
+    }
+}
+
+struct ScrollBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .scrollContentBackground(.hidden)
+        } else {
+            content
+        }
+    }
+}
+
+// MARK: - BarcodeScannerView (Updated styling)
 struct BarcodeScannerView: View {
     let onScan: (String) -> Void
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        NavigationView {
-            VStack {
-                Text("Camera view for barcode scanning")
-                    .foregroundColor(AppColors.secondaryText)
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                MinimalNavigationBar(
+                    title: "Scan Barcode",
+                    titleStyle: .mono,
+                    showBackButton: false,
+                    trailingItems: [
+                        .init(text: "Cancel", style: .text, action: { dismiss() })
+                    ]
+                )
                 
-                // Placeholder - implement actual barcode scanning
-                Button("Simulate Scan") {
-                    onScan("SN\(Int.random(in: 100000...999999))")
-                }
-                .buttonStyle(.primary)
-            }
-            .navigationTitle("Scan Barcode")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                VStack(spacing: 24) {
+                    Spacer()
+                    
+                    Text("Camera view for barcode scanning")
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.secondaryText)
+                    
+                    // Placeholder - implement actual barcode scanning
+                    Button("Simulate Scan") {
+                        onScan("SN\(Int.random(in: 100000...999999))")
                     }
-                    .foregroundColor(AppColors.accent)
+                    .buttonStyle(.minimalPrimary)
+                    
+                    Spacer()
                 }
+                .padding(20)
             }
         }
+        .navigationBarHidden(true)
     }
 }
 
-// MARK: - View Model
+// MARK: - Existing ViewModels and Extensions remain the same
 
 @MainActor
 class CreatePropertyViewModel: ObservableObject {
@@ -832,7 +833,7 @@ class CreatePropertyViewModel: ObservableObject {
                 serialNumber: serialNumber,
                 description: description.isEmpty ? nil : description,
                 currentStatus: currentStatus.rawValue,
-                propertyModelId: nil, // TODO: Get from NSN lookup
+                propertyModelId: nil,
                 assignedToUserId: selectedUser?.id,
                 nsn: nsnDetails?.nsn,
                 lin: nsnDetails?.lin
@@ -840,12 +841,10 @@ class CreatePropertyViewModel: ObservableObject {
             
             let property = try await apiService.createProperty(input)
             
-            // Upload photo if provided
             if let photo = photo, let imageData = photo.jpegData(compressionQuality: 0.8) {
                 do {
                     _ = try await apiService.uploadPropertyPhoto(propertyId: property.id, imageData: imageData)
                 } catch {
-                    // Photo upload failed, but property was created
                     print("Photo upload failed: \(error)")
                 }
             }
@@ -865,27 +864,21 @@ class CreatePropertyViewModel: ObservableObject {
         defer { isLookingUp = false }
         
         do {
-            // First check if it's a valid NSN format (13 digits with or without dashes)
             let cleanedInput = nsnLinInput.replacingOccurrences(of: "-", with: "")
             if cleanedInput.count == 13 && cleanedInput.allSatisfy({ $0.isNumber }) {
-                // Try exact NSN lookup
                 if let response = try? await apiService.lookupNSN(nsn: nsnLinInput) {
                     applyNSNDetails(response.data)
                     return
                 }
             }
             
-            // Otherwise, use universal search
             let searchResponse = try await apiService.universalSearchNSN(query: nsnLinInput, limit: 10)
             if searchResponse.data.isEmpty {
                 errorMessage = "No items found for '\(nsnLinInput)'"
                 showingError = true
             } else if searchResponse.data.count == 1 {
-                // If only one result, apply it automatically
                 applyNSNDetails(searchResponse.data[0])
             } else {
-                // TODO: Show a selection sheet with multiple results
-                // For now, just apply the first result
                 applyNSNDetails(searchResponse.data[0])
             }
         } catch {
@@ -900,8 +893,6 @@ class CreatePropertyViewModel: ObservableObject {
         nsnLinInput = details.nsn
     }
 }
-
-// MARK: - Property Status Enum
 
 enum PropertyStatus: String, CaseIterable {
     case operational = "Operational"
@@ -919,10 +910,7 @@ enum PropertyStatus: String, CaseIterable {
         case .damaged: return "Damaged"
         }
     }
-}
-
-// MARK: - Enhanced PropertyStatus
-extension PropertyStatus {
+    
     var icon: String {
         switch self {
         case .operational: return "checkmark.circle"
@@ -934,10 +922,9 @@ extension PropertyStatus {
     }
 }
 
-// MARK: - Enhanced CreatePropertyViewModel
 extension CreatePropertyViewModel {
     var isOffline: Bool {
         // TODO: Implement actual offline detection
         false
     }
-} 
+}
