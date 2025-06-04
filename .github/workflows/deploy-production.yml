@@ -573,46 +573,19 @@ jobs:
             DATA_COUNT=$(sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -t -c "SELECT COUNT(*) FROM users WHERE email IS NOT NULL AND email != '' AND username != 'admin';" 2>/dev/null || echo "0")
             DATA_COUNT=$(echo $DATA_COUNT | tr -d ' ')
             
-            if [ "$DATA_COUNT" -gt 5 ]; then
-              echo "⚠️ Found $DATA_COUNT users with emails - this appears to be a production database with real data"
-              echo "🔧 Performing minimal cleanup (only fixing migration issues, preserving user data)..."
-              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
-                -- Only fix users that have migration issues (missing email)
-                UPDATE users SET email = CONCAT(username, '@handreceipt.mil') 
-                WHERE email IS NULL OR email = '';
-                
-                -- Clean up any orphaned or invalid records but preserve real data
-                DELETE FROM transfer_offer_recipients WHERE transfer_offer_id NOT IN (SELECT id FROM transfer_offers);
-                DELETE FROM transfer_items WHERE transfer_id NOT IN (SELECT id FROM transfers);
-                DELETE FROM property_components WHERE property_id NOT IN (SELECT id FROM properties);
-              " || echo "Minimal cleanup completed"
-              echo "✅ Minimal database cleanup completed (preserved user data)"
-            else
-              echo "🧹 Found $DATA_COUNT users - this appears to be a test/development database"
-              echo "🗑️ Performing full cleanup to ensure fresh state..."
-              sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
-                -- Delete in order of dependencies for fresh deployment
-                DELETE FROM transfer_offer_recipients;
-                DELETE FROM transfer_offers;
-                DELETE FROM transfers;
-                DELETE FROM property_components;
-                DELETE FROM properties;
-                DELETE FROM user_connections;
-                DELETE FROM activities;
-                DELETE FROM documents;
-                DELETE FROM attachments;
-                DELETE FROM transfer_items;
-                DELETE FROM offline_sync_queues;
-                DELETE FROM immudb_references;
-                
-                -- Delete users (safe for test environment)
-                DELETE FROM users;
-                
-                -- Clean up any test NSN data that might conflict
-                DELETE FROM nsn_data WHERE nsn LIKE '9999%' OR manufacturer LIKE '%Test%';
-              " || echo "Full cleanup completed or tables don't exist"
-              echo "✅ Full database cleanup completed (test environment)"
-            fi
+            # Always perform minimal cleanup only - NEVER delete user data
+            echo "🔧 Performing minimal cleanup (preserving all user data)..."
+            sudo docker exec backend_postgres_1 psql -U handreceipt -d handreceipt -c "
+              -- Only fix users that have migration issues (missing email)
+              UPDATE users SET email = CONCAT(username, '@handreceipt.mil') 
+              WHERE email IS NULL OR email = '';
+              
+              -- Clean up any orphaned or invalid records but preserve real data
+              DELETE FROM transfer_offer_recipients WHERE transfer_offer_id NOT IN (SELECT id FROM transfer_offers);
+              DELETE FROM transfer_items WHERE transfer_id NOT IN (SELECT id FROM transfers);
+              DELETE FROM property_components WHERE property_id NOT IN (SELECT id FROM properties);
+            " || echo "Minimal cleanup completed"
+            echo "✅ Minimal database cleanup completed (preserved user data)"
             
             echo "🔧 Fixing database migration issues..."
             # Fix constraint naming issue for migrations
