@@ -26,151 +26,56 @@ struct ChangePasswordView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom minimal navigation bar
-            MinimalNavigationBar(
-                title: "CHANGE PASSWORD",
-                titleStyle: .mono,
-                showBackButton: true,
-                backAction: { dismiss() }
-            )
+        ZStack {
+            AppColors.appBackground.ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Top padding
-                    Color.clear.frame(height: 4)
-                    
-                    // Security Notice
-                    VStack(spacing: 12) {
-                        ElegantSectionHeader(title: "Security Notice", style: .serif)
-                            .padding(.horizontal, 24)
+            VStack(spacing: 0) {
+                // Custom minimal navigation bar
+                MinimalNavigationBar(
+                    title: "CHANGE PASSWORD",
+                    titleStyle: .mono,
+                    showBackButton: true,
+                    backAction: { dismiss() }
+                )
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Security Notice
+                        securityNotice
                         
-                        VStack(spacing: 16) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "shield.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(AppColors.accent)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Secure Password Change")
-                                        .font(AppFonts.bodyMedium)
-                                        .foregroundColor(AppColors.primaryText)
-                                    
-                                    Text("Enter your current password to verify your identity before setting a new password.")
-                                        .font(AppFonts.caption)
-                                        .foregroundColor(AppColors.secondaryText)
-                                }
-                                
-                                Spacer()
+                        // Current Password Section
+                        currentPasswordSection
+                        
+                        // New Password Section
+                        newPasswordSection
+                        
+                        // Password Requirements
+                        passwordRequirementsSection
+                        
+                        // Error Message
+                        if let error = errorMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 12))
+                                Text(error)
+                                    .font(AppFonts.caption)
                             }
-                        }
-                        .modernCard()
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Current Password Section
-                    VStack(spacing: 12) {
-                        ElegantSectionHeader(title: "Current Password", style: .serif)
-                            .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 0) {
-                            SecureFormField(
-                                label: "Current Password",
-                                text: $currentPassword,
-                                icon: "lock.fill"
-                            )
-                        }
-                        .modernCard()
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // New Password Section
-                    VStack(spacing: 12) {
-                        ElegantSectionHeader(title: "New Password", style: .serif)
-                            .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 0) {
-                            SecureFormField(
-                                label: "New Password",
-                                text: $newPassword,
-                                icon: "lock.rotation"
-                            )
-                            
-                            Divider().background(AppColors.border)
-                            
-                            SecureFormField(
-                                label: "Confirm New Password",
-                                text: $confirmNewPassword,
-                                icon: "lock.rotation"
-                            )
-                        }
-                        .modernCard()
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Password Requirements
-                    VStack(spacing: 12) {
-                        ElegantSectionHeader(title: "Password Requirements", style: .serif)
-                            .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 12) {
-                            PasswordRequirementRow(
-                                requirement: "At least 8 characters",
-                                isMet: newPassword.count >= 8
-                            )
-                            
-                            PasswordRequirementRow(
-                                requirement: "Passwords match",
-                                isMet: passwordsMatch && !newPassword.isEmpty
-                            )
-                        }
-                        .modernCard()
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Error Message
-                    if let error = errorMessage {
-                        Text(error)
-                            .font(AppFonts.caption)
                             .foregroundColor(AppColors.destructive)
-                            .padding(.horizontal, 24)
-                    }
-                    
-                    // Update Password Button
-                    Button(action: changePassword) {
-                        if isLoading {
-                            HStack {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .tint(.white)
-                                Text("Updating...")
-                                    .font(AppFonts.bodyMedium)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(AppColors.accent.opacity(0.7))
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } else {
-                            Text("Update Password")
-                                .font(AppFonts.bodyMedium)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(formIsValid ? AppColors.accent : AppColors.border)
-                                .foregroundColor(formIsValid ? .white : AppColors.tertiaryText)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal, 20)
                         }
+                        
+                        // Update Password Button
+                        updatePasswordButton
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                        
+                        // Bottom padding
+                        Color.clear.frame(height: 40)
                     }
-                    .disabled(!formIsValid || isLoading)
-                    .padding(.horizontal, 24)
-                    
-                    // Bottom spacer
-                    Color.clear.frame(height: 80)
+                    .padding(.top, 16)
                 }
             }
-            .background(AppColors.appBackground)
         }
-        .navigationTitle("")
         .navigationBarHidden(true)
         .alert(isPresented: $showSuccessAlert) {
             Alert(
@@ -182,6 +87,108 @@ struct ChangePasswordView: View {
             )
         }
     }
+    
+    // MARK: - Sections
+    
+    private var securityNotice: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "shield")
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.accent)
+            
+            Text("Verify your identity before setting a new password")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.secondaryText)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.accentMuted)
+        .cornerRadius(4)
+        .padding(.horizontal, 20)
+    }
+    
+    private var currentPasswordSection: some View {
+        VStack(spacing: 12) {
+            MinimalSectionHeader(title: "CURRENT PASSWORD")
+                .padding(.horizontal, 20)
+            
+            MinimalSecureField(
+                placeholder: "Enter current password",
+                text: $currentPassword,
+                icon: "lock"
+            )
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var newPasswordSection: some View {
+        VStack(spacing: 12) {
+            MinimalSectionHeader(title: "NEW PASSWORD")
+                .padding(.horizontal, 20)
+            
+            VStack(spacing: 12) {
+                MinimalSecureField(
+                    placeholder: "Enter new password",
+                    text: $newPassword,
+                    icon: "lock.rotation"
+                )
+                
+                MinimalSecureField(
+                    placeholder: "Confirm new password",
+                    text: $confirmNewPassword,
+                    icon: "lock.rotation"
+                )
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var passwordRequirementsSection: some View {
+        VStack(spacing: 12) {
+            MinimalSectionHeader(title: "REQUIREMENTS")
+                .padding(.horizontal, 20)
+            
+            VStack(spacing: 0) {
+                MinimalRequirementRow(
+                    requirement: "At least 8 characters",
+                    isMet: newPassword.count >= 8
+                )
+                
+                Rectangle()
+                    .fill(AppColors.divider)
+                    .frame(height: 1)
+                    .padding(.leading, 44)
+                
+                MinimalRequirementRow(
+                    requirement: "Passwords match",
+                    isMet: passwordsMatch && !newPassword.isEmpty
+                )
+            }
+            .cleanCard(padding: 0)
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var updatePasswordButton: some View {
+        Button(action: changePassword) {
+            if isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                    Text("Updating...")
+                        .font(AppFonts.bodyMedium)
+                }
+            } else {
+                Text("Update Password")
+                    .font(AppFonts.bodyMedium)
+            }
+        }
+        .buttonStyle(.minimalPrimary)
+        .disabled(!formIsValid || isLoading)
+    }
+    
+    // MARK: - Actions
     
     private func changePassword() {
         guard formIsValid else { return }
@@ -223,46 +230,40 @@ struct ChangePasswordView: View {
     }
 }
 
-// MARK: - Secure Form Field Component
+// MARK: - Supporting Components
 
-struct SecureFormField: View {
-    let label: String
+struct MinimalSecureField: View {
+    let placeholder: String
     @Binding var text: String
     let icon: String
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .light))
-                .foregroundColor(AppColors.accent)
-                .frame(width: 28)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(AppColors.tertiaryText)
+                .frame(width: 20)
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.secondaryText)
-                
-                SecureField("", text: $text)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.primaryText)
-            }
+            SecureField(placeholder, text: $text)
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.primaryText)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(12)
+        .background(AppColors.tertiaryBackground)
+        .cornerRadius(4)
     }
 }
 
-// MARK: - Password Requirement Row
-
-struct PasswordRequirementRow: View {
+struct MinimalRequirementRow: View {
     let requirement: String
     let isMet: Bool
     
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: isMet ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 16))
-                .foregroundColor(isMet ? AppColors.accent : AppColors.tertiaryText)
+                .font(.system(size: 14, weight: .light))
+                .foregroundColor(isMet ? AppColors.success : AppColors.tertiaryText)
+                .frame(width: 20)
             
             Text(requirement)
                 .font(AppFonts.caption)
@@ -270,10 +271,12 @@ struct PasswordRequirementRow: View {
             
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 }
+
+
 
 #Preview {
     NavigationView {
