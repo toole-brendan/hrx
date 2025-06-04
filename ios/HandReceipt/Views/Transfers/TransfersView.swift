@@ -31,18 +31,19 @@ struct TransfersView: View {
                 // Tab selector with proper styling
                 tabSelector
                 
-                // Main content
+                // Main content - fill all available space
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 32) {
+                    VStack(spacing: 24) {
                         // Content with proper spacing
                         transferMainContent
-                            .padding(.horizontal, 24)
-                            .padding(.top, 24)
                         
-                        // Bottom padding for tab bar
-                        Color.clear.frame(height: 100)
+                        // Reduced bottom padding for tab bar
+                        Color.clear.frame(height: 80)
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .navigationTitle("")
@@ -102,7 +103,7 @@ struct TransfersView: View {
                 .frame(minWidth: 60, alignment: .trailing)
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 16)
+            .padding(.vertical, 14)
             .background(AppColors.appBackground)
             
             // Subtle divider
@@ -129,7 +130,7 @@ struct TransfersView: View {
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.vertical, 12)
+            .padding(.vertical, 10)
             .background(AppColors.tertiaryBackground)
             
             Rectangle()
@@ -185,7 +186,7 @@ struct TransfersView: View {
                 // Transfer requests section
                 transfersSection(transfers: transfers)
             }
-            .minimalRefreshable { @Sendable in
+            .refreshable {
                 await MainActor.run {
                     viewModel.fetchTransfers()
                 }
@@ -206,7 +207,7 @@ struct TransfersView: View {
                 .foregroundColor(AppColors.secondaryText)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .padding(.vertical, 40)
     }
     
     // MARK: - Empty State
@@ -225,7 +226,7 @@ struct TransfersView: View {
     // MARK: - Offers Section
     @ViewBuilder
     private var offersSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             ElegantSectionHeader(
                 title: "Property Offers",
                 subtitle: isLoadingOffers ? nil : (activeOffers.isEmpty ? "No active offers" : "Items offered by your connections"),
@@ -243,7 +244,7 @@ struct TransfersView: View {
                         .foregroundColor(AppColors.secondaryText)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                .padding(.vertical, 16)
                 .cleanCard(showShadow: false)
             } else if activeOffers.isEmpty {
                 HStack(spacing: 16) {
@@ -263,7 +264,7 @@ struct TransfersView: View {
                     
                     Spacer()
                 }
-                .padding(20)
+                .padding(16)
                 .cleanCard(showShadow: false)
             } else {
                 VStack(spacing: 12) {
@@ -279,7 +280,7 @@ struct TransfersView: View {
     @ViewBuilder
     private func transfersSection(transfers: [Transfer]) -> some View {
         if !transfers.isEmpty {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 ElegantSectionHeader(
                     title: selectedTab == .incoming ? "Incoming Transfers" : "Outgoing Transfers",
                     subtitle: "\(transfers.count) transfer\(transfers.count == 1 ? "" : "s")",
@@ -379,7 +380,7 @@ struct ElegantTransferCard: View {
                         }
                         
                         Image(systemName: "arrow.right")
-                            .font(Font.system(size: 16, weight: .light))
+                            .font(.system(size: 16, weight: .light))
                             .foregroundColor(AppColors.tertiaryText)
                         
                         // To
@@ -429,7 +430,7 @@ struct ElegantTransferCard: View {
                             .font(AppFonts.captionMedium)
                             .foregroundColor(AppColors.destructive)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
+                            .padding(.vertical, 14)
                         }
                         
                         Rectangle()
@@ -446,7 +447,7 @@ struct ElegantTransferCard: View {
                             .font(AppFonts.captionMedium)
                             .foregroundColor(AppColors.success)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
+                            .padding(.vertical, 14)
                         }
                     }
                     .background(AppColors.tertiaryBackground)
@@ -591,7 +592,24 @@ enum TransferAction {
     case reject
 }
 
-
+// MARK: - Extension for compatibility
+extension View {
+    func compatibleKerning(_ value: CGFloat) -> some View {
+        if #available(iOS 16.0, *) {
+            return self.tracking(value)
+        } else {
+            return self
+        }
+    }
+    
+    func minimalRefreshable(action: @escaping () async -> Void) -> some View {
+        if #available(iOS 15.0, *) {
+            return self.refreshable(action: action)
+        } else {
+            return self
+        }
+    }
+}
 
 // MARK: - Previews
 struct TransfersView_Previews: PreviewProvider {
