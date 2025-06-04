@@ -439,7 +439,6 @@ struct CleanPendingRequestCard: View {
                     Text("Wants to connect")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.warning)
-                        .italic()
                 }
                 
                 Spacer()

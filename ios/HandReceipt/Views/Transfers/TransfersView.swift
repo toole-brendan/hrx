@@ -175,21 +175,14 @@ struct TransfersView: View {
         if case .loading = viewModel.loadingState {
             loadingView
         } else {
-            VStack(spacing: 16) {
-                // Active offers section (only for incoming tab)
-                if selectedTab == .incoming {
-                    offersSection
+            // Combined transfers and offers section
+            combinedTransfersSection(transfers: transfers)
+                .minimalRefreshable {
+                    await MainActor.run {
+                        viewModel.fetchTransfers()
+                    }
+                    await loadActiveOffers()
                 }
-                
-                // Transfer requests section
-                transfersSection(transfers: transfers)
-            }
-            .minimalRefreshable {
-                await MainActor.run {
-                    viewModel.fetchTransfers()
-                }
-                await loadActiveOffers()
-            }
         }
     }
     
@@ -247,7 +240,91 @@ struct TransfersView: View {
         }
     }
     
-    // MARK: - Transfers Section
+    // MARK: - Combined Transfers Section
+    @ViewBuilder
+    private func combinedTransfersSection(transfers: [Transfer]) -> some View {
+        VStack(spacing: 20) {
+            // For incoming tab, show offers first, then transfers
+            if selectedTab == .incoming {
+                // Property offers section (compact)
+                if !isLoadingOffers && !activeOffers.isEmpty {
+                    VStack(spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Property Offers",
+                            subtitle: "\(activeOffers.count) active offer\(activeOffers.count == 1 ? "" : "s")"
+                        )
+                        
+                        VStack(spacing: 12) {
+                            ForEach(activeOffers) { offer in
+                                CompactOfferCard(offer: offer)
+                            }
+                        }
+                    }
+                }
+                
+                // Transfer requests section
+                if !transfers.isEmpty {
+                    VStack(spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Transfer Requests",
+                            subtitle: "\(transfers.count) request\(transfers.count == 1 ? "" : "s")"
+                        )
+                        
+                        VStack(spacing: 12) {
+                            ForEach(transfers) { transfer in
+                                CleanTransferCard(
+                                    transfer: transfer,
+                                    isIncoming: selectedTab == .incoming,
+                                    onTap: { selectedTransfer = transfer },
+                                    onQuickApprove: {
+                                        viewModel.approveTransfer(transferId: transfer.id)
+                                    },
+                                    onQuickReject: {
+                                        viewModel.rejectTransfer(transferId: transfer.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Empty state only if both offers and transfers are empty
+                if transfers.isEmpty && activeOffers.isEmpty && !isLoadingOffers {
+                    emptyStateView
+                }
+            } else {
+                // For outgoing tab, only show transfers
+                if !transfers.isEmpty {
+                    VStack(spacing: 16) {
+                        ModernSectionHeader(
+                            title: "Outgoing Transfers",
+                            subtitle: "\(transfers.count) transfer\(transfers.count == 1 ? "" : "s")"
+                        )
+                        
+                        VStack(spacing: 12) {
+                            ForEach(transfers) { transfer in
+                                CleanTransferCard(
+                                    transfer: transfer,
+                                    isIncoming: selectedTab == .incoming,
+                                    onTap: { selectedTransfer = transfer },
+                                    onQuickApprove: {
+                                        viewModel.approveTransfer(transferId: transfer.id)
+                                    },
+                                    onQuickReject: {
+                                        viewModel.rejectTransfer(transferId: transfer.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    emptyStateView
+                }
+            }
+        }
+    }
+    
+    // MARK: - Transfers Section (Legacy - kept for reference)
     @ViewBuilder
     private func transfersSection(transfers: [Transfer]) -> some View {
         if !transfers.isEmpty {
@@ -504,7 +581,6 @@ struct CleanOfferCard: View {
                 Text(notes)
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.secondaryText)
-                    .italic()
             }
             
             // Action buttons
@@ -525,6 +601,124 @@ struct CleanOfferCard: View {
             }
         }
         .modernCard()
+        .alert("Accept Offer?", isPresented: $showingAcceptDialog) {
+            Button("Cancel", role: .cancel) { }
+            Button("Accept") {
+                Task {
+                    try? await TransferService.shared.acceptOffer(offer.id)
+                }
+            }
+        } message: {
+            Text("Accept this property transfer offer from \(offer.offeringUserDisplayName)?")
+        }
+        .alert("Decline Offer?", isPresented: $showingRejectDialog) {
+            Button("Cancel", role: .cancel) { }
+            Button("Decline", role: .destructive) {
+                Task {
+                    try? await TransferService.shared.rejectOffer(offer.id)
+                }
+            }
+        } message: {
+            Text("Decline this property transfer offer?")
+        }
+    }
+    
+    private func formatRelativeDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+// MARK: - Compact Offer Card (More integrated design)
+struct CompactOfferCard: View {
+    let offer: TransferOffer
+    @State private var showingAcceptDialog = false
+    @State private var showingRejectDialog = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header with property name and offering user
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(offer.property?.name ?? "Unknown Item")
+                        .font(.system(size: 18, weight: .semibold, design: .serif))
+                        .foregroundColor(AppColors.primaryText)
+                    
+                    Text("SN: \(offer.property?.serialNumber ?? "")")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(AppColors.secondaryText)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("FROM")
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.tertiaryText)
+                        .compatibleKerning(1.5)
+                    
+                    Text(offer.offeringUserDisplayName)
+                        .font(AppFonts.captionBold)
+                        .foregroundColor(AppColors.primaryText)
+                        .multilineTextAlignment(.trailing)
+                    
+                    if let expiresAt = offer.expiresAt {
+                        Text("Expires \(formatRelativeDate(expiresAt))")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(AppColors.warning)
+                    }
+                }
+            }
+            
+            // Notes if any (compact)
+            if let notes = offer.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.system(size: 14, design: .default))
+                    .foregroundColor(AppColors.secondaryText)
+                    .lineLimit(2)
+            }
+            
+            // Compact action buttons
+            HStack(spacing: 12) {
+                Button(action: { showingRejectDialog = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                        Text("DECLINE")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(AppColors.destructive)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(AppColors.destructive.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                
+                Button(action: { showingAcceptDialog = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                        Text("ACCEPT")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(AppColors.success)
+                    .cornerRadius(8)
+                }
+                
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(AppColors.secondaryBackground.opacity(0.3))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.border.opacity(0.5), lineWidth: 1)
+        )
         .alert("Accept Offer?", isPresented: $showingAcceptDialog) {
             Button("Cancel", role: .cancel) { }
             Button("Accept") {
