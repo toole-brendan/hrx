@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -18,6 +19,14 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
+
+// min returns the smaller of two integers (helper function for older Go versions)
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 
 func main() {
 	// Setup configuration
@@ -169,15 +178,49 @@ func main() {
 			}
 		}
 
-		// Debug log the ImmuDB connection parameters
-		log.Printf("ImmuDB config: host=%s, port=%d, username=%s, database=%s", immuHost, immuPort, immuUsername, immuDatabase)
-
-		var err error
-		ledgerService, err = ledger.NewImmuDBLedgerService(immuHost, immuPort, immuUsername, immuPassword, immuDatabase)
-		if err != nil {
-			log.Fatalf("Failed to initialize ImmuDB Ledger service: %v", err)
+		// Debug log the ImmuDB connection parameters (mask password)
+		maskedPassword := "<empty>"
+		if immuPassword != "" {
+			if len(immuPassword) <= 3 {
+				maskedPassword = "***"
+			} else {
+				maskedPassword = immuPassword[:3] + "***"
+			}
 		}
-		log.Println("Using ImmuDB Ledger")
+		log.Printf("ImmuDB config: host=%s, port=%d, username=%s, password=%s, database=%s",
+			immuHost, immuPort, immuUsername, maskedPassword, immuDatabase)
+
+		// Try to connect to ImmuDB with retries and graceful degradation
+		var err error
+		maxRetries := 3
+		retryDelay := 5 // seconds
+
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			log.Printf("Attempting to connect to ImmuDB (attempt %d/%d)...", attempt, maxRetries)
+			ledgerService, err = ledger.NewImmuDBLedgerService(immuHost, immuPort, immuUsername, immuPassword, immuDatabase)
+			if err == nil {
+				log.Println("✅ Successfully connected to ImmuDB Ledger")
+				break
+			}
+
+			log.Printf("❌ ImmuDB connection attempt %d failed: %v", attempt, err)
+			if attempt < maxRetries {
+				log.Printf("⏳ Retrying in %d seconds...", retryDelay)
+				time.Sleep(time.Duration(retryDelay) * time.Second)
+			}
+		}
+
+		if err != nil {
+			log.Printf("⚠️  WARNING: Failed to initialize ImmuDB Ledger service after %d attempts: %v", maxRetries, err)
+			log.Printf("🔄 Application will continue without ledger functionality. ImmuDB can be connected later.")
+			log.Printf("💡 Troubleshooting tips:")
+			log.Printf("   - Check if ImmuDB container is running: az containerapp show --name immudb --resource-group handreceipt-prod-rg")
+			log.Printf("   - Verify ImmuDB logs: az containerapp logs show --name immudb --resource-group handreceipt-prod-rg")
+			log.Printf("   - Ensure ImmuDB authentication is configured correctly")
+
+			// Don't fail fatally - continue without ledger service
+			ledgerService = nil
+		}
 	} else {
 		// Fallback to Azure SQL for development/testing if needed
 		connectionString := os.Getenv("AZURE_SQL_LEDGER_CONNECTION_STRING")
@@ -185,9 +228,12 @@ func main() {
 			var err error
 			ledgerService, err = ledger.NewAzureSqlLedgerService(connectionString)
 			if err != nil {
-				log.Fatalf("Failed to initialize Azure SQL Ledger service: %v", err)
+				log.Printf("⚠️  WARNING: Failed to initialize Azure SQL Ledger service: %v", err)
+				log.Printf("🔄 Application will continue without ledger functionality.")
+				ledgerService = nil
+			} else {
+				log.Println("Using Azure SQL Ledger (fallback)")
 			}
-			log.Println("Using Azure SQL Ledger (fallback)")
 		} else {
 			log.Println("No ledger service configured - ledger functionality disabled")
 			// Ledger service will be nil - routes should handle this gracefully
@@ -196,7 +242,9 @@ func main() {
 
 	if ledgerService != nil {
 		if err := ledgerService.Initialize(); err != nil {
-			log.Fatalf("Failed to initialize Ledger service: %v", err)
+			log.Printf("⚠️  WARNING: Failed to initialize Ledger service: %v", err)
+			log.Printf("🔄 Application will continue without ledger functionality.")
+			ledgerService = nil
 		}
 		// Ensure Close is called on shutdown (using defer in main is tricky, consider signal handling)
 		// defer ledgerService.Close()
