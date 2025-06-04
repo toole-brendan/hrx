@@ -35,10 +35,14 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Add component service first (needed by transfer handler)
 	componentService := services.NewComponentService(repo)
 
+	// Create PDF and email services for DA2062 functionality
+	pdfGenerator := pdf.NewDA2062Generator(repo)
+	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
+
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(repo)
 	propertyHandler := handlers.NewPropertyHandler(ledgerService, repo)
-	transferHandler := handlers.NewTransferHandler(ledgerService, repo, componentService)
+	transferHandler := handlers.NewTransferHandler(ledgerService, repo, componentService, pdfGenerator, emailService, storageService)
 	activityHandler := handlers.NewActivityHandler() // No ledger needed
 	verificationHandler := handlers.NewVerificationHandler(ledgerService)
 	correctionHandler := handlers.NewCorrectionHandler(ledgerService)
@@ -46,9 +50,6 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
 	userHandler := handlers.NewUserHandler(repo, storageService)                  // Added User handler with storage service
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
-	// Create PDF and email services for DA2062 functionality
-	pdfGenerator := pdf.NewDA2062Generator(repo)
-	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
 
 	// Initialize Azure OCR service
 	azureOCREndpoint := os.Getenv("AZURE_OCR_ENDPOINT")
@@ -64,7 +65,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	componentHandler := handlers.NewComponentHandler(componentService, ledgerService)
 
 	// Add document handler for maintenance forms
-	documentHandler := handlers.NewDocumentHandler(repo, ledgerService)
+	documentHandler := handlers.NewDocumentHandler(repo, ledgerService, emailService, storageService)
 
 	// Add NSN handler
 	logger := logrus.New()
@@ -211,6 +212,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			documents.POST("/maintenance-form", documentHandler.CreateMaintenanceForm)
 			documents.GET("/:id", documentHandler.GetDocument)
 			documents.PUT("/:id/read", documentHandler.MarkDocumentRead)
+			documents.POST("/:id/email", documentHandler.EmailDocument) // Email DA 2062 documents
 		}
 
 		// Register NSN routes

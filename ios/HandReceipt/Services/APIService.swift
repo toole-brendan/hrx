@@ -1484,6 +1484,29 @@ public class APIService: APIServiceProtocol {
         return response
     }
     
+    public func emailDocument(documentId: Int, email: String) async throws {
+        debugPrint("Emailing document \(documentId) to \(email)")
+        let endpoint = baseURL.appendingPathComponent("/api/documents/\(documentId)/email")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody = ["email": email]
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to email document")
+        }
+        
+        debugPrint("Successfully emailed document")
+    }
+    
     public func sendMaintenanceForm(_ formRequest: CreateMaintenanceFormRequest) async throws -> SendMaintenanceFormResponse {
         debugPrint("Sending maintenance form")
         let endpoint = baseURL.appendingPathComponent("/api/documents/maintenance-forms")

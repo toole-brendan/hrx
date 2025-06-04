@@ -20,6 +20,8 @@ struct MyPropertiesView: View {
     @State private var showingDA2062Export = false
     @State private var isSelectMode = false
     @State private var selectedPropertiesForExport: Set<Int> = []
+    @State private var showingTransferSheet = false
+    @State private var selectedPropertyForTransfer: Property?
     
     enum PropertyFilter: String, CaseIterable {
         case all = "All"
@@ -173,6 +175,16 @@ struct MyPropertiesView: View {
                 PropertyVerificationSheet(property: property) { updatedProperty in
                     viewModel.updateProperty(updatedProperty)
                     showingVerificationSheet = false
+                }
+            }
+        }
+        .sheet(isPresented: $showingTransferSheet) {
+            if let property = selectedPropertyForTransfer {
+                PropertyTransferSheet(property: property) {
+                    // Refresh properties after transfer
+                    viewModel.loadProperties()
+                    showingTransferSheet = false
+                    selectedPropertyForTransfer = nil
                 }
             }
         }
@@ -349,6 +361,32 @@ struct MyPropertiesView: View {
                                     }
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .contextMenu {
+                                    // Transfer Action
+                                    Button(action: {
+                                        selectedPropertyForTransfer = property
+                                        showingTransferSheet = true
+                                    }) {
+                                        Label("Transfer Property", systemImage: "arrow.triangle.2.circlepath")
+                                    }
+                                    
+                                    // View Details Action
+                                    Button(action: {
+                                        // Navigation is handled by NavigationLink
+                                    }) {
+                                        Label("View Details", systemImage: "info.circle")
+                                    }
+                                    
+                                    // Verify Action (if needed)
+                                    if property.needsVerification {
+                                        Button(action: {
+                                            selectedProperty = property
+                                            showingVerificationSheet = true
+                                        }) {
+                                            Label("Verify Property", systemImage: "checkmark.circle")
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -872,6 +910,300 @@ struct PropertyVerificationSheet: View {
             
             await MainActor.run {
                 isLoading = false
+            }
+        }
+    }
+}
+
+// MARK: - Property Transfer Sheet
+struct PropertyTransferSheet: View {
+    let property: Property
+    let onComplete: () -> Void
+    
+    @StateObject private var connectionsViewModel = ConnectionsViewModel(apiService: APIService())
+    @StateObject private var transferService = TransferService()
+    @State private var selectedConnection: UserConnection?
+    @State private var notes = ""
+    @State private var isTransferring = false
+    @State private var transferError: String?
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                AppColors.appBackground.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // Header
+                        VStack(spacing: 0) {
+                            HStack {
+                                Button("Cancel") {
+                                    dismiss()
+                                }
+                                .buttonStyle(TextLinkButtonStyle())
+                                
+                                Spacer()
+                                
+                                Text("Transfer Property")
+                                    .font(AppFonts.serifHeadline)
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                Spacer()
+                                
+                                Button("Send") {
+                                    transferProperty()
+                                }
+                                .buttonStyle(TextLinkButtonStyle())
+                                .disabled(selectedConnection == nil || isTransferring)
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 20)
+                            
+                            Divider()
+                                .background(AppColors.divider)
+                        }
+                        
+                        // Content
+                        VStack(spacing: 32) {
+                            // Property information
+                            VStack(spacing: 20) {
+                                ElegantSectionHeader(
+                                    title: "Property Details",
+                                    style: .serif
+                                )
+                                .padding(.horizontal, 24)
+                                
+                                VStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Item Name")
+                                            .font(AppFonts.caption)
+                                            .foregroundColor(AppColors.tertiaryText)
+                                        Text(property.itemName)
+                                            .font(AppFonts.bodyMedium)
+                                            .foregroundColor(AppColors.primaryText)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Serial Number")
+                                            .font(AppFonts.caption)
+                                            .foregroundColor(AppColors.tertiaryText)
+                                        Text(property.serialNumber)
+                                            .font(AppFonts.monoBody)
+                                            .foregroundColor(AppColors.primaryText)
+                                    }
+                                    
+                                    if let nsn = property.nsn {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("NSN")
+                                                .font(AppFonts.caption)
+                                                .foregroundColor(AppColors.tertiaryText)
+                                            Text(nsn)
+                                                .font(AppFonts.monoCaption)
+                                                .foregroundColor(AppColors.secondaryText)
+                                        }
+                                    }
+                                }
+                                .cleanCard()
+                                .padding(.horizontal, 24)
+                            }
+                            
+                            // Transfer recipient selection
+                            VStack(spacing: 20) {
+                                ElegantSectionHeader(
+                                    title: "Transfer To",
+                                    style: .serif
+                                )
+                                .padding(.horizontal, 24)
+                                
+                                VStack(spacing: 16) {
+                                    if connectionsViewModel.isLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                                            .scaleEffect(0.8)
+                                    } else if connectionsViewModel.connections.isEmpty {
+                                        VStack(spacing: 12) {
+                                            Image(systemName: "person.2.slash")
+                                                .font(.system(size: 32, weight: .light))
+                                                .foregroundColor(AppColors.tertiaryText)
+                                            
+                                            Text("No Connections")
+                                                .font(AppFonts.bodyMedium)
+                                                .foregroundColor(AppColors.primaryText)
+                                            
+                                            Text("Add connections in the Connections tab to transfer properties.")
+                                                .font(AppFonts.caption)
+                                                .foregroundColor(AppColors.secondaryText)
+                                                .multilineTextAlignment(.center)
+                                        }
+                                        .padding(.vertical, 20)
+                                    } else {
+                                        ForEach(connectionsViewModel.connections) { connection in
+                                            Button(action: {
+                                                selectedConnection = connection
+                                            }) {
+                                                HStack(spacing: 16) {
+                                                    // Avatar placeholder
+                                                    Circle()
+                                                        .fill(AppColors.accent.opacity(0.2))
+                                                        .frame(width: 40, height: 40)
+                                                        .overlay(
+                                                                                                                    Text(String((connection.connectedUser?.name ?? "Unknown").prefix(1)))
+                                                            .font(AppFonts.bodyMedium)
+                                                            .foregroundColor(AppColors.accent)
+                                                    )
+                                                    
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(connection.connectedUser?.name ?? "Unknown User")
+                                                            .font(AppFonts.bodyMedium)
+                                                            .foregroundColor(AppColors.primaryText)
+                                                        
+                                                        if let rank = connection.connectedUser?.rank {
+                                                            Text(rank)
+                                                                .font(AppFonts.caption)
+                                                                .foregroundColor(AppColors.secondaryText)
+                                                        }
+                                                    }
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Image(systemName: selectedConnection?.id == connection.id ? "checkmark.circle.fill" : "circle")
+                                                        .foregroundColor(selectedConnection?.id == connection.id ? AppColors.accent : AppColors.tertiaryText)
+                                                        .font(.system(size: 24, weight: .light))
+                                                }
+                                                .padding(16)
+                                                .background(selectedConnection?.id == connection.id ? AppColors.accent.opacity(0.1) : AppColors.secondaryBackground)
+                                                .cornerRadius(8)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(selectedConnection?.id == connection.id ? AppColors.accent : AppColors.border, lineWidth: selectedConnection?.id == connection.id ? 2 : 1)
+                                                )
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 24)
+                            }
+                            
+                            // Transfer notes
+                            VStack(spacing: 20) {
+                                ElegantSectionHeader(
+                                    title: "Additional Information",
+                                    style: .serif
+                                )
+                                .padding(.horizontal, 24)
+                                
+                                VStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Notes (Optional)")
+                                            .font(AppFonts.caption)
+                                            .foregroundColor(AppColors.tertiaryText)
+                                        
+                                        ZStack(alignment: .topLeading) {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(AppColors.secondaryBackground)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(AppColors.border, lineWidth: 1)
+                                                )
+                                                .frame(minHeight: 80)
+                                            
+                                            if notes.isEmpty {
+                                                Text("Transfer notes...")
+                                                    .font(AppFonts.body)
+                                                    .foregroundColor(AppColors.tertiaryText)
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 12)
+                                            }
+                                            
+                                            TextEditor(text: $notes)
+                                                .font(AppFonts.body)
+                                                .foregroundColor(AppColors.primaryText)
+                                                .background(Color.clear)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                        }
+                                    }
+                                }
+                                .cleanCard()
+                                .padding(.horizontal, 24)
+                            }
+                            
+                            // Error message
+                            if let error = transferError {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .foregroundColor(AppColors.destructive)
+                                        .font(.system(size: 24, weight: .light))
+                                    
+                                    Text(error)
+                                        .font(AppFonts.caption)
+                                        .foregroundColor(AppColors.destructive)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(16)
+                                .background(AppColors.destructive.opacity(0.1))
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                                )
+                                .padding(.horizontal, 24)
+                            }
+                        }
+                        
+                        // Bottom padding
+                        Color.clear.frame(height: 40)
+                    }
+                }
+                
+                if isTransferring {
+                    VStack(spacing: 24) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.primaryText))
+                            .scaleEffect(1.2)
+                        
+                        Text("CREATING TRANSFER")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                            .kerning(AppFonts.wideKerning)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppColors.overlayBackground)
+                }
+            }
+        }
+        .navigationBarHidden(true)
+        .onAppear {
+            connectionsViewModel.loadConnections()
+        }
+    }
+    
+    private func transferProperty() {
+        guard let connection = selectedConnection,
+              let connectedUser = connection.connectedUser else { return }
+        
+        isTransferring = true
+        transferError = nil
+        
+        Task {
+            do {
+                let _ = try await transferService.createOffer(
+                    propertyId: property.id,
+                    offeredToUserId: connectedUser.id,
+                    notes: notes.isEmpty ? nil : notes
+                )
+                
+                await MainActor.run {
+                    isTransferring = false
+                    onComplete()
+                }
+            } catch {
+                await MainActor.run {
+                    isTransferring = false
+                    transferError = error.localizedDescription
+                }
             }
         }
     }

@@ -231,6 +231,48 @@ struct DashboardView: View {
                     title: "Import DA-2062",
                     action: { showingDA2062Scan = true }
                 )
+                
+                NavigationLink(destination: DocumentsView()) {
+                    VStack(spacing: 12) {
+                        ZStack {
+                            Image(systemName: "tray")
+                                .font(.system(size: 24, weight: .light))
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            // Unread badge
+                            if documentService.unreadCount > 0 {
+                                VStack {
+                                    HStack {
+                                        Spacer()
+                                        Text("\(documentService.unreadCount)")
+                                            .font(AppFonts.caption2)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(AppColors.accent)
+                                            .clipShape(Capsule())
+                                            .offset(x: 8, y: -8)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                        }
+                        
+                        Text("Documents".uppercased())
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                            .compatibleKerning(AppFonts.wideKerning)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 80)
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
     }

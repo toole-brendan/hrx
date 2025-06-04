@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,19 +13,25 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/email"
+	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
 // DocumentHandler handles document operations
 type DocumentHandler struct {
-	Repo   repository.Repository
-	Ledger ledger.LedgerService
+	Repo           repository.Repository
+	Ledger         ledger.LedgerService
+	EmailService   *email.DA2062EmailService
+	StorageService storage.StorageService
 }
 
 // NewDocumentHandler creates a new document handler
-func NewDocumentHandler(repo repository.Repository, ledger ledger.LedgerService) *DocumentHandler {
+func NewDocumentHandler(repo repository.Repository, ledger ledger.LedgerService, emailService *email.DA2062EmailService, storageService storage.StorageService) *DocumentHandler {
 	return &DocumentHandler{
-		Repo:   repo,
-		Ledger: ledger,
+		Repo:           repo,
+		Ledger:         ledger,
+		EmailService:   emailService,
+		StorageService: storageService,
 	}
 }
 
@@ -214,6 +222,107 @@ func (h *DocumentHandler) MarkDocumentRead(c *gin.Context) {
 	h.Ledger.LogDocumentEvent(document.ID, "DOCUMENT_READ", userID, document.SenderUserID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document marked as read"})
+}
+
+// EmailDocument allows users to email DA 2062 documents to themselves
+func (h *DocumentHandler) EmailDocument(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	docID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
+		return
+	}
+
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid email address required"})
+		return
+	}
+
+	// Get document
+	document, err := h.Repo.GetDocumentByID(uint(docID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
+		return
+	}
+
+	// Verify user has access to this document
+	if document.SenderUserID != userID && document.RecipientUserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have access to this document"})
+		return
+	}
+
+	// Only allow emailing DA 2062 documents
+	if document.Type != domain.DocumentTypeTransferForm || (document.Subtype == nil || *document.Subtype != "DA2062") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only DA 2062 documents can be emailed"})
+		return
+	}
+
+	// Extract PDF URL from attachments
+	var pdfURL string
+	if document.Attachments != nil {
+		var attachments []string
+		if err := json.Unmarshal([]byte(*document.Attachments), &attachments); err == nil && len(attachments) > 0 {
+			pdfURL = attachments[0]
+		}
+	}
+
+	if pdfURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Document has no PDF attachment"})
+		return
+	}
+
+	// Extract file key from URL (assuming URL contains the file key)
+	// For now, we'll need to implement a way to extract the file key from the presigned URL
+	// or store the file key separately. For simplicity, let's assume the URL is the file key
+	fileKey := fmt.Sprintf("da2062/transfer_%d.pdf", document.ID) // Reconstruct file key
+
+	// Download PDF from storage
+	reader, err := h.StorageService.DownloadFile(c.Request.Context(), fileKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve document"})
+		return
+	}
+	defer reader.Close()
+
+	// Read PDF content into a buffer
+	pdfData := &bytes.Buffer{}
+	if _, err := io.Copy(pdfData, reader); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read document"})
+		return
+	}
+
+	// Get user info for email
+	user, err := h.Repo.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
+
+	// Generate form number from document title or use document ID
+	formNumber := fmt.Sprintf("DOC-%d", document.ID)
+
+	// Send email
+	senderInfo := email.UserInfo{
+		Name:  user.Name,
+		Rank:  user.Rank,
+		Title: user.Unit,
+		Phone: user.Phone,
+	}
+
+	if err := h.EmailService.SendDA2062Email([]string{req.Email}, pdfData, formNumber, senderInfo); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+		return
+	}
+
+	// Log the email action
+	h.Ledger.LogDocumentEvent(document.ID, "DOCUMENT_EMAILED", userID, 0)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("DA 2062 emailed successfully to %s", req.Email),
+	})
 }
 
 // Helper method to generate form data

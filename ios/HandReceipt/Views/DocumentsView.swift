@@ -5,6 +5,9 @@ struct DocumentsView: View {
     @State private var selectedFilter: DocumentFilter = .all
     @State private var selectedDocument: Document?
     @State private var showingDocumentDetail = false
+    @State private var selectedDocumentForEmail: Document?
+    @State private var showingEmailDialog = false
+    @State private var emailAddress = ""
     
     enum DocumentFilter: String, CaseIterable {
         case all = "All"
@@ -60,6 +63,27 @@ struct DocumentsView: View {
                     await documentService.markAsRead(document)
                 }
             }
+        }
+        .alert("Email DA 2062", isPresented: $showingEmailDialog) {
+            TextField("Email address", text: $emailAddress)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+            
+            Button("Send") {
+                Task {
+                    if let document = selectedDocumentForEmail {
+                        await emailDocument(document, to: emailAddress)
+                    }
+                }
+            }
+            .disabled(emailAddress.isEmpty)
+            
+            Button("Cancel", role: .cancel) {
+                emailAddress = ""
+                selectedDocumentForEmail = nil
+            }
+        } message: {
+            Text("Enter your email address to receive a copy of this DA 2062 hand receipt.")
         }
     }
     
@@ -149,6 +173,22 @@ struct DocumentsView: View {
             return documentService.documents.filter { $0.status == .archived }
         }
     }
+    
+    // MARK: - Email Functionality
+    
+    private func emailDocument(_ document: Document, to email: String) async {
+        do {
+            try await APIService.shared.emailDocument(documentId: document.id, email: email)
+            // Show success message
+        } catch {
+            print("Failed to email document: \(error)")
+            // Show error message
+        }
+        
+        // Reset state
+        emailAddress = ""
+        selectedDocumentForEmail = nil
+    }
 }
 
 // MARK: - Supporting Views
@@ -156,6 +196,8 @@ struct DocumentsView: View {
 struct DocumentRowView: View {
     let document: Document
     let onTap: () -> Void
+    @State private var showingEmailDialog = false
+    @State private var emailAddress = ""
     
     var body: some View {
         Button(action: onTap) {
@@ -218,6 +260,58 @@ struct DocumentRowView: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            // Show email option for DA 2062 documents
+            if document.type == DocumentType.transferForm.rawValue,
+               let subtype = document.subtype, subtype == "DA2062" {
+                Button(action: {
+                    showingEmailDialog = true
+                }) {
+                    Label("Email to Myself", systemImage: "envelope")
+                }
+            }
+            
+            Button(action: {
+                Task {
+                    await DocumentService.shared.markAsRead(document)
+                }
+            }) {
+                Label("Mark as Read", systemImage: "checkmark.circle")
+            }
+        }
+        .alert("Email DA 2062", isPresented: $showingEmailDialog) {
+            TextField("Email address", text: $emailAddress)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+            
+            Button("Send") {
+                Task {
+                    await emailDocument(document, to: emailAddress)
+                }
+            }
+            .disabled(emailAddress.isEmpty)
+            
+            Button("Cancel", role: .cancel) {
+                emailAddress = ""
+            }
+        } message: {
+            Text("Enter your email address to receive a copy of this DA 2062 hand receipt.")
+        }
+    }
+    
+    // MARK: - Email Functionality
+    
+    private func emailDocument(_ document: Document, to email: String) async {
+        do {
+            try await APIService.shared.emailDocument(documentId: document.id, email: email)
+            // Show success message
+        } catch {
+            print("Failed to email document: \(error)")
+            // Show error message
+        }
+        
+        // Reset state
+        emailAddress = ""
     }
     
     private var documentTypeIcon: String {

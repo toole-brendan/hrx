@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,6 +16,9 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
 	"github.com/toole-brendan/handreceipt-go/internal/services"
+	"github.com/toole-brendan/handreceipt-go/internal/services/email"
+	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
+	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
 )
 
@@ -21,14 +27,27 @@ type TransferHandler struct {
 	Ledger           ledger.LedgerService
 	Repo             repository.Repository
 	ComponentService services.ComponentService
+	PDFGenerator     *pdf.DA2062Generator
+	EmailService     *email.DA2062EmailService
+	StorageService   storage.StorageService
 }
 
 // NewTransferHandler creates a new transfer handler
-func NewTransferHandler(ledgerService ledger.LedgerService, repo repository.Repository, componentService services.ComponentService) *TransferHandler {
+func NewTransferHandler(
+	ledgerService ledger.LedgerService,
+	repo repository.Repository,
+	componentService services.ComponentService,
+	pdfGenerator *pdf.DA2062Generator,
+	emailService *email.DA2062EmailService,
+	storageService storage.StorageService,
+) *TransferHandler {
 	return &TransferHandler{
 		Ledger:           ledgerService,
 		Repo:             repo,
 		ComponentService: componentService,
+		PDFGenerator:     pdfGenerator,
+		EmailService:     emailService,
+		StorageService:   storageService,
 	}
 }
 
@@ -265,6 +284,12 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 			} else {
 				log.Printf("Successfully transferred components for property %d from user %d to user %d", transfer.PropertyID, transfer.FromUserID, transfer.ToUserID)
 			}
+		}
+
+		// Generate and send DA 2062 Hand Receipt
+		if err := h.generateAndSendDA2062(c.Request.Context(), transfer, item); err != nil {
+			log.Printf("WARNING: Failed to generate/send DA 2062 for transfer %d: %v", transfer.ID, err)
+			// Don't fail the transfer - just log the error
 		}
 
 		// Log successful transfer completion
@@ -856,4 +881,167 @@ func (h *TransferHandler) AcceptOffer(c *gin.Context) {
 		"transfer": transfer,
 		"message":  "Offer accepted successfully",
 	})
+}
+
+func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *domain.Transfer, property *domain.Property) error {
+	// Fetch user information for both FROM and TO users
+	fromUser, err := h.Repo.GetUserByID(transfer.FromUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get FROM user: %w", err)
+	}
+
+	toUser, err := h.Repo.GetUserByID(transfer.ToUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get TO user: %w", err)
+	}
+
+	// Gather all properties to include in the DA 2062 (main item + components)
+	properties := []domain.Property{*property}
+
+	// If transfer includes components, get all attached components
+	if transfer.IncludeComponents {
+		components, err := h.ComponentService.GetPropertyComponents(ctx, transfer.PropertyID)
+		if err != nil {
+			log.Printf("WARNING: Failed to get components for property %d: %v", transfer.PropertyID, err)
+			// Continue without components rather than failing
+		} else {
+			// Add components to the properties list
+			for _, comp := range components {
+				if comp.ComponentProperty != nil {
+					properties = append(properties, *comp.ComponentProperty)
+				}
+			}
+		}
+	}
+
+	// Prepare user info for PDF generation
+	fromInfo := pdf.UserInfo{
+		Name:         fromUser.Name,
+		Rank:         fromUser.Rank,
+		Title:        fromUser.Unit, // Use unit as title
+		Phone:        fromUser.Phone,
+		SignatureURL: "",
+	}
+	if fromUser.SignatureURL != nil {
+		fromInfo.SignatureURL = *fromUser.SignatureURL
+	}
+
+	toInfo := pdf.UserInfo{
+		Name:         toUser.Name,
+		Rank:         toUser.Rank,
+		Title:        toUser.Unit, // Use unit as title
+		Phone:        toUser.Phone,
+		SignatureURL: "",
+	}
+	if toUser.SignatureURL != nil {
+		toInfo.SignatureURL = *toUser.SignatureURL
+	}
+
+	// Prepare unit info (using FROM user's unit)
+	unitInfo := pdf.UnitInfo{
+		UnitName:    fromUser.Unit,
+		DODAAC:      "", // Could be stored in user profile if needed
+		StockNumber: "", // Could be property book number if available
+		Location:    "", // Could be stored in user profile if needed
+	}
+
+	// Generate PDF options
+	options := pdf.GenerateOptions{
+		GroupByCategory:   false,
+		IncludeSignatures: true,
+		IncludeQRCodes:    false,
+	}
+
+	// Generate the DA 2062 PDF
+	pdfBuffer, err := h.PDFGenerator.GenerateDA2062(
+		properties,
+		fromInfo,
+		toInfo,
+		unitInfo,
+		options,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to generate DA 2062 PDF: %w", err)
+	}
+
+	// Generate form number
+	formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), transfer.ID)
+
+	// Upload PDF to storage once (shared by both documents)
+	fileKey := fmt.Sprintf("da2062/transfer_%d.pdf", transfer.ID)
+	err = h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuffer.Bytes()), int64(pdfBuffer.Len()), "application/pdf")
+	if err != nil {
+		log.Printf("WARNING: Failed to upload PDF to storage: %v", err)
+		return fmt.Errorf("failed to upload DA 2062 PDF: %w", err)
+	}
+
+	// Get presigned URL for access
+	fileURL, err := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour) // 7 days
+	if err != nil {
+		log.Printf("WARNING: Failed to get presigned URL for DA 2062: %v", err)
+		fileURL = "" // Continue without URL
+	}
+
+	// Create in-app documents for BOTH sender and recipient
+	// This gives both parties immediate access to the hand receipt in their inbox
+
+	// Create document for recipient (TO user)
+	if err := h.createInAppDocumentRecord(ctx, transfer, property, formNumber, fileURL, transfer.ToUserID, "received"); err != nil {
+		log.Printf("WARNING: Failed to create in-app document for recipient: %v", err)
+	}
+
+	// Create document for sender (FROM user)
+	if err := h.createInAppDocumentRecord(ctx, transfer, property, formNumber, fileURL, transfer.FromUserID, "sent"); err != nil {
+		log.Printf("WARNING: Failed to create in-app document for sender: %v", err)
+	}
+
+	// Log DA 2062 export to ledger
+	if err := h.Ledger.LogDA2062Export(transfer.ToUserID, len(properties), "email_and_app", toUser.Email); err != nil {
+		log.Printf("WARNING: Failed to log DA 2062 export to ledger: %v", err)
+	}
+
+	log.Printf("Successfully generated and sent DA 2062 for transfer %d (%d items)", transfer.ID, len(properties))
+	return nil
+}
+
+func (h *TransferHandler) createInAppDocumentRecord(ctx context.Context, transfer *domain.Transfer, property *domain.Property, formNumber string, fileURL string, recipientUserID uint, documentType string) error {
+
+	// Create document record with appropriate title based on document type
+	var title string
+	if documentType == "received" {
+		title = fmt.Sprintf("Hand Receipt Received - %s (SN:%s)", property.Name, property.SerialNumber)
+	} else {
+		title = fmt.Sprintf("Hand Receipt Sent - %s (SN:%s)", property.Name, property.SerialNumber)
+	}
+
+	doc := &domain.Document{
+		Type:            domain.DocumentTypeTransferForm,
+		Subtype:         stringPtr("DA2062"),
+		Title:           title,
+		SenderUserID:    transfer.FromUserID,
+		RecipientUserID: recipientUserID,
+		PropertyID:      &property.ID,
+		Status:          domain.DocumentStatusUnread,
+		SentAt:          time.Now(),
+		FormData:        "{}",
+	}
+
+	// Add attachment URL if available
+	if fileURL != "" {
+		attachments := []string{fileURL}
+		attachJSON, _ := json.Marshal(attachments)
+		doc.Attachments = stringPtr(string(attachJSON))
+	}
+
+	if err := h.Repo.CreateDocument(doc); err != nil {
+		return fmt.Errorf("failed to create document record: %w", err)
+	}
+
+	log.Printf("Created in-app document %d (%s) for transfer %d, recipient %d", doc.ID, documentType, transfer.ID, recipientUserID)
+	return nil
+}
+
+// Helper function to create string pointer
+func stringPtr(s string) *string {
+	return &s
 }
