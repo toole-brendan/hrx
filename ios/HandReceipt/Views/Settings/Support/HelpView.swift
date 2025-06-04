@@ -5,91 +5,124 @@ struct HelpView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 0) {
-            MinimalNavigationBar(
-                title: "HELP",
-                titleStyle: .mono,
-                showBackButton: true,
-                backAction: { dismiss() }
-            )
+        ZStack {
+            AppColors.appBackground
+                .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Top padding
-                    Color.clear.frame(height: 16)
-                    
-                    // Help Content
-                    VStack(spacing: 24) {
-                        VStack(spacing: 16) {
-                            Image(systemName: "questionmark.circle")
-                                .font(.system(size: 64, weight: .thin))
-                                .foregroundColor(AppColors.accent)
+            VStack(spacing: 0) {
+                MinimalNavigationBar(
+                    title: "Help & Support",
+                    titleStyle: .serif,
+                    showBackButton: true,
+                    backAction: { dismiss() }
+                )
+                
+                ScrollView {
+                    VStack(spacing: 40) {
+                        // Help Hero Section
+                        VStack(spacing: 24) {
+                            GeometricPatternView()
+                                .frame(height: 120)
+                                .opacity(0.2)
+                                .overlay(
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "questionmark.circle")
+                                            .font(.system(size: 48, weight: .thin))
+                                            .foregroundColor(AppColors.primaryText)
+                                        
+                                        Text("Help & Documentation")
+                                            .font(AppFonts.serifHeadline)
+                                            .foregroundColor(AppColors.primaryText)
+                                    }
+                                )
                             
-                            Text("Help & Documentation")
-                                .font(AppFonts.serifHeadline)
-                                .foregroundColor(AppColors.primaryText)
-                            
-                            Text("Comprehensive help documentation will be available here. In the meantime, you can contact support for assistance with HandReceipt features.")
+                            Text("Comprehensive guides and troubleshooting resources for HandReceipt features and functionality.")
                                 .font(AppFonts.body)
                                 .foregroundColor(AppColors.secondaryText)
                                 .multilineTextAlignment(.center)
                         }
-                    }
-                    .cleanCard(padding: 24)
-                    .padding(.horizontal, 24)
-                    
-                    // Quick Help Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ElegantSectionHeader(title: "Quick Help", style: .uppercase)
-                            .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 0) {
-                            HelpTopicRow(
-                                title: "Getting Started",
-                                description: "Learn the basics of HandReceipt",
-                                icon: "play.circle"
-                            )
-                            
-                            Rectangle()
-                                .fill(AppColors.divider)
-                                .frame(height: 1)
-                            
-                            HelpTopicRow(
-                                title: "Property Management",
-                                description: "Managing your assigned property",
-                                icon: "shippingbox"
-                            )
-                            
-                            Rectangle()
-                                .fill(AppColors.divider)
-                                .frame(height: 1)
-                            
-                            HelpTopicRow(
-                                title: "Transfers",
-                                description: "How to transfer property",
-                                icon: "arrow.left.arrow.right"
-                            )
-                            
-                            Rectangle()
-                                .fill(AppColors.divider)
-                                .frame(height: 1)
-                            
-                            HelpTopicRow(
-                                title: "Troubleshooting",
-                                description: "Common issues and solutions",
-                                icon: "wrench"
-                            )
-                        }
-                        .cleanCard(padding: 0)
                         .padding(.horizontal, 24)
+                        
+                        // Quick Help Topics
+                        VStack(alignment: .leading, spacing: 20) {
+                            ElegantSectionHeader(
+                                title: "Quick Help",
+                                subtitle: "Common topics and guides",
+                                style: .uppercase
+                            )
+                            .padding(.horizontal, 24)
+                            
+                            VStack(spacing: 0) {
+                                HelpTopicRow(
+                                    title: "Getting Started",
+                                    description: "Learn the basics of HandReceipt",
+                                    icon: "play.circle"
+                                )
+                                
+                                Divider()
+                                    .background(AppColors.divider)
+                                
+                                HelpTopicRow(
+                                    title: "Property Management",
+                                    description: "Managing your assigned property",
+                                    icon: "shippingbox"
+                                )
+                                
+                                Divider()
+                                    .background(AppColors.divider)
+                                
+                                HelpTopicRow(
+                                    title: "Transfer Process",
+                                    description: "How to transfer property between users",
+                                    icon: "arrow.left.arrow.right"
+                                )
+                                
+                                Divider()
+                                    .background(AppColors.divider)
+                                
+                                HelpTopicRow(
+                                    title: "Troubleshooting",
+                                    description: "Common issues and solutions",
+                                    icon: "wrench"
+                                )
+                            }
+                            .cleanCard(padding: 0)
+                            .padding(.horizontal, 24)
+                        }
+                        
+                        // Support Contact
+                        VStack(alignment: .leading, spacing: 20) {
+                            ElegantSectionHeader(
+                                title: "Support",
+                                style: .mono
+                            )
+                            .padding(.horizontal, 24)
+                            
+                            VStack(spacing: 16) {
+                                SupportContactCard(
+                                    title: "Contact Support",
+                                    description: "Get help from our support team",
+                                    icon: "envelope",
+                                    action: "support@handreceipt.mil"
+                                )
+                                
+                                SupportContactCard(
+                                    title: "Report Issue",
+                                    description: "Report bugs or request features",
+                                    icon: "exclamationmark.bubble",
+                                    action: "Submit Report"
+                                )
+                            }
+                            .cleanCard()
+                            .padding(.horizontal, 24)
+                        }
+                        
+                        // Bottom safe area
+                        Color.clear.frame(height: 80)
                     }
-                    
-                    // Bottom spacer
-                    Color.clear.frame(height: 40)
                 }
             }
         }
-        .background(AppColors.appBackground.ignoresSafeArea())
         .navigationBarHidden(true)
     }
 }
@@ -103,7 +136,7 @@ struct HelpTopicRow: View {
         Button(action: {
             // TODO: Navigate to specific help topic
         }) {
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .light))
                     .foregroundColor(AppColors.accent)
@@ -111,7 +144,7 @@ struct HelpTopicRow: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(AppFonts.body)
+                        .font(AppFonts.bodyMedium)
                         .foregroundColor(AppColors.primaryText)
                     
                     Text(description)
@@ -126,8 +159,50 @@ struct HelpTopicRow: View {
                     .foregroundColor(AppColors.tertiaryText)
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct SupportContactCard: View {
+    let title: String
+    let description: String
+    let icon: String
+    let action: String
+    
+    var body: some View {
+        Button(action: {
+            // TODO: Handle support contact action
+        }) {
+            HStack(spacing: 16) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundColor(AppColors.accent)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(AppFonts.bodyMedium)
+                        .foregroundColor(AppColors.primaryText)
+                    
+                    Text(description)
+                        .font(AppFonts.caption)
+                        .foregroundColor(AppColors.secondaryText)
+                    
+                    Text(action)
+                        .font(AppFonts.monoCaption)
+                        .foregroundColor(AppColors.accent)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .light))
+                    .foregroundColor(AppColors.tertiaryText)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(PlainButtonStyle())
     }

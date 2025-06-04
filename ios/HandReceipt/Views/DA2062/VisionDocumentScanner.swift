@@ -17,26 +17,97 @@ struct VisionDocumentScanner: UIViewControllerRepresentable {
         scannerViewController.delegate = context.coordinator
         
         // Apply 8VC-inspired styling to the scanner
-        if let navigationBar = scannerViewController.navigationController?.navigationBar {
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = UIColor(AppColors.appBackground)
-            appearance.titleTextAttributes = [
-                .font: UIFont.monospacedSystemFont(ofSize: 17, weight: .regular),
-                .foregroundColor: UIColor(AppColors.primaryText)
-            ]
-            appearance.shadowColor = .clear
-            
-            navigationBar.standardAppearance = appearance
-            navigationBar.scrollEdgeAppearance = appearance
-            navigationBar.tintColor = UIColor(AppColors.accent)
-        }
+        configureNavigationBarAppearance(for: scannerViewController)
         
         return scannerViewController
     }
     
     func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {
         // No updates needed
+    }
+    
+    private func configureNavigationBarAppearance(for controller: VNDocumentCameraViewController) {
+        // Create custom navigation bar appearance
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        
+        // Background styling
+        appearance.backgroundColor = UIColor(AppColors.appBackground)
+        appearance.shadowColor = UIColor(AppColors.shadowColor)
+        
+        // Title styling - use serif font for elegance
+        appearance.titleTextAttributes = [
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold, design: .serif),
+            .foregroundColor: UIColor(AppColors.primaryText)
+        ]
+        
+        appearance.largeTitleTextAttributes = [
+            .font: UIFont.systemFont(ofSize: 34, weight: .bold, design: .serif),
+            .foregroundColor: UIColor(AppColors.primaryText)
+        ]
+        
+        // Button styling
+        appearance.buttonAppearance.normal.titleTextAttributes = [
+            .font: UIFont.systemFont(ofSize: 16, weight: .medium),
+            .foregroundColor: UIColor(AppColors.accent)
+        ]
+        
+        appearance.doneButtonAppearance.normal.titleTextAttributes = [
+            .font: UIFont.systemFont(ofSize: 16, weight: .medium),
+            .foregroundColor: UIColor(AppColors.accent)
+        ]
+        
+        // Apply appearance to navigation bar
+        if let navigationController = controller.navigationController {
+            let navigationBar = navigationController.navigationBar
+            navigationBar.standardAppearance = appearance
+            navigationBar.scrollEdgeAppearance = appearance
+            navigationBar.compactAppearance = appearance
+            navigationBar.tintColor = UIColor(AppColors.accent)
+            
+            // Add subtle shadow
+            navigationBar.layer.masksToBounds = false
+            navigationBar.layer.shadowColor = UIColor.black.cgColor
+            navigationBar.layer.shadowOpacity = 0.05
+            navigationBar.layer.shadowRadius = 2
+            navigationBar.layer.shadowOffset = CGSize(width: 0, height: 1)
+        }
+        
+        // Configure the controller itself
+        controller.view.backgroundColor = UIColor(AppColors.appBackground)
+        
+        // Style the scan overlay if possible
+        DispatchQueue.main.async {
+            self.applyScannerOverlayStyle(to: controller)
+        }
+    }
+    
+    private func applyScannerOverlayStyle(to controller: VNDocumentCameraViewController) {
+        // Find and style scanner overlay elements
+        func styleSubviews(in view: UIView) {
+            for subview in view.subviews {
+                // Style instruction labels
+                if let label = subview as? UILabel {
+                    if label.text?.contains("Position") == true || 
+                       label.text?.contains("document") == true ||
+                       label.text?.contains("camera") == true {
+                        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+                        label.textColor = UIColor(AppColors.primaryText)
+                    }
+                }
+                
+                // Style buttons
+                if let button = subview as? UIButton {
+                    button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+                    button.setTitleColor(UIColor(AppColors.accent), for: .normal)
+                }
+                
+                // Recursively style nested views
+                styleSubviews(in: subview)
+            }
+        }
+        
+        styleSubviews(in: controller.view)
     }
     
     class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {

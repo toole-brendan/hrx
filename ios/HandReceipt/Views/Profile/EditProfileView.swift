@@ -21,126 +21,130 @@ struct EditProfileView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            MinimalNavigationBar(
-                title: "EDIT PROFILE",
-                titleStyle: .mono,
-                showBackButton: true,
-                backAction: { dismiss() }
-            )
+        ZStack {
+            AppColors.appBackground
+                .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Top padding
-                    Color.clear.frame(height: 16)
-                    
-                    // Personal Information Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ElegantSectionHeader(title: "Personal Information", style: .serif)
+            VStack(spacing: 0) {
+                MinimalNavigationBar(
+                    title: "Edit Profile",
+                    titleStyle: .serif,
+                    showBackButton: true,
+                    backAction: { dismiss() }
+                )
+                
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // Personal Information
+                        VStack(alignment: .leading, spacing: 16) {
+                            ElegantSectionHeader(
+                                title: "Personal Information",
+                                style: .uppercase
+                            )
                             .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 0) {
-                            ModernFormField(
-                                label: "First Name",
-                                text: $firstName,
-                                icon: "person"
-                            )
                             
-                            Rectangle()
-                                .fill(AppColors.divider)
-                                .frame(height: 1)
-                            
-                            ModernFormField(
-                                label: "Last Name",
-                                text: $lastName,
-                                icon: "person"
-                            )
-                        }
-                        .cleanCard(padding: 0)
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Contact Information Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ElegantSectionHeader(title: "Contact Information", style: .serif)
-                            .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 0) {
-                            ModernFormField(
-                                label: "Email",
-                                text: $email,
-                                icon: "envelope",
-                                keyboardType: .emailAddress,
-                                textContentType: .emailAddress
-                            )
-                        }
-                        .cleanCard(padding: 0)
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Military Information Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        ElegantSectionHeader(title: "Military Information", style: .serif)
-                            .padding(.horizontal, 24)
-                        
-                        VStack(spacing: 0) {
-                            ModernFormField(
-                                label: "Rank",
-                                text: $rank,
-                                icon: "star"
-                            )
-                            
-                            Rectangle()
-                                .fill(AppColors.divider)
-                                .frame(height: 1)
-                            
-                            ModernFormField(
-                                label: "Unit/Organization",
-                                text: $unit,
-                                icon: "building.2"
-                            )
-                        }
-                        .cleanCard(padding: 0)
-                        .padding(.horizontal, 24)
-                    }
-                    
-                    // Error Message
-                    if let error = errorMessage {
-                        Text(error)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.destructive)
-                            .padding(.horizontal, 24)
-                    }
-                    
-                    // Save Button
-                    Button(action: saveProfile) {
-                        if isLoading {
-                            HStack(spacing: 8) {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .tint(.white)
-                                Text("Saving...")
-                                    .font(AppFonts.bodyMedium)
+                            VStack(spacing: 0) {
+                                ModernFormField(
+                                    label: "First Name",
+                                    text: $firstName,
+                                    icon: "person"
+                                )
+                                
+                                Divider()
+                                    .background(AppColors.divider)
+                                
+                                ModernFormField(
+                                    label: "Last Name",
+                                    text: $lastName,
+                                    icon: "person"
+                                )
                             }
-                        } else {
-                            Text("Save Changes")
-                                .font(AppFonts.bodyMedium)
+                            .cleanCard(padding: 0)
+                            .padding(.horizontal, 24)
                         }
+                        
+                        // Contact Information
+                        VStack(alignment: .leading, spacing: 16) {
+                            ElegantSectionHeader(
+                                title: "Contact Information",
+                                style: .uppercase
+                            )
+                            .padding(.horizontal, 24)
+                            
+                            VStack(spacing: 0) {
+                                ModernFormField(
+                                    label: "Email Address",
+                                    text: $email,
+                                    icon: "envelope",
+                                    keyboardType: .emailAddress,
+                                    textContentType: .emailAddress
+                                )
+                            }
+                            .cleanCard(padding: 0)
+                            .padding(.horizontal, 24)
+                        }
+                        
+                        // Military Information
+                        VStack(alignment: .leading, spacing: 16) {
+                            ElegantSectionHeader(
+                                title: "Military Information",
+                                style: .uppercase
+                            )
+                            .padding(.horizontal, 24)
+                            
+                            VStack(spacing: 0) {
+                                ModernFormField(
+                                    label: "Rank",
+                                    text: $rank,
+                                    icon: "star"
+                                )
+                                
+                                Divider()
+                                    .background(AppColors.divider)
+                                
+                                ModernFormField(
+                                    label: "Unit/Organization",
+                                    text: $unit,
+                                    icon: "building.2"
+                                )
+                            }
+                            .cleanCard(padding: 0)
+                            .padding(.horizontal, 24)
+                        }
+                        
+                        // Error Message
+                        if let error = errorMessage {
+                            Text(error)
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.destructive)
+                                .padding(.horizontal, 24)
+                        }
+                        
+                        // Save Button
+                        Button(action: saveProfile) {
+                            HStack(spacing: 8) {
+                                if isLoading {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .tint(.white)
+                                    Text("Saving...")
+                                        .font(AppFonts.bodyMedium)
+                                } else {
+                                    Text("Save Changes")
+                                        .font(AppFonts.bodyMedium)
+                                }
+                            }
+                        }
+                        .buttonStyle(MinimalPrimaryButtonStyle())
+                        .disabled(!formIsValid || isLoading)
+                        .padding(.horizontal, 24)
+                        
+                        // Bottom safe area
+                        Color.clear.frame(height: 80)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(formIsValid ? AppColors.accent : AppColors.border)
-                    .foregroundColor(formIsValid ? .white : AppColors.tertiaryText)
-                    .cornerRadius(4)
-                    .disabled(!formIsValid || isLoading)
-                    .padding(.horizontal, 24)
-                    
-                    // Bottom spacer
-                    Color.clear.frame(height: 40)
                 }
             }
         }
-        .background(AppColors.appBackground.ignoresSafeArea())
         .navigationBarHidden(true)
         .onAppear {
             loadCurrentUserData()
@@ -227,10 +231,11 @@ struct ModernFormField: View {
                 .foregroundColor(AppColors.accent)
                 .frame(width: 20)
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label.uppercased())
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
+                    .kerning(AppFonts.wideKerning)
                 
                 TextField("", text: $text)
                     .font(AppFonts.body)
