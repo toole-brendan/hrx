@@ -14,7 +14,7 @@ enum LoginState: Equatable {
         case (.idle, .idle): return true
         case (.loading, .loading): return true
         case (.success(let lResponse), .success(let rResponse)): 
-            return lResponse.userId == rResponse.userId && lResponse.user.username == rResponse.user.username
+            return lResponse.user.id == rResponse.user.id
         case (.failed(let lMessage), .failed(let rMessage)): 
             return lMessage == rMessage
         default: return false
@@ -25,7 +25,7 @@ enum LoginState: Equatable {
 @MainActor
 class LoginViewModel: ObservableObject {
     // --- State --- 
-    @Published var username = ""
+    @Published var email = ""
     @Published var password = ""
     @Published var loginState: LoginState = .idle
     @Published var canAttemptLogin = false // Computed based on inputs
@@ -44,9 +44,9 @@ class LoginViewModel: ObservableObject {
     private func setupValidation() {
         debugPrint("Setting up validation publishers")
         // Combine publisher to check if both fields are non-empty
-        Publishers.CombineLatest($username, $password)
-            .map { username, password -> Bool in
-                let canLogin = !username.trimmingCharacters(in: .whitespaces).isEmpty && 
+        Publishers.CombineLatest($email, $password)
+            .map { email, password -> Bool in
+                let canLogin = !email.trimmingCharacters(in: .whitespaces).isEmpty && 
                        !password.isEmpty // Passwords usually aren't trimmed
                 debugPrint("Validation state updated: canLogin = \(canLogin)")
                 return canLogin
@@ -54,13 +54,13 @@ class LoginViewModel: ObservableObject {
             .assign(to: &$canAttemptLogin)
 
         // Reset login state if inputs change after a failed/success attempt
-         Publishers.CombineLatest($username, $password)
+         Publishers.CombineLatest($email, $password)
              .dropFirst() // Ignore initial state
-            .sink { [weak self] username, password in
+            .sink { [weak self] email, password in
                  guard let self = self else { return }
                  
                  // Debug values without exposing actual text
-                 debugPrint("Input changed: username \(username.isEmpty ? "empty" : "has value"), password \(password.isEmpty ? "empty" : "has value")")
+                 debugPrint("Input changed: email \(email.isEmpty ? "empty" : "has value"), password \(password.isEmpty ? "empty" : "has value")")
                  
                  if case .failed(let message) = self.loginState {
                      debugPrint("Resetting login state from failed(\(message)) to idle due to input change")
@@ -91,18 +91,18 @@ class LoginViewModel: ObservableObject {
         debugPrint("LoginViewModel: Login state set to loading")
         
         let credentials = LoginCredentials(
-            username: username.trimmingCharacters(in: .whitespaces),
+            email: email.trimmingCharacters(in: .whitespaces),
             password: password // Send password as entered
         )
         
-        debugPrint("LoginViewModel: Attempting login for user: \(credentials.username)")
+        debugPrint("LoginViewModel: Attempting login for user: \(credentials.email)")
 
         Task {
             do {
                 debugPrint("LoginViewModel: Calling API service login method")
                 let response = try await apiService.login(credentials: credentials)
                 // Login successful! Cookie should be stored by URLSession.
-                debugPrint("LoginViewModel: Login Successful: User \(response.user.username) (ID: \(response.userId))")
+                debugPrint("LoginViewModel: Login Successful: User \(response.user.email ?? "<no email>") (ID: \(response.userId))")
                 self.loginState = .success(response)
                 debugPrint("LoginViewModel: Login state updated to success")
                 // The View should observe this state change and navigate
@@ -111,7 +111,7 @@ class LoginViewModel: ObservableObject {
                 let errorMessage: String
                 switch apiError {
                     case .unauthorized: 
-                        errorMessage = "Invalid username or password."
+                        errorMessage = "Invalid email or password."
                         debugPrint("LoginViewModel: Unauthorized error - invalid credentials")
                     case .networkError(let error): 
                         errorMessage = "Network error. Please check connection."
@@ -142,15 +142,15 @@ class LoginViewModel: ObservableObject {
         debugPrint("LoginViewModel: Performing programmatic login")
         
         let credentials = LoginCredentials(
-            username: username.trimmingCharacters(in: .whitespaces),
+            email: email.trimmingCharacters(in: .whitespaces),
             password: password
         )
         
-        debugPrint("LoginViewModel: Attempting login for user: \(credentials.username)")
+        debugPrint("LoginViewModel: Attempting login for user: \(credentials.email)")
         
         do {
             let response = try await apiService.login(credentials: credentials)
-            debugPrint("LoginViewModel: Login Successful: User \(response.user.username) (ID: \(response.userId))")
+            debugPrint("LoginViewModel: Login Successful: User \(response.user.email ?? "<no email>") (ID: \(response.userId))")
             self.loginState = .success(response)
         } catch {
             debugPrint("LoginViewModel: Login failed: \(error)")
@@ -170,8 +170,9 @@ class LoginViewModel: ObservableObject {
             "token": "mock_token_string",
             "user": {
                 "id": 12345,
-                "username": "test_user",
-                "name": "Test User",
+                "email": "test_user@example.com",
+                "firstName": "Test",
+                "lastName": "User",
                 "rank": "TST"
             }
         }
@@ -181,7 +182,7 @@ class LoginViewModel: ObservableObject {
             // Decode it using the standard decoder
             let mockResponse = try JSONDecoder().decode(LoginResponse.self, from: mockResponseData)
             self.loginState = .success(mockResponse)
-            debugPrint("LoginViewModel: Set mock success state with user: \(mockResponse.user.username)")
+            debugPrint("LoginViewModel: Set mock success state with user: \(mockResponse.user.email ?? "unknown")")
         } catch {
             debugPrint("LoginViewModel: Failed to create mock response: \(error)")
             self.loginState = .failed("Failed to create mock response")

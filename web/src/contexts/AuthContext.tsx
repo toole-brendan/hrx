@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   authedFetch: AuthedFetch;
 }
@@ -22,11 +22,11 @@ const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
 // Mock user for development
 const DEV_USER: User = {
   id: "RODMC01",
-  username: "michael.rodriguez",
-  name: "CPT Rodriguez, Michael",
+  email: "michael.rodriguez@handreceipt.com",
+  name: "CPT Rodriguez", // Format as rank + last name per requirements
   firstName: "Michael",
   lastName: "Rodriguez",
-  rank: "Captain",
+  rank: "CPT", // Use standard military abbreviation
   position: "Company Commander",
   unit: "Bravo Company, 2-87 Infantry Battalion",
   yearsOfService: 6,
@@ -184,12 +184,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [authedFetch]);
 
   // --- Login function ---
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     
     // In development mode, fake successful login
     if (IS_DEVELOPMENT) {
-      console.log(`[DEV MODE] Mock login for user: ${username}`);
+      console.log(`[DEV MODE] Mock login for user: ${email}`);
       setUser(DEV_USER);
       setIsAuthenticated(true);
       setIsLoading(false);
@@ -201,7 +201,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
 

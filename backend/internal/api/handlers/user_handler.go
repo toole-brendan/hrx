@@ -347,12 +347,20 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 	}
 
 	// Return updated user data
+	// Split full name into first and last for response
+	names := strings.SplitN(user.Name, " ", 2)
+	firstName := names[0]
+	lastName := ""
+	if len(names) > 1 {
+		lastName = names[1]
+	}
+
 	response := models.UserDTO{
-		ID:        user.ID,
-		Username:  user.Username,
+		ID: user.ID,
+		// Username:  user.Username, // REMOVED: Username field
 		Email:     user.Email,
-		FirstName: user.Name, // Since domain.User only has Name
-		LastName:  "",
+		FirstName: firstName,
+		LastName:  lastName,
 		Rank:      user.Rank,
 		Unit:      user.Unit,
 		CreatedAt: user.CreatedAt,

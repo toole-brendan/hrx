@@ -419,7 +419,7 @@ public class APIService: APIServiceProtocol {
 
     // Login function implementation
     public func login(credentials: LoginCredentials) async throws -> LoginResponse {
-        debugPrint("Attempting to login user: \(credentials.username)")
+        debugPrint("Attempting to login user: \(credentials.email)")
         let endpoint = baseURL.appendingPathComponent("/api/auth/login")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -444,16 +444,16 @@ public class APIService: APIServiceProtocol {
                 refreshToken: refreshToken,
                 userId: response.user.id
             )
-            debugPrint("Stored JWT tokens for user: \(response.user.username)")
+            debugPrint("Stored JWT tokens for user: \(response.user.email ?? "unknown")")
         }
         
-        debugPrint("Login successful for user: \(response.user.username)")
+        debugPrint("Login successful for user: \(response.user.email ?? "unknown")")
         return response
     }
 
     // Register function implementation
     public func register(credentials: RegisterCredentials) async throws -> LoginResponse {
-        debugPrint("Attempting to register user: \(credentials.username)")
+        debugPrint("Attempting to register user: \(credentials.email)")
         let endpoint = baseURL.appendingPathComponent("/api/auth/register")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -479,15 +479,15 @@ public class APIService: APIServiceProtocol {
                     refreshToken: refreshToken,
                     userId: response.user.id
                 )
-                debugPrint("Stored JWT tokens for new user: \(response.user.username)")
+                debugPrint("Stored JWT tokens for new user: \(response.user.email ?? "unknown")")
             }
             
-            debugPrint("Registration successful for user: \(response.user.username)")
+            debugPrint("Registration successful for user: \(response.user.email ?? "unknown")")
             return response
         } catch let error as APIError {
             // Re-throw with more specific message for badRequest
             if case .badRequest(let message) = error {
-                throw APIError.badRequest(message: message ?? "Username or email already exists")
+                throw APIError.badRequest(message: message ?? "Email already exists")
             }
             throw error
         }

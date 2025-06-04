@@ -1,34 +1,32 @@
 -- Development seed data for HandReceipt
 -- This file contains test users and sample data for development
 
--- Create test user: michael.rodriguez
--- Password: password123 (bcrypt hash)
-INSERT INTO users (username, email, password_hash, first_name, last_name, rank, unit, role, status) 
-VALUES (
-    'michael.rodriguez', 
-    'michael.rodriguez@handreceipt.mil',
-    '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6', -- bcrypt hash of 'password123'
-    'Michael', 
-    'Rodriguez', 
-    'CPT',
-    'A Company, 1-502 INF',
-    'user', 
-    'active'
-) ON CONFLICT (username) DO NOTHING;
+-- Insert test users with military ranks and units
+-- Note: Passwords are hashed using bcrypt with cost 10
+-- Plain text passwords: "password123" for all users
 
--- Create another test user
-INSERT INTO users (username, email, password_hash, first_name, last_name, rank, unit, role, status) 
-VALUES (
-    'john.doe', 
-    'john.doe@handreceipt.mil',
-    '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6', -- bcrypt hash of 'password123'
-    'John', 
-    'Doe', 
-    'SFC',
-    'A Company, 1-502 INF',
-    'user', 
+INSERT INTO users (email, password_hash, first_name, last_name, rank, unit, role, status)
+VALUES 
+(
+    'michael.rodriguez@handreceipt.com',
+    '$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS',
+    'Michael',
+    'Rodriguez',
+    'CPT',
+    'Bravo Company, 2-87 Infantry Battalion',
+    'user',
     'active'
-) ON CONFLICT (username) DO NOTHING;
+),
+(
+    'john.doe@handreceipt.com',
+    '$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS',
+    'John',
+    'Doe',
+    'SGT',
+    'Alpha Company, 1-75 Ranger Regiment',
+    'user',
+    'active'
+) ON CONFLICT (email) DO NOTHING;
 
 -- Add sample equipment for testing
 INSERT INTO equipment (
@@ -49,7 +47,7 @@ SELECT
     'serviceable',
     u.id
 FROM generate_series(1, 5), users u
-WHERE u.username = 'michael.rodriguez'
+WHERE u.email = 'michael.rodriguez@handreceipt.com'
 ON CONFLICT (serial_number) DO NOTHING;
 
 -- Add some sensitive items
@@ -73,7 +71,7 @@ SELECT
     u.id,
     true
 FROM generate_series(1, 3), users u
-WHERE u.username = 'michael.rodriguez'
+WHERE u.email = 'michael.rodriguez@handreceipt.com'
 ON CONFLICT (serial_number) DO NOTHING;
 
 -- Add sample transfers
@@ -88,13 +86,13 @@ INSERT INTO transfers (
 )
 SELECT 
     e.id,
-    (SELECT id FROM users WHERE username = 'john.doe'),
-    (SELECT id FROM users WHERE username = 'michael.rodriguez'),
+    (SELECT id FROM users WHERE email = 'john.doe@handreceipt.com'),
+    (SELECT id FROM users WHERE email = 'michael.rodriguez@handreceipt.com'),
     'assignment',
     'completed',
     'Initial assignment',
     NOW() - INTERVAL '7 days'
 FROM equipment e
-WHERE e.hand_receipt_holder_id = (SELECT id FROM users WHERE username = 'michael.rodriguez')
+WHERE e.hand_receipt_holder_id = (SELECT id FROM users WHERE email = 'michael.rodriguez@handreceipt.com')
 LIMIT 3
 ON CONFLICT DO NOTHING; 

@@ -37,12 +37,12 @@ func (r *gormRepository) GetUserByID(id uint) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *gormRepository) GetUserByUsername(username string) (*domain.User, error) {
+func (r *gormRepository) GetUserByEmail(email string) (*domain.User, error) {
 	var user domain.User
-	err := r.db.Where("username = ?", username).First(&user).Error
+	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user with username '%s' not found", username)
+			return nil, fmt.Errorf("user with email '%s' not found", email)
 		}
 		return nil, err
 	}

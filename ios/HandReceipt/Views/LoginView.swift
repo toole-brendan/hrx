@@ -94,11 +94,11 @@ struct LoginView: View {
                                 // Form fields with tighter spacing
                                 VStack(spacing: 16) {
                                     UnderlinedTextField(
-                                        label: "Username",
-                                        text: $viewModel.username,
-                                        placeholder: "Enter your username",
-                                        textContentType: .username,
-                                        keyboardType: .asciiCapable,
+                                        label: "Email",
+                                        text: $viewModel.email,
+                                        placeholder: "Enter your email",
+                                        textContentType: .emailAddress,
+                                        keyboardType: .emailAddress,
                                         autocapitalization: .none
                                     )
                                     
@@ -162,7 +162,7 @@ struct LoginView: View {
             .navigationBarHidden(true)
             .onChange(of: viewModel.loginState) { newState in
                 if case .success(let response) = newState {
-                    debugPrint("LoginView: Login success - User: \(response.user.username)")
+                    debugPrint("LoginView: Login success - User: \(response.user.email ?? "unknown")")
                     debugPrint("LoginView: User data - firstName: \(response.user.firstName ?? "nil"), lastName: \(response.user.lastName ?? "nil"), rank: \(response.user.rank)")
                     
                     // Update AuthManager with the login response
@@ -236,7 +236,7 @@ struct LoginView: View {
         debugPrint("🔧 DEV LOGIN ACTIVATED! Using test credentials...")
         
         // Clear any existing credentials
-        viewModel.username = ""
+        viewModel.email = ""
         viewModel.password = ""
         
         // Show a brief visual confirmation
@@ -256,7 +256,6 @@ struct LoginView: View {
                 let mockUser = LoginResponse.User(
                     id: 1,
                     uuid: "dev-uuid",
-                    username: "testuser",
                     email: "testuser@example.com",
                     firstName: "Test",
                     lastName: "User",
@@ -307,7 +306,7 @@ struct WebStyleTextField: TextFieldStyle {
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         LoginView { loginResponse in
-            debugPrint("Preview Login Success: User \(loginResponse.user.username)")
+            debugPrint("Preview Login Success: User \(loginResponse.user.email ?? "unknown")")
         }
         .previewDisplayName("8VC Style Login")
     }

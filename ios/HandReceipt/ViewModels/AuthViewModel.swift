@@ -51,7 +51,7 @@ class AuthViewModel: ObservableObject {
                 let user = try await apiService.checkSession()
                 self.currentUser = user
                 self.isAuthenticated = true
-                print("AuthViewModel: Session valid for user \(user.user.username)")
+                print("AuthViewModel: Session valid for user \(user.user.email ?? "unknown")")
             } catch let apiError as APIService.APIError where apiError == .unauthorized {
                 print("AuthViewModel: No valid session found or session expired.")
                 self.currentUser = nil
@@ -75,7 +75,7 @@ class AuthViewModel: ObservableObject {
         self.currentUser = user
         self.isAuthenticated = true
         self.errorMessage = nil
-        print("AuthViewModel: User \(user.user.username) logged in.")
+        print("AuthViewModel: User \(user.user.email ?? "unknown") logged in.")
     }
 
     /// Logs the current user out.

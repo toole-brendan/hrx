@@ -110,7 +110,7 @@ func CreateDefaultUser(db *gorm.DB) error {
 	// If there are no users, create a default admin user
 	if count == 0 {
 		defaultUser := domain.User{
-			Username: "admin",
+			Email: "admin@handreceipt.com",
 			// Note: This is NOT secure and is just for initial setup
 			// In real code, you would hash this password
 			Password: "$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS", // "password"

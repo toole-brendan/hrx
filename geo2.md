@@ -1,77 +1,1547 @@
-SURFACING PLAN
+Great, I’ll walk you through exactly what to change in the latest version of the `toole-brendan/hrx` repo. I’ll go file by file and line by line across the backend (Go), frontend (React), iOS, and Android codebases. I’ll also include all required CLI commands and migration scripts where applicable to ensure the username field is fully removed and replaced with an email-based login system using rank + last name for identification.
 
-evaluate whether the newly added features—DA 2062 import/export, maintenance form autocomplete, document inbox, and pub log for NSN lookups—are being surfaced in the current UI. I’ll also suggest concrete UI/UX improvements to ensure these features are discoverable and integrated smoothly.
-
-I'll get back to you shortly with my findings and suggestions.
+I’ll get started and update you shortly.
 
 
-# Reflection of New Features in HRX iOS UI and UX Recommendations
+## Backend (Go)
 
-## Current UI Coverage of Recent Features
+**1. Remove Username Field from User Model**
+**File:** `backend/internal/domain/models.go` (User struct)
 
-**DA Form 2062 Import (Scanning) & Export:** The codebase shows new SwiftUI views for importing and exporting DA-2062 forms, but these aren’t yet exposed in the app’s visible UI. For example, there is a `DA2062ScanView` (for scanning a physical DA-2062 hand receipt) that presents a “Import DA-2062” screen with a scan button. Similarly, a `DA2062ExportView` exists for exporting selected items to a DA-2062 PDF (with “Export DA 2062” as the title and action buttons). However, currently there is no obvious navigation path or button in the simulator to access these views. In the **Property** tab, the top-right **Plus (+)** button only opens the “Create Property” form, and no alternative “Import” option is offered. Likewise, on the **Property Detail** screen, there is a share/export icon reserved in the design, but it has no implemented action (“/\* share action \*/” placeholder), meaning exporting to DA-2062 is not hooked up yet. In short, although the scanning and export functionality is coded, the app UI doesn’t present any button or menu for the user to trigger these features in the current build.
+* **Delete** the `Username` field to eliminate username storage.
+* **Old Code:**
 
-**Maintenance Form Request (Auto-Populated):** The new **Send Maintenance Form** flow (auto-filling a DA-2404/5988-E with equipment info) is implemented in `SendMaintenanceFormView`, but it’s somewhat hidden. The expected usage is that a user would go to a property and initiate a maintenance request. In the current UI, the Property Detail screen’s bottom toolbar has a **“Service”** (wrench) button, but that opens a **Schedule Maintenance** dialog (for setting a date/notes) rather than the maintenance request form. There is **no visible “Send Maintenance Form” button** on the property screens. The only hint of this feature is in the **Dashboard** quick actions: the **“Maintain”** action on the home dashboard navigates to a **Maintenance** overview screen. On that **Maintenance** screen, a card labeled “Create Maintenance Request” directs the user to the Property Book (so they can choose an item), but after selecting an item, there’s still no direct prompt to open the form. In other words, the auto-populated maintenance form exists in code, but a user might not find it because the UI doesn’t explicitly offer a **“Send Maintenance Form”** action on an item – they’d have to know to go to the property’s **ellipsis menu or similar (which currently only offers “Schedule Maintenance”)**. This likely explains why you don’t see the maintenance form feature in the simulator UI.
+  ```go
+  type User struct {
+      ID       uint      `gorm:"primaryKey"`
+  -   Username string    `gorm:"uniqueIndex;not null"`
+      Email    string    `gorm:"uniqueIndex;not null"`
+      Password string    `gorm:"not null"`  // Hashed password
+      Name     string    `gorm:"not null"`
+      Rank     string    `gorm:"not null"`
+      Unit     string    `gorm:""`
+      // ... other fields ...
+  }
+  ```
+* **New Code:**
 
-**Documents Inbox:** The “documents inbox” for incoming forms is implemented and **is** accessible, though it’s tucked away in the new Maintenance section. In the **Maintenance** overview (reachable via Dashboard’s “Maintain” quick action), there’s a second quick-action card titled **“View Maintenance Forms”** that navigates to the `DocumentsView`. This Documents screen serves as the inbox, showing tabs for All, Unread, Maintenance, Archived documents, etc., with a “Documents” header. So the app does have a document inbox UI – if you navigate to **Maintenance > View Maintenance Forms**, you’ll see any received maintenance form PDFs listed. If you haven’t looked there, it’s easy to miss. Currently, the inbox isn’t on the main tab bar or home screen; it’s only signposted through the Maintenance workflow (with an unread count badge shown on that card when new forms arrive). So the functionality is present, but not obvious unless the user explores the Maintenance section.
+  ```go
+  type User struct {
+      ID       uint      `gorm:"primaryKey"`
+      Email    string    `gorm:"uniqueIndex;not null"`
+      Password string    `gorm:"not null"`  // Hashed password
+      Name     string    `gorm:"not null"`
+      Rank     string    `gorm:"not null"`
+      Unit     string    `gorm:""`
+      // ... other fields unchanged ...
+  }
+  ```
 
-**“Pub Log” NSN Database (Property Digital Twin):** The NSN lookup feature is integrated into the **Create Property** form. When adding a new property, there’s now an **“NSN/LIN Lookup”** section that lets users search a library of National Stock Numbers to auto-fill item details. In the UI, on the Create Property screen you’ll find a text field for NSN/LIN and a search button (magnifying glass). If the user taps the search **with the field empty**, it opens the `NSNSearchView` modal. From there, they can query by NSN, item name, or part number and get a list of results from the NSN database, then select one to populate the form. If the user already typed an NSN and hits the arrow button, it will attempt to look it up directly. This means the “pub log” NSN database functionality **is** reflected in the UI, but it might not be immediately apparent. The field is marked optional, and the user has to know to tap the search icon to invoke the NSN browser. There is a hint text (“Search or enter NSN/LIN to auto-populate item details”) under that section, but if you weren’t specifically looking for it, you might not realize the power of that feature.
+  *Explanation:* The `Username` column is removed entirely. Users will be uniquely identified by their email, which remains a unique, non-null field. A database migration will drop the **username** column (see **Database Migration** below).
 
-*In summary*, most new features exist in the code but are either hidden behind non-intuitive navigation or not connected to UI controls at all. The **Documents Inbox** and **NSN auto-fill** are present (in Maintenance and Create Property respectively), but **DA-2062 scan/export** and **Maintenance form send** aren’t visibly accessible in the current UI, which is why you aren’t seeing them in the simulator.
+**2. Add Repository Method for Email Lookup**
+**File:** `backend/internal/repository/repository.go` (Repository interface)
 
-## UX/UI Recommendations to Surface New Functionality
+* **Add** a new method `GetUserByEmail(email string) (*domain.User, error)` and **remove** `GetUserByUsername` to reflect the new login mechanism.
+* **Old Code (interface excerpt):**
 
-To better reflect these new features in the app’s UX, here are some SwiftUI-centric suggestions:
+  ```go
+  type Repository interface {
+      CreateUser(user *domain.User) error
+      GetUserByID(id uint) (*domain.User, error)
+      GetUserByUsername(username string) (*domain.User, error)
+      // ... other methods ...
+  }
+  ```
+* **New Code:**
 
-* **Surface the DA-2062 Import/Export Actions:** Consider adding explicit UI triggers for these features in the Property section. For instance, you could introduce an **“Import”** button or menu item on the **Property** list screen. Since the nav bar is already crowded (with Search, Add, Sort), one approach is to turn the **“+” (Add)** button into a context menu or segmented action:
+  ```go
+  type Repository interface {
+      CreateUser(user *domain.User) error
+      GetUserByID(id uint) (*domain.User, error)
+  -   GetUserByUsername(username string) (*domain.User, error)
+  +   GetUserByEmail(email string) (*domain.User, error)
+      // ... other methods ...
+  }
+  ```
 
-  * Use a SwiftUI `ConfirmationDialog` or `Menu` on the **+** button that offers **“Add New Item”** and **“Import from DA-2062”**. This way, tapping + could default to create, but long-press or a dropdown gives the import option.
-  * Alternatively, add a small **scan icon** (e.g. a document with viewfinder symbol) next to the +. Tapping that would push or present the `DA2062ScanView` for scanning a form. This icon could use the SF Symbol `doc.text.viewfinder` (which you already use in the scan view) for recognizability.
-  * For **Export** (generating a DA-2062 PDF), you might add an **“Export”** option on the Property screen as well. One idea is to enable **multi-select mode** in the property list: for example, a toolbar button “Select Items” that lets users pick multiple assets and then tap **“Export to DA-2062”**. This mirrors the web workflow described (select items with checkboxes, then export) and would make the feature discoverable. SwiftUI doesn’t have built-in multi-select for `LazyVStack`, but you can manage selection state manually (e.g. an Edit mode with checkmarks) and then call `DA2062ExportView` with the selected items.
-  * As a simpler interim solution, you could allow exporting **all** items or a single item. For instance, repurpose the **share** icon in the Property Detail view: tapping share on an item could generate a one-item DA-2062 PDF (or open `DA2062ExportView` pre-filtered to that item). At least this way, an export function is available per item (users often expect share/export on detail screens). In the future a more robust multi-item export UI can be added.
+  *Explanation:* We drop username-based lookup and introduce `GetUserByEmail` for authentication. This change must be implemented in all repository implementations.
 
-  *Why:* These changes ensure users can actually find and use the import/export features. Currently, without any UI element, the scanning and PDF generation capabilities are essentially hidden. Adding a menu or button in a familiar place (the Property list or detail screens) will make the new functionality apparent. For example, a context menu on the property list entries could also be used – a long-press on a property could show actions like “Send Maintenance Form” and “Export to DA-2062”. Context menus are nice for power users, though for critical features like these it’s better to also have visible buttons.
+**3. Implement Email Lookup in Repositories**
+**Files:**
 
-* **Make “Send Maintenance Form” Easily Accessible:** Integrate the maintenance request feature into the property UI flow more directly. Two approaches:
+* `backend/internal/repository/postgres_repository.go`
+* `backend/internal/repository/gorm_repository.go`
 
-  * **In Property Detail:** Add a **“Send Maintenance Form”** action. You could include this in the existing **ellipsis (⋯) menu** on the Property Detail screen. Right now, the confirmationDialog lists “View History” and “Schedule Maintenance” if needed. You should add an option like **“Send Maintenance Request”** that, when tapped, presents the `SendMaintenanceFormView` for that item. This way, regardless of an item’s status, the user can initiate a maintenance form. The code for the form is already there; it’s just about providing an entry point. Since `SendMaintenanceFormView` expects a `Property` object, you can easily call it with the current property.
-  * **In Property List:** Alternatively or additionally, implement a quick action from the list. For example, a swipe action on a property row (using `.swipeActions`) with a **“Maintenance”** button could trigger the form. In iOS, a trailing swipe could reveal a wrench icon; tapping it pushes the `SendMaintenanceFormView` for that item. This would be very intuitive – the user can directly request maintenance on an item without drilling into details.
-  * If you want to emphasize this feature, the **Dashboard** itself could have a dedicated shortcut. Currently, the **Maintain** tile takes the user to the maintenance intro page. You might consider jumping straight into a maintenance form if the user has a specific item in mind. However, since the flow expects picking an item, integrating at the item level (as above) is more straightforward.
+In each repository implementation, add the new method to query by email, and remove or deprecate the username method. For example, in **PostgresRepository**:
 
-  Also, within the **Send Maintenance Form** UI, you might enhance UX by adding autocompletion or filtering for the **recipient list**. Right now, you pop up a `ConnectionPickerView` sheet for “Send To”. To make it smoother, you could allow searching your connections in that sheet (e.g., a search bar at top of the list) or pre-filter by online status, etc. This would align with an “autocomplete” concept – typing a name to find the recipient quickly. It’s a smaller tweak, but would polish the experience.
+```go
+func (r *PostgresRepository) GetUserByEmail(email string) (*domain.User, error) {
+    var user domain.User
+    if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, err  // no user found
+        }
+        return nil, err
+    }
+    return &user, nil
+}
+```
 
-  *Why:* Presently, a user might not realize they need to go through the Maintenance screen to send a form, and even then the Maintenance screen instructs them to “Go to Property Book” and doesn’t automatically open a form. By placing a **“Send Maintenance Form”** button in the context of managing a specific property, we meet the user at the point of need. If something is broken, they’ll likely view that item and expect a way to report/request maintenance from there. This change will directly reflect the new maintenance autocomplete functionality in the UI flow.
+Likewise, remove the body of `GetUserByUsername` or mark it unused. In **gormRepository** implement similarly with `.Where("email = ?", email)` instead of username.
 
-* **Increase Visibility of the Documents Inbox:** Since the **Documents** inbox is only accessible via the Maintenance screen currently, consider giving it a more prominent entry point or notifications:
+**4. Accept Email in Login Request DTO**
+**File:** `backend/internal/models/dto.go` (LoginRequest struct)
 
-  * One idea is to add a **badge indicator** on the app’s profile or settings tab (since you label that tab “Profile” with a person icon). For example, if there are unread documents, show a red dot or badge number on the **Profile** icon. This requires your custom `MinimalTabBar` to observe the `DocumentService.unreadCount` and display a badge for the Profile item dynamically. It’s a bit of extra logic, but it will alert the user that something awaits in their inbox.
-  * You could also add a shortcut to Documents in the **Profile/Settings** view itself. Perhaps under an “Inbox” section or as a row like “Documents Inbox (3 unread)” that navigates to `DocumentsView`. Since maintenance forms might involve user’s account and incoming files, the settings or profile screen is a reasonable place to list it.
-  * Another approach: transform the **Maintenance** quick action flow. Instead of burying “View Maintenance Forms” one level deep, consider making **Maintenance Forms** a first-class tab or screen. For example, you might repurpose the **Transfers** tab or merge it (if transfers are less frequently used) and use that slot for “Forms” or “Inbox”. This might be a larger change, but if maintenance/document workflows are becoming core to the app, a dedicated tab could be justified.
+* **Modify** the login request to use an `Email` field instead of `Username`.
+* **Old Code:**
 
-  Short of adding a tab, simply renaming the Maintenance quick-action card to something like **“Maintenance & Inbox”** might draw attention that received forms live there. You already show the unread count on that card, which is great. Just ensure that if a user taps **Maintain** on Dashboard, they see clearly that **“View Maintenance Forms”** is the way to get to their inbox (perhaps highlight it or use an inbox icon). This is partially done with the tray icon and green highlight on the card.
+  ```go
+  type LoginRequest struct {
+  -    Username string `json:"username" validate:"required,min=3,max=50"`
+  +    Email    string `json:"email" validate:"required,email"`
+       Password string `json:"password" validate:"required,min=8"`
+  }
+  ```
 
-  *Why:* Users might not instinctively check the Maintenance section for incoming documents. By providing a badge or direct link in a familiar place (profile or tab bar), you make it obvious that “there’s something new to see.” It improves the discoverability of the Document Inbox, ensuring the feature (and any important forms) won’t be overlooked.
+  *Explanation:* The server will expect a JSON body like `{"email": "...", "password": "..."}` for logins, with proper email validation.
 
-* **Refine the NSN Search UX:** The NSN (“pub log”) integration is functional, but we can make it friendlier. The current design requires tapping the search button in the NSN field. A couple of tweaks:
+**5. Update Auth Handler – Login**
+**File:** `backend/internal/api/handlers/auth_handler.go` (Login handler)
 
-  * **Auto-launch suggestions:** When the user focuses in the NSN text field or begins typing an item name, consider offering NSN suggestions proactively. For example, as they type the Item Name, if that field is blank or if no NSN has been entered, you might show a hint like “Looking for an official name/NSN? Try the NSN Lookup below.” Even automatically opening the NSN search sheet might be too forceful, but a prompt could help. Since you have a dedicated NSN search workflow, you could also allow partial name search through it. Perhaps a button “Search NSN by Item Name” next to the item name field could populate the NSN search query.
-  * **Integrate search field and results:** Right now the NSN search is a separate sheet. You could integrate it inline by showing a list of NSN results right under the NSN text field as the user types (similar to an autocomplete dropdown). This would be a more advanced SwiftUI implementation (perhaps using a `List` that appears when results are loaded). If that’s complex, the current modal is fine, but maybe ensure the **placeholder text** on the NSN field is clear (it says “NSN or LIN (optional)”) and keep that helper text “Search or enter NSN…” visible – which it is. Maybe style that hint in a secondary color so it’s noticed.
-  * One more minor UX point: after selecting an NSN from the database, the form auto-fills item name, etc. You might want to provide feedback like a brief highlight on the filled-in fields or a checkmark icon to show “Details loaded”. This just reassures the user that the import happened. Given this is a one-time action, it might be fine as is.
+* **Use Email for authentication:**
 
-  *Why:* These adjustments ensure that the powerful NSN library feature actually gets used. If a user doesn’t know the acronym NSN or that the search icon will query a database, they might ignore it. By guiding them (through prompts or dynamic search results), you turn the “pub log” feature into a more natural part of creating a property. The goal is to help users create accurate digital twins of their equipment by finding the official data – the easier it is to access, the more they will benefit from it.
+  * **Change** the credential binding and lookup to email.
+  * **Replace** `GetUserByUsername` with `GetUserByEmail`.
+  * **Modify** error messages referencing username.
 
-* **General UX Cohesion:** As you integrate these features, keep consistency with iOS design patterns:
+* **Old Code (excerpt):**
 
-  * Use **system icons** and labels that clearly describe the action (e.g. a scanner icon for import, a share or PDF icon for export, an inbox/tray for documents). The code already uses many SF Symbols appropriately.
-  * Maintain a **clear navigation flow**. Features like scanning and exporting will likely be modals (since you present them in a `NavigationView` with Cancel buttons). Ensure that presenting and dismissing these modals is smooth. For instance, if you add a menu item “Import from DA-2062”, have it present the scanner full-screen and then on completion perhaps automatically show an import summary.
-  * Leverage **SwiftUI’s state** to your advantage. You have a `documentService.shared` with an `unreadCount` – use `@Published` and `@EnvironmentObject` or similar to propagate changes so that badges update in real-time. Similarly, for multi-select exports, you might add an `EditMode` binding on the list and use SwiftUI’s built-in editing support for `List` (if you convert the LazyVStack to a List) to get selection for free.
-  * Consider **user guidance**: For brand-new features, a one-time tutorial pop-up or a subtle coach-mark can help. For example, the first time you release the scanning feature, you might show a brief message on the Property screen like “New! Import an entire hand receipt via scan” pointing to the new button. This can be done with a simple state-driven banner.
+  ```go
+  if err := c.ShouldBindJSON(&credentials); err != nil { ... }
+  // Authenticate user by username
+  domainUser, err := h.repo.GetUserByUsername(credentials.Username)
+  if err != nil {
+      c.JSON(401, gin.H{"error": "Invalid credentials"})
+      return
+  }
+  // ... password check ...
+  ```
 
-By implementing the above changes, the UI in the simulator (and the app) will much better reflect the refactored capabilities. Users will see new buttons or menu options for the DA-2062 import/export, have a direct way to send maintenance forms, notice incoming form documents, and utilize the NSN database with ease. These adjustments should bridge the gap between your recent backend/code additions and a truly intuitive user experience, ensuring your hard work on new features translates into visible, usable functionality in the iOS app.
+* **New Code:**
 
-**Sources:**
+  ```go
+  if err := c.ShouldBindJSON(&credentials); err != nil { ... }
+  // Authenticate user by email
+  domainUser, err := h.repo.GetUserByEmail(credentials.Email)
+  if err != nil {
+      c.JSON(401, gin.H{"error": "Invalid credentials"})
+      return
+  }
+  // ... password check (unchanged) ...
+  ```
 
-* HRX iOS code showing new DA-2062 scan/import UI and lack of integration: `DA2062ScanView.swift`; `DA2062ExportView.swift`; Property list UI (`MyPropertiesView.swift`) with only Add button and no import/export option.
-* Maintenance features in code: Maintenance quick actions and navigation; Missing “Send Form” in property menu (`PropertyDetailView.swift`); SendMaintenanceForm view implementation.
-* Document Inbox in UI: MaintenanceView with “View Maintenance Forms” (documents inbox) link; DocumentsView UI loaded via that link.
-* NSN Search integration: CreatePropertyView showing NSN lookup section and hint; NSNSearchView for searching NSN database.
+  *Explanation:* The handler now finds users by email. A failed lookup or wrong password returns a generic **401 Unauthorized**. (Optional: adjust the failure JSON to `"Invalid email or password"` if desired – currently it uses `"Invalid credentials"` which is acceptable.).
+
+* **Prepare login response without username:**
+  After successful auth, the handler creates a `LoginResponse`. **Remove** any inclusion of username:
+
+  ```go
+      response := models.LoginResponse{
+          User: models.UserDTO{
+              ID:        domainUser.ID,
+  -           Username:  domainUser.Username,
+              Email:     domainUser.Email,
+              FirstName: domainUser.Name,    // domain stores full name
+              LastName:  "",                 // to be set below
+              Rank:      domainUser.Rank,
+              Unit:      domainUser.Unit,
+              Role:      models.UserRole("user"),
+              Status:    models.StatusActive,
+              CreatedAt: domainUser.CreatedAt,
+              UpdatedAt: domainUser.UpdatedAt,
+          },
+          // ... include tokens if any ...
+      }
+  ```
+
+  Then **populate** first/last name properly. Since `domain.User.Name` holds the full name (e.g. `"Michael Rodriguez"`), split it into first and last name for the response:
+
+  ```go
+      // Split full name into first and last for response
+      names := strings.SplitN(domainUser.Name, " ", 2)
+      response.User.FirstName = names[0]
+      if len(names) > 1 {
+          response.User.LastName = names[1]
+      }
+  ```
+
+  Finally, return the JSON response: `c.JSON(200, response)`.
+  *Explanation:* The username is excluded from the response. Clients will receive the user’s `id, email, first_name, last_name, rank, unit, etc.` along with any tokens. We ensure `LastName` is filled so the UI can display rank + last name.
+
+**6. Update Auth Handler – Register**
+**File:** `backend/internal/api/handlers/auth_handler.go` (Register handler)
+
+* **Remove username checks and usage:**
+
+  * **Delete** the username uniqueness check and error:
+
+    ```go
+    ```
+  * // Check if username already exists
+  * \_, err := h.repo.GetUserByUsername(createUserInput.Username)
+  * if err == nil {
+  * ```
+      c.JSON(400, gin.H{"error": "Username already exists"})
+    ```
+  * ```
+      return
+    ```
+  * }
+
+  ````
+  - **Add** an email uniqueness check in its place:  
+  ```go
+    // Check if email already exists
+    _, err := h.repo.GetUserByEmail(createUserInput.Email)
+    if err == nil {
+        c.JSON(400, gin.H{"error": "Email already exists"})
+        return
+    }
+  ````
+
+  * **Stop using Username when creating user:** when constructing the `domain.User` object for the new user, **omit** the Username field. Instead, fill only email and name:
+
+    ```go
+    domainUser := &domain.User{
+    ```
+  * ```
+      Username: createUserInput.Username,
+    Email:    createUserInput.Email,
+    Password: string(hashedPassword),
+    ```
+  * ```
+      Name:     createUserInput.FirstName + " " + createUserInput.LastName,
+    ```
+
+  - ```
+      Name:     createUserInput.FirstName + " " + createUserInput.LastName,
+    Rank:     createUserInput.Rank,
+    Unit:     createUserInput.Unit,
+    // ... Role, etc.
+    ```
+
+    }
+
+    ```
+    (Since `Username` is removed from the struct, any attempt to set it will be a compile error – simply delete that line.)  
+    ```
+
+  * **Build response without username:** Similar to login, exclude username in the returned `LoginResponse`. Use the provided first and last name directly:
+
+    ```go
+    response := models.LoginResponse{
+        User: models.UserDTO{
+            ID:        domainUser.ID,
+    ```
+  * ```
+        Username:  domainUser.Username,
+        Email:     createUserInput.Email,
+        FirstName: createUserInput.FirstName,
+        LastName:  createUserInput.LastName,
+        Rank:      createUserInput.Rank,
+        Unit:      createUserInput.Unit,
+        Role:      models.UserRole(createUserInput.Role),
+        Status:    models.StatusActive,
+        CreatedAt: domainUser.CreatedAt,
+        UpdatedAt: domainUser.UpdatedAt,
+    },
+    // tokens if any...
+    ```
+
+    }
+
+    ```
+    ```
+
+  *Explanation:* New users are now created **without** a username. The **email must be unique**; a duplicate email triggers a **400** error `"Email already exists"`. The client receives the new user’s data (with separate first/last name) on successful registration.
+
+**7. Update User Profile Handler**
+**File:** `backend/internal/api/handlers/user_handler.go` (UpdateUserProfile)
+
+* **Remove username from profile responses:** When returning the updated profile, stop including username. Instead, return the updated email and name fields. For example:
+
+  ```go
+  response := models.UserDTO{
+      ID:        user.ID,
+  -   Username:  user.Username,
+      Email:     user.Email,
+  -   FirstName: user.Name,  // Since domain.User only has Name
+  -   LastName:  "",
+  +   FirstName: firstNamePart(user.Name),
+  +   LastName:  lastNamePart(user.Name),
+      Rank:      user.Rank,
+      Unit:      user.Unit,
+      CreatedAt: user.CreatedAt,
+      UpdatedAt: user.UpdatedAt,
+  }
+  ```
+
+  Here, `firstNamePart`/`lastNamePart` represent splitting the `Name` field (similar to login above) so that the response provides a separate last name. The result JSON has no `"username"` field.
+* **No username updates allowed:** Notice we did **not** add any handling for a username in the update request (and we removed it from the DTO). Users cannot update a username anymore, since it’s deprecated. This keeps the profile update logic simpler.
+
+**8. Update Default Admin User Creation**
+**File:** `backend/internal/platform/database/database.go` (`CreateDefaultUser`)
+
+* **Remove** the use of a username for the default admin. Provide an email instead.
+* **Old Code:**
+
+  ```go
+  if count == 0 {
+      defaultUser := domain.User{
+  -        Username: "admin",
+          Password: "<hashed>", // "password"
+          Name:     "Admin User",
+          Rank:     "System Administrator",
+          Email:    "", // (was missing in old code)
+      }
+      db.Create(&defaultUser)
+      log.Println("Created default admin user")
+  }
+  ```
+* **New Code:**
+
+  ```go
+  if count == 0 {
+      defaultUser := domain.User{
+          // Username removed
+          Email:    "admin@handreceipt.com",
+          Password: "<hashed>", // "password" hashed (for initial setup only)
+          Name:     "Admin User",
+          Rank:     "System Administrator",
+          Unit:     "",
+      }
+      db.Create(&defaultUser)
+      log.Println("Created default admin user")
+  }
+  ```
+
+  *Explanation:* We supply a placeholder email (e.g. **[admin@handreceipt.com](mailto:admin@handreceipt.com)**) since Email is required. The default user no longer has a username. (For better security, consider forcing an admin to change this default password on first login, but that’s outside our scope.)
+
+## Frontend (Web – React)
+
+**1. Use Email in Login Page**
+**File:** `web/src/pages/Login.tsx`
+
+* **Replace** the username field with an email field.
+
+  * In the Zod schema (`loginSchema`): change `username` to `email` with proper validation.
+  * **Old Schema:**
+
+    ```tsx
+    const loginSchema = z.object({
+    ```
+  * ```
+    username: z.string().min(1, "Username is required"),
+    ```
+
+  - ```
+    email: z.string().min(1, "Email is required").email("Invalid email address"),
+    password: z.string().min(1, "Password is required"),
+    ```
+
+    });
+
+    ```
+    ```
+
+  * **Component State:** if a default values object is used, rename `username: ""` to `email: ""` accordingly.
+  * **Form Field:** change the form field name and label:
+
+    ```tsx
+    <FormField
+    ```
+  * ```
+    name="username"
+    ```
+
+  - ```
+    name="email"
+    render={({ field }) => (
+        <FormItem>
+    ```
+
+  * ```
+            <FormLabel>Username</FormLabel>
+    ```
+
+  - ```
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+    ```
+
+  * ```
+                <Input {...field} placeholder="" /* ... */ />
+    ```
+
+  - ```
+                <Input type="email" {...field} placeholder="" /* ... */ />
+            </FormControl>
+        </FormItem>
+    )}
+    ```
+
+    />
+
+    ```
+    Ensure the `Input` has `type="email"` for proper mobile keyboards.  
+    ```
+
+  * **Submission:** call `await login(data.email, data.password)` instead of `data.username`. In the component’s `onSubmit`:
+
+    ```tsx
+    const onSubmit = async (data: LoginFormValues) => {
+        setIsLoading(true);
+        try {
+    ```
+  * ```
+        await login(data.username, data.password);
+    ```
+
+  - ```
+        await login(data.email, data.password);
+        // ... success toast and redirect ...
+    } catch (error) {
+        toast({ title: "Login Failed", 
+    ```
+
+  * ```
+              description: "Invalid username or password", 
+    ```
+
+  - ```
+              description: "Invalid email or password",
+              variant: "destructive" });
+    } finally { setIsLoading(false); }
+    ```
+
+    };
+
+    ```
+    *Explanation:* The login form now only asks for **Email** and **Password**. The error message is adjusted accordingly. The `useAuth()` context `login` function signature will be updated to `(email, password)` in AuthContext (see below).
+
+    ```
+
+* **Dev Login Shortcut:** If there is a development/test login trigger (like tapping the logo multiple times), update it to use an email. For example, in the `performDevLogin()` function:
+
+  ```tsx
+  form.setValue("email", "michael.rodriguez@handreceipt.com");
+  form.setValue("password", "password123");
+  await login("michael.rodriguez@handreceipt.com", "password123");
+  // ... toast success ...
+  ```
+
+  Use a valid-looking email for the test user (e.g., **[michael.rodriguez@handreceipt.com](mailto:michael.rodriguez@handreceipt.com)** instead of just `"michael.rodriguez"`).
+
+* **Auth Context login method:** In `web/src/contexts/AuthContext.tsx`, change the context and implementation to accept email:
+
+  ```tsx
+  interface AuthContextType {
+  -   login: (username: string, password: string) => Promise<void>;
+  +   login: (email: string, password: string) => Promise<void>;
+      // ...
+  }
+  // ...
+  const login = async (email: string, password: string) => {
+      // ... (development mode branch unchanged) ...
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+  -       body: JSON.stringify({ username, password }),
+  +       body: JSON.stringify({ email, password }),
+          credentials: 'include',
+      });
+      if (response.ok) {
+          const data = await response.json();
+  -       setUser(data.user);
+  +       // Format user name for display as "Rank LastName"
+  +       const user = data.user;
+  +       user.name = `${user.rank} ${user.lastName}`;
+  +       setUser(user);
+          setIsAuthenticated(true);
+      } else {
+          // ... handle error ...
+      }
+  };
+  ```
+
+  *Explanation:* The context now sends `email` in the request payload. We also post-process the returned user object: setting `user.name = "<Rank> <LastName>"` ensures any component using `user.name` (like avatars or headings) will display the proper format (e.g. `"CPT Rodriguez"`).
+
+* **TopNavBar / Avatar:** No username changes are needed here because we’ve provided a `name` for the user. The avatar will use `user.name` which is now e.g. `"CPT Rodriguez"`, and initials will be derived from that (`"CR"`). If we preferred to derive initials differently, we could adjust `userInitials` to use the last name initial, but using the combined name works with the existing logic.
+
+**2. Remove Username from Registration Page**
+**File:** `web/src/pages/Register.tsx`
+
+* **Delete** the username input field entirely and use only email for new accounts.
+
+  * **Schema:** drop the username requirement.
+
+    ```tsx
+    const registerSchema = z.object({
+    ```
+  * ```
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    first_name: z.string().min(2, "First name is required"),
+    last_name:  z.string().min(2, "Last name is required"),
+    rank:       z.string().min(1, "Rank is required"),
+    unit:       z.string().min(1, "Unit is required"),
+    ```
+
+    }).refine(...passwords match...);
+
+    ```
+    Remove any reference to `username` in `defaultValues` as well:contentReference[oaicite:9]{index=9}:contentReference[oaicite:10]{index=10}. 
+    ```
+  * **JSX Form:** remove the entire `<FormField name="username">...</FormField>` block. The email field (which was already present) will remain. For example, before and after:
+
+    ```tsx
+    {/* Name fields in a grid */}
+    <div className="grid grid-cols-2 gap-4">
+      ... First Name ... Last Name ...
+    </div>
+    ```
+  * {/\* Username field - remove this block \*/}
+  * <FormField name="username"> 
+  * <FormLabel>Username</FormLabel>
+  * \<Input {...field} />
+  * </FormField>
+    {/* Email field (kept) */}
+    <FormField name="email">
+       <FormLabel>Email</FormLabel>
+       <Input type="email" {...field} />
+    </FormField>
+    ```  
+    After removal, users will provide first name, last name, **email**, password, etc., but **not username**. The UI layout will naturally adjust (one less field).  
+  * **Submission:** remove `username` from the payload sent to the API. In the `fetch` call for registration:
+
+    ```tsx
+    const response = await fetch(API_BASE_URL + "/api/auth/register", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+    ```
+  * ```
+        username: data.username,
+        email:    data.email,
+        password: data.password,
+        first_name: data.first_name,
+        last_name:  data.last_name,
+        rank:       data.rank,
+        unit:       data.unit,
+        role: "user"
+    }),
+    credentials: 'include',
+    ```
+
+    });
+
+    ```
+    Now we only send email and the other required fields:contentReference[oaicite:11]{index=11}. The backend will create the user without a username.  
+    ```
+  * **UI Messages:** If the backend returns an error that the email exists, it will come as `{ error: "Email already exists" }`. The code already throws `error.message`, which will yield that string. The toast in the catch will display `"Email already exists"` as the description (no change needed except that it no longer says "Username or email"). If we want, we can adjust the fallback in the catch:
+
+    ```tsx
+    throw new Error(error.message || 'Registration failed');
+    ```
+
+    (This is already in place.)
+
+* **AuthContext (registration flow):** If the app uses the login response after registration (some apps auto-login new users or update state), ensure it handles the new format. In this app, after successful registration, the code shows a toast and redirects to login. No changes needed there, aside from making sure the `LoginResponse` handling (if any) doesn’t expect a username field.
+
+**3. Profile & User Display**
+With usernames gone, any UI that displayed or used usernames should be updated:
+
+* **User Profile Page:** (`web/src/pages/Profile.tsx`) – It currently shows `user.name` as the heading, which after our changes is `"Rank LastName"` (since we set `user.name` in AuthContext). This is already correct for the requirement. No explicit username field is shown on the profile page, so nothing to remove there.
+* **Settings/Account Pages:** If there were a section showing “Username” or allowing username change, it should be removed. Scanning the code, there is no dedicated username field in settings, so we’re fine.
+* **User Management Listing:** (`web/src/pages/UserManagement.tsx`) – This uses a `name` property (last name, first name format) for display and does not reference username at all. It’s already effectively showing “Last, First” with rank separate, which is acceptable. We could consider showing rank and last name only, but since this is a management view with full names, it’s fine to leave as is (the name there is likely “Last, First”). No code change needed.
+
+**4. Remove any Remaining Username References:**
+Search the React codebase for `username` to ensure we haven’t missed anything. For example, ensure no API calls are still using `username`: the `useAuth` context covers login; registration we updated; other API calls (like searching users) use names or IDs. Remove any prop or state named `username` if it’s no longer used. After the above changes, the React app no longer deals with usernames at all.
+
+## Mobile – iOS (Swift)
+
+**1. Login with Email Only**
+
+* **Login View:**
+  **File:** `ios/HandReceipt/Views/LoginView.swift`
+
+  * **Replace** the “Username” text field with an “Email” field.
+
+    ```swift
+    VStack(spacing: 16) {
+    ```
+  * ```
+    UnderlinedTextField(
+    ```
+  * ```
+        label: "Username",
+    ```
+  * ```
+        text: $viewModel.username,
+    ```
+  * ```
+        placeholder: "Enter your username",
+    ```
+  * ```
+        textContentType: .username,
+    ```
+  * ```
+        keyboardType: .asciiCapable,
+    ```
+  * ```
+        autocapitalization: .none
+    ```
+  * ```
+    )
+    ```
+
+  - ```
+    UnderlinedTextField(
+    ```
+  - ```
+        label: "Email",
+    ```
+  - ```
+        text: $viewModel.email,
+    ```
+  - ```
+        placeholder: "Enter your email",
+    ```
+  - ```
+        textContentType: .emailAddress,
+    ```
+  - ```
+        keyboardType: .emailAddress,
+    ```
+  - ```
+        autocapitalization: .none
+    ```
+  - ```
+    )
+    UnderlinedSecureField(
+        label: "Password",
+        text: $viewModel.password,
+        placeholder: "Enter your password",
+        textContentType: .password
+    )
+    ```
+
+    }
+
+    ```
+    *Changes:* We bound the text field to a new `$viewModel.email` property (see ViewModel changes below). The `textContentType` is set to `.emailAddress` for better auto-fill, and keyboard type to email. This removes the username from the UI entirely – users will enter their email in this field.  
+
+    ```
+
+  * **Error messages:** If the LoginView displayed any explicit error about username, update it. In this app, the validation and error display are handled in the **ViewModel**, which we address next. The UI just shows `errorMessage` text, which will be updated to reference email in the ViewModel.
+
+* **Login ViewModel:**
+  **File:** `ios/HandReceipt/ViewModels/LoginViewModel.swift`
+
+  * **Introduce an email property:**
+
+    ```swift
+    class LoginViewModel: ObservableObject {
+    ```
+  * ```
+    @Published var username = ""
+    ```
+
+  - ```
+    @Published var email = ""
+    @Published var password = ""
+    @Published var loginState: LoginState = .idle
+    @Published var canAttemptLogin = false
+    // ...
+    ```
+
+    }
+
+    ````
+    Replace all uses of `username` with `email`. For example, in the Combine validation:  
+    ```swift
+    Publishers.CombineLatest($email, $password)
+        .map { email, password -> Bool in
+            let canLogin = !email.trimmingCharacters(in: .whitespaces).isEmpty &&
+                           !password.isEmpty
+            return canLogin
+        }
+        .assign(to: &$canAttemptLogin)
+    ````
+
+    and in the `sink` where it resets state on input change, track `$email` instead of `$username`.
+
+  * **Attempt login with email:** In `attemptLogin()`, construct credentials using email:
+
+    ```swift
+    func attemptLogin() {
+        // ... validation ...
+        loginState = .loading
+        Task {
+            do {
+    ```
+  * ```
+            let credentials = LoginCredentials(username: username, password: password)
+    ```
+
+  - ```
+            let credentials = LoginCredentials(email: email, password: password)
+            let response = try await apiService.login(credentials: credentials)
+            debugPrint("LoginViewModel: Login Successful: User \(response.user.email ?? "<no email>") (ID: \(response.user.id))")
+            self.loginState = .success(response)
+        } catch let error as APIService.APIError {
+            // handle known API errors
+            if case .badRequest(let message) = error {
+    ```
+
+  * ```
+                self.loginState = .failed(message ?? "Invalid username or password.")
+    ```
+
+  - ```
+                self.loginState = .failed(message ?? "Invalid email or password.")
+            } else {
+                self.loginState = .failed(error.localizedDescription)
+            }
+        } catch {
+            self.loginState = .failed("An unexpected error occurred during login.")
+        }
+    }
+    ```
+
+    }
+
+    ```
+    *Explanation:* Now the view model sends an `email` and password to the API. We adjusted the error message for bad credentials to say **"Invalid email or password."** (The backend returns 401 with `"Invalid credentials"`, which we interpret as this message to the user.) We also updated the debug print to show the user’s email on success:contentReference[oaicite:16]{index=16}:contentReference[oaicite:17]{index=17}.
+
+    ```
+
+  * **Equatable LoginState:** If present, update any equality checks that used username. In `LoginState ==` (in this file), change the success comparison to use a different property or remove the username check. For instance:
+
+    ```swift
+    case (.success(let lResp), .success(let rResp)):
+    ```
+  * ```
+    return lResp.userId == rResp.userId && lResp.user.username == rResp.user.username
+    ```
+
+  - ```
+    return lResp.user.id == rResp.user.id
+    ```
+
+    ```
+    Using user ID alone is enough to compare identity of login responses. This prevents trying to access a now-removed username.
+
+    ```
+
+* **Auth API Models:**
+  **File:** `ios/HandReceipt/Models/AuthModels.swift`
+
+  * **LoginCredentials struct:** change to use email.
+
+    ```swift
+    public struct LoginCredentials: Encodable {
+    ```
+  * ```
+    public let username: String
+    ```
+
+  - ```
+    public let email: String
+    public let password: String
+    public init(email: String, password: String) {
+    ```
+
+  * ```
+        self.username = username
+    ```
+
+  - ```
+        self.email = email
+        self.password = password
+    }
+    ```
+
+    }
+
+    ```
+    *Explanation:* The JSON sent will now have an `"email"` field instead of `"username"`.  
+
+    ```
+
+  * **LoginResponse.User struct:** remove `username` and make sure email is included.
+
+    ```swift
+    public struct User: Codable {
+        public let id: Int
+        public let uuid: String?
+    ```
+  * ```
+    public let username: String
+    ```
+
+  - ```
+    // username removed
+    public let email: String?
+    public let firstName: String?
+    public let lastName: String?
+    public let rank: String
+    public let unit: String?
+    public let role: String?
+    public let status: String?
+    // ...
+    ```
+
+  * ```
+    public var name: String {
+    ```
+  * ```
+        if let firstName = firstName, let lastName = lastName {
+    ```
+  * ```
+            return "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+    ```
+  * ```
+        } else if let firstName = firstName {
+    ```
+  * ```
+            return firstName
+    ```
+  * ```
+        } else if let lastName = lastName {
+    ```
+  * ```
+            return lastName
+    ```
+  * ```
+        } else {
+    ```
+  * ```
+            return username
+    ```
+  * ```
+        }
+    ```
+  * ```
+    }
+    ```
+
+  - ```
+    public var name: String {
+    ```
+  - ```
+        // Prefer rank + last name for display if available
+    ```
+  - ```
+        if let rank = rankOptional(), let last = lastName, !rank.isEmpty && !last.isEmpty {
+    ```
+  - ```
+            return "\(rank) \(last)"
+    ```
+  - ```
+        } else if let first = firstName, let last = lastName {
+    ```
+  - ```
+            return "\(first) \(last)".trimmingCharacters(in: .whitespaces)
+    ```
+  - ```
+        } else if let last = lastName {
+    ```
+  - ```
+            return last
+    ```
+  - ```
+        } else if let first = firstName {
+    ```
+  - ```
+            return first
+    ```
+  - ```
+        } else {
+    ```
+  - ```
+            return ""
+    ```
+  - ```
+        }
+    ```
+  - ```
+    }
+     // CodingKeys: remove .username
+     enum CodingKeys: String, CodingKey {
+         case id, uuid,
+    ```
+
+  * ```
+         username,
+         email,
+         firstName = "first_name",
+         lastName  = "last_name",
+         rank, unit, role, status
+     }
+     // init(from decoder: ...) also remove decoding username
+    ```
+
+    }
+
+    ```
+    *Explanation:* We eliminated the `username` field entirely from the user model. We also updated the computed `name` property to prioritize showing **Rank LastName** when possible. Now, `user.name` will return `"CPT Rodriguez"` for example (because rank is always provided in our app). If rank or last name is missing, it falls back to first/last as appropriate. The fallback no longer uses `username` (which is gone). The decoding logic (`init(from:)`) should use `decodeIfPresent` for new optional fields and no longer expect a username key, to align with the backend response:contentReference[oaicite:18]{index=18}:contentReference[oaicite:19]{index=19}.
+
+    ```
+  * **RegisterCredentials struct:** remove username.
+
+    ```swift
+    public struct RegisterCredentials: Encodable {
+    ```
+  * ```
+    public let username: String
+    public let email: String
+    public let password: String
+    public let first_name: String
+    public let last_name: String
+    public let rank: String
+    public let unit: String
+    public let role: String
+    public init(email: String, password: String,
+    ```
+  * ```
+               username: String,
+               first_name: String, last_name: String,
+               rank: String, unit: String, role: String = "user") {
+    ```
+  * ```
+        self.username = username
+        self.email = email
+        self.password = password
+        self.first_name = first_name
+        self.last_name = last_name
+        self.rank = rank
+        self.unit = unit
+        self.role = role
+    }
+    enum CodingKeys: String, CodingKey {
+    ```
+  * ```
+        case username, email, password
+    ```
+
+  - ```
+        case email, password
+        case first_name, last_name, rank, unit, role
+    }
+    ```
+
+    }
+
+    ```
+    Now the registration JSON will omit username (matching our React frontend). The backend expects no username field, so this is correct.  
+
+    ```
+
+* **API Service:**
+  **File:** `ios/HandReceipt/Services/APIService.swift`
+
+  * **Login request:** When encoding credentials, it now includes email. The debug log should be adjusted:
+
+    ```swift
+    public func login(credentials: LoginCredentials) async throws -> LoginResponse {
+    ```
+  * ```
+    debugPrint("Attempting to login user: \(credentials.username)")
+    ```
+
+  - ```
+    debugPrint("Attempting to login user: \(credentials.email)")
+    // ... encode and send ...
+    let response = try await performRequest(request: request) as LoginResponse
+    ```
+
+  * ```
+    debugPrint("Login successful for user: \(response.user.username)")
+    ```
+
+  - ```
+    debugPrint("Login successful for user: \(response.user.email ?? "<no email>")")
+    return response
+    ```
+
+    }
+
+    ```
+    ```
+
+  * **Register request:** Similarly, remove username from logs and error messages:
+
+    ```swift
+    public func register(credentials: RegisterCredentials) async throws -> LoginResponse {
+    ```
+  * ```
+    debugPrint("Attempting to register user: \(credentials.username)")
+    ```
+
+  - ```
+    debugPrint("Attempting to register user: \(credentials.email)")
+    // ... encode and send ...
+    do {
+        let response = try await performRequest(request: request) as LoginResponse
+        // ... store tokens ...
+    ```
+
+  * ```
+        debugPrint("Registration successful for user: \(response.user.username)")
+    ```
+
+  - ```
+        debugPrint("Registration successful for user: \(response.user.email ?? response.user.lastName ?? "user")")
+        return response
+    } catch let error as APIError {
+        if case .badRequest(let message) = error {
+    ```
+
+  * ```
+            throw APIError.badRequest(message: message ?? "Username or email already exists")
+    ```
+
+  - ```
+            throw APIError.badRequest(message: message ?? "Email already exists")
+        }
+        throw error
+    }
+    ```
+
+    }
+
+    ```
+    *Explanation:* We now identify users by email in debug output. On a 409 conflict during registration, we assume it’s an email conflict (since username is gone) and throw **"Email already exists"** if no specific message came from the server:contentReference[oaicite:20]{index=20}:contentReference[oaicite:21]{index=21}. The UI will display that via the ViewModel’s error handling (which we set to show server-provided messages).
+
+    ```
+
+* **Auth Manager:**
+  **File:** `ios/HandReceipt/Services/AuthManager.swift`
+  The AuthManager uses `LoginResponse.user`. We removed `username` from there, but we did provide `email`, `firstName`, `lastName`, etc. The code stores `currentUser = response.user` and uses it throughout. This should continue to work. For example, in `ProfileView` the code checks `if let user = authManager.currentUser`:
+
+  ```swift
+  // ProfileView.swift (User Information section)
+  if let user = authManager.currentUser {
+      ProfileInfoRow(label: "NAME", value: "\(user.rank) \(user.name)", icon: "person")
+      ProfileInfoRow(label: "USERNAME", value: "@\(user.username)", icon: "at")
+      // ...
+  }
+  ```
+
+  We need to remove that **USERNAME** row.
+
+**2. Remove Username from Profile UI**
+
+* **ProfileView (SwiftUI):**
+  **File:** `ios/HandReceipt/Views/Profile/ProfileView.swift`
+
+  * **Delete** the username row from the profile information section.
+
+    ```swift
+    ProfileInfoRow(
+        label: "NAME",
+        value: "\(user.rank) \(user.name)",
+        icon: "person"
+    )
+    ProfileDivider()
+    ```
+  * ProfileInfoRow(
+  * ```
+    label: "USERNAME",
+    ```
+  * ```
+    value: "@\(user.username)",
+    ```
+  * ```
+    icon: "at",
+    ```
+  * ```
+    valueFont: .mono
+    ```
+  * )
+  * ProfileDivider()
+    ProfileInfoRow(
+    label: "USER ID",
+    value: "#(user.id)",
+    icon: "number",
+    valueFont: .mono
+    )
+
+    ```
+    After removal, the **Name** row shows, and directly below it the **User ID** row (and Rank row). We no longer show a username at all:contentReference[oaicite:22]{index=22}:contentReference[oaicite:23]{index=23}.  
+    ```
+  * **Adjust Name display if needed:** Currently, the **Name** row is constructed as `user.rank + " " + user.name`. With our changes, `user.name` returns either `"First Last"` or just last name (or rank+last if rank wasn’t included separately). Given we set it to prefer rank + last name, there’s a slight overlap: here they prepend rank again. We should ensure it doesn’t double up. One easy fix is to display **rank + last name** explicitly and avoid first name:
+
+    ```swift
+    ProfileInfoRow(
+        label: "NAME",
+    ```
+  * ```
+    value: "\(user.rank) \(user.name)",
+    ```
+
+  - ```
+    value: "\(user.rank) \(user.lastName ?? "")",
+    icon: "person"
+    ```
+
+    )
+
+    ```
+    Now, if the user is *CPT Michael Rodriguez*, this will show “CPT Rodriguez” as desired. (If `lastName` is nil, it just shows rank.) This overrides any inclusion of first name in the profile display, meeting the requirement that the user is identified by rank + last name in the UI.  
+
+    ```
+* **Other UI Components:**
+  Search for any usage of `user.username` or `username` in SwiftUI views. For example:
+
+  * In **ContentView\.swift**, there are debug prints after login:
+
+    ```swift
+    debugPrint("Login successful for user \(loginResponse.user.username)")
+    // ... AuthManager.login(response) ...
+    debugPrint("Authenticated as \(authManager.currentUser?.username ?? "unknown")")
+    ```
+
+    These can be updated to use `user.email` or simply removed (since they are debug). For accuracy:
+
+    ```swift
+    debugPrint("Login successful for user \(loginResponse.user.email ?? loginResponse.user.lastName ?? "unknown")")
+    debugPrint("Authenticated as \(authManager.currentUser?.email ?? authManager.currentUser?.lastName ?? "unknown")")
+    ```
+
+    This is optional since it doesn’t affect functionality (just keeping logs consistent).
+
+  * In **Transfer-related views** (e.g., `OfferPropertyView.swift`, `UserSelectionView.swift`), if any, ensure they don’t display `username`. Likely they use `UserSummary.name`. Our `UserSummary.name` computed property in models will now also prefer rank + last name (we should apply a similar change as we did for `User.name`). In **Models.swift** for `UserSummary`:
+
+    ```swift
+    public struct UserSummary { 
+        public let username: String 
+        public let rank: String? 
+        public let lastName: String? 
+        public let firstName: String? 
+        // ...
+        public var name: String {
+    ```
+
+  * ```
+        if let firstName = firstName, let lastName = lastName {
+    ```
+
+  * ```
+            return "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+    ```
+
+  * ```
+        } else if let firstName = firstName {
+    ```
+
+  * ```
+            return firstName
+    ```
+
+  * ```
+        } else if let lastName = lastName {
+    ```
+
+  * ```
+            return lastName
+    ```
+
+  * ```
+        } else {
+    ```
+
+  * ```
+            return username
+    ```
+
+  * ```
+        }
+    ```
+
+  - ```
+        if let rank = rank, let last = lastName, !rank.isEmpty && !last.isEmpty {
+    ```
+  - ```
+            return "\(rank) \(last)"
+    ```
+  - ```
+        } else if let last = lastName, let first = firstName, !last.isEmpty && !first.isEmpty {
+    ```
+  - ```
+            return "\(first) \(last)"
+    ```
+  - ```
+        } else if let last = lastName {
+    ```
+  - ```
+            return last
+    ```
+  - ```
+        } else if let first = firstName {
+    ```
+  - ```
+            return first
+    ```
+  - ```
+        } else {
+    ```
+  - ```
+            return ""
+    ```
+  - ```
+        }
+    ```
+
+  }
+
+  ```
+  And remove the `username` property from `UserSummary` entirely (since it’s not needed). Now any UI that calls `userSummary.name` will get “Rank Last” when both are present. This will apply to things like transfer offer displays, etc., making sure that even in lists of users the rank+last is shown.  
+  ```
+
+After these iOS changes, the app will exclusively use emails for login/registration. The profile and any user displays will favor rank and last name, and nothing in the app should mention or require a username.
+
+## Mobile – Android (Kotlin)
+
+**1. Login with Email Only**
+
+* **Login ViewModel:**
+  **File:** `android/app/src/main/java/com/example/handreceipt/viewmodels/LoginViewModel.kt`
+
+  * **Use email instead of username:**
+
+    ```kotlin
+    class LoginViewModel @Inject constructor(...): ViewModel() {
+    ```
+  * private val \_username = MutableStateFlow("")
+  * val username: StateFlow<String> = \_username.asStateFlow()
+
+  - private val \_email = MutableStateFlow("")
+  - val email: StateFlow<String> = \_email.asStateFlow()
+    private val \_password = MutableStateFlow("")
+    val password: StateFlow<String> = \_password.asStateFlow()
+    // ...
+    fun onUsernameChange(input: String) {
+
+  * ```
+      _username.value = input
+    ```
+
+  - ```
+      _email.value = input
+      // reset error state if needed ...
+    ```
+
+    }
+    fun canAttemptLogin(): Boolean {
+
+  * ```
+      return username.value.isNotBlank() && password.value.isNotBlank()
+    ```
+
+  - ```
+      return email.value.isNotBlank() && password.value.isNotBlank()
+    ```
+
+    }
+    fun attemptLogin() {
+    if (!canAttemptLogin()) {
+
+  * ```
+          _eventFlow.emit(LoginEvent.ShowSnackbar("Username and password cannot be empty."))
+    ```
+
+  - ```
+          _eventFlow.emit(LoginEvent.ShowSnackbar("Email and password cannot be empty."))
+          return
+      }
+      if (_screenState.value == LoginScreenState.Loading) return
+      _screenState.value = LoginScreenState.Loading
+    ```
+
+  * ```
+      val credentials = LoginCredentials(username.value.trim(), password.value)
+    ```
+
+  - ```
+      val credentials = LoginCredentials(email.value.trim(), password.value)
+      viewModelScope.launch {
+          try {
+              val response = service.login(credentials)
+              if (response.isSuccessful) {
+                  val loginResponse = response.body()
+                  if (loginResponse != null) {
+    ```
+
+  * ```
+                      println("Login Successful: User ${loginResponse.username} (ID: ${loginResponse.userId})")
+    ```
+
+  - ```
+                      println("Login Successful: User ID ${loginResponse.userId}")
+                      _screenState.value = LoginScreenState.Success(loginResponse)
+                  }
+              } else {
+                  when(response.code()) {
+    ```
+
+  * ```
+                        401 -> "Invalid username or password."
+    ```
+
+  - ```
+                        401 -> "Invalid email or password."
+                          else -> "Login failed (Code: ${response.code()})."
+                  }.also { msg ->
+                      _eventFlow.emit(LoginEvent.ShowSnackbar(msg))
+                  }
+                  println("Login Error: ${response.code()} - ${response.errorBody()?.string()}")
+                  _screenState.value = LoginScreenState.Idle
+              }
+          } catch (e: HttpException) {
+              _eventFlow.emit(LoginEvent.ShowSnackbar("Network error: ${e.message}"))
+              _screenState.value = LoginScreenState.Idle
+          }
+      }
+    ```
+
+    }
+    }
+
+    ```
+    *Explanation:* We renamed the `_username` state flow to `_email` and updated all logic to use `_email`. The snackbar messages now refer to email. The `LoginCredentials` object is constructed with the email. On failure 401, we show “Invalid email or password.” instead of mentioning username:contentReference[oaicite:24]{index=24}:contentReference[oaicite:25]{index=25}. The success log now omits username (since our LoginResponse will change, see below).  
+
+    ```
+
+  * **UI Binding (LoginScreen):**
+    Ensure that the UI is bound to the new email state. For example, in `LoginScreen.kt` (if it exists), the text field that was bound to `loginViewModel.username` should bind to `loginViewModel.email`. Also adjust the label to "Email". This might be something like:
+
+    ```kotlin
+    OutlinedTextField(
+        value = loginViewModel.email.collectAsState().value,
+        onValueChange = { loginViewModel.onUsernameChange(it) /* rename to onEmailChange */ },
+        label = { Text("Email") },
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email)
+    )
+    ```
+
+    We don’t have the exact code here, but conceptually replace usage of `username` with `email`.
+
+* **Auth API Models:**
+  **File:** `android/app/src/main/java/com/example/handreceipt/data/model/models.kt`
+
+  * **LoginCredentials:** use email.
+
+    ```kotlin
+    data class LoginCredentials(
+    ```
+  * val username: String,
+
+  - val email: String,
+    val password: String
+    )
+
+  ````
+  This will serialize to JSON with `"email"` automatically (because the property name is email).  
+
+  - **LoginResponse:** adjust to match backend’s new response. The backend now returns a JSON containing a `user` object (with details) and possibly tokens. We should reflect that in the data model for proper parsing. For example, redefine `LoginResponse` to include the nested user DTO:  
+  ```kotlin
+  - data class LoginResponse(
+  -     @SerializedName("userId") val userId: UUID,
+  -     val username: String,
+  -     val role: String?,
+  -     val message: String?
+  - )
+  + data class LoginResponse(
+  +     val accessToken: String?,      // JWT access token if present
+  +     val refreshToken: String?,
+  +     val expiresAt: String?,        // or Date, if configured with a custom adapter
+  +     val user: User
+  + )
+  data class User(
+      val id: UUID,
+  -     val username: String,
+      val email: String,
+      val firstName: String?,
+      val lastName: String?,
+      val rank: String?,
+      val role: String?
+  )
+  ````
+
+  Note: We add `email` to `User` and remove `username`. If the app isn’t using `UUID` for user ID (the backend’s ID is likely an integer), adjust types accordingly (perhaps use `Int` or `Long` for id instead of UUID). The key is to match the JSON structure. The backend’s `LoginResponse` JSON looks like:
+
+  ```json
+  {
+    "access_token": "...", 
+    "refresh_token": "...",
+    "expires_at": "...",
+    "user": {
+       "id": 123,
+       "uuid": "<uuid>",     (if provided)
+       "email": "michael.rodriguez@...",
+       "first_name": "Michael",
+       "last_name": "Rodriguez",
+       "rank": "CPT",
+       "unit": "...",
+       "role": "user",
+       "status": "active",
+       "created_at": "...",
+       "updated_at": "..."
+    }
+  }
+  ```
+
+  We should update our data classes to capture what we need. At minimum, include `email, firstName, lastName, rank` in `User`. (We removed `username` entirely.)
+
+  *Impact:* With this change, places that accessed `loginResponse.username` or `loginResponse.userId` will break. We will fix those next.
+
+* **AuthViewModel and Usage:**
+  **File:** `android/app/src/main/java/com/example/handreceipt/viewmodels/AuthViewModel.kt`
+
+  * Wherever we logged or used `response.body()?.username` or `userId`, change to use the nested user. For instance:
+
+    ```kotlin
+    if (response.isSuccessful && response.body() != null) {
+        _currentUser.value = response.body()
+        _isAuthenticated.value = true
+    ```
+  * ```
+    println("AuthViewModel: Session check successful for ${response.body()?.username}")
+    ```
+
+  - ```
+    println("AuthViewModel: Session check successful for ${response.body()?.user?.email}")
+    ```
+
+    } else { ... }
+    // ...
+    if (response.isSuccessful && response.body() != null) {
+    \_currentUser.value = response.body()
+    \_isAuthenticated.value = true
+
+  * ```
+    println("AuthViewModel: Login successful for ${response.body()?.username}")
+    ```
+
+  - ```
+    println("AuthViewModel: Login successful for ${response.body()?.user?.email}")
+    ```
+
+    }
+
+    ```
+    These debug prints now use email. If email is not set, we could use lastName as fallback.  
+
+    ```
+
+  * The `currentUser` is now a `LoginResponse` containing a `user`. In the UI, if we ever display current user info, we’ll need to navigate into `.user`. For example, if there was a welcome message using `authViewModel.currentUser.username`, it should use `authViewModel.currentUser.user.rank` and `.lastName`. Suppose we had a text somewhere like:
+
+    ```kotlin
+    Text("Welcome, ${authViewModel.currentUser.value?.username}")
+    ```
+
+    It should be changed to:
+
+    ```kotlin
+    Text("Welcome, ${authViewModel.currentUser.value?.user?.rank.orEmpty()} ${authViewModel.currentUser.value?.user?.lastName.orEmpty()}")
+    ```
+
+    This displays rank and last name of the logged-in user. (If not using LiveData/StateFlow binding directly in Compose, fetch the values accordingly.)
+
+* **Remove Username in UI:**
+  Search the Android app for any user-facing text showing username. Likely places:
+
+  * Perhaps a profile screen or navigation drawer header. If there’s a UI showing `@username`, change it to show email or remove it.
+
+  * The user selection lists (if any): The `UserSummary` data class had a `username`. We removed it. If e.g. `UserSelectionScreen` shows a list of users by username, change it to display `"${user.rank} ${user.lastName}"`. For instance, if it was:
+
+    ```kotlin
+    Text(userSummary.username)
+    ```
+
+    use:
+
+    ```kotlin
+    Text("${userSummary.rank.orEmpty()} ${userSummary.lastName.orEmpty()}")
+    ```
+
+    Possibly combine first name if needed, but the requirement is to emphasize rank + last name.
+
+  * **Transfers or notifications:** if any string templates included username, switch them to use rank/last. For example, a transfer notification "SGT Adams sent you a transfer request" was likely already using name fields, but double-check.
+
+After these changes, the Android app uses email for login and never displays or requires a username. The `LoginResponse` parsing aligns with the updated backend, and any UI now identifies users by rank and last name.
+
+## Database Migration and CLI Instructions
+
+With code changes done, we must apply a **schema migration** to drop the `username` column from the **users** table and ensure email is the sole login identifier:
+
+**Migration Script (SQL):** Create a new migration file (e.g., `sql/migrations/009_remove_username_column.sql`) with:
+
+```sql
+ALTER TABLE users
+DROP COLUMN username;
+```
+
+This will remove the Username field and its unique index from the database. The Email field remains with its unique constraint (so existing usernames that might conflict with emails aren’t an issue – emails were already unique).
+
+If the `users` table has any triggers or functions depending on the username (unlikely in this app), those should be updated or dropped accordingly. In our case, we simply remove the column.
+
+**Running the Migration:**
+
+* If you use the Golang Migrate CLI as described in the project’s **MIGRATION\_GUIDE**, you can add this migration and run:
+
+  ```bash
+  # Assuming migrate tool is configured and DATABASE_URL is set
+  migrate -path sql/migrations -database "$DATABASE_URL" up 1
+  ```
+
+  (Make sure it picks up the new migration number in sequence.)
+* Or manually via psql:
+
+  ```bash
+  psql -U <db_user> -d <database_name> -c "ALTER TABLE users DROP COLUMN username;"
+  ```
+
+  Before doing this, **backup your database** as usual. After dropping the column, you may also want to remove any references in code configs (none expected, since we removed it in code).
+
+**Updating Indexes & Constraints:** Dropping the column will automatically drop the associated index on it. No further index is needed since `email` was already indexed unique. It’s good to ensure that `email` has a NOT NULL constraint (it does in the GORM model) and unique index. You can verify that in the schema or explicitly add one if needed:
+
+```sql
+-- Ensure email is unique and not null (if not already)
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_uindex ON users(email);
+```
+
+In our case, this was likely done in a prior migration, but it’s worth double-checking.
+
+**Environment/Config:** No config changes are needed for this migration. Just ensure any existing user records have an email (which they should) and that no logic still expects usernames. The default admin creation now supplies an email (“[admin@handreceipt.com](mailto:admin@handreceipt.com)”). You might want to communicate to any existing users that they will log in with their email going forward (if previously they had separate usernames).
+
+**CLI Commands for Testing:**
+
+* After deploying the changes, run the backend and perform a quick smoke test:
+
+  ```bash
+  # Start backend (assuming start-local.sh sets up env)
+  backend/start-local.sh
+  ```
+
+  Then attempt to register a new user via API or through the frontend. The new user should be created without a username (check the DB: `SELECT username FROM users;` should show the column gone).
+* Try logging in with the email and password – it should succeed (check that the session or JWT is issued).
+* On iOS/Android, build and run the app. Verify you can log in with email. The UI should greet you or list your profile as “<Rank> <LastName>”. For example, if John Doe with rank CPT logs in, the app might show “Welcome, CPT Doe” instead of using a username.
+
+By following all the above changes grouped by platform, the system will no longer use or store usernames. All login flows authenticate using email, and the applications consistently display users by rank and last name, improving clarity in a military context. These modifications keep the app functional and maintain security (unique emails and hashed passwords) while meeting the new requirements. Make sure to run the database migration and update all clients simultaneously to avoid any mismatches in expected fields. Enjoy the updated system!

@@ -78,14 +78,7 @@ struct RegisterView: View {
                                         )
                                     }
                                     
-                                    UnderlinedTextField(
-                                        label: "Username",
-                                        text: $username,
-                                        placeholder: "john.doe",
-                                        textContentType: .username,
-                                        keyboardType: .asciiCapable,
-                                        autocapitalization: .none
-                                    )
+                                    // Username field removed - using email only
                                     
                                     UnderlinedTextField(
                                         label: "Email",
@@ -230,7 +223,6 @@ struct RegisterView: View {
             await viewModel.register(
                 firstName: firstName,
                 lastName: lastName,
-                username: username,
                 email: email,
                 password: password,
                 rank: selectedRank,
@@ -261,7 +253,6 @@ class RegisterViewModel: ObservableObject {
     func register(
         firstName: String,
         lastName: String,
-        username: String,
         email: String,
         password: String,
         rank: String,
@@ -271,7 +262,6 @@ class RegisterViewModel: ObservableObject {
         errorMessage = nil
         
         let credentials = RegisterCredentials(
-            username: username,
             email: email,
             password: password,
             first_name: firstName,
@@ -289,7 +279,7 @@ class RegisterViewModel: ObservableObject {
                 errorMessage = message ?? "Registration failed. Please check your information."
             case .serverError(let statusCode, let message):
                 if statusCode == 409 {
-                    errorMessage = "Username or email already exists."
+                    errorMessage = "Email already exists."
                 } else {
                     errorMessage = message ?? "Server error. Please try again later."
                 }

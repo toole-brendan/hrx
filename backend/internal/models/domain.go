@@ -11,7 +11,6 @@ import (
 type User struct {
 	ID           uint           `json:"id" gorm:"primaryKey"`
 	UUID         uuid.UUID      `json:"uuid" gorm:"type:uuid;default:gen_random_uuid();uniqueIndex"`
-	Username     string         `json:"username" gorm:"uniqueIndex;not null"`
 	Email        string         `json:"email" gorm:"uniqueIndex;not null"`
 	PasswordHash string         `json:"-" gorm:"not null"`
 	FirstName    string         `json:"first_name" gorm:"not null"`

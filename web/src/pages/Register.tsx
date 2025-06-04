@@ -35,7 +35,7 @@ import logoImage from "@/assets/hr_logo5.png";
 const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  // username: z.string().min(3, "Username must be at least 3 characters"), // REMOVED: Username field
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
@@ -63,7 +63,7 @@ const Register: React.FC = () => {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
+      // username: "", // REMOVED: Username field
       email: "",
       password: "",
       confirmPassword: "",
@@ -81,7 +81,7 @@ const Register: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: data.username,
+          // username: data.username, // REMOVED: Username field
           email: data.email,
           password: data.password,
           first_name: data.first_name,
@@ -176,25 +176,6 @@ const Register: React.FC = () => {
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Username</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="" 
-                          {...field} 
-                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
-                          style={{ boxShadow: 'none' }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -50,8 +51,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Authenticate user - repository returns domain.User
-	domainUser, err := h.repo.GetUserByUsername(credentials.Username)
+	// Authenticate user by email - repository returns domain.User
+	domainUser, err := h.repo.GetUserByEmail(credentials.Email)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
@@ -77,15 +78,22 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Split full name into first and last for response
+	names := strings.SplitN(domainUser.Name, " ", 2)
+	firstName := names[0]
+	lastName := ""
+	if len(names) > 1 {
+		lastName = names[1]
+	}
+
 	// Convert domain.User to models.User for JWT service
 	modelUser := models.User{
 		ID:           domainUser.ID,
 		UUID:         uuid.New(), // Generate new UUID since domain.User doesn't have it
-		Username:     domainUser.Username,
 		Email:        domainUser.Email,
 		PasswordHash: domainUser.Password,
-		FirstName:    domainUser.Name, // Use Name as FirstName
-		LastName:     "",              // Empty since we don't have separate last name
+		FirstName:    firstName,
+		LastName:     lastName,
 		Rank:         domainUser.Rank,
 		Unit:         domainUser.Unit,
 		Role:         models.UserRole("user"), // Default role
@@ -107,10 +115,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		User: models.UserDTO{
 			ID:        domainUser.ID,
 			UUID:      modelUser.UUID,
-			Username:  domainUser.Username,
 			Email:     domainUser.Email,
-			FirstName: domainUser.Name,
-			LastName:  "",
+			FirstName: firstName,
+			LastName:  lastName,
 			Rank:      domainUser.Rank,
 			Unit:      domainUser.Unit,
 			Role:      modelUser.Role,
@@ -150,15 +157,22 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	// Split full name into first and last for response
+	names := strings.SplitN(domainUser.Name, " ", 2)
+	firstName := names[0]
+	lastName := ""
+	if len(names) > 1 {
+		lastName = names[1]
+	}
+
 	// Convert domain.User to models.User
 	modelUser := models.User{
 		ID:           domainUser.ID,
 		UUID:         uuid.New(),
-		Username:     domainUser.Username,
 		Email:        domainUser.Email,
 		PasswordHash: domainUser.Password,
-		FirstName:    domainUser.Name,
-		LastName:     "",
+		FirstName:    firstName,
+		LastName:     lastName,
 		Rank:         domainUser.Rank,
 		Unit:         domainUser.Unit,
 		Role:         models.UserRole("user"),
@@ -192,10 +206,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Check if username already exists
-	_, err := h.repo.GetUserByUsername(createUserInput.Username)
+	// Check if email already exists
+	_, err := h.repo.GetUserByEmail(createUserInput.Email)
 	if err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
 		return
 	}
 
@@ -208,7 +222,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Create domain.User for repository (since repository expects domain.User)
 	domainUser := &domain.User{
-		Username: createUserInput.Username,
 		Email:    createUserInput.Email,
 		Password: string(hashedPassword),
 		Name:     createUserInput.FirstName + " " + createUserInput.LastName,
@@ -235,7 +248,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	modelUser := models.User{
 		ID:           domainUser.ID,
 		UUID:         uuid.New(),
-		Username:     domainUser.Username,
 		Email:        createUserInput.Email,
 		PasswordHash: domainUser.Password,
 		FirstName:    createUserInput.FirstName,
@@ -260,7 +272,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		User: models.UserDTO{
 			ID:        domainUser.ID,
 			UUID:      modelUser.UUID,
-			Username:  domainUser.Username,
 			Email:     modelUser.Email,
 			FirstName: createUserInput.FirstName,
 			LastName:  createUserInput.LastName,
@@ -299,15 +310,22 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
+	// Split full name into first and last for response
+	names := strings.SplitN(domainUser.Name, " ", 2)
+	firstName := names[0]
+	lastName := ""
+	if len(names) > 1 {
+		lastName = names[1]
+	}
+
 	// Return user data - convert domain.User to UserDTO
 	c.JSON(http.StatusOK, gin.H{
 		"user": models.UserDTO{
 			ID:        domainUser.ID,
 			UUID:      uuid.New(), // Generate since domain.User doesn't have it
-			Username:  domainUser.Username,
 			Email:     domainUser.Email,
-			FirstName: domainUser.Name,
-			LastName:  "",
+			FirstName: firstName,
+			LastName:  lastName,
 			Rank:      domainUser.Rank,
 			Unit:      domainUser.Unit,
 			Role:      models.UserRole("user"),

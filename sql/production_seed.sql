@@ -1,28 +1,29 @@
--- Production seed data for HandReceipt
--- This file contains test users for development testing
+-- Production seed data for HandReceipt application
+-- This creates essential users and basic data for production deployment
 
--- Create test user: michael.rodriguez
--- Password: password123 (bcrypt hash)
-INSERT INTO users (username, password, name, rank) 
+-- Create admin user
+INSERT INTO users (email, password, name, rank)
 VALUES (
-    'michael.rodriguez',
-    '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6', -- bcrypt hash of 'password123'
-    'Michael Rodriguez', 
+    'admin@handreceipt.com',
+    '$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS', -- "password" - CHANGE IN PRODUCTION
+    'System Administrator',
+    'ADMIN'
+) ON CONFLICT (email) DO NOTHING;
+
+-- Create demo user for testing
+INSERT INTO users (email, password, name, rank)
+VALUES (
+    'demo@handreceipt.com',
+    '$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS', -- "password" - CHANGE IN PRODUCTION
+    'Demo User',
     'CPT'
-) ON CONFLICT (username) DO NOTHING;
+) ON CONFLICT (email) DO NOTHING;
 
--- Create another test user
-INSERT INTO users (username, password, name, rank) 
+-- Create sample user for documentation
+INSERT INTO users (email, password, name, rank)
 VALUES (
-    'john.doe',
-    '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6', -- bcrypt hash of 'password123'
-    'John Doe', 
-    'SFC'
-) ON CONFLICT (username) DO NOTHING;
-
--- Let's also add a few more test users for variety
-INSERT INTO users (username, password, name, rank) 
-VALUES 
-    ('jane.smith', '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6', 'Jane Smith', 'SGT'),
-    ('bob.wilson', '$2a$10$3PfvgaGmwO9Ctfla.DpfYeJRTmWel7UsntTpHHWBJtQNK764e.Fg6', 'Bob Wilson', '1LT')
-ON CONFLICT (username) DO NOTHING; 
+    'sample@handreceipt.com',
+    '$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS', -- "password" - CHANGE IN PRODUCTION  
+    'Sample User',
+    'SGT'
+) ON CONFLICT (email) DO NOTHING; 

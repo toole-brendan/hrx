@@ -4,7 +4,7 @@ import { LatLngExpression } from 'leaflet';
 // User Types
 export interface User {
   id: string;
-  username: string;
+  email: string;
   name?: string;
   firstName?: string;
   lastName?: string;

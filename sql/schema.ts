@@ -3,8 +3,7 @@ import { pgTable, text, serial, integer, boolean, timestamp, decimal, bigint, js
 // Users Table - Updated with military fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  email: text("email").unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),

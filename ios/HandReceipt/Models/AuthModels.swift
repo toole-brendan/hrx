@@ -4,11 +4,11 @@ import Foundation
 
 // Struct for the login request body
 public struct LoginCredentials: Encodable {
-    public let username: String
+    public let email: String
     public let password: String // Sent plain text over HTTPS
     
-    public init(username: String, password: String) {
-        self.username = username
+    public init(email: String, password: String) {
+        self.email = email
         self.password = password
     }
 }
@@ -29,7 +29,7 @@ public struct LoginResponse: Decodable {
     public struct User: Codable {
         public let id: Int
         public let uuid: String?
-        public let username: String
+        // public let username: String // REMOVED: Username field
         public let email: String?
         public let firstName: String?
         public let lastName: String?
@@ -38,23 +38,53 @@ public struct LoginResponse: Decodable {
         public let role: String?
         public let status: String?
         
-        // Computed property for backward compatibility
+        // Helper function to get rank abbreviation
+        private func rankOptional() -> String? {
+            guard !rank.isEmpty else { return nil }
+            
+            // Convert full rank names to abbreviations if needed
+            let rankMappings: [String: String] = [
+                "Captain": "CPT",
+                "First Lieutenant": "1LT",
+                "Second Lieutenant": "2LT",
+                "Major": "MAJ",
+                "Lieutenant Colonel": "LTC",
+                "Colonel": "COL",
+                "Sergeant": "SGT",
+                "Staff Sergeant": "SSG",
+                "Sergeant First Class": "SFC",
+                "Master Sergeant": "MSG",
+                "First Sergeant": "1SG",
+                "Sergeant Major": "SGM",
+                "Private": "PVT",
+                "Private First Class": "PFC",
+                "Specialist": "SPC",
+                "Corporal": "CPL"
+            ]
+            
+            return rankMappings[rank] ?? rank
+        }
+        
+        // Computed property for display - prefer rank + last name format
         public var name: String {
-            if let firstName = firstName, let lastName = lastName {
-                return "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
-            } else if let firstName = firstName {
-                return firstName
-            } else if let lastName = lastName {
-                return lastName
+            // Prefer rank + last name for display if available
+            if let rank = rankOptional(), let last = lastName, !rank.isEmpty && !last.isEmpty {
+                return "\(rank) \(last)"
+            } else if let first = firstName, let last = lastName {
+                return "\(first) \(last)".trimmingCharacters(in: .whitespaces)
+            } else if let last = lastName {
+                return last
+            } else if let first = firstName {
+                return first
             } else {
-                return username
+                return ""
             }
         }
         
         enum CodingKeys: String, CodingKey {
             case id
             case uuid
-            case username
+            // case username // REMOVED: Username field
             case email
             case firstName = "first_name"
             case lastName = "last_name"
@@ -65,12 +95,12 @@ public struct LoginResponse: Decodable {
         }
         
         // Explicit memberwise initializer
-        public init(id: Int, uuid: String? = nil, username: String, email: String? = nil, 
+        public init(id: Int, uuid: String? = nil, email: String? = nil, 
              firstName: String? = nil, lastName: String? = nil, rank: String, 
              unit: String? = nil, role: String? = nil, status: String? = nil) {
             self.id = id
             self.uuid = uuid
-            self.username = username
+            // self.username = username // REMOVED: Username field
             self.email = email
             self.firstName = firstName
             self.lastName = lastName
@@ -86,7 +116,7 @@ public struct LoginResponse: Decodable {
             
             id = try container.decode(Int.self, forKey: .id)
             uuid = try container.decodeIfPresent(String.self, forKey: .uuid)
-            username = try container.decode(String.self, forKey: .username)
+            // username = try container.decode(String.self, forKey: .username) // REMOVED: Username field
             email = try container.decodeIfPresent(String.self, forKey: .email)
             firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
             lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
@@ -150,7 +180,7 @@ public struct UserResponse: Decodable {
 
 // Add registration request model
 public struct RegisterCredentials: Encodable {
-    public let username: String
+    // public let username: String // REMOVED: Username field
     public let email: String
     public let password: String
     public let first_name: String
@@ -159,10 +189,10 @@ public struct RegisterCredentials: Encodable {
     public let unit: String
     public let role: String
     
-    public init(username: String, email: String, password: String, 
+    public init(email: String, password: String, 
                 first_name: String, last_name: String, rank: String, 
                 unit: String, role: String = "user") {
-        self.username = username
+        // self.username = username // REMOVED: Username field
         self.email = email
         self.password = password
         self.first_name = first_name
@@ -173,7 +203,8 @@ public struct RegisterCredentials: Encodable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case username, email, password
+        // case username // REMOVED: Username field
+        case email, password
         case first_name = "first_name"
         case last_name = "last_name"
         case rank, unit, role

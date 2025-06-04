@@ -8,7 +8,7 @@ import (
 
 // Authentication DTOs
 type LoginRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
+	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
 
@@ -33,7 +33,6 @@ type ChangePasswordRequest struct {
 type UserDTO struct {
 	ID          uint       `json:"id"`
 	UUID        uuid.UUID  `json:"uuid"`
-	Username    string     `json:"username"`
 	Email       string     `json:"email"`
 	FirstName   string     `json:"first_name"`
 	LastName    string     `json:"last_name"`
@@ -47,7 +46,6 @@ type UserDTO struct {
 }
 
 type CreateUserRequest struct {
-	Username  string   `json:"username" validate:"required,min=3,max=50,alphanum"`
 	Email     string   `json:"email" validate:"required,email"`
 	Password  string   `json:"password" validate:"required,min=8"`
 	FirstName string   `json:"first_name" validate:"required,min=2,max=50"`

@@ -9,7 +9,7 @@ type Repository interface {
 	// User operations
 	CreateUser(user *domain.User) error
 	GetUserByID(id uint) (*domain.User, error)
-	GetUserByUsername(username string) (*domain.User, error)
+	GetUserByEmail(email string) (*domain.User, error)
 	GetAllUsers() ([]domain.User, error)
 	UpdateUser(user *domain.User) error
 	SearchUsers(query string, excludeUserID uint) ([]domain.User, error)

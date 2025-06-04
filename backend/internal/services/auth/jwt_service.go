@@ -25,7 +25,6 @@ type JWTService struct {
 
 type Claims struct {
 	UserID    uint              `json:"user_id"`
-	Username  string            `json:"username"`
 	Email     string            `json:"email"`
 	Role      models.UserRole   `json:"role"`
 	Status    models.UserStatus `json:"status"`
@@ -79,7 +78,6 @@ func (s *JWTService) generateToken(user models.User, sessionID, tokenType string
 
 	claims := &Claims{
 		UserID:    user.ID,
-		Username:  user.Username,
 		Email:     user.Email,
 		Role:      user.Role,
 		Status:    user.Status,
@@ -235,7 +233,6 @@ func (s *JWTService) GeneratePasswordResetToken(user models.User) (string, time.
 
 	claims := &Claims{
 		UserID:    user.ID,
-		Username:  user.Username,
 		Email:     user.Email,
 		TokenType: "password_reset",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -279,7 +276,6 @@ func (s *JWTService) GenerateEmailVerificationToken(user models.User) (string, t
 
 	claims := &Claims{
 		UserID:    user.ID,
-		Username:  user.Username,
 		Email:     user.Email,
 		TokenType: "email_verification",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -324,11 +320,10 @@ func (s *JWTService) GetUserFromToken(tokenString string) (*models.UserDTO, erro
 	}
 
 	return &models.UserDTO{
-		ID:       claims.UserID,
-		Username: claims.Username,
-		Email:    claims.Email,
-		Role:     claims.Role,
-		Status:   claims.Status,
+		ID:     claims.UserID,
+		Email:  claims.Email,
+		Role:   claims.Role,
+		Status: claims.Status,
 	}, nil
 }
 

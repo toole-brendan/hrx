@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import logoImage from "@/assets/hr_logo5.png";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -45,7 +45,7 @@ const Login: React.FC = () => {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -53,7 +53,7 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await login(data.username, data.password);
+      await login(data.email, data.password);
       toast({
         title: "Login Successful",
         description: "Welcome to HandReceipt",
@@ -63,7 +63,7 @@ const Login: React.FC = () => {
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid username or password",
+        description: "Invalid email or password",
         variant: "destructive",
       });
     } finally {
@@ -99,7 +99,7 @@ const Login: React.FC = () => {
     console.log("🔧 DEV LOGIN ACTIVATED! Using test credentials...");
     
     // Use test credentials to actually authenticate with the backend
-    form.setValue("username", "michael.rodriguez");
+    form.setValue("email", "michael.rodriguez@example.com");
     form.setValue("password", "password123");
     
     // Show loading state
@@ -107,7 +107,7 @@ const Login: React.FC = () => {
     
     try {
       // Perform actual login with test credentials
-      await login("michael.rodriguez", "password123");
+      await login("michael.rodriguez@example.com", "password123");
       console.log("✅ Dev login successful via API!");
       toast({
         title: "Dev Login Successful",
@@ -172,10 +172,10 @@ const Login: React.FC = () => {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Username</FormLabel>
+                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Email</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="" 

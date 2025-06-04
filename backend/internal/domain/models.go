@@ -6,8 +6,8 @@ import (
 
 // User represents a user in the system with military-specific fields
 type User struct {
-	ID           uint      `json:"id" gorm:"primaryKey"`
-	Username     string    `json:"username" gorm:"uniqueIndex;not null"`
+	ID uint `json:"id" gorm:"primaryKey"`
+	// Username     string    `json:"username" gorm:"uniqueIndex;not null"` // REMOVED: Username field
 	Email        string    `json:"email" gorm:"uniqueIndex;not null"`
 	Password     string    `json:"-" gorm:"not null"` // Password is omitted from JSON responses
 	Name         string    `json:"name" gorm:"not null"`
@@ -305,7 +305,8 @@ const (
 
 // CreateUserInput represents input for creating a user
 type CreateUserInput struct {
-	Username string `json:"username" binding:"required"`
+	// Username string `json:"username" binding:"required"` // REMOVED: Username field
+	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 	Name     string `json:"name" binding:"required"`
 	Rank     string `json:"rank" binding:"required"`

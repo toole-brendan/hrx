@@ -34,9 +34,9 @@ func (r *PostgresRepository) GetUserByID(id uint) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *PostgresRepository) GetUserByUsername(username string) (*domain.User, error) {
+func (r *PostgresRepository) GetUserByEmail(email string) (*domain.User, error) {
 	var user domain.User
-	if err := r.db.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Return the actual error so the handler knows the user wasn't found
 			return nil, err
