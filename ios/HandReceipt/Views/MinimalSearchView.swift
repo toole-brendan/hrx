@@ -962,7 +962,7 @@ class SearchViewModel: ObservableObject {
     private func searchProperties(query: String) async throws -> [SearchResult] {
         let properties = try await apiService.getMyProperties()
         
-        return properties.compactMap { property in
+        return properties.compactMap { property -> SearchResult? in
             let title = property.name
             let subtitle = "SN: \(property.serialNumber)"
             
@@ -990,8 +990,8 @@ class SearchViewModel: ObservableObject {
                 title: title,
                 subtitle: subtitle,
                 metadata: [
-                    .init(icon: "person", value: property.assignedToUser?.name ?? "Unassigned"),
-                    .init(icon: "circle", value: property.currentStatus.capitalized)
+                    .init(icon: "person", value: property.assignedToUserId != nil ? "User #\(property.assignedToUserId!)" : "Unassigned"),
+                    .init(icon: "circle", value: (property.currentStatus ?? "Unknown").capitalized)
                 ],
                 relevanceScore: relevanceScore
             )
@@ -1018,7 +1018,7 @@ class SearchViewModel: ObservableObject {
     private func searchTransfers(query: String) async throws -> [SearchResult] {
         let transfers = try await apiService.fetchTransfers(status: nil, direction: nil)
         
-        return transfers.compactMap { transfer in
+        return transfers.compactMap { transfer -> SearchResult? in
             let queryLower = query.lowercased()
             
             // Simple matching on transfer ID or status
