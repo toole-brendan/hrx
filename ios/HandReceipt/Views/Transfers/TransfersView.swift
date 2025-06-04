@@ -185,7 +185,7 @@ struct TransfersView: View {
                 // Transfer requests section
                 transfersSection(transfers: transfers)
             }
-            .minimalRefreshable {
+            .minimalRefreshable { @Sendable in
                 await MainActor.run {
                     viewModel.fetchTransfers()
                 }
@@ -379,7 +379,7 @@ struct ElegantTransferCard: View {
                         }
                         
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 16, weight: .light))
+                            .font(Font.system(size: 16, weight: .light))
                             .foregroundColor(AppColors.tertiaryText)
                         
                         // To
@@ -591,24 +591,7 @@ enum TransferAction {
     case reject
 }
 
-// MARK: - Extension for compatibility
-extension View {
-    func compatibleKerning(_ value: CGFloat) -> some View {
-        if #available(iOS 16.0, *) {
-            return self.tracking(value)
-        } else {
-            return self
-        }
-    }
-    
-    func minimalRefreshable(action: @escaping () async -> Void) -> some View {
-        if #available(iOS 15.0, *) {
-            return self.refreshable(action: action)
-        } else {
-            return self
-        }
-    }
-}
+
 
 // MARK: - Previews
 struct TransfersView_Previews: PreviewProvider {

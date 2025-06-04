@@ -312,13 +312,4 @@ struct CleanUserRow: View {
     }
 }
 
-// MARK: - Extension for compatibility
-extension View {
-    func compatibleKerning(_ value: CGFloat) -> some View {
-        if #available(iOS 16.0, *) {
-            return self.tracking(value)
-        } else {
-            return self
-        }
-    }
-} 
+ 
