@@ -43,7 +43,7 @@ class TransfersViewModel: ObservableObject {
     enum FilterStatus: String, CaseIterable, Identifiable {
         case pending = "Pending"
         case all = "All"
-        case approved = "Approved"
+        case accepted = "Accepted"  // changed from "Approved" to match backend
         case rejected = "Rejected"
         case cancelled = "Cancelled"
         var id: String { self.rawValue }
@@ -109,7 +109,7 @@ class TransfersViewModel: ObservableObject {
         print("TransfersViewModel: Fetching transfers (Status: \(selectedStatusFilter.rawValue), Direction: \(selectedDirectionFilter.rawValue))")
         // Always fetch ALL for now, filtering happens in computed property
         // TODO: Update API call if backend supports server-side filtering for status/direction
-        let statusParam = selectedStatusFilter == .all ? nil : selectedStatusFilter.rawValue.uppercased()
+        let statusParam = selectedStatusFilter == .all ? nil : selectedStatusFilter.rawValue.lowercased()
         let directionParam: String? = nil // Fetch all directions, filter locally based on currentUserId
 
         loadingState = .loading

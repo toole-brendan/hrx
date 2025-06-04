@@ -37,16 +37,10 @@ public struct UserSummary: Codable, Identifiable, Hashable {
 
 public enum TransferStatus: String, Codable, CaseIterable {
     case pending
-    case completed
+    case accepted  // backend uses 'accepted' not 'completed'
     case rejected
     case cancelled
-    // Legacy uppercase support
-    case PENDING
-    case APPROVED
-    case REJECTED
-    case CANCELLED
-    // Add an unknown case for future-proofing or unexpected values
-    case UNKNOWN
+    case unknown
 }
 
 // Response wrapper for the transfers endpoint
@@ -80,7 +74,7 @@ public struct Transfer: Codable, Identifiable, Hashable {
     
     // Computed property for status enum
     public var transferStatus: TransferStatus {
-        return TransferStatus(rawValue: status) ?? TransferStatus(rawValue: status.uppercased()) ?? .UNKNOWN
+        return TransferStatus(rawValue: status.lowercased()) ?? .unknown
     }
 }
 
@@ -157,12 +151,12 @@ extension Property {
 extension Transfer {
     /// Check if transfer is pending
     public var isPending: Bool {
-        return status == "PENDING"
+        return status.lowercased() == "pending"
     }
     
     /// Check if transfer can be cancelled
     public var canBeCancelled: Bool {
-        return status == "PENDING"
+        return status.lowercased() == "pending"
     }
 }
 
@@ -185,11 +179,11 @@ public struct ActivityGroup {
 public struct TransferStats {
     public let totalTransfers: Int
     public let pendingTransfers: Int
-    public let completedTransfers: Int
+    public let acceptedTransfers: Int  // renamed from completedTransfers
     public let rejectedTransfers: Int
     
     public var acceptanceRate: Double {
         guard totalTransfers > 0 else { return 0 }
-        return Double(completedTransfers) / Double(totalTransfers - pendingTransfers)
+        return Double(acceptedTransfers) / Double(totalTransfers - pendingTransfers)
     }
 } 

@@ -397,7 +397,7 @@ struct CleanOfferCard: View {
                         .foregroundColor(AppColors.tertiaryText)
                         .compatibleKerning(1.5)
                     
-                    Text("\(offer.offeror?.rank ?? "") \(offer.offeror?.lastName ?? "")")
+                    Text(offer.offeringUserDisplayName)
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.primaryText)
                 }
@@ -452,7 +452,7 @@ struct CleanOfferCard: View {
                 }
             }
         } message: {
-            Text("Accept this property transfer offer from \(offer.offeror?.rank ?? "") \(offer.offeror?.lastName ?? "")?")
+            Text("Accept this property transfer offer from \(offer.offeringUserDisplayName)?")
         }
         .alert("Decline Offer?", isPresented: $showingRejectDialog) {
             Button("Cancel", role: .cancel) { }

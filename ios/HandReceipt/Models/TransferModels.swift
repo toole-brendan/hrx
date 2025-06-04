@@ -13,123 +13,75 @@ public struct SerialTransferRequest: Codable {
     }
 }
 
-/// Transfer offer model
+/// Transfer offer model - updated to match backend structure
 public struct TransferOffer: Codable, Identifiable {
     public let id: Int
-    public let createdBy: Int
-    public let propertyIds: [Int]
-    public let recipientIds: [Int]
-    public let status: String
+    public let propertyId: Int
+    public let offeringUserId: Int
+    public let offerStatus: String
     public let notes: String?
-    public let createdAt: Date
     public let expiresAt: Date?
+    public let createdAt: Date
+    public let acceptedByUserId: Int?
+    public let acceptedAt: Date?
+    public let property: Property?
+    public let offeringUser: LoginResponse.User?
     
     private enum CodingKeys: String, CodingKey {
         case id
-        case createdBy = "created_by"
-        case propertyIds = "property_ids"
-        case recipientIds = "recipient_ids"
-        case status
+        case propertyId
+        case offeringUserId
+        case offerStatus
         case notes
-        case createdAt = "created_at"
-        case expiresAt = "expires_at"
+        case expiresAt
+        case createdAt
+        case acceptedByUserId
+        case acceptedAt
+        case property
+        case offeringUser
     }
 }
 
-// MARK: - TransferOffer Relationships Extension
-// Handle relationships through extensions to avoid circular references
-
+// MARK: - TransferOffer Extensions
 extension TransferOffer {
-    // Static storage for relationship data to avoid infinite size issues
-    private static var relationshipStorage: [Int: TransferOfferRelationships] = [:]
-    
-    private struct TransferOfferRelationships {
-        var propertyData: PropertySummary?
-        var offerorData: UserSummary?
-        var offeredToData: UserSummary?
+    /// Computed property to get the offering user's display name
+    public var offeringUserDisplayName: String {
+        guard let user = offeringUser else { return "Unknown User" }
+        let name = user.name
+        let lastName = name.components(separatedBy: " ").last ?? name
+        return "\(user.rank) \(lastName)"
     }
     
-    // Simplified data structures to avoid circular references
-    public struct PropertySummary {
-        public let id: Int
-        public let serialNumber: String
-        public let name: String
-        public let nsn: String?
-        public let status: String?
-        public let isSensitiveItem: Bool?
-    }
-    
-    public struct UserSummary {
-        public let id: Int
-        public let firstName: String
-        public let lastName: String
-        public let rank: String?
-        public let unit: String?
-        
-        public var fullName: String {
-            return "\(firstName) \(lastName)"
+    /// Check if the offer is still active and not expired
+    public var isActive: Bool {
+        guard offerStatus.lowercased() == "active" else { return false }
+        if let expiresAt = expiresAt {
+            return Date() < expiresAt
         }
-        
-        public var displayName: String {
-            if let rank = rank {
-                return "\(rank) \(lastName)"
-            }
-            return fullName
-        }
+        return true
     }
     
-    // Computed properties for accessing relationship data
-    public var property: PropertySummary? {
-        get { TransferOffer.relationshipStorage[id]?.propertyData }
-        set { 
-            if TransferOffer.relationshipStorage[id] == nil {
-                TransferOffer.relationshipStorage[id] = TransferOfferRelationships()
-            }
-            TransferOffer.relationshipStorage[id]?.propertyData = newValue
-        }
-    }
-    
-    public var offeror: UserSummary? {
-        get { TransferOffer.relationshipStorage[id]?.offerorData }
-        set { 
-            if TransferOffer.relationshipStorage[id] == nil {
-                TransferOffer.relationshipStorage[id] = TransferOfferRelationships()
-            }
-            TransferOffer.relationshipStorage[id]?.offerorData = newValue
-        }
-    }
-    
-    public var offeredTo: UserSummary? {
-        get { TransferOffer.relationshipStorage[id]?.offeredToData }
-        set { 
-            if TransferOffer.relationshipStorage[id] == nil {
-                TransferOffer.relationshipStorage[id] = TransferOfferRelationships()
-            }
-            TransferOffer.relationshipStorage[id]?.offeredToData = newValue
-        }
-    }
-    
-    // Helper method to clear relationship data when no longer needed
-    public static func clearRelationshipData(for offerId: Int) {
-        relationshipStorage.removeValue(forKey: offerId)
-    }
-    
-    // Helper method to clear all relationship data
-    public static func clearAllRelationshipData() {
-        relationshipStorage.removeAll()
+    /// Get relative expiration string
+    public var expirationString: String? {
+        guard let expiresAt = expiresAt else { return nil }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: expiresAt, relativeTo: Date())
     }
 }
 
 /// Request body for creating transfer offer
 public struct TransferOfferRequest: Codable {
-    public let propertyIds: [Int]
+    public let propertyId: Int
     public let recipientIds: [Int]
     public let notes: String?
+    public let expiresInDays: Int?
     
     private enum CodingKeys: String, CodingKey {
-        case propertyIds = "property_ids"
-        case recipientIds = "recipient_ids"
+        case propertyId
+        case recipientIds
         case notes
+        case expiresInDays
     }
 }
 
