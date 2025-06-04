@@ -81,6 +81,10 @@ class DA2062ExportViewModel: ObservableObject {
         selectedPropertyIDs = Set(properties.filter { $0.isSensitive }.map { $0.id })
     }
     
+    func setInitialSelection(_ propertyIDs: [Int]) {
+        selectedPropertyIDs = Set(propertyIDs)
+    }
+    
     func generatePDF() async throws -> Data {
         let request = GeneratePDFRequest(
             propertyIDs: Array(selectedPropertyIDs),

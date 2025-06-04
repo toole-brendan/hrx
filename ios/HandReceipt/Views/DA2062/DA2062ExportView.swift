@@ -13,6 +13,12 @@ struct DA2062ExportView: View {
     @State private var errorMessage = ""
     @Environment(\.dismiss) private var dismiss
     
+    let preSelectedPropertyIDs: [Int]
+    
+    init(preSelectedPropertyIDs: [Int] = []) {
+        self.preSelectedPropertyIDs = preSelectedPropertyIDs
+    }
+    
     var body: some View {
         ZStack {
             // Light background
@@ -77,6 +83,10 @@ struct DA2062ExportView: View {
         }
         .task {
             await viewModel.loadUserProperties()
+            // Set pre-selected properties if any were passed in
+            if !preSelectedPropertyIDs.isEmpty {
+                viewModel.setInitialSelection(preSelectedPropertyIDs)
+            }
         }
     }
     

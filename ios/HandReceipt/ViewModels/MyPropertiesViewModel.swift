@@ -309,7 +309,7 @@ class MyPropertiesViewModel: ObservableObject {
         // Apply search filter
         if !searchText.isEmpty {
             filtered = filtered.filter { property in
-                property.itemName.localizedCaseInsensitiveContains(searchText) ||
+                property.name.localizedCaseInsensitiveContains(searchText) ||
                 property.serialNumber.localizedCaseInsensitiveContains(searchText) ||
                 property.nsn?.localizedCaseInsensitiveContains(searchText) == true
             }
@@ -318,7 +318,7 @@ class MyPropertiesViewModel: ObservableObject {
         // Apply category filter
         if selectedCategory != .all {
             filtered = filtered.filter { property in
-                PropertyCategory.fromItemName(property.itemName) == selectedCategory
+                PropertyCategory.fromItemName(property.name) == selectedCategory
             }
         }
         
@@ -340,7 +340,7 @@ class MyPropertiesViewModel: ObservableObject {
                 counts[category] = allProperties.count
             } else {
                 counts[category] = allProperties.filter { 
-                    PropertyCategory.fromItemName($0.itemName) == category 
+                    PropertyCategory.fromItemName($0.name) == category 
                 }.count
             }
         }

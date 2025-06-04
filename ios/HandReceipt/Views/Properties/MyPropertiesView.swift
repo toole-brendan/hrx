@@ -47,6 +47,7 @@ struct MyPropertiesView: View {
                 if viewModel.isOffline {
                     OfflineBanner()
                 }
+            }
             
             ScrollView {
                 VStack(spacing: 24) {
@@ -126,7 +127,10 @@ struct MyPropertiesView: View {
                     HStack {
                         Spacer()
                         Button(action: {
+                            print("Export button tapped, setting showingDA2062Export to true")
+                            print("Current value: \(showingDA2062Export)")
                             showingDA2062Export = true
+                            print("New value: \(showingDA2062Export)")
                         }) {
                             HStack {
                                 Image(systemName: "square.and.arrow.up")
@@ -144,7 +148,6 @@ struct MyPropertiesView: View {
                 }
             }
         }
-        }
         .navigationTitle("")
         .navigationBarHidden(true)
         .navigationBarBackButtonHidden(true)
@@ -160,8 +163,11 @@ struct MyPropertiesView: View {
                     viewModel.refreshData()
                 }
         }
-        .sheet(isPresented: $showingDA2062Export) {
-            DA2062ExportView()
+        .fullScreenCover(isPresented: $showingDA2062Export) {
+            DA2062ExportView(preSelectedPropertyIDs: Array(selectedPropertiesForExport))
+                .onAppear {
+                    print("DA2062ExportView full screen cover appeared")
+                }
         }
         .sheet(isPresented: $showingVerificationSheet) {
             if let property = selectedProperty {
@@ -633,14 +639,14 @@ struct MinimalPropertyCard: View {
                     // Item name with category and status indicators
                     HStack(spacing: 8) {
                         // Category indicator
-                        let category = PropertyCategory.fromItemName(property.itemName)
+                        let category = PropertyCategory.fromItemName(property.name)
                         if category != .other {
                             Image(systemName: category.icon)
                                 .font(.system(size: 14, weight: .light))
                                 .foregroundColor(category.color)
                         }
                         
-                        Text(property.itemName)
+                        Text(property.name)
                             .font(AppFonts.serifHeadline)
                             .foregroundColor(AppColors.primaryText)
                             .lineLimit(2)
@@ -1019,7 +1025,7 @@ struct PropertyTransferSheet: View {
                                         Text("Item Name")
                                             .font(AppFonts.caption)
                                             .foregroundColor(AppColors.tertiaryText)
-                                        Text(property.itemName)
+                                        Text(property.name)
                                             .font(AppFonts.bodyMedium)
                                             .foregroundColor(AppColors.primaryText)
                                     }
@@ -1088,10 +1094,10 @@ struct PropertyTransferSheet: View {
                                                         .fill(AppColors.accent.opacity(0.2))
                                                         .frame(width: 40, height: 40)
                                                         .overlay(
-                                                                                                                    Text(String((connection.connectedUser?.name ?? "Unknown").prefix(1)))
-                                                            .font(AppFonts.bodyMedium)
-                                                            .foregroundColor(AppColors.accent)
-                                                    )
+                                                            Text(String((connection.connectedUser?.name ?? "Unknown").prefix(1)))
+                                                                .font(AppFonts.bodyMedium)
+                                                                .foregroundColor(AppColors.accent)
+                                                        )
                                                     
                                                     VStack(alignment: .leading, spacing: 4) {
                                                         Text(connection.connectedUser?.name ?? "Unknown User")
@@ -1331,80 +1337,46 @@ struct MyPropertiesView_Previews: PreviewProvider {
         NavigationView {
             MyPropertiesView(viewModel: {
                 let vm = MyPropertiesViewModel()
-                vm.loadingState = .success(Property.mockList)
-                vm.allProperties = Property.mockList
+                vm.loadingState = .success(mockProperties)
+                vm.allProperties = mockProperties
                 return vm
             }())
         }
     }
+    
+    static var mockProperties: [Property] {
+        return [
+            Property(
+                id: 1, 
+                serialNumber: "SN123", 
+                nsn: "1111-11-111-1111", 
+                lin: "E03045", 
+                name: "M4 Carbine", 
+                description: "5.56mm Carbine", 
+                manufacturer: "Colt", 
+                imageUrl: nil, 
+                status: "Operational", 
+                currentStatus: "operational",
+                assignedToUserId: nil, 
+                location: "Armory", 
+                lastInventoryDate: Date(), 
+                acquisitionDate: nil, 
+                notes: nil,
+                maintenanceDueDate: nil,
+                isSensitiveItem: true,
+                propertyModelId: nil,
+                lastVerifiedAt: nil,
+                lastMaintenanceAt: nil,
+                createdAt: Date(),
+                updatedAt: Date(),
+                sourceType: nil,
+                importMetadata: nil,
+                verified: true,
+                verifiedAt: Date(),
+                isAttachable: true,
+                attachmentPoints: ["rail_top", "rail_side", "barrel"],
+                compatibleWith: nil
+            )
+        ]
+    }
 }
-
-// MARK: - Mock Data
-#if DEBUG
-extension Property {
-    static let mockList = [
-        Property(
-            id: 1, 
-            serialNumber: "SN123", 
-            nsn: "1111-11-111-1111", 
-            lin: "E03045", 
-            name: "M4 Carbine", 
-            description: "5.56mm Carbine", 
-            manufacturer: "Colt", 
-            imageUrl: nil, 
-            status: "Operational", 
-            currentStatus: "operational",
-            assignedToUserId: nil, 
-            location: "Armory", 
-            lastInventoryDate: Date(), 
-            acquisitionDate: nil, 
-            notes: nil,
-            maintenanceDueDate: nil,
-            isSensitiveItem: true,
-            propertyModelId: nil,
-            lastVerifiedAt: nil,
-            lastMaintenanceAt: nil,
-            createdAt: Date(),
-            updatedAt: Date(),
-            sourceType: nil,
-            importMetadata: nil,
-            verified: true,
-            verifiedAt: Date(),
-            isAttachable: true,
-            attachmentPoints: ["rail_top", "rail_side", "barrel"],
-            compatibleWith: nil
-        ),
-        Property(
-            id: 2, 
-            serialNumber: "SN456", 
-            nsn: "2222-22-222-2222", 
-            lin: "E03046", 
-            name: "ACOG Scope", 
-            description: "4x32 Optical Scope", 
-            manufacturer: "Trijicon", 
-            imageUrl: nil, 
-            status: "Maintenance", 
-            currentStatus: "maintenance",
-            assignedToUserId: nil, 
-            location: "Maintenance Bay", 
-            lastInventoryDate: Calendar.current.date(byAdding: .day, value: -10, to: Date()), 
-            acquisitionDate: nil, 
-            notes: nil,
-            maintenanceDueDate: Calendar.current.date(byAdding: .day, value: 5, to: Date()),
-            isSensitiveItem: false,
-            propertyModelId: nil,
-            lastVerifiedAt: nil,
-            lastMaintenanceAt: nil,
-            createdAt: Date(),
-            updatedAt: Date(),
-            sourceType: nil,
-            importMetadata: nil,
-            verified: true,
-            verifiedAt: Date(),
-            isAttachable: false,
-            attachmentPoints: nil,
-            compatibleWith: ["M4", "AR-15"]
-        )
-    ]
-}
-#endif 
