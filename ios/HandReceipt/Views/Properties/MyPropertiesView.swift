@@ -209,83 +209,118 @@ struct MyPropertiesView: View {
     // MARK: - Search and Filters Section
     
     private var searchAndFiltersSection: some View {
-        VStack(spacing: 20) {
-            // Remove duplicate header since we have InlinePageHeader now
+        VStack(spacing: 16) {
+            // Search bar
+            HStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(AppColors.tertiaryText)
+                        .font(.system(size: 16, weight: .light))
+                    
+                    TextField("Search properties...", text: $viewModel.searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(AppColors.primaryText)
+                        .font(AppFonts.body)
+                    
+                    if !viewModel.searchText.isEmpty {
+                        Button(action: { viewModel.searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(AppColors.tertiaryText)
+                                .font(.system(size: 14, weight: .light))
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(AppColors.secondaryBackground)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
+                
+                // Filter/Sort button
+                Button(action: { showingSortOptions = true }) {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .foregroundColor(AppColors.accent)
+                        .font(.system(size: 16, weight: .light))
+                        .frame(width: 44, height: 44)
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                }
+                
+                // Add button
+                Button(action: { showingAddMenu = true }) {
+                    Image(systemName: "plus")
+                        .foregroundColor(AppColors.accent)
+                        .font(.system(size: 16, weight: .light))
+                        .frame(width: 44, height: 44)
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                }
+            }
+            .padding(.horizontal, 24)
             
-            VStack(spacing: 16) {
-                // Search bar
-                HStack(spacing: 12) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(AppColors.tertiaryText)
-                            .font(.system(size: 16, weight: .light))
-                        
-                        TextField("Search properties...", text: $viewModel.searchText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .foregroundColor(AppColors.primaryText)
-                            .font(AppFonts.body)
-                        
-                        if !viewModel.searchText.isEmpty {
-                            Button(action: { viewModel.searchText = "" }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(AppColors.tertiaryText)
-                                    .font(.system(size: 14, weight: .light))
+                        // Filter tabs
+            VStack(spacing: 12) {
+                // Main filter type selector
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(PropertyFilterType.allCases, id: \.self) { filterType in
+                            FilterTypeChip(
+                                filterType: filterType,
+                                isSelected: viewModel.selectedFilterType == filterType,
+                                action: { 
+                                    viewModel.selectedFilterType = filterType
+                                    // Reset sub-filters when changing main filter
+                                    if filterType != .category {
+                                        viewModel.selectedCategory = .all
+                                    }
+                                    if filterType != .status {
+                                        viewModel.selectedStatus = .all
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+                
+                // Sub-filter chips
+                if viewModel.selectedFilterType == .category || viewModel.selectedFilterType == .status {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            if viewModel.selectedFilterType == .category {
+                                ForEach(PropertyCategory.allCases, id: \.self) { category in
+                                    PropertyCategoryChip(
+                                        category: category,
+                                        isSelected: viewModel.selectedCategory == category,
+                                        action: { viewModel.selectedCategory = category }
+                                    )
+                                }
+                            }
+                            
+                            if viewModel.selectedFilterType == .status {
+                                ForEach(PropertyFilterStatus.allCases, id: \.self) { status in
+                                    PropertyStatusChip(
+                                        status: status,
+                                        isSelected: viewModel.selectedStatus == status,
+                                        action: { viewModel.selectedStatus = status }
+                                    )
+                                }
                             }
                         }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(AppColors.secondaryBackground)
-                    .cornerRadius(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(AppColors.border, lineWidth: 1)
-                    )
-                    
-                    // Filter/Sort button
-                    Button(action: { showingSortOptions = true }) {
-                        Image(systemName: "line.3.horizontal.decrease")
-                            .foregroundColor(AppColors.accent)
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 44, height: 44)
-                            .background(AppColors.secondaryBackground)
-                            .cornerRadius(4)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .stroke(AppColors.border, lineWidth: 1)
-                            )
-                    }
-                    
-                    // Add button
-                    Button(action: { showingAddMenu = true }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(AppColors.accent)
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 44, height: 44)
-                            .background(AppColors.secondaryBackground)
-                            .cornerRadius(4)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .stroke(AppColors.border, lineWidth: 1)
-                            )
+                        .padding(.horizontal, 24)
                     }
                 }
-                .padding(.horizontal, 24)
-                
-                // Filter buttons
-                HStack(spacing: 12) {
-                    ForEach(PropertyFilter.allCases) { filter in
-                        FilterButton(
-                            title: filter.title,
-                            isSelected: viewModel.selectedFilter == filter
-                        ) {
-                            viewModel.selectedFilter = filter
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
             }
         }
     }
@@ -406,11 +441,15 @@ struct MyPropertiesView: View {
             return "wifi.slash"
         }
         
-        switch viewModel.selectedFilter {
-        case .all: return "shippingbox"
-        case .operational: return "checkmark.circle"
-        case .maintenance: return "wrench"
+        if viewModel.selectedCategory != .all {
+            return viewModel.selectedCategory.icon
         }
+        
+        if viewModel.selectedStatus != .all {
+            return viewModel.selectedStatus.icon
+        }
+        
+        return "shippingbox"
     }
     
     private var emptyStateTitle: String {
@@ -422,11 +461,15 @@ struct MyPropertiesView: View {
             return "Offline Mode"
         }
         
-        switch viewModel.selectedFilter {
-        case .all: return "No Properties Found"
-        case .operational: return "No Operational Items"
-        case .maintenance: return "No Maintenance Required"
+        if viewModel.selectedCategory != .all {
+            return "No \(viewModel.selectedCategory.displayName) Found"
         }
+        
+        if viewModel.selectedStatus != .all {
+            return "No \(viewModel.selectedStatus.displayName) Items"
+        }
+        
+        return "No Properties Found"
     }
     
     private var emptyStateMessage: String {
@@ -438,11 +481,15 @@ struct MyPropertiesView: View {
             return "Properties will appear when connected to the network."
         }
         
-        switch viewModel.selectedFilter {
-        case .all: return "Properties assigned to you will appear here."
-        case .operational: return "You have no operational properties assigned."
-        case .maintenance: return "Good news! No items require maintenance."
+        if viewModel.selectedCategory != .all {
+            return "You have no \(viewModel.selectedCategory.displayName.lowercased()) assigned to you."
         }
+        
+        if viewModel.selectedStatus != .all {
+            return "No items with \(viewModel.selectedStatus.displayName.lowercased()) status found."
+        }
+        
+        return "Properties assigned to you will appear here."
     }
     
     // Note: Filtering and sorting logic moved to view model
@@ -481,29 +528,7 @@ struct OfflineBanner: View {
     }
 }
 
-struct FilterButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(AppFonts.caption)
-                .foregroundColor(isSelected ? .white : AppColors.secondaryText)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(isSelected ? AppColors.primaryText : AppColors.secondaryBackground)
-                .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(isSelected ? AppColors.primaryText : AppColors.border, lineWidth: 1)
-                )
-                .compatibleKerning(AppFonts.wideKerning)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
+
 
 // MARK: - Minimal Components
 
@@ -605,8 +630,16 @@ struct MinimalPropertyCard: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    // Item name with status indicators
+                    // Item name with category and status indicators
                     HStack(spacing: 8) {
+                        // Category indicator
+                        let category = PropertyCategory.fromItemName(property.itemName)
+                        if category != .other {
+                            Image(systemName: category.icon)
+                                .font(.system(size: 14, weight: .light))
+                                .foregroundColor(category.color)
+                        }
+                        
                         Text(property.itemName)
                             .font(AppFonts.serifHeadline)
                             .foregroundColor(AppColors.primaryText)
@@ -1216,6 +1249,82 @@ struct PropertyTransferSheet: View {
     }
 }
 
+// MARK: - Filter Chip Components
+struct FilterTypeChip: View {
+    let filterType: PropertyFilterType
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(filterType.displayName.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(isSelected ? .white : AppColors.secondaryText)
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? AppColors.primaryText : AppColors.secondaryBackground)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(isSelected ? AppColors.primaryText : AppColors.border, lineWidth: 1)
+                )
+                .compatibleKerning(AppFonts.wideKerning)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct PropertyCategoryChip: View {
+    let category: PropertyCategory
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(category.displayName.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(isSelected ? .white : AppColors.secondaryText)
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? AppColors.primaryText : AppColors.secondaryBackground)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(isSelected ? AppColors.primaryText : AppColors.border, lineWidth: 1)
+                )
+                .compatibleKerning(AppFonts.wideKerning)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct PropertyStatusChip: View {
+    let status: PropertyFilterStatus
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(status.shortDisplayName.uppercased())
+                .font(AppFonts.caption)
+                .foregroundColor(isSelected ? .white : AppColors.secondaryText)
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? AppColors.primaryText : AppColors.secondaryBackground)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(isSelected ? AppColors.primaryText : AppColors.border, lineWidth: 1)
+                )
+                .compatibleKerning(AppFonts.wideKerning)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
 // MARK: - Preview
 struct MyPropertiesView_Previews: PreviewProvider {
     static var previews: some View {
@@ -1223,6 +1332,7 @@ struct MyPropertiesView_Previews: PreviewProvider {
             MyPropertiesView(viewModel: {
                 let vm = MyPropertiesViewModel()
                 vm.loadingState = .success(Property.mockList)
+                vm.allProperties = Property.mockList
                 return vm
             }())
         }

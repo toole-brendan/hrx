@@ -1,14 +1,250 @@
 import Foundation
 import Combine // For ObservableObject
+import SwiftUI // For Color and UI types
 
-// MARK: - Property Filter Enum
-enum PropertyFilter: String, CaseIterable, Identifiable {
+// MARK: - Filter Types
+enum PropertyFilterType: String, CaseIterable {
     case all = "ALL"
-    case operational = "OPERATIONAL"
-    case maintenance = "MAINTENANCE"
+    case category = "CATEGORY"
+    case status = "STATUS"
+    case location = "LOCATION"
+    
+    var displayName: String {
+        switch self {
+        case .all: return "All"
+        case .category: return "Category"
+        case .status: return "Status"
+        case .location: return "Location"
+        }
+    }
+}
+
+// MARK: - Category Filter
+enum PropertyCategory: String, CaseIterable, Identifiable {
+    case all = "all"
+    case weapons = "weapons"
+    case comsec = "comsec"
+    case optics = "optics"
+    case vehicles = "vehicles"
+    case individualEquipment = "individual-equipment"
+    case medical = "medical"
+    case supportEquipment = "support-equipment"
+    case electronics = "electronics"
+    case other = "other"
     
     var id: String { rawValue }
-    var title: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .all: return "All"
+        case .weapons: return "Weapons"
+        case .comsec: return "COMSEC"
+        case .optics: return "Optics"
+        case .vehicles: return "Vehicles"
+        case .individualEquipment: return "TA-50"
+        case .medical: return "Medical"
+        case .supportEquipment: return "Support"
+        case .electronics: return "IT/Elec"
+        case .other: return "Other"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .all: return "square.grid.2x2"
+        case .weapons: return "shield.fill"
+        case .comsec: return "antenna.radiowaves.left.and.right"
+        case .optics: return "eye.fill"
+        case .vehicles: return "car.fill"
+        case .individualEquipment: return "person.fill"
+        case .medical: return "cross.case.fill"
+        case .supportEquipment: return "wrench.fill"
+        case .electronics: return "desktopcomputer"
+        case .other: return "questionmark.circle"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .all: return .gray
+        case .weapons: return .red
+        case .comsec: return .blue
+        case .optics: return .purple
+        case .vehicles: return .orange
+        case .individualEquipment: return .green
+        case .medical: return .pink
+        case .supportEquipment: return .brown
+        case .electronics: return .cyan
+        case .other: return .gray
+        }
+    }
+    
+    static func fromItemName(_ name: String) -> PropertyCategory {
+        let lowercased = name.lowercased()
+        
+        // Weapons - Military weapons and firearms
+        if lowercased.contains("rifle") || lowercased.contains("carbine") || 
+           lowercased.contains("m4") || lowercased.contains("m16") || 
+           lowercased.contains("pistol") || lowercased.contains("m9") ||
+           lowercased.contains("m17") || lowercased.contains("weapon") ||
+           lowercased.contains("m240") || lowercased.contains("m249") ||
+           lowercased.contains("m2") || lowercased.contains(".50") ||
+           lowercased.contains("mk19") || lowercased.contains("grenade") {
+            return .weapons
+        }
+        
+        // COMSEC/Communications
+        if lowercased.contains("radio") || lowercased.contains("prc-") || 
+           lowercased.contains("comm") || lowercased.contains("antenna") ||
+           lowercased.contains("sincgars") || lowercased.contains("harris") ||
+           lowercased.contains("an/prc") || lowercased.contains("comms") {
+            return .comsec
+        }
+        
+        // Optics - Night vision, scopes, thermal
+        if lowercased.contains("optic") || lowercased.contains("scope") || 
+           lowercased.contains("pvs-") || lowercased.contains("nvg") || 
+           lowercased.contains("night vision") || lowercased.contains("thermal") ||
+           lowercased.contains("acog") || lowercased.contains("eotech") ||
+           lowercased.contains("aimpoint") || lowercased.contains("elcan") ||
+           lowercased.contains("an/pvs") || lowercased.contains("nods") {
+            return .optics
+        }
+        
+        // Vehicles - Military vehicles
+        if lowercased.contains("vehicle") || lowercased.contains("truck") || 
+           lowercased.contains("humvee") || lowercased.contains("lmtv") ||
+           lowercased.contains("mrap") || lowercased.contains("tank") ||
+           lowercased.contains("bradley") || lowercased.contains("stryker") ||
+           lowercased.contains("m1078") || lowercased.contains("m998") {
+            return .vehicles
+        }
+        
+        // Individual Equipment (TA-50)
+        if lowercased.contains("helmet") || lowercased.contains("vest") || 
+           lowercased.contains("iotv") || lowercased.contains("pack") || 
+           lowercased.contains("rucksack") || lowercased.contains("body armor") ||
+           lowercased.contains("kevlar") || lowercased.contains("ach") ||
+           lowercased.contains("uniform") || lowercased.contains("boots") ||
+           lowercased.contains("ta-50") || lowercased.contains("ta50") {
+            return .individualEquipment
+        }
+        
+        // Medical Equipment
+        if lowercased.contains("medical") || lowercased.contains("ifak") || 
+           lowercased.contains("aid kit") || lowercased.contains("medic") ||
+           lowercased.contains("bandage") || lowercased.contains("stretcher") ||
+           lowercased.contains("defibrillator") || lowercased.contains("iv") {
+            return .medical
+        }
+        
+        // Support Equipment - Tools, generators, etc.
+        if lowercased.contains("generator") || lowercased.contains("tool") || 
+           lowercased.contains("maintenance") || lowercased.contains("wrench") ||
+           lowercased.contains("mep-") || lowercased.contains("compressor") ||
+           lowercased.contains("welder") || lowercased.contains("crane") {
+            return .supportEquipment
+        }
+        
+        // Electronics/IT Equipment
+        if lowercased.contains("computer") || lowercased.contains("laptop") || 
+           lowercased.contains("gps") || lowercased.contains("server") ||
+           lowercased.contains("router") || lowercased.contains("switch") ||
+           lowercased.contains("monitor") || lowercased.contains("tablet") ||
+           lowercased.contains("printer") || lowercased.contains("network") {
+            return .electronics
+        }
+        
+        return .other
+    }
+}
+
+// MARK: - Status Filter (Military-specific)
+enum PropertyFilterStatus: String, CaseIterable, Identifiable {
+    case all = "all"
+    case serviceable = "serviceable"
+    case unserviceable = "unserviceable"
+    case deadlineMaintenance = "deadline-maintenance"
+    case inTransit = "in-transit"
+    case unknown = "unknown"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .all: return "All Status"
+        case .serviceable: return "Serviceable"
+        case .unserviceable: return "Unserviceable"
+        case .deadlineMaintenance: return "Deadline"
+        case .inTransit: return "In Transit"
+        case .unknown: return "Unknown"
+        }
+    }
+    
+    var shortDisplayName: String {
+        switch self {
+        case .all: return "All"
+        case .serviceable: return "FMC"  // Fully Mission Capable
+        case .unserviceable: return "NMC" // Non-Mission Capable
+        case .deadlineMaintenance: return "DL" // Deadline
+        case .inTransit: return "Transit"
+        case .unknown: return "UNK"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .all: return .gray
+        case .serviceable: return .green
+        case .unserviceable: return .red
+        case .deadlineMaintenance: return .orange
+        case .inTransit: return .blue
+        case .unknown: return .gray
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .all: return "circle"
+        case .serviceable: return "checkmark.circle.fill"
+        case .unserviceable: return "xmark.circle.fill"
+        case .deadlineMaintenance: return "exclamationmark.triangle.fill"
+        case .inTransit: return "arrow.triangle.2.circlepath"
+        case .unknown: return "questionmark.circle"
+        }
+    }
+    
+    static func fromProperty(_ property: Property) -> PropertyFilterStatus {
+        let status = (property.currentStatus ?? property.status ?? "").lowercased()
+        
+        // Check for maintenance conditions first
+        if property.needsMaintenance || status.contains("maintenance") || 
+           status.contains("deadline") {
+            return .deadlineMaintenance
+        }
+        
+        // Check for in-transit status
+        if status.contains("transit") || status.contains("transfer") || 
+           status.contains("shipping") || status.contains("moving") {
+            return .inTransit
+        }
+        
+        // Check for serviceable conditions
+        if status.contains("operational") || status.contains("active") || 
+           status.contains("serviceable") {
+            return .serviceable
+        }
+        
+        // Check for unserviceable conditions
+        if status.contains("broken") || status.contains("damaged") || 
+           status.contains("non-operational") || status.contains("inoperable") ||
+           status.contains("unserviceable") {
+            return .unserviceable
+        }
+        
+        // Default to unknown if status is unclear
+        return .unknown
+    }
 }
 
 // Enum to represent the state of loading user properties
@@ -41,7 +277,12 @@ class MyPropertiesViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var searchText = ""
-    @Published var selectedFilter: PropertyFilter = .all
+    
+    // New filter system
+    @Published var selectedFilterType: PropertyFilterType = .all
+    @Published var selectedCategory: PropertyCategory = .all
+    @Published var selectedStatus: PropertyFilterStatus = .all
+    
     private var hasLoadedInitialData = false
     
     let apiService: APIServiceProtocol
@@ -74,23 +315,51 @@ class MyPropertiesViewModel: ObservableObject {
             }
         }
         
-        // Apply status filter
-        switch selectedFilter {
-        case .all:
-            break
-        case .operational:
-            filtered = filtered.filter { 
-                let status = ($0.currentStatus ?? $0.status ?? "").lowercased()
-                return status == "operational" || status == "active"
+        // Apply category filter
+        if selectedCategory != .all {
+            filtered = filtered.filter { property in
+                PropertyCategory.fromItemName(property.itemName) == selectedCategory
             }
-        case .maintenance:
-            filtered = filtered.filter {
-                let status = ($0.currentStatus ?? $0.status ?? "").lowercased()
-                return status == "maintenance" || status == "needs_maintenance" || $0.needsMaintenance
+        }
+        
+        // Apply status filter
+        if selectedStatus != .all {
+            filtered = filtered.filter { property in
+                PropertyFilterStatus.fromProperty(property) == selectedStatus
             }
         }
         
         return filtered
+    }
+    
+    // Category counts for filter badges
+    var categoryCounts: [PropertyCategory: Int] {
+        var counts: [PropertyCategory: Int] = [:]
+        for category in PropertyCategory.allCases {
+            if category == .all {
+                counts[category] = allProperties.count
+            } else {
+                counts[category] = allProperties.filter { 
+                    PropertyCategory.fromItemName($0.itemName) == category 
+                }.count
+            }
+        }
+        return counts
+    }
+    
+    // Status counts for filter badges
+    var statusCounts: [PropertyFilterStatus: Int] {
+        var counts: [PropertyFilterStatus: Int] = [:]
+        for status in PropertyFilterStatus.allCases {
+            if status == .all {
+                counts[status] = allProperties.count
+            } else {
+                counts[status] = allProperties.filter { 
+                    PropertyFilterStatus.fromProperty($0) == status 
+                }.count
+            }
+        }
+        return counts
     }
     
     init(apiService: APIServiceProtocol = APIService()) {
