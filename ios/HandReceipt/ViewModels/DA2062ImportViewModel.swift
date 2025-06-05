@@ -528,13 +528,22 @@ class DA2062ImportViewModel: ObservableObject {
             
             // Try NSN lookup if available
             if let nsn = item.parsed.nsn {
-                do {
-                    let nsnDetails = try await nsnService.lookupNSN(nsn)
+                let lookupResult = await nsnService.lookupNSN(nsn)
+                
+                switch lookupResult {
+                case .found(let nsnDetails):
                     enriched.officialName = nsnDetails.nomenclature
                     enriched.manufacturer = nsnDetails.manufacturer
                     enriched.partNumber = nsnDetails.partNumber
-                } catch {
-                    print("NSN lookup failed for \(nsn): \(error)")
+                    debugPrint("✅ NSN lookup successful for \(nsn): \(nsnDetails.nomenclature)")
+                    
+                case .notFound:
+                    // Not an error - just use original data
+                    debugPrint("ℹ️ NSN \(nsn) not found in database (this is normal for unlisted items)")
+                    
+                case .networkError(let error):
+                    // Log but don't fail the import
+                    debugPrint("⚠️ NSN lookup network error for \(nsn): \(error.localizedDescription)")
                 }
             }
             
@@ -671,53 +680,4 @@ struct PartialSuccessError {
 struct ValidationResult {
     let isValid: Bool
     let errors: [String]
-}
-
-private func enrichWithNSNData(_ items: [ValidatedItem]) async -> [EnrichedItem] {
-    updateProgress(phase: .enriching, currentItem: "Looking up NSN details...")
-    
-    var enrichedItems: [EnrichedItem] = []
-    
-    for (index, validatedItem) in items.enumerated() {
-        if Task.isCancelled { break }
-        
-        updateProgress(
-            phase: .enriching,
-            currentItem: validatedItem.parsed.nsn ?? "Unknown NSN",
-            processedItems: index
-        )
-        
-        var officialName: String?
-        var enhancedDescription: String = validatedItem.parsed.description
-        
-        // Try NSN lookup if available
-        if let nsn = validatedItem.parsed.nsn, !nsn.isEmpty {
-            let lookupResult = await nsnService.lookupNSN(nsn)
-            
-            switch lookupResult {
-            case .found(let nsnDetails):
-                officialName = nsnDetails.name
-                enhancedDescription = nsnDetails.description ?? validatedItem.parsed.description
-                debugPrint("✅ Enriched item with NSN \(nsn): \(nsnDetails.name)")
-                
-            case .notFound:
-                // Not an error - just use original data
-                debugPrint("ℹ️ NSN \(nsn) not in database - using OCR data")
-                
-            case .networkError(let error):
-                // Log but don't fail the import
-                debugPrint("⚠️ NSN lookup network error for \(nsn): \(error.localizedDescription)")
-            }
-        }
-        
-        let enrichedItem = EnrichedItem(
-            validated: validatedItem,
-            officialName: officialName,
-            enhancedDescription: enhancedDescription
-        )
-        
-        enrichedItems.append(enrichedItem)
-    }
-    
-    return enrichedItems
 } 
