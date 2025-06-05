@@ -1,3 +1,5 @@
+//ios/HandReceipt/Views/DA2062/DA2062ScanView.swift
+
 import SwiftUI
 import VisionKit
 import PhotosUI
@@ -533,6 +535,8 @@ struct OCRProcessingView: View {
     @StateObject private var scanViewModel = DA2062ScanViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var processingStarted = false
+    @State private var showError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         VStack(spacing: 24) {
@@ -597,6 +601,20 @@ struct OCRProcessingView: View {
         .padding()
         .navigationBarHidden(true)
         .interactiveDismissDisabled(scanViewModel.isProcessing)
+        .alert("Processing Error", isPresented: $showError) {
+            Button("Try Local OCR") {
+                // Retry with local OCR
+                scanViewModel.useAzureOCR = false
+                processingStarted = false
+                showError = false
+                startProcessing()
+            }
+            Button("Cancel") {
+                dismiss()
+            }
+        } message: {
+            Text(errorMessage)
+        }
     }
     
     private func startProcessing() {
@@ -621,10 +639,12 @@ struct OCRProcessingView: View {
                         if let form = scanViewModel.currentForm {
                             onCompletion(.success(form))
                         } else {
-                            onCompletion(.failure(NSError(domain: "OCRProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "No form data returned"])))
+                            errorMessage = "No form data returned from OCR processing"
+                            showError = true
                         }
                     case .failure(let error):
-                        onCompletion(.failure(error))
+                        errorMessage = "Azure OCR failed: \(error.localizedDescription)\n\nWould you like to try local OCR instead?"
+                        showError = true
                     }
                 }
             }
@@ -637,10 +657,12 @@ struct OCRProcessingView: View {
                         if let form = scanViewModel.currentForm {
                             onCompletion(.success(form))
                         } else {
-                            onCompletion(.failure(NSError(domain: "OCRProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "No form data returned"])))
+                            errorMessage = "No form data returned from OCR processing"
+                            showError = true
                         }
                     case .failure(let error):
-                        onCompletion(.failure(error))
+                        errorMessage = "OCR processing failed: \(error.localizedDescription)"
+                        showError = true
                     }
                 }
             }

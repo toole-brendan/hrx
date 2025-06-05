@@ -1,3 +1,5 @@
+//ios/HandReceipt/ViewModels/DA2062ScanViewModel.swift
+
 import Foundation
 import SwiftUI
 import Combine

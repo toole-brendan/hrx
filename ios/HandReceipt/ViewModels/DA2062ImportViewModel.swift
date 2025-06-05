@@ -1,3 +1,5 @@
+//ios/HandReceipt/ViewModels/DA2062ImportViewModel.swift
+
 import Foundation
 import SwiftUI
 import Combine
@@ -569,23 +571,29 @@ class DA2062ImportViewModel: ObservableObject {
     // MARK: - Azure Response Conversion
     
     private func convertAzureResponseToBatch(_ azureResponse: AzureOCRResponse) -> [DA2062BatchItem] {
-        return (azureResponse.items ?? []).map { azureItem in
-            DA2062BatchItem(
+        return (azureResponse.items ?? []).compactMap { azureItem in
+            // Skip items without valid data
+            guard !azureItem.name.isEmpty else { return nil }
+            
+            // Create BatchImportMetadata from AzureImportMetadata
+            let batchMetadata = BatchImportMetadata(
+                confidence: max(azureItem.importMetadata.scanConfidence, azureItem.importMetadata.itemConfidence),
+                requiresVerification: azureItem.importMetadata.requiresVerification,
+                verificationReasons: azureItem.importMetadata.verificationReasons,
+                sourceDocumentUrl: azureItem.importMetadata.sourceDocumentURL,
+                originalQuantity: azureItem.importMetadata.originalQuantity,
+                quantityIndex: nil
+            )
+            
+            return DA2062BatchItem(
                 name: azureItem.name,
                 description: azureItem.description,
                 serialNumber: azureItem.serialNumber,
                 nsn: azureItem.nsn,
                 quantity: azureItem.quantity,
-                unit: azureItem.unit,
-                category: "Equipment", // Default category
-                importMetadata: BatchImportMetadata(
-                    confidence: azureItem.importMetadata.confidence,
-                    requiresVerification: azureItem.importMetadata.requiresVerification,
-                    verificationReasons: azureItem.importMetadata.verificationReasons,
-                    sourceDocumentUrl: azureItem.importMetadata.sourceDocumentUrl,
-                    originalQuantity: azureItem.quantity,
-                    quantityIndex: nil
-                )
+                unit: azureItem.unit.isEmpty ? "EA" : azureItem.unit,  // Default to EA if empty
+                category: azureItem.category.isEmpty ? "Equipment" : azureItem.category,  // Default category
+                importMetadata: batchMetadata
             )
         }
     }
