@@ -10,8 +10,9 @@ struct DA2062ScanView: View {
     @State private var importError: String?
     @State private var isImporting = false
     @State private var showingSettings = false
-    @State private var selectedImageItem: PhotosPickerItem?
+    @State private var selectedImageItem: Any? // Will be PhotosPickerItem on iOS 16+
     @State private var showingImagePicker = false
+    @State private var showingLegacyImagePicker = false
     
     // OCR Mode Settings
     @AppStorage("useAzureOCR") private var useAzureOCR = true
@@ -93,9 +94,17 @@ struct DA2062ScanView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsSheet()
             }
-            .photosPicker(isPresented: $showingImagePicker, selection: $selectedImageItem, matching: .images)
+            .conditionalPhotosPicker()
+            .sheet(isPresented: $showingLegacyImagePicker) {
+                LegacyImagePicker { image in
+                    processImage(image)
+                    showingLegacyImagePicker = false
+                }
+            }
             .onChange(of: selectedImageItem) { item in
-                loadSelectedImage(item)
+                if #available(iOS 16.0, *), let photosPickerItem = item as? PhotosPickerItem {
+                    loadSelectedImage(photosPickerItem)
+                }
             }
         }
     }
@@ -149,7 +158,11 @@ struct DA2062ScanView: View {
             
             VStack(spacing: 12) {
                 Button("Choose Image from Photos") {
-                    showingImagePicker = true
+                    if #available(iOS 16.0, *) {
+                        showingImagePicker = true
+                    } else {
+                        showingLegacyImagePicker = true
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -360,9 +373,8 @@ struct DA2062ScanView: View {
         processImage(testImage)
     }
     
-    private func loadSelectedImage(_ item: PhotosPickerItem?) {
-        guard let item = item else { return }
-        
+    @available(iOS 16.0, *)
+    private func loadSelectedImage(_ item: PhotosPickerItem) {
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
@@ -474,6 +486,62 @@ struct RecentScanRow: View {
         .padding(8)
         .background(Color(.systemBackground))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Legacy Image Picker for iOS < 16.0
+
+struct LegacyImagePicker: UIViewControllerRepresentable {
+    let onImageSelected: (UIImage) -> Void
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: LegacyImagePicker
+        
+        init(_ parent: LegacyImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.onImageSelected(image)
+            }
+        }
+    }
+}
+
+// MARK: - View Modifier for Conditional PhotosPicker
+
+extension View {
+    @ViewBuilder
+    func conditionalPhotosPicker() -> some View {
+        if #available(iOS 16.0, *) {
+            self.modifier(PhotosPickerModifier())
+        } else {
+            self
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+struct PhotosPickerModifier: ViewModifier {
+    @State private var selectedItem: PhotosPickerItem?
+    
+    func body(content: Content) -> some View {
+        content
+            .photosPicker(isPresented: .constant(false), selection: $selectedItem, matching: .images)
     }
 }
 
