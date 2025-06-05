@@ -138,10 +138,10 @@ struct DA2062ExportView: View {
             }
         }
         .task {
-            await viewModel.loadUserProperties()
-            // Set pre-selected properties if any were passed in
             if !preSelectedPropertyIDs.isEmpty {
-                viewModel.setInitialSelection(preSelectedPropertyIDs)
+                await viewModel.loadUserPropertiesAndSetSelection(preSelectedPropertyIDs)
+            } else {
+                await viewModel.loadUserProperties()
             }
         }
     }
@@ -307,7 +307,7 @@ struct DA2062ExportView: View {
                 }
             }) {
                 HStack {
-                    Image(systemName: "person.2.arrow.trianglepath")
+                    Image(systemName: "paperplane.fill")
                         .font(.system(size: 16, weight: .regular))
                     Text("Send to User")
                         .font(AppFonts.bodyMedium)
