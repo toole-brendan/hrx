@@ -44,7 +44,7 @@ class DA2062ImportViewModel: ObservableObject {
                     try await processWithAzureOCREnhanced(image: image)
                 } catch {
                     if !Task.isCancelled {
-                        await handleImportError(error)
+                        handleImportError(error)
                     }
                 }
             } else {
@@ -52,7 +52,7 @@ class DA2062ImportViewModel: ObservableObject {
                     try await processWithLocalOCREnhanced(image: image)
                 } catch {
                     if !Task.isCancelled {
-                        await handleImportError(error)
+                        handleImportError(error)
                     }
                 }
             }
@@ -87,7 +87,7 @@ class DA2062ImportViewModel: ObservableObject {
                 
             } catch {
                 if !Task.isCancelled {
-                    await handleImportError(error)
+                    handleImportError(error)
                 }
             }
         }
@@ -212,7 +212,7 @@ class DA2062ImportViewModel: ObservableObject {
                 updateProgress(phase: .extracting, currentItem: "Azure OCR failed, falling back to local processing...")
                 await fallbackToLocalOCR(image: image)
             } else {
-                await handleImportError(error)
+                handleImportError(error)
             }
         }
     }
@@ -254,7 +254,7 @@ class DA2062ImportViewModel: ObservableObject {
             
         } catch {
             if !Task.isCancelled {
-                await handleImportError(error)
+                handleImportError(error)
             }
         }
     }
@@ -284,7 +284,7 @@ class DA2062ImportViewModel: ObservableObject {
             
         } catch {
             if !Task.isCancelled {
-                await handleImportError(error)
+                handleImportError(error)
             }
         }
     }
@@ -576,14 +576,7 @@ class DA2062ImportViewModel: ObservableObject {
             guard !azureItem.name.isEmpty else { return nil }
             
             // Create BatchImportMetadata from AzureImportMetadata
-            let batchMetadata = BatchImportMetadata(
-                confidence: max(azureItem.importMetadata.scanConfidence, azureItem.importMetadata.itemConfidence),
-                requiresVerification: azureItem.importMetadata.requiresVerification,
-                verificationReasons: azureItem.importMetadata.verificationReasons,
-                sourceDocumentUrl: azureItem.importMetadata.sourceDocumentURL,
-                originalQuantity: azureItem.importMetadata.originalQuantity,
-                quantityIndex: nil
-            )
+            let batchMetadata = BatchImportMetadata(from: azureItem.importMetadata)
             
             return DA2062BatchItem(
                 name: azureItem.name,
@@ -591,8 +584,8 @@ class DA2062ImportViewModel: ObservableObject {
                 serialNumber: azureItem.serialNumber,
                 nsn: azureItem.nsn,
                 quantity: azureItem.quantity,
-                unit: azureItem.unit.isEmpty ? "EA" : azureItem.unit,  // Default to EA if empty
-                category: azureItem.category.isEmpty ? "Equipment" : azureItem.category,  // Default category
+                unit: (azureItem.unit?.isEmpty ?? true) ? "EA" : azureItem.unit,  // Default to EA if empty or nil
+                category: (azureItem.category?.isEmpty ?? true) ? "Equipment" : azureItem.category,  // Default category
                 importMetadata: batchMetadata
             )
         }

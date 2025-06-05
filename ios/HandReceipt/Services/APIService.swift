@@ -1808,15 +1808,40 @@ public struct AzureOCRItem: Codable {
     public let serialNumber: String?
     public let quantity: Int
     public let unit: String?
-    public let condition: String?
+    public let category: String?
+    public let sourceRef: String?
     public let importMetadata: AzureImportMetadata
 }
 
 public struct AzureImportMetadata: Codable {
-    public let confidence: Double
+    public let source: String
+    public let importDate: Date?  // Added to match backend response
+    public let formNumber: String
+    public let scanConfidence: Double      // Changed from 'confidence' to match backend
+    public let itemConfidence: Double?     // Added this field to match backend (optional for compatibility)
+    public let serialSource: String
+    public let originalQuantity: Int
     public let requiresVerification: Bool
     public let verificationReasons: [String]
     public let sourceDocumentUrl: String?
+    
+    // Add computed property for backward compatibility
+    public var confidence: Double {
+        return max(scanConfidence, itemConfidence ?? scanConfidence)
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case source
+        case importDate = "import_date"
+        case formNumber = "form_number"
+        case scanConfidence = "scan_confidence"     // Updated to match backend
+        case itemConfidence = "item_confidence"     // Added to match backend
+        case serialSource = "serial_source"
+        case originalQuantity = "original_quantity"
+        case requiresVerification = "requires_verification"
+        case verificationReasons = "verification_reasons"
+        case sourceDocumentUrl = "source_document_url"
+    }
 }
 
 public struct AzureOCRMetadata: Codable {
@@ -1867,6 +1892,27 @@ public struct BatchImportMetadata: Codable {
     public let sourceDocumentUrl: String?
     public let originalQuantity: Int?
     public let quantityIndex: Int?
+    
+    // Add initializer that can work with Azure metadata
+    public init(from azureMetadata: AzureImportMetadata) {
+        self.confidence = azureMetadata.confidence // Uses computed property
+        self.requiresVerification = azureMetadata.requiresVerification
+        self.verificationReasons = azureMetadata.verificationReasons
+        self.sourceDocumentUrl = azureMetadata.sourceDocumentUrl
+        self.originalQuantity = azureMetadata.originalQuantity
+        self.quantityIndex = nil
+    }
+    
+    // Standard initializer
+    public init(confidence: Double?, requiresVerification: Bool?, verificationReasons: [String]?, 
+         sourceDocumentUrl: String?, originalQuantity: Int?, quantityIndex: Int?) {
+        self.confidence = confidence
+        self.requiresVerification = requiresVerification
+        self.verificationReasons = verificationReasons
+        self.sourceDocumentUrl = sourceDocumentUrl
+        self.originalQuantity = originalQuantity
+        self.quantityIndex = quantityIndex
+    }
 }
 
 public struct BatchImportResponse: Codable {
