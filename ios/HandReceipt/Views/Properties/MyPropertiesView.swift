@@ -158,7 +158,14 @@ struct MyPropertiesView: View {
                     viewModel.refreshData()
                 }
         }
-        .fullScreenCover(isPresented: $showingDA2062Export) {
+        .fullScreenCover(
+            isPresented: $showingDA2062Export,
+            onDismiss: {
+                // Exit selection mode and clear selected items when modal closes
+                isSelectMode = false
+                selectedPropertiesForExport.removeAll()
+            }
+        ) {
             DA2062ExportView(preSelectedPropertyIDs: Array(selectedPropertiesForExport))
                 .onAppear {
                     print("DA2062ExportView full screen cover appeared")

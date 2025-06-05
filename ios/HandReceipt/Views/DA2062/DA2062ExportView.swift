@@ -11,6 +11,10 @@ struct DA2062ExportView: View {
     @State private var isGenerating = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showingUnitInfoEditor = false
+    @State private var showingRecipientPicker = false
+    @State private var selectedConnection: UserConnection?
+    @StateObject private var connectionsViewModel = ConnectionsViewModel(apiService: APIService.shared)
     @Environment(\.dismiss) private var dismiss
     
     let preSelectedPropertyIDs: [Int]
@@ -81,6 +85,58 @@ struct DA2062ExportView: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showingUnitInfoEditor) {
+            UnitInfoEditorView(unitInfo: $viewModel.unitInfo)
+        }
+        .sheet(isPresented: $showingRecipientPicker) {
+            NavigationView {
+                VStack {
+                    // Header with Cancel and Send
+                    HStack {
+                        Button("Cancel") { showingRecipientPicker = false }
+                            .padding(.leading)
+                        Spacer()
+                        Text("Send Hand Receipt")
+                            .font(.headline)
+                        Spacer()
+                        Button("Send") {
+                            Task { await sendHandReceiptInApp() }
+                        }
+                        .disabled(selectedConnection == nil)
+                        .padding(.trailing)
+                    }
+                    .padding(.vertical)
+                    Divider()
+                    // List connections
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if connectionsViewModel.connections.isEmpty {
+                                Text("No connections available").padding()
+                            }
+                            ForEach(connectionsViewModel.connections) { connection in
+                                Button(action: {
+                                    selectedConnection = connection
+                                }) {
+                                    HStack {
+                                        Text(connection.connectedUser?.name ?? "Unknown")
+                                        Spacer()
+                                        Image(systemName: selectedConnection?.id == connection.id 
+                                                ? "checkmark.circle.fill" 
+                                                : "circle")
+                                            .foregroundColor(AppColors.accent)
+                                    }
+                                    .padding()
+                                }
+                                .background(selectedConnection?.id == connection.id 
+                                            ? AppColors.accent.opacity(0.1) 
+                                            : Color.clear)
+                            }
+                        }
+                    }
+                }
+                .navigationBarHidden(true)
+            }
+        }
         .task {
             await viewModel.loadUserProperties()
             // Set pre-selected properties if any were passed in
@@ -98,7 +154,7 @@ struct DA2062ExportView: View {
                 title: "Unit Information",
                 subtitle: "Organization details for this hand receipt",
                 style: .serif,
-                action: { /* Show unit info editor */ },
+                action: { showingUnitInfoEditor = true },
                 actionLabel: "Edit"
             )
             
@@ -198,17 +254,6 @@ struct DA2062ExportView: View {
                     title: "Group by Category",
                     subtitle: "Organize items by type"
                 )
-                
-                Divider()
-                    .background(AppColors.divider)
-                    .padding(.leading, 44)
-                
-                MinimalToggleRow(
-                    isOn: $viewModel.includeQRCodes,
-                    icon: "qrcode",
-                    title: "Include QR Codes",
-                    subtitle: "Add QR codes for each item"
-                )
             }
             .cleanCard(padding: 0)
         }
@@ -252,6 +297,24 @@ struct DA2062ExportView: View {
             } message: {
                 Text("Enter recipient email addresses separated by commas")
             }
+            
+            Button(action: { 
+                Task {
+                    await MainActor.run { 
+                        connectionsViewModel.loadConnections() 
+                    }
+                    showingRecipientPicker = true 
+                }
+            }) {
+                HStack {
+                    Image(systemName: "person.2.arrow.trianglepath")
+                        .font(.system(size: 16, weight: .regular))
+                    Text("Send to User")
+                        .font(AppFonts.bodyMedium)
+                }
+            }
+            .buttonStyle(.minimalSecondary)
+            .disabled(viewModel.selectedPropertyIDs.isEmpty)
         }
     }
     
@@ -303,6 +366,25 @@ struct DA2062ExportView: View {
                 errorMessage = "DA 2062 sent successfully to \(recipients.count) recipient(s)"
                 showError = true
             }
+        } catch {
+            isGenerating = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+    
+    private func sendHandReceiptInApp() async {
+        guard let connection = selectedConnection,
+              let recipientUser = connection.connectedUser else { return }
+        isGenerating = true
+        do {
+            try await viewModel.sendHandReceipt(to: recipientUser.id)
+            isGenerating = false
+            // Show success alert
+            errorMessage = "Hand Receipt sent to \(recipientUser.rank) \(recipientUser.name)"
+            showError = true
+            // Dismiss the picker and export view after success
+            showingRecipientPicker = false
         } catch {
             isGenerating = false
             errorMessage = error.localizedDescription
@@ -550,4 +632,27 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+struct UnitInfoEditorView: View {
+    @Binding var unitInfo: DA2062ExportViewModel.UnitInfo
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Unit Details")) {
+                    TextField("Unit Name", text: $unitInfo.unitName)
+                    TextField("DODAAC", text: $unitInfo.dodaac)
+                    TextField("Stock Number", text: $unitInfo.stockNumber)
+                    TextField("Location", text: $unitInfo.location)
+                }
+            }
+            .navigationBarTitle("Edit Unit Info", displayMode: .inline)
+            .navigationBarItems(
+                leading: Button("Cancel") { dismiss() },
+                trailing: Button("Save") { dismiss() }
+            )
+        }
+    }
 } 

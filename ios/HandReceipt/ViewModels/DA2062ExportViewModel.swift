@@ -6,7 +6,6 @@ class DA2062ExportViewModel: ObservableObject {
     @Published var properties: [Property] = []
     @Published var selectedPropertyIDs: Set<Int> = []
     @Published var groupByCategory = true
-    @Published var includeQRCodes = true
     @Published var unitInfo = UnitInfo()
     @Published var userInfo = UserInfo()
     @Published var isLoading = false
@@ -89,7 +88,7 @@ class DA2062ExportViewModel: ObservableObject {
         let request = GeneratePDFRequest(
             propertyIDs: Array(selectedPropertyIDs),
             groupByCategory: groupByCategory,
-            includeQRCodes: includeQRCodes,
+            includeQRCodes: false,
             sendEmail: false,
             recipients: [],
             fromUser: PDFUserInfo(
@@ -109,7 +108,8 @@ class DA2062ExportViewModel: ObservableObject {
                 dodaac: unitInfo.dodaac,
                 stockNumber: unitInfo.stockNumber,
                 location: unitInfo.location
-            )
+            ),
+            toUserId: 0
         )
         
         return try await apiService.generateDA2062PDF(request: request)
@@ -119,7 +119,7 @@ class DA2062ExportViewModel: ObservableObject {
         let request = GeneratePDFRequest(
             propertyIDs: Array(selectedPropertyIDs),
             groupByCategory: groupByCategory,
-            includeQRCodes: includeQRCodes,
+            includeQRCodes: false,
             sendEmail: true,
             recipients: recipients,
             fromUser: PDFUserInfo(
@@ -139,10 +139,42 @@ class DA2062ExportViewModel: ObservableObject {
                 dodaac: unitInfo.dodaac,
                 stockNumber: unitInfo.stockNumber,
                 location: unitInfo.location
-            )
+            ),
+            toUserId: 0
         )
         
         try await apiService.emailDA2062PDF(request: request)
+    }
+    
+    func sendHandReceipt(to recipientId: Int) async throws {
+        let request = GeneratePDFRequest(
+            propertyIDs: Array(selectedPropertyIDs),
+            groupByCategory: groupByCategory,
+            includeQRCodes: false,
+            sendEmail: false,
+            recipients: [],
+            fromUser: PDFUserInfo(
+                name: userInfo.name,
+                rank: userInfo.rank,
+                title: userInfo.title,
+                phone: userInfo.phone
+            ),
+            toUser: PDFUserInfo(
+                name: userInfo.name,
+                rank: userInfo.rank,
+                title: userInfo.title,
+                phone: userInfo.phone
+            ),
+            unitInfo: PDFUnitInfo(
+                unitName: unitInfo.unitName,
+                dodaac: unitInfo.dodaac,
+                stockNumber: unitInfo.stockNumber,
+                location: unitInfo.location
+            ),
+            toUserId: recipientId
+        )
+        
+        _ = try await apiService.sendDA2062InApp(request: request)
     }
 }
 
@@ -157,6 +189,7 @@ struct GeneratePDFRequest: Codable {
     let fromUser: PDFUserInfo
     let toUser: PDFUserInfo
     let unitInfo: PDFUnitInfo
+    let toUserId: Int
     
     enum CodingKeys: String, CodingKey {
         case propertyIDs = "property_ids"
@@ -167,6 +200,7 @@ struct GeneratePDFRequest: Codable {
         case fromUser = "from_user"
         case toUser = "to_user"
         case unitInfo = "unit_info"
+        case toUserId = "to_user_id"
     }
 }
 
@@ -261,8 +295,52 @@ extension APIService {
         }
     }
     
+    func sendDA2062InApp(request: GeneratePDFRequest) async throws -> Document {
+        guard let url = URL(string: "\(baseURLString)/api/da2062/generate-pdf") else {
+            throw APIError.invalidURL
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Add authorization header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            urlRequest.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let requestData = try JSONEncoder().encode(request)
+        urlRequest.httpBody = requestData
+        
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 201 else {
+            if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
+            }
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to send hand receipt")
+        }
+        
+        // Decode the returned document
+        let result = try JSONDecoder().decode([String: Document].self, from: data)
+        guard let document = result["document"] else {
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Invalid server response")
+        }
+        return document
+    }
+    
     func getUserProperties() async throws -> [Property] {
-        guard let url = URL(string: "\(baseURLString)/api/property") else {
+        // Get current user ID
+        let currentUserID = UserDefaults.standard.integer(forKey: "user_id")
+        guard currentUserID > 0 else {
+            throw APIError.badRequest(message: "User not logged in")
+        }
+        
+        guard let url = URL(string: "\(baseURLString)/api/property?assignedToUserId=\(currentUserID)") else {
             throw APIError.invalidURL
         }
         
@@ -283,10 +361,16 @@ extension APIService {
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to fetch properties")
         }
         
-        return try JSONDecoder().decode([Property].self, from: data)
+        // Decode the wrapped response format {"properties": [...]}
+        let propertiesResponse = try JSONDecoder().decode(PropertiesResponse.self, from: data)
+        return propertiesResponse.properties
     }
 }
 
 struct DA2062ErrorResponse: Codable {
     let error: String
+}
+
+struct PropertiesResponse: Codable {
+    let properties: [Property]
 } 

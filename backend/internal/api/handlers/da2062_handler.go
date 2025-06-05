@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -696,6 +697,85 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 
 	// Generate form number
 	formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), userID)
+
+	// Handle in-app delivery to another user
+	if req.ToUserID != 0 {
+		// Verify the recipient is a connection/friend of the sender
+		connected, err := h.Repo.CheckUserConnection(userID, req.ToUserID)
+		if err != nil || !connected {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Recipient must be in your connections"})
+			return
+		}
+		// Fetch recipient details
+		recipient, err := h.Repo.GetUserByID(req.ToUserID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Recipient not found"})
+			return
+		}
+		// Upload PDF to storage
+		ctx := c.Request.Context()
+		fileKey := fmt.Sprintf("da2062/export_%d_%d.pdf", userID, time.Now().UnixNano())
+		err = h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuffer.Bytes()), int64(pdfBuffer.Len()), "application/pdf")
+		if err != nil {
+			log.Printf("Failed to upload DA2062 PDF: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store PDF"})
+			return
+		}
+		// Get a presigned URL for the PDF (for attachments)
+		fileURL, err := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour)
+		if err != nil {
+			log.Printf("Warning: could not get presigned URL, proceeding without it: %v", err)
+			fileURL = ""
+		}
+
+		// Prepare title for document(s)
+		var title string
+		if len(properties) == 1 {
+			// Single item – include item name
+			title = fmt.Sprintf("Hand Receipt for %s", properties[0].Name)
+		} else {
+			title = fmt.Sprintf("Hand Receipt - %d Items", len(properties))
+		}
+
+		// Create document record for recipient (inbox)
+		subtype := "DA2062"
+		doc := &domain.Document{
+			Type:            domain.DocumentTypeTransferForm,
+			Subtype:         &subtype,
+			Title:           title,
+			SenderUserID:    userID,
+			RecipientUserID: req.ToUserID,
+			PropertyID:      nil,  // no single property association for multiple items
+			FormData:        "{}", // could include metadata if needed
+			Description:     nil,
+			Attachments:     nil,
+			Status:          domain.DocumentStatusUnread,
+			SentAt:          time.Now(),
+		}
+		// Attach PDF URL if available
+		if fileURL != "" {
+			attachmentsArr := []string{fileURL}
+			attachJSON, _ := json.Marshal(attachmentsArr)
+			attachStr := string(attachJSON)
+			doc.Attachments = &attachStr
+		}
+		if err := h.Repo.CreateDocument(doc); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record"})
+			return
+		}
+
+		// Log the export action to the ledger
+		if err := h.Ledger.LogDA2062Export(userID, len(properties), "app", recipient.Email); err != nil {
+			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
+		}
+
+		// Respond with the created document
+		c.JSON(http.StatusCreated, gin.H{
+			"document": doc,
+			"message":  fmt.Sprintf("DA 2062 sent to %s %s", recipient.Rank, recipient.Name),
+		})
+		return
+	}
 
 	// Handle email or download
 	if req.SendEmail && len(req.Recipients) > 0 {
