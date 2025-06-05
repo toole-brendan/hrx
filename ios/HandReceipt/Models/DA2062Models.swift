@@ -142,4 +142,65 @@ struct DA2062Scan: Identifiable {
         self.formNumber = formNumber
         self.requiresVerification = requiresVerification
     }
+}
+
+// MARK: - Enhanced Processing Models for Import Pipeline
+
+// Parsed item from OCR with enhanced metadata
+struct ParsedDA2062Item {
+    let lineNumber: Int
+    let nsn: String?
+    let lin: String?
+    let description: String
+    let quantity: Int
+    let unitOfIssue: String
+    let serialNumber: String?
+    let confidence: Double
+    let hasExplicitSerial: Bool
+}
+
+// Validated item with validation results
+struct ValidatedItem {
+    let parsed: ParsedDA2062Item
+    let isValid: Bool
+    let confidence: Double
+}
+
+// Enriched item with NSN lookup data
+struct EnrichedItem {
+    let validated: ValidatedItem
+    var officialName: String?
+    var manufacturer: String?
+    var partNumber: String?
+    
+    init(validated: ValidatedItem) {
+        self.validated = validated
+    }
+}
+
+// Import progress tracking
+struct ImportProgress {
+    var currentPhase: ImportPhase = .scanning
+    var currentItem: String = ""
+    var totalItems: Int = 0
+    var processedItems: Int = 0
+    var errors: [ImportError] = []
+}
+
+// Import phases for progress tracking
+enum ImportPhase {
+    case scanning
+    case extracting
+    case parsing
+    case validating
+    case enriching
+    case creating
+    case complete
+}
+
+// Import error model
+struct ImportError {
+    let itemName: String
+    let error: String
+    let recoverable: Bool
 } 
