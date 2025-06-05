@@ -14,6 +14,8 @@ struct DA2062ExportView: View {
     @State private var showingUnitInfoEditor = false
     @State private var showingRecipientPicker = false
     @State private var selectedConnection: UserConnection?
+    @State private var showingSignatureCapture = false
+    @State private var signatureImage: UIImage?
     @StateObject private var connectionsViewModel = ConnectionsViewModel(apiService: APIService.shared)
     @Environment(\.dismiss) private var dismiss
     
@@ -47,6 +49,9 @@ struct DA2062ExportView: View {
                         
                         // Property Selection Section
                         propertySelectionSection
+                        
+                        // Signature Section
+                        signatureSection
                         
                         // Export Options Section
                         exportOptionsSection
@@ -88,6 +93,13 @@ struct DA2062ExportView: View {
         .sheet(isPresented: $showingUnitInfoEditor) {
             UnitInfoEditorView(unitInfo: $viewModel.unitInfo)
         }
+        .sheet(isPresented: $showingSignatureCapture) {
+            SignatureCaptureView { image in 
+                print("DEBUG: SignatureCaptureView onSave callback called")
+                // Callback on save: persist image and upload
+                saveSignatureImage(image)
+            }
+        }
         .sheet(isPresented: $showingRecipientPicker) {
             NavigationView {
                 VStack {
@@ -116,6 +128,7 @@ struct DA2062ExportView: View {
                             ForEach(connectionsViewModel.connections) { connection in
                                 Button(action: {
                                     selectedConnection = connection
+                                    viewModel.recipientConnection = connection   // new: keep selection in ViewModel
                                 }) {
                                     HStack {
                                         Text(connection.connectedUser?.name ?? "Unknown")
@@ -143,6 +156,8 @@ struct DA2062ExportView: View {
             } else {
                 await viewModel.loadUserProperties()
             }
+            // Load saved signature if available
+            loadSavedSignature()
         }
     }
     
@@ -240,6 +255,53 @@ struct DA2062ExportView: View {
         }
     }
     
+    private var signatureSection: some View {
+        VStack(spacing: 16) {
+            // Section header with an Edit/Add action
+            ElegantSectionHeader(
+                title: "Signature",
+                subtitle: "Your digital signature",
+                style: .serif,
+                action: { showingSignatureCapture = true },
+                actionLabel: signatureImage != nil ? "Edit" : "Add"
+            )
+            
+            // Display either the saved signature or a placeholder
+            VStack(spacing: 12) {
+                if let sigImage = signatureImage {
+                    Image(uiImage: sigImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 100)
+                        .padding(8)
+                        .background(Color.white)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                        .shadow(color: AppColors.shadowColor.opacity(0.1), radius: 2, y: 1)
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "signature")
+                            .font(.system(size: 32, weight: .light))
+                            .foregroundColor(AppColors.tertiaryText)
+                        
+                        Text("No signature saved")
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.secondaryText)
+                        
+                        Text("Tap 'Add' to draw your signature")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.tertiaryText)
+                    }
+                    .padding(.vertical, 32)
+                }
+            }
+            .cleanCard(padding: 16)
+        }
+    }
+    
     private var exportOptionsSection: some View {
         VStack(spacing: 16) {
             ElegantSectionHeader(
@@ -248,6 +310,44 @@ struct DA2062ExportView: View {
             )
             
             VStack(spacing: 0) {
+                // Recipient selection row
+                Button(action: {
+                    Task { 
+                        await MainActor.run { 
+                            connectionsViewModel.loadConnections() 
+                        }
+                        showingRecipientPicker = true 
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(AppColors.tertiaryText)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Recipient")
+                                .font(AppFonts.bodyMedium)
+                                .foregroundColor(AppColors.primaryText)
+                            Text(selectedConnection?.connectedUser?.name ?? "Select a recipient")
+                                .font(AppFonts.caption)
+                                .foregroundColor(selectedConnection == nil ? AppColors.destructive : AppColors.secondaryText)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .light))
+                            .foregroundColor(AppColors.tertiaryText)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Divider()
+                    .padding(.horizontal, 16)
+                
                 MinimalToggleRow(
                     isOn: $viewModel.groupByCategory,
                     icon: "folder",
@@ -270,7 +370,7 @@ struct DA2062ExportView: View {
                 }
             }
             .buttonStyle(.minimalPrimary)
-            .disabled(viewModel.selectedPropertyIDs.isEmpty)
+            .disabled(viewModel.selectedPropertyIDs.isEmpty || selectedConnection == nil || signatureImage == nil)
             
             Button(action: {
                 showingRecipientInput = true
@@ -283,7 +383,7 @@ struct DA2062ExportView: View {
                 }
             }
             .buttonStyle(.minimalSecondary)
-            .disabled(viewModel.selectedPropertyIDs.isEmpty || !MFMailComposeViewController.canSendMail())
+            .disabled(viewModel.selectedPropertyIDs.isEmpty || !MFMailComposeViewController.canSendMail() || selectedConnection == nil || signatureImage == nil)
             .alert("Email Recipients", isPresented: $showingRecipientInput) {
                 TextField("Enter email addresses", text: $emailRecipients)
                     .textInputAutocapitalization(.never)
@@ -314,11 +414,85 @@ struct DA2062ExportView: View {
                 }
             }
             .buttonStyle(.minimalSecondary)
-            .disabled(viewModel.selectedPropertyIDs.isEmpty)
+            .disabled(viewModel.selectedPropertyIDs.isEmpty || signatureImage == nil)
         }
     }
     
     // MARK: - Helper Methods
+    
+    private func loadSavedSignature() {
+        guard let userId = AuthManager.shared.getUserId() else {
+            print("DEBUG: Failed to get user ID when loading signature")
+            return
+        }
+        
+        print("DEBUG: Loading signature for user ID: \(userId)")
+        
+        let fileName = "signature_\(userId).png"
+        let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                          .appendingPathComponent(fileName)
+        
+        print("DEBUG: Looking for signature at: \(fileURL.path)")
+        
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            print("DEBUG: Signature file exists")
+            if let imageData = try? Data(contentsOf: fileURL) {
+                print("DEBUG: Successfully loaded signature data, size: \(imageData.count) bytes")
+                if let image = UIImage(data: imageData) {
+                    print("DEBUG: Successfully created UIImage from data, size: \(image.size)")
+                    signatureImage = image
+                } else {
+                    print("DEBUG: Failed to create UIImage from signature data")
+                }
+            } else {
+                print("DEBUG: Failed to read signature data from file")
+            }
+        } else {
+            print("DEBUG: Signature file does not exist")
+        }
+    }
+    
+    private func saveSignatureImage(_ image: UIImage) {
+        print("DEBUG: saveSignatureImage called with image size: \(image.size)")
+        
+        guard let pngData = image.pngData() else {
+            print("DEBUG: Failed to convert image to PNG data")
+            return
+        }
+        
+        guard let userId = AuthManager.shared.getUserId() else {
+            print("DEBUG: Failed to get user ID from AuthManager")
+            return
+        }
+        
+        print("DEBUG: Saving signature for user ID: \(userId)")
+        print("DEBUG: PNG data size: \(pngData.count) bytes")
+        
+        let fileName = "signature_\(userId).png"
+        let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                          .appendingPathComponent(fileName)
+        
+        print("DEBUG: Saving signature to: \(fileURL.path)")
+        
+        do {
+            try pngData.write(to: fileURL, options: .atomic)
+            UserDefaults.standard.set(true, forKey: "signature_saved_\(userId)")  // flag indicating a saved signature
+            signatureImage = UIImage(data: pngData)  // update state to show preview
+            print("DEBUG: Signature saved successfully to local storage")
+            
+            // Upload to backend (async)
+            Task.detached {
+                do {
+                    let response = try await APIService.shared.uploadUserSignature(imageData: pngData)
+                    print("DEBUG: Signature uploaded successfully to backend: \(response.message)")
+                } catch {
+                    print("DEBUG: Failed to upload signature to backend: \(error)")
+                }
+            }
+        } catch {
+            print("DEBUG: Error saving signature image to local storage: \(error)")
+        }
+    }
     
     private func generateEmailBody() -> String {
         """

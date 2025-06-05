@@ -9,6 +9,7 @@ class DA2062ExportViewModel: ObservableObject {
     @Published var unitInfo = UnitInfo()
     @Published var userInfo = UserInfo()
     @Published var isLoading = false
+    @Published var recipientConnection: UserConnection? = nil
     
     private let apiService = APIService.shared
     private let dateFormatter: DateFormatter = {
@@ -102,86 +103,122 @@ class DA2062ExportViewModel: ObservableObject {
     }
     
     func generatePDF() async throws -> Data {
+        let fromInfo = PDFUserInfo(
+            name: userInfo.name,
+            rank: userInfo.rank,
+            title: userInfo.title,
+            phone: userInfo.phone
+        )
+        
+        var toInfo = fromInfo
+        var recipientId: UInt = 0
+        
+        if let connection = recipientConnection, let other = connection.connectedUser {
+            // Build the recipient's PDFUserInfo from connection details
+            let fullName = [other.firstName, other.lastName]
+                          .compactMap{$0}.joined(separator: " ")
+            toInfo = PDFUserInfo(
+                name: fullName.isEmpty ? other.email ?? "" : fullName,
+                rank: other.rank ?? "",
+                title: !(other.unit ?? "").isEmpty ? other.unit! : "Hand Receipt Holder",
+                phone: ""  // we don't have the other user's phone in UserSummary
+            )
+            recipientId = UInt(other.id)
+        }
+        
         let request = GeneratePDFRequest(
             propertyIDs: selectedPropertyIDs.map { UInt($0) },
             groupByCategory: groupByCategory,
             includeQRCodes: false,
             sendEmail: false,
             recipients: [],
-            fromUser: PDFUserInfo(
-                name: userInfo.name,
-                rank: userInfo.rank,
-                title: userInfo.title,
-                phone: userInfo.phone
-            ),
-            toUser: PDFUserInfo(
-                name: userInfo.name,
-                rank: userInfo.rank,
-                title: userInfo.title,
-                phone: userInfo.phone
-            ),
+            fromUser: fromInfo,
+            toUser: toInfo,
             unitInfo: PDFUnitInfo(
                 unitName: unitInfo.unitName,
                 dodaac: unitInfo.dodaac,
                 stockNumber: unitInfo.stockNumber,
                 location: unitInfo.location
             ),
-            toUserId: 0
+            toUserId: recipientId
         )
         
         return try await apiService.generateDA2062PDF(request: request)
     }
     
     func emailPDF(to recipients: [String]) async throws {
+        let fromInfo = PDFUserInfo(
+            name: userInfo.name,
+            rank: userInfo.rank,
+            title: userInfo.title,
+            phone: userInfo.phone
+        )
+        
+        var toInfo = fromInfo
+        var recipientId: UInt = 0
+        
+        if let connection = recipientConnection, let other = connection.connectedUser {
+            // Build the recipient's PDFUserInfo from connection details
+            let fullName = [other.firstName, other.lastName]
+                          .compactMap{$0}.joined(separator: " ")
+            toInfo = PDFUserInfo(
+                name: fullName.isEmpty ? other.email ?? "" : fullName,
+                rank: other.rank ?? "",
+                title: !(other.unit ?? "").isEmpty ? other.unit! : "Hand Receipt Holder",
+                phone: ""  // we don't have the other user's phone in UserSummary
+            )
+            recipientId = UInt(other.id)
+        }
+        
         let request = GeneratePDFRequest(
             propertyIDs: selectedPropertyIDs.map { UInt($0) },
             groupByCategory: groupByCategory,
             includeQRCodes: false,
             sendEmail: true,
             recipients: recipients,
-            fromUser: PDFUserInfo(
-                name: userInfo.name,
-                rank: userInfo.rank,
-                title: userInfo.title,
-                phone: userInfo.phone
-            ),
-            toUser: PDFUserInfo(
-                name: userInfo.name,
-                rank: userInfo.rank,
-                title: userInfo.title,
-                phone: userInfo.phone
-            ),
+            fromUser: fromInfo,
+            toUser: toInfo,
             unitInfo: PDFUnitInfo(
                 unitName: unitInfo.unitName,
                 dodaac: unitInfo.dodaac,
                 stockNumber: unitInfo.stockNumber,
                 location: unitInfo.location
             ),
-            toUserId: 0
+            toUserId: recipientId
         )
         
         try await apiService.emailDA2062PDF(request: request)
     }
     
     func sendHandReceipt(to recipientId: Int) async throws {
+        let fromInfo = PDFUserInfo(
+            name: userInfo.name,
+            rank: userInfo.rank,
+            title: userInfo.title,
+            phone: userInfo.phone
+        )
+        
+        guard let other = recipientConnection?.connectedUser else {
+            throw NSError(domain: "DA2062Export", code: 1, userInfo: [NSLocalizedDescriptionKey: "Recipient not set"])
+        }
+        
+        let fullName = [other.firstName, other.lastName]
+                      .compactMap{$0}.joined(separator: " ")
+        let toInfo = PDFUserInfo(
+            name: fullName.isEmpty ? other.email ?? "" : fullName,
+            rank: other.rank ?? "",
+            title: !(other.unit ?? "").isEmpty ? other.unit! : "Hand Receipt Holder",
+            phone: ""
+        )
+        
         let request = GeneratePDFRequest(
             propertyIDs: selectedPropertyIDs.map { UInt($0) },
             groupByCategory: groupByCategory,
             includeQRCodes: false,
             sendEmail: false,
             recipients: [],
-            fromUser: PDFUserInfo(
-                name: userInfo.name,
-                rank: userInfo.rank,
-                title: userInfo.title,
-                phone: userInfo.phone
-            ),
-            toUser: PDFUserInfo(
-                name: userInfo.name,
-                rank: userInfo.rank,
-                title: userInfo.title,
-                phone: userInfo.phone
-            ),
+            fromUser: fromInfo,
+            toUser: toInfo,
             unitInfo: PDFUnitInfo(
                 unitName: unitInfo.unitName,
                 dodaac: unitInfo.dodaac,
@@ -475,6 +512,48 @@ extension APIService {
         print("DEBUG: Successfully decoded \(propertiesResponse.properties.count) properties")
         return propertiesResponse.properties
     }
+    
+    func uploadUserSignature(imageData: Data) async throws -> UploadSignatureResponse {
+        guard let url = URL(string: "\(baseURLString)/api/user/signature") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        // Add authorization header if available
+        if let accessToken = AuthManager.shared.getAccessToken() {
+            request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        // Prepare multipart body
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"signature\"; filename=\"signature.png\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/png\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+            if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
+            }
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to upload signature")
+        }
+        
+        return try JSONDecoder().decode(UploadSignatureResponse.self, from: data)
+    }
 }
 
 struct DA2062ErrorResponse: Codable {
@@ -483,4 +562,14 @@ struct DA2062ErrorResponse: Codable {
 
 struct PropertiesResponse: Codable {
     let properties: [Property]
-} 
+}
+
+struct UploadSignatureResponse: Codable {
+    let message: String
+    let signatureUrl: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case message
+        case signatureUrl = "signature_url"
+    }
+}
