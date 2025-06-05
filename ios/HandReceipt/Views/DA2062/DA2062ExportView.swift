@@ -539,6 +539,12 @@ struct DA2062ExportView: View {
                     let response = try await APIService.shared.uploadUserSignature(imageData: pngData)
                     await MainActor.run {
                         print("DEBUG: Signature uploaded successfully to backend: \(response.message)")
+                        
+                        // Store the signature URL for future PDF generation
+                        if let signatureUrl = response.signatureUrl {
+                            UserDefaults.standard.set(signatureUrl, forKey: "user_signature_url_\(userId)")
+                            print("DEBUG: Stored signature URL: \(signatureUrl)")
+                        }
                     }
                 } catch {
                     await MainActor.run {

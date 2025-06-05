@@ -103,11 +103,16 @@ class DA2062ExportViewModel: ObservableObject {
     }
     
     func generatePDF() async throws -> Data {
+        // Get current user's signature URL if available
+        let currentUserId = AuthManager.shared.getUserId() ?? 0
+        let signatureUrl = UserDefaults.standard.string(forKey: "user_signature_url_\(currentUserId)")
+        
         let fromInfo = PDFUserInfo(
             name: userInfo.name,
             rank: userInfo.rank,
             title: userInfo.title,
-            phone: userInfo.phone
+            phone: userInfo.phone,
+            signatureUrl: signatureUrl
         )
         
         var toInfo = fromInfo
@@ -121,7 +126,8 @@ class DA2062ExportViewModel: ObservableObject {
                 name: fullName.isEmpty ? other.email ?? "" : fullName,
                 rank: other.rank ?? "",
                 title: !(other.unit ?? "").isEmpty ? other.unit! : "Hand Receipt Holder",
-                phone: ""  // we don't have the other user's phone in UserSummary
+                phone: "",  // we don't have the other user's phone in UserSummary
+                signatureUrl: nil  // TODO: Fetch recipient's signature URL if needed
             )
             recipientId = UInt(other.id)
         }
@@ -147,11 +153,16 @@ class DA2062ExportViewModel: ObservableObject {
     }
     
     func emailPDF(to recipients: [String]) async throws {
+        // Get current user's signature URL if available
+        let currentUserId = AuthManager.shared.getUserId() ?? 0
+        let signatureUrl = UserDefaults.standard.string(forKey: "user_signature_url_\(currentUserId)")
+        
         let fromInfo = PDFUserInfo(
             name: userInfo.name,
             rank: userInfo.rank,
             title: userInfo.title,
-            phone: userInfo.phone
+            phone: userInfo.phone,
+            signatureUrl: signatureUrl
         )
         
         var toInfo = fromInfo
@@ -165,7 +176,8 @@ class DA2062ExportViewModel: ObservableObject {
                 name: fullName.isEmpty ? other.email ?? "" : fullName,
                 rank: other.rank ?? "",
                 title: !(other.unit ?? "").isEmpty ? other.unit! : "Hand Receipt Holder",
-                phone: ""  // we don't have the other user's phone in UserSummary
+                phone: "",  // we don't have the other user's phone in UserSummary
+                signatureUrl: nil  // TODO: Fetch recipient's signature URL if needed
             )
             recipientId = UInt(other.id)
         }
@@ -191,11 +203,16 @@ class DA2062ExportViewModel: ObservableObject {
     }
     
     func sendHandReceipt(to recipientId: Int) async throws {
+        // Get current user's signature URL if available
+        let currentUserId = AuthManager.shared.getUserId() ?? 0
+        let signatureUrl = UserDefaults.standard.string(forKey: "user_signature_url_\(currentUserId)")
+        
         let fromInfo = PDFUserInfo(
             name: userInfo.name,
             rank: userInfo.rank,
             title: userInfo.title,
-            phone: userInfo.phone
+            phone: userInfo.phone,
+            signatureUrl: signatureUrl
         )
         
         guard let other = recipientConnection?.connectedUser else {
@@ -208,7 +225,8 @@ class DA2062ExportViewModel: ObservableObject {
             name: fullName.isEmpty ? other.email ?? "" : fullName,
             rank: other.rank ?? "",
             title: !(other.unit ?? "").isEmpty ? other.unit! : "Hand Receipt Holder",
-            phone: ""
+            phone: "",
+            signatureUrl: nil  // TODO: Fetch recipient's signature URL if needed
         )
         
         let request = GeneratePDFRequest(
@@ -263,6 +281,12 @@ struct PDFUserInfo: Codable {
     let rank: String
     let title: String
     let phone: String
+    let signatureUrl: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case name, rank, title, phone
+        case signatureUrl = "signature_url"
+    }
 }
 
 struct PDFUnitInfo: Codable {
