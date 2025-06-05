@@ -85,9 +85,9 @@ struct DA2062ScanView: View {
             .sheet(isPresented: $showingReviewSheet) {
                 if let form = parsedForm {
                     DA2062ReviewSheet(
-                        parsedForm: form,
-                        onImport: handleImport,
-                        onCancel: { showingReviewSheet = false }
+                        form: form,
+                        scannedPages: [],
+                        onConfirm: handleImport
                     )
                 }
             }
@@ -101,8 +101,8 @@ struct DA2062ScanView: View {
                     showingLegacyImagePicker = false
                 }
             }
-            .onChange(of: selectedImageItem) { item in
-                if #available(iOS 16.0, *), let photosPickerItem = item as? PhotosPickerItem {
+            .onChange(of: selectedImageItem) { _ in
+                if #available(iOS 16.0, *), let photosPickerItem = selectedImageItem as? PhotosPickerItem {
                     loadSelectedImage(photosPickerItem)
                 }
             }
@@ -391,29 +391,29 @@ struct DA2062ScanView: View {
         showingProcessingView = true
     }
     
-    private func handleImport(_ items: [EditableDA2062Item]) {
+    private func handleImport(_ propertyRequests: [DA2062PropertyRequest]) {
         showingReviewSheet = false
         isImporting = true
         
         Task {
             do {
-                // Convert to batch import format
-                let batchItems = items.filter(\.isSelected).map { item in
+                // Convert property requests to batch import format
+                let batchItems = propertyRequests.map { request in
                     DA2062BatchItem(
-                        name: item.description,
-                        description: item.description,
-                        serialNumber: item.serialNumber.isEmpty ? nil : item.serialNumber,
-                        nsn: item.nsn.isEmpty ? nil : item.nsn,
-                        quantity: Int(item.quantity) ?? 1,
-                        unit: item.unit,
-                        category: "Equipment",
+                        name: request.name,
+                        description: request.description,
+                        serialNumber: request.serialNumber,
+                        nsn: request.nsn,
+                        quantity: request.quantity,
+                        unit: request.unit,
+                        category: request.category,
                         importMetadata: BatchImportMetadata(
-                            confidence: item.confidence,
-                            requiresVerification: item.needsVerification,
-                            verificationReasons: item.needsVerification ? ["Manual review required"] : nil,
+                            confidence: request.importMetadata?.itemConfidence ?? 0.9,
+                            requiresVerification: request.importMetadata?.requiresVerification ?? false,
+                            verificationReasons: request.importMetadata?.verificationReasons,
                             sourceDocumentUrl: nil,
-                            originalQuantity: Int(item.quantity) ?? 1,
-                            quantityIndex: nil
+                            originalQuantity: request.importMetadata?.originalQuantity,
+                            quantityIndex: request.importMetadata?.quantityIndex
                         )
                     )
                 }
