@@ -103,7 +103,7 @@ class DA2062ExportViewModel: ObservableObject {
     
     func generatePDF() async throws -> Data {
         let request = GeneratePDFRequest(
-            propertyIDs: Array(selectedPropertyIDs),
+            propertyIDs: selectedPropertyIDs.map { UInt($0) },
             groupByCategory: groupByCategory,
             includeQRCodes: false,
             sendEmail: false,
@@ -134,7 +134,7 @@ class DA2062ExportViewModel: ObservableObject {
     
     func emailPDF(to recipients: [String]) async throws {
         let request = GeneratePDFRequest(
-            propertyIDs: Array(selectedPropertyIDs),
+            propertyIDs: selectedPropertyIDs.map { UInt($0) },
             groupByCategory: groupByCategory,
             includeQRCodes: false,
             sendEmail: true,
@@ -165,7 +165,7 @@ class DA2062ExportViewModel: ObservableObject {
     
     func sendHandReceipt(to recipientId: Int) async throws {
         let request = GeneratePDFRequest(
-            propertyIDs: Array(selectedPropertyIDs),
+            propertyIDs: selectedPropertyIDs.map { UInt($0) },
             groupByCategory: groupByCategory,
             includeQRCodes: false,
             sendEmail: false,
@@ -188,7 +188,7 @@ class DA2062ExportViewModel: ObservableObject {
                 stockNumber: unitInfo.stockNumber,
                 location: unitInfo.location
             ),
-            toUserId: recipientId
+            toUserId: UInt(recipientId)
         )
         
         _ = try await apiService.sendDA2062InApp(request: request)
@@ -198,7 +198,7 @@ class DA2062ExportViewModel: ObservableObject {
 // MARK: - Request Models
 
 struct GeneratePDFRequest: Codable {
-    let propertyIDs: [Int]
+    let propertyIDs: [UInt]
     let groupByCategory: Bool
     let includeQRCodes: Bool
     let sendEmail: Bool
@@ -206,7 +206,7 @@ struct GeneratePDFRequest: Codable {
     let fromUser: PDFUserInfo
     let toUser: PDFUserInfo
     let unitInfo: PDFUnitInfo
-    let toUserId: Int
+    let toUserId: UInt
     
     enum CodingKeys: String, CodingKey {
         case propertyIDs = "property_ids"
@@ -265,19 +265,33 @@ extension APIService {
         let requestData = try JSONEncoder().encode(request)
         urlRequest.httpBody = requestData
         
+        // Debug: Print request details
+        print("DEBUG: DA2062 PDF request URL: \(url)")
+        if let requestString = String(data: requestData, encoding: .utf8) {
+            print("DEBUG: DA2062 PDF request body: \(requestString)")
+        }
+        
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
         
+        print("DEBUG: DA2062 PDF response status: \(httpResponse.statusCode)")
+        
         guard httpResponse.statusCode == 200 else {
+            print("DEBUG: DA2062 PDF failed with status: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("DEBUG: DA2062 PDF error response: \(responseString)")
+            }
+            
             if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
                 throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
             }
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to generate PDF")
         }
         
+        print("DEBUG: DA2062 PDF generated successfully, data size: \(data.count) bytes")
         return data
     }
     
