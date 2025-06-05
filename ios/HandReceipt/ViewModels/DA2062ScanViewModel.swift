@@ -448,14 +448,47 @@ class DA2062ScanViewModel: ObservableObject {
     
     // Import verified items to backend
     func importVerifiedItems(_ editableItems: [EditableDA2062Item]) async -> Result<BatchImportResponse, Error> {
-        // Convert editable items to batch items
-        let batchItems = editableItems.filter { $0.isSelected }.map { item in
+        // Filter and validate items before creating batch items
+        let validItems = editableItems.filter { item in
+            guard item.isSelected else { return false }
+            
+            // Validate required fields
+            let serialNumber = item.serialNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+            let description = item.description.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Skip items without valid serial numbers or descriptions
+            if serialNumber.isEmpty || description.isEmpty {
+                debugPrint("⚠️ Skipping item '\(description)' - missing required fields (serial: '\(serialNumber)', description: '\(description)')")
+                return false
+            }
+            
+            // Skip items with obviously generated/placeholder serials
+            let upperSerial = serialNumber.uppercased()
+            if upperSerial.contains("NOSERIAL") || 
+               upperSerial.contains("TEMP") || 
+               upperSerial.contains("PLACEHOLDER") ||
+               upperSerial.contains("GENERATED") {
+                debugPrint("⚠️ Skipping item '\(description)' - placeholder serial number: '\(serialNumber)'")
+                return false
+            }
+            
+            return true
+        }
+        
+        // Check if we have any valid items to import
+        guard !validItems.isEmpty else {
+            let errorMessage = "No valid items to import. Please ensure all items have valid serial numbers and descriptions."
+            return .failure(NSError(domain: "DA2062Import", code: 400, userInfo: [NSLocalizedDescriptionKey: errorMessage]))
+        }
+        
+        // Convert valid items to batch items
+        let batchItems = validItems.map { item in
             let quantity = Int(item.quantity) ?? 1
             
             return DA2062BatchItem(
                 name: item.description,
                 description: buildEnhancedDescription(for: item),
-                serialNumber: item.serialNumber.isEmpty ? generatePlaceholderSerial(for: item, index: 1, total: quantity) : item.serialNumber,
+                serialNumber: item.serialNumber.trimmingCharacters(in: .whitespacesAndNewlines),
                 nsn: item.nsn.isEmpty ? nil : item.nsn,
                 quantity: quantity,
                 unit: item.unit ?? "EA",
@@ -470,6 +503,8 @@ class DA2062ScanViewModel: ObservableObject {
                 )
             )
         }
+        
+        debugPrint("📤 Importing \(batchItems.count) validated items (filtered from \(editableItems.filter { $0.isSelected }.count) selected items)")
         
         do {
             let response = try await apiService.importDA2062Items(
