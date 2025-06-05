@@ -139,14 +139,7 @@ struct DA2062ReviewSheet: View {
             )
         }
         .sheet(isPresented: $showingImportProgress) {
-            DA2062ImportProgressView(
-                isImporting: $isImporting,
-                importError: $importError,
-                onDismiss: {
-                    showingImportProgress = false
-                    presentationMode.wrappedValue.dismiss()
-                }
-            )
+            DA2062ImportProgressView(sourceImage: scannedPages.first?.image ?? UIImage())
         }
         .onAppear {
             loadEditableItems()

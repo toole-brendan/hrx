@@ -13,6 +13,7 @@ class DA2062ScanViewModel: ObservableObject {
     @Published var processingMessage: String = ""
     @Published var useAzureOCR = true  // Primary OCR method
     @Published var processingMethod: String = ""
+    @Published var lastProcessedImage: UIImage?  // Add missing property
     
     private var cancellables = Set<AnyCancellable>()
     private let ocrService = DA2062OCRService()
@@ -555,6 +556,36 @@ class DA2062ScanViewModel: ObservableObject {
     // Clean up resources
     deinit {
         progressTimer?.invalidate()
+    }
+    
+    // MARK: - Missing Methods
+    
+    func startScanning() {
+        // Implementation for starting the scanning process
+        // This would typically trigger camera scanning
+        print("Starting scanning process...")
+    }
+    
+    func reprocessScan(_ scan: DA2062Scan) {
+        // Implementation for reprocessing a previous scan
+        isProcessing = true
+        processingMessage = "Reprocessing scan..."
+        // Add reprocessing logic here
+    }
+    
+    func processScannedDocuments(_ images: [UIImage]) {
+        guard let firstImage = images.first else { return }
+        
+        lastProcessedImage = firstImage
+        
+        processDA2062(image: firstImage) { result in
+            switch result {
+            case .success():
+                print("Successfully processed scanned document")
+            case .failure(let error):
+                print("Failed to process scanned document: \(error)")
+            }
+        }
     }
 }
 

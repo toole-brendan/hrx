@@ -409,6 +409,7 @@ struct SummaryRow: View {
 
 struct PhaseIndicatorView: View {
     let currentPhase: ImportPhase
+    let useAzureOCR: Bool = true  // Default value for now
     
     private let phases: [ImportPhase] = [
         .scanning,
@@ -425,7 +426,7 @@ struct PhaseIndicatorView: View {
                 PhaseIndicator(
                     phase: phase,
                     isActive: phase == currentPhase,
-                    isCompleted: isPhaseCompleted(phase)
+                    useAzureOCR: useAzureOCR
                 )
                 
                 if phase != phases.last {
