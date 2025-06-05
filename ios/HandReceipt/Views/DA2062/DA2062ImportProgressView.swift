@@ -40,85 +40,402 @@ struct ImportError: Identifiable {
 // MARK: - Progress View
 
 struct DA2062ImportProgressView: View {
-    @Binding var isImporting: Bool
-    @Binding var importError: String?
-    let onDismiss: () -> Void
-    @State private var showingErrors = false
+    @StateObject private var viewModel = DA2062ImportViewModel()
+    @Environment(\.dismiss) private var dismiss
+    
+    let sourceImage: UIImage
     
     var body: some View {
-        VStack(spacing: 0) {
-            MinimalNavigationBar(
-                title: "IMPORT PROGRESS",
-                titleStyle: .mono,
-                showBackButton: false,
-                trailingItems: []
-            )
-            
-            VStack(spacing: 40) {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Header with OCR mode indicator
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("DA 2062 Import")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                        
+                        HStack {
+                            Image(systemName: viewModel.useAzureOCR ? "cloud.fill" : "iphone")
+                                .foregroundColor(viewModel.useAzureOCR ? .blue : .orange)
+                            Text(viewModel.useAzureOCR ? "Azure Computer Vision" : "Local OCR")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // OCR mode toggle
+                    if !viewModel.isImporting {
+                        Button(action: {
+                            viewModel.toggleOCRMode()
+                        }) {
+                            Image(systemName: "arrow.2.squarepath")
+                                .font(.title2)
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Progress Section
+                ProgressCard(
+                    phase: viewModel.progress.currentPhase,
+                    currentItem: viewModel.progress.currentItem,
+                    totalItems: viewModel.progress.totalItems,
+                    processedItems: viewModel.progress.processedItems,
+                    isImporting: viewModel.isImporting,
+                    useAzureOCR: viewModel.useAzureOCR
+                )
+                
+                // Status Information
+                if viewModel.isImporting {
+                    ImportStatusCard(progress: viewModel.progress, useAzureOCR: viewModel.useAzureOCR)
+                }
+                
+                // Error Display
+                if !viewModel.progress.errors.isEmpty {
+                    ErrorCard(errors: viewModel.progress.errors)
+                }
+                
+                // Success Summary
+                if viewModel.showingSummary {
+                    let summary = viewModel.importSummary
+                    ImportSummaryCard(
+                        totalItems: summary.total,
+                        successfulItems: summary.successful,
+                        useAzureOCR: viewModel.useAzureOCR
+                    )
+                }
+                
                 Spacer()
                 
-                // Status Icon and Text
-                VStack(spacing: 20) {
-                    if isImporting {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-                        
-                        Text("Importing Items...")
-                            .font(AppFonts.serifHeadline)
-                            .foregroundColor(AppColors.primaryText)
-                        
-                        Text("Creating property records in your inventory")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.secondaryText)
-                            .multilineTextAlignment(.center)
-                    } else if let error = importError {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 64, weight: .thin))
-                            .foregroundColor(AppColors.destructive)
-                        
-                        Text("Import Failed")
-                            .font(AppFonts.serifHeadline)
-                            .foregroundColor(AppColors.primaryText)
-                        
-                        Text(error)
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
+                // Action Buttons
+                HStack(spacing: 16) {
+                    if viewModel.isImporting {
+                        Button("Cancel") {
+                            viewModel.cancelImport()
+                        }
+                        .buttonStyle(.bordered)
+                    } else if viewModel.showingSummary {
+                        Button("Complete") {
+                            viewModel.completeImport()
+                            dismiss()
+                        }
+                        .buttonStyle(.borderedProminent)
                     } else {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 64, weight: .thin))
-                            .foregroundColor(AppColors.success)
-                        
-                        Text("Import Complete!")
-                            .font(AppFonts.serifHeadline)
-                            .foregroundColor(AppColors.primaryText)
-                        
-                        Text("Your DA-2062 items have been added to your inventory")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.secondaryText)
-                            .multilineTextAlignment(.center)
+                        Button("Start Import") {
+                            Task {
+                                await viewModel.processDA2062WithProgress(image: sourceImage)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(viewModel.isImporting)
                     }
                 }
+                .padding(.horizontal)
+            }
+            .navigationBarHidden(true)
+        }
+        .interactiveDismissDisabled(viewModel.isImporting)
+    }
+}
+
+// Enhanced progress card showing Azure integration
+struct ProgressCard: View {
+    let phase: ImportPhase
+    let currentItem: String
+    let totalItems: Int
+    let processedItems: Int
+    let isImporting: Bool
+    let useAzureOCR: Bool
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Phase indicator with enhanced descriptions
+            HStack {
+                PhaseIndicator(
+                    phase: phase,
+                    isActive: isImporting,
+                    useAzureOCR: useAzureOCR
+                )
                 
                 Spacer()
                 
-                // Action Button
-                if !isImporting {
-                    Button(importError != nil ? "Try Again" : "Done") {
-                        onDismiss()
-                    }
-                    .buttonStyle(MinimalPrimaryButtonStyle())
-                    .padding(.horizontal, 24)
+                if totalItems > 0 {
+                    Text("\(processedItems)/\(totalItems)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                
-                // Bottom spacer
-                Color.clear.frame(height: 40)
+            }
+            
+            // Progress bar
+            if totalItems > 0 {
+                ProgressView(value: Double(processedItems), total: Double(totalItems))
+                    .progressViewStyle(LinearProgressViewStyle())
+            } else if isImporting {
+                ProgressView()
+                    .progressViewStyle(LinearProgressViewStyle())
+            }
+            
+            // Current item
+            if !currentItem.isEmpty {
+                Text(currentItem)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .background(AppColors.appBackground.ignoresSafeArea())
-        .navigationBarHidden(true)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+}
+
+// Enhanced phase indicator with Azure-specific phases
+struct PhaseIndicator: View {
+    let phase: ImportPhase
+    let isActive: Bool
+    let useAzureOCR: Bool
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: iconForPhase(phase))
+                .foregroundColor(isActive ? .accentColor : .secondary)
+                .rotationEffect(.degrees(isActive ? 360 : 0))
+                .animation(isActive ? .linear(duration: 2).repeatForever(autoreverses: false) : .default, value: isActive)
+            
+            Text(titleForPhase(phase))
+                .font(.headline)
+                .foregroundColor(isActive ? .primary : .secondary)
+        }
+    }
+    
+    private func iconForPhase(_ phase: ImportPhase) -> String {
+        switch phase {
+        case .scanning:
+            return useAzureOCR ? "cloud.upload" : "doc.text.viewfinder"
+        case .extracting:
+            return useAzureOCR ? "brain.head.profile" : "textformat.abc"
+        case .parsing:
+            return "list.bullet.clipboard"
+        case .validating:
+            return "checkmark.shield"
+        case .enriching:
+            return "magnifyingglass.circle"
+        case .creating:
+            return "plus.circle"
+        case .complete:
+            return "checkmark.circle.fill"
+        }
+    }
+    
+    private func titleForPhase(_ phase: ImportPhase) -> String {
+        switch phase {
+        case .scanning:
+            return useAzureOCR ? "Uploading to Azure" : "Scanning Document"
+        case .extracting:
+            return useAzureOCR ? "Azure Computer Vision" : "Local OCR Processing"
+        case .parsing:
+            return "Parsing Items"
+        case .validating:
+            return "Validating Data"
+        case .enriching:
+            return "Enriching Items"
+        case .creating:
+            return "Creating Records & Logging to Ledger"
+        case .complete:
+            return "Import Complete"
+        }
+    }
+}
+
+// Import status card with ledger information
+struct ImportStatusCard: View {
+    let progress: ImportProgress
+    let useAzureOCR: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.blue)
+                Text("Import Status")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                StatusRow(
+                    icon: "cloud.fill",
+                    title: "OCR Processing",
+                    value: useAzureOCR ? "Azure Computer Vision" : "Local Vision Framework"
+                )
+                
+                StatusRow(
+                    icon: "lock.shield",
+                    title: "Ledger Logging",
+                    value: "Azure Immutable Ledger"
+                )
+                
+                if progress.totalItems > 0 {
+                    StatusRow(
+                        icon: "list.number",
+                        title: "Items Processed",
+                        value: "\(progress.processedItems) of \(progress.totalItems)"
+                    )
+                }
+                
+                if !progress.errors.isEmpty {
+                    StatusRow(
+                        icon: "exclamationmark.triangle",
+                        title: "Errors",
+                        value: "\(progress.errors.count)"
+                    )
+                }
+            }
+        }
+        .padding()
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+}
+
+struct StatusRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(.secondary)
+                .frame(width: 20)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.medium)
+        }
+    }
+}
+
+// Error display card
+struct ErrorCard: View {
+    let errors: [ImportError]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                Text("Import Issues")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            ForEach(errors.indices, id: \.self) { index in
+                let error = errors[index]
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(error.itemName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text(error.error)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+                if index < errors.count - 1 {
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+}
+
+// Import summary card with ledger confirmation
+struct ImportSummaryCard: View {
+    let totalItems: Int
+    let successfulItems: Int
+    let useAzureOCR: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.title2)
+                Text("Import Complete")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                SummaryRow(
+                    title: "Items Successfully Created",
+                    value: "\(successfulItems) of \(totalItems)"
+                )
+                
+                SummaryRow(
+                    title: "OCR Method",
+                    value: useAzureOCR ? "Azure Computer Vision" : "Local Processing"
+                )
+                
+                SummaryRow(
+                    title: "Ledger Status",
+                    value: "✅ Logged to Azure Immutable Ledger"
+                )
+                
+                if successfulItems < totalItems {
+                    let failed = totalItems - successfulItems
+                    SummaryRow(
+                        title: "Failed Items",
+                        value: "\(failed) (see errors above)"
+                    )
+                }
+            }
+            
+            Text("All property creations have been logged to the Azure Immutable Ledger for audit trail and compliance.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.top, 8)
+        }
+        .padding()
+        .background(Color.green.opacity(0.1))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+}
+
+struct SummaryRow: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.medium)
+        }
     }
 }
 
@@ -158,58 +475,6 @@ struct PhaseIndicatorView: View {
             return false
         }
         return phaseIndex < currentIndex
-    }
-}
-
-struct PhaseIndicator: View {
-    let phase: ImportPhase
-    let isActive: Bool
-    let isCompleted: Bool
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            ZStack {
-                Circle()
-                    .fill(backgroundColor)
-                    .frame(width: 20, height: 20)
-                
-                if isCompleted {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white)
-                } else if isActive {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 6, height: 6)
-                }
-            }
-            
-            Text(phaseShortName)
-                .font(AppFonts.caption)
-                .foregroundColor(isActive || isCompleted ? AppColors.primaryText : AppColors.tertiaryText)
-        }
-    }
-    
-    private var backgroundColor: Color {
-        if isCompleted {
-            return AppColors.success
-        } else if isActive {
-            return AppColors.accent
-        } else {
-            return AppColors.border
-        }
-    }
-    
-    private var phaseShortName: String {
-        switch phase {
-        case .scanning: return "Scan"
-        case .extracting: return "Extract"
-        case .parsing: return "Parse"
-        case .validating: return "Validate"
-        case .enriching: return "Enrich"
-        case .creating: return "Create"
-        case .complete: return "Done"
-        }
     }
 }
 
