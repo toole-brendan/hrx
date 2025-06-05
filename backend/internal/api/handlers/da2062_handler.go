@@ -152,21 +152,33 @@ func (h *DA2062Handler) BatchCreateInventory(c *gin.Context) {
 			continue
 		}
 		createdProperties = append(createdProperties, properties[i])
+
+		// Log each individual property creation to ledger with DA2062 context
+		errLedger := h.Ledger.LogPropertyCreation(properties[i], userID)
+		if errLedger != nil {
+			log.Printf("WARNING: Failed to log property creation (SN: %s) to ledger: %v", properties[i].SerialNumber, errLedger)
+		} else {
+			log.Printf("✅ Logged DA2062 property creation to immutable ledger: %s (SN: %s)",
+				properties[i].Name, properties[i].SerialNumber)
+		}
 	}
 
-	// Log batch creation to ledger - log first property as representative
+	// Log comprehensive DA2062 import event to ledger
 	if len(createdProperties) > 0 {
-		// Log the first item creation with batch metadata in description
-		batchDescription := fmt.Sprintf("DA2062 Batch Import: %d items, Source: %s, Reference: %s",
-			len(createdProperties), req.Source, req.SourceReference)
+		// Create detailed import metadata for ledger
+		importDescription := fmt.Sprintf("DA2062 Import: %d properties created from %s scan. Source: %s, Reference: %s. Properties: %s",
+			len(createdProperties),
+			req.Source,
+			req.Source,
+			req.SourceReference,
+			buildPropertySummaryForLedger(createdProperties))
 
-		// Create a property with batch metadata for logging
-		batchProperty := createdProperties[0]
-		batchProperty.Description = &batchDescription
-
-		errLedger := h.Ledger.LogPropertyCreation(batchProperty, userID)
+		// Log DA2062 export event with comprehensive metadata
+		errLedger := h.Ledger.LogDA2062Export(userID, len(createdProperties), "import", importDescription)
 		if errLedger != nil {
-			log.Printf("WARNING: Failed to log batch import to ledger: %v", errLedger)
+			log.Printf("WARNING: Failed to log DA2062 import event to ledger: %v", errLedger)
+		} else {
+			log.Printf("✅ Logged comprehensive DA2062 import event to immutable ledger: %d items", len(createdProperties))
 		}
 	}
 
@@ -897,17 +909,18 @@ func countGeneratedSerials(properties []domain.Property) int {
 
 func generateImportSummary(properties []domain.Property) models.ImportSummary {
 	summary := models.ImportSummary{
-		TotalItems: len(properties),
-		Categories: make(map[string]int),
-		ConfidenceLevels: map[string]int{
-			"high":   0,
-			"medium": 0,
-			"low":    0,
-		},
+		TotalItems:       len(properties),
+		Categories:       make(map[string]int),
+		ConfidenceLevels: make(map[string]int),
 	}
 
+	// Initialize confidence levels
+	summary.ConfidenceLevels["high"] = 0
+	summary.ConfidenceLevels["medium"] = 0
+	summary.ConfidenceLevels["low"] = 0
+
 	for _, prop := range properties {
-		// Count by category (using current status as proxy since category field doesn't exist)
+		// Count by category (using current status as proxy)
 		summary.Categories[prop.CurrentStatus]++
 
 		// Count by confidence if metadata exists
@@ -922,10 +935,54 @@ func generateImportSummary(properties []domain.Property) models.ImportSummary {
 					summary.ConfidenceLevels["low"]++
 				}
 			}
+		} else {
+			// Default to medium confidence if no metadata
+			summary.ConfidenceLevels["medium"]++
 		}
 	}
 
 	return summary
+}
+
+// buildPropertySummaryForLedger creates a concise summary of properties for ledger logging
+func buildPropertySummaryForLedger(properties []domain.Property) string {
+	if len(properties) == 0 {
+		return "No properties"
+	}
+
+	// For large batches, provide summary statistics
+	if len(properties) > 10 {
+		hasNSN := 0
+		hasSerial := 0
+		requiresVerification := 0
+
+		for _, prop := range properties {
+			if prop.NSN != nil && *prop.NSN != "" {
+				hasNSN++
+			}
+			if !strings.HasPrefix(prop.SerialNumber, "TEMP-") {
+				hasSerial++
+			}
+			if !prop.Verified {
+				requiresVerification++
+			}
+		}
+
+		return fmt.Sprintf("Batch summary: %d total, %d with NSN, %d with explicit serial, %d requiring verification",
+			len(properties), hasNSN, hasSerial, requiresVerification)
+	}
+
+	// For smaller batches, list individual items
+	var summaries []string
+	for _, prop := range properties {
+		summary := fmt.Sprintf("%s (SN: %s)", prop.Name, prop.SerialNumber)
+		if prop.NSN != nil && *prop.NSN != "" {
+			summary += fmt.Sprintf(" [NSN: %s]", *prop.NSN)
+		}
+		summaries = append(summaries, summary)
+	}
+
+	return strings.Join(summaries, "; ")
 }
 
 // RegisterRoutes registers all DA2062-related routes

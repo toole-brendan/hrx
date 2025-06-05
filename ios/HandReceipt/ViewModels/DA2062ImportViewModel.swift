@@ -3,76 +3,182 @@ import SwiftUI
 import Combine
 import UIKit
 
-// MARK: - Enhanced ViewModel with Progress Tracking
+// MARK: - Enhanced ViewModel with Azure OCR and Batch Import
 
 @MainActor
 class DA2062ImportViewModel: ObservableObject {
     @Published var progress = ImportProgress(totalItems: 0)
     @Published var isImporting = false
     @Published var showingSummary = false
+    @Published var useAzureOCR = true // Preference for Azure vs local OCR
+    @Published var partialSuccessInfo: PartialSuccessInfo?
     
     private let apiService: APIServiceProtocol
     private let nsnService: NSNService
-    private let ocrService = DA2062OCRService()
+    private let localOCRService = DA2062OCRService()
     private var cancellables = Set<AnyCancellable>()
+    private var currentImportTask: Task<Void, Never>?
     
     init(apiService: APIServiceProtocol = APIService.shared) {
         self.apiService = apiService
         self.nsnService = NSNService(apiService: apiService)
     }
     
-    // MARK: - Main Processing Method
+    // MARK: - Main Processing Method with Enhanced Error Handling
     
     func processDA2062WithProgress(image: UIImage) async {
+        // Cancel any existing import
+        currentImportTask?.cancel()
+        
         // Initialize progress
         progress = ImportProgress(totalItems: 0)
+        partialSuccessInfo = nil
         isImporting = true
         
+        currentImportTask = Task {
+            if useAzureOCR {
+                do {
+                    try await processWithAzureOCREnhanced(image: image)
+                } catch {
+                    if !Task.isCancelled {
+                        handleImportError(error)
+                    }
+                }
+            } else {
+                do {
+                    try await processWithLocalOCREnhanced(image: image)
+                } catch {
+                    if !Task.isCancelled {
+                        handleImportError(error)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Enhanced Azure OCR Processing with Fallback
+    
+    private func processWithAzureOCREnhanced(image: UIImage) async throws {
+        updateProgress(phase: .scanning, currentItem: "Uploading to Azure OCR...")
+        
+        do {
+            // Convert image to data
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                throw ImportError(itemName: "Image", error: "Failed to convert image to data", recoverable: false)
+            }
+            
+            // Upload for Azure OCR processing
+            let fileName = "da2062_scan_\(Int(Date().timeIntervalSince1970)).jpg"
+            updateProgress(phase: .extracting, currentItem: "Processing with Azure Computer Vision...")
+            
+            let azureResponse = try await apiService.uploadDA2062Form(pdfData: imageData, fileName: fileName)
+            
+            // Convert Azure response to batch import format
+            updateProgress(phase: .parsing, currentItem: "Converting OCR results...")
+            let batchItems = convertAzureResponseToBatch(azureResponse)
+            
+            progress.totalItems = batchItems.count
+            
+            // Import using batch API with enhanced error handling
+            try await performBatchImportWithErrorHandling(
+                batchItems: batchItems,
+                source: "azure_ocr_ios",
+                sourceReference: azureResponse.formInfo.formNumber
+            )
+            
+        } catch {
+            // Check if we should fallback to local OCR
+            if useAzureOCR && !Task.isCancelled {
+                updateProgress(phase: .extracting, currentItem: "Azure OCR failed, falling back to local processing...")
+                await fallbackToLocalOCR(image: image)
+            } else {
+                handleImportError(error)
+            }
+        }
+    }
+    
+    // MARK: - Enhanced Local OCR Processing
+    
+    private func processWithLocalOCREnhanced(image: UIImage) async throws {
         // Phase 1: Scanning
         updateProgress(phase: .scanning, currentItem: "Processing image...")
         
-        // Phase 2: Extracting
-        updateProgress(phase: .extracting, currentItem: "Running OCR...")
+        // Phase 2: Extracting with enhanced Vision processing
+        updateProgress(phase: .extracting, currentItem: "Running enhanced local OCR...")
         
         do {
-            let extractedText = try await performOCR(on: image)
+            let extractedForm = try await performEnhancedLocalOCR(on: image)
             
             // Phase 3: Parsing
             updateProgress(phase: .parsing, currentItem: "Identifying items...")
-            let parsedItems = parseDA2062Text(extractedText)
+            let parsedItems = parseDA2062TextEnhanced(extractedForm)
             
             // Update total items count
             progress.totalItems = parsedItems.count
             
             // Phase 4: Validating
             updateProgress(phase: .validating, currentItem: "Validating data...")
-            let validatedItems = await validateItems(parsedItems)
+            let validatedItems = await validateItemsEnhanced(parsedItems)
             
             // Phase 5: Enriching (NSN lookup)
             updateProgress(phase: .enriching, currentItem: "Looking up item details...")
             let enrichedItems = await enrichItems(validatedItems)
             
-            // Phase 6: Creating records
-            updateProgress(phase: .creating, currentItem: "Creating property records...")
-            await createPropertyRecords(enrichedItems)
+            // Phase 6: Creating records with enhanced metadata
+            updateProgress(phase: .creating, currentItem: "Creating property records with ledger logging...")
+            try await createPropertyRecordsEnhanced(enrichedItems)
             
             // Complete
             updateProgress(phase: .complete, currentItem: "Import completed successfully!")
             showingSummary = true
             
         } catch {
-            handleImportError(error)
+            if !Task.isCancelled {
+                handleImportError(error)
+            }
         }
     }
     
-    // MARK: - OCR Processing
+    // MARK: - Fallback to Local OCR
     
-    private func performOCR(on image: UIImage) async throws -> DA2062Form {
+    private func fallbackToLocalOCR(image: UIImage) async {
+        do {
+            updateProgress(phase: .extracting, currentItem: "Processing with local Vision Framework...")
+            
+            let extractedForm = try await performEnhancedLocalOCR(on: image)
+            let parsedItems = parseDA2062TextEnhanced(extractedForm)
+            
+            progress.totalItems = parsedItems.count
+            
+            updateProgress(phase: .validating, currentItem: "Validating fallback data...")
+            let validatedItems = await validateItemsEnhanced(parsedItems)
+            
+            updateProgress(phase: .enriching, currentItem: "Enriching fallback items...")
+            let enrichedItems = await enrichItems(validatedItems)
+            
+            updateProgress(phase: .creating, currentItem: "Creating records from fallback processing...")
+            try await createPropertyRecordsEnhanced(enrichedItems)
+            
+            updateProgress(phase: .complete, currentItem: "Fallback import completed!")
+            showingSummary = true
+            
+        } catch {
+            if !Task.isCancelled {
+                handleImportError(error)
+            }
+        }
+    }
+    
+    // MARK: - Enhanced Local OCR Method
+    
+    private func performEnhancedLocalOCR(on image: UIImage) async throws -> DA2062Form {
         return try await withCheckedThrowingContinuation { continuation in
-            ocrService.processImage(image) { result in
+            localOCRService.processImage(image) { result in
                 switch result {
                 case .success(let form):
-                    continuation.resume(returning: form)
+                    // Enhance the form with additional processing if needed
+                    let enhancedForm = self.enhanceLocalOCRForm(form)
+                    continuation.resume(returning: enhancedForm)
                 case .failure(let error):
                     continuation.resume(throwing: error)
                 }
@@ -80,9 +186,263 @@ class DA2062ImportViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Parsing
+    private func enhanceLocalOCRForm(_ form: DA2062Form) -> DA2062Form {
+        // Apply additional processing to improve local OCR results
+        let enhancedItems = form.items.map { item in
+            DA2062Item(
+                lineNumber: item.lineNumber,
+                stockNumber: validateAndCleanNSN(item.stockNumber),
+                itemDescription: cleanAndEnhanceDescription(item.itemDescription),
+                quantity: item.quantity,
+                unitOfIssue: item.unitOfIssue,
+                serialNumber: validateSerialNumber(item.serialNumber),
+                condition: item.condition,
+                confidence: item.confidence,
+                quantityConfidence: item.quantityConfidence,
+                hasExplicitSerial: item.hasExplicitSerial
+            )
+        }
+        
+        return DA2062Form(
+            unitName: form.unitName,
+            dodaac: form.dodaac,
+            dateCreated: form.dateCreated,
+            items: enhancedItems,
+            formNumber: form.formNumber,
+            confidence: form.confidence
+        )
+    }
     
-    private func parseDA2062Text(_ form: DA2062Form) -> [ParsedDA2062Item] {
+    private func validateAndCleanNSN(_ nsn: String?) -> String? {
+        guard let nsn = nsn else { return nil }
+        
+        // Clean and validate NSN format
+        let cleaned = nsn.replacingOccurrences(of: "[^0-9-]", with: "", options: .regularExpression)
+        
+        // Check if it matches NSN pattern (4-2-3-4)
+        if cleaned.range(of: "^\\d{4}-\\d{2}-\\d{3}-\\d{4}$", options: .regularExpression) != nil {
+            return cleaned
+        }
+        
+        return nil
+    }
+    
+    private func cleanAndEnhanceDescription(_ description: String) -> String {
+        var cleaned = description
+        
+        // Remove common OCR artifacts
+        cleaned = cleaned.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Fix common military term OCR errors
+        let corrections = [
+            ("R1FLE", "RIFLE"),
+            ("CARBINE", "CARBINE"),
+            ("5.56MH", "5.56MM"),
+            ("7.62MH", "7.62MM"),
+            ("M4AI", "M4A1"),
+            ("M16AI", "M16A1")
+        ]
+        
+        for (wrong, right) in corrections {
+            cleaned = cleaned.replacingOccurrences(of: wrong, with: right, options: .caseInsensitive)
+        }
+        
+        return cleaned
+    }
+    
+    private func validateSerialNumber(_ serialNumber: String?) -> String? {
+        guard let serialNumber = serialNumber, !serialNumber.isEmpty else { return nil }
+        
+        // Basic serial number validation and cleaning
+        let cleaned = serialNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Must be at least 4 characters and contain alphanumeric characters
+        if cleaned.count >= 4 && cleaned.range(of: "[A-Za-z0-9]", options: .regularExpression) != nil {
+            return cleaned.uppercased()
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Enhanced Batch Import with Error Handling
+    
+    private func performBatchImportWithErrorHandling(
+        batchItems: [DA2062BatchItem],
+        source: String,
+        sourceReference: String?
+    ) async throws {
+        updateProgress(phase: .creating, currentItem: "Creating property records with ledger logging...")
+        
+        do {
+            let batchResponse = try await apiService.importDA2062Items(
+                items: batchItems,
+                source: source,
+                sourceReference: sourceReference
+            )
+            
+            // Handle partial success
+            if batchResponse.createdCount > 0 && batchResponse.failedCount > 0 {
+                partialSuccessInfo = PartialSuccessInfo(
+                    totalAttempted: batchItems.count,
+                    successfulCount: batchResponse.createdCount,
+                    failedCount: batchResponse.failedCount,
+                    errors: batchResponse.errors ?? []
+                )
+                updateProgress(phase: .complete, currentItem: "Partial import completed: \(batchResponse.createdCount) of \(batchItems.count) items created")
+            } else if batchResponse.createdCount > 0 {
+                updateProgress(phase: .complete, currentItem: "Import completed! \(batchResponse.createdCount) items created")
+            } else {
+                throw ImportError(
+                    itemName: "Batch Import",
+                    error: "No items were successfully imported",
+                    recoverable: true
+                )
+            }
+            
+            progress.processedItems = batchResponse.createdCount
+            showingSummary = true
+            
+        } catch {
+            throw error
+        }
+    }
+    
+    // MARK: - Enhanced Validation
+    
+    private func validateItemsEnhanced(_ items: [ParsedDA2062Item]) async -> [ValidatedItem] {
+        var validatedItems: [ValidatedItem] = []
+        
+        for (index, item) in items.enumerated() {
+            if Task.isCancelled { break }
+            
+            updateProgress(
+                phase: .validating,
+                currentItem: item.description,
+                processedItems: index
+            )
+            
+            // Enhanced validation logic
+            let validationResult = performEnhancedValidation(item)
+            
+            if !validationResult.isValid {
+                for error in validationResult.errors {
+                    addError(ImportError(
+                        itemName: item.description,
+                        error: error,
+                        recoverable: true
+                    ))
+                }
+            }
+            
+            let validated = ValidatedItem(
+                parsed: item,
+                isValid: validationResult.isValid,
+                confidence: item.confidence
+            )
+            
+            validatedItems.append(validated)
+            
+            // Small delay for UI updates
+            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+        }
+        
+        return validatedItems
+    }
+    
+    private func performEnhancedValidation(_ item: ParsedDA2062Item) -> ValidationResult {
+        var errors: [String] = []
+        var isValid = true
+        
+        // Check description
+        if item.description.isEmpty {
+            errors.append("Missing item description")
+            isValid = false
+        } else if item.description.count < 3 {
+            errors.append("Description too short")
+        }
+        
+        // Check NSN format if present
+        if let nsn = item.nsn {
+            if nsn.range(of: "^\\d{4}-\\d{2}-\\d{3}-\\d{4}$", options: .regularExpression) == nil {
+                errors.append("Invalid NSN format (should be XXXX-XX-XXX-XXXX)")
+            }
+        }
+        
+        // Check quantity
+        if item.quantity <= 0 {
+            errors.append("Invalid quantity")
+            isValid = false
+        } else if item.quantity > 100 {
+            errors.append("Unusually high quantity, please verify")
+        }
+        
+        // Check confidence
+        if item.confidence < 0.5 {
+            errors.append("Low OCR confidence")
+        }
+        
+        return ValidationResult(isValid: isValid, errors: errors)
+    }
+    
+    // MARK: - Enhanced Cancellation Support
+    
+    func cancelImport() {
+        currentImportTask?.cancel()
+        isImporting = false
+        updateProgress(phase: .complete, currentItem: "Import cancelled by user")
+    }
+    
+    func toggleOCRMode() {
+        useAzureOCR.toggle()
+    }
+    
+    // MARK: - Enhanced Summary Data
+    
+    var importSummary: (total: Int, successful: Int, failed: Int, hasPartialSuccess: Bool) {
+        if let partialInfo = partialSuccessInfo {
+            return (partialInfo.totalAttempted, partialInfo.successfulCount, partialInfo.failedCount, true)
+        } else {
+            let total = progress.totalItems
+            let failed = progress.errors.filter { !$0.recoverable }.count
+            let successful = total - failed
+            return (total, successful, failed, false)
+        }
+    }
+    
+    var partialSuccessMessage: String? {
+        guard let partialInfo = partialSuccessInfo else { return nil }
+        
+        return "Successfully imported \(partialInfo.successfulCount) of \(partialInfo.totalAttempted) items. \(partialInfo.failedCount) items failed due to errors."
+    }
+    
+    // MARK: - Azure Response Conversion
+    
+    private func convertAzureResponseToBatch(_ azureResponse: AzureOCRResponse) -> [DA2062BatchItem] {
+        return azureResponse.items.map { azureItem in
+            DA2062BatchItem(
+                name: azureItem.name,
+                description: azureItem.description,
+                serialNumber: azureItem.serialNumber,
+                nsn: azureItem.nsn,
+                quantity: azureItem.quantity,
+                unit: azureItem.unit,
+                category: "Equipment", // Default category
+                importMetadata: BatchImportMetadata(
+                    confidence: azureItem.importMetadata.confidence,
+                    requiresVerification: azureItem.importMetadata.requiresVerification,
+                    verificationReasons: azureItem.importMetadata.verificationReasons,
+                    sourceDocumentUrl: azureItem.importMetadata.sourceDocumentUrl,
+                    originalQuantity: azureItem.quantity,
+                    quantityIndex: nil
+                )
+            )
+        }
+    }
+    
+    // MARK: - Local OCR Data Parsing
+    
+    private func parseDA2062TextEnhanced(_ form: DA2062Form) -> [ParsedDA2062Item] {
         return form.items.map { item in
             ParsedDA2062Item(
                 lineNumber: item.lineNumber,
@@ -92,13 +452,13 @@ class DA2062ImportViewModel: ObservableObject {
                 quantity: item.quantity,
                 unitOfIssue: item.unitOfIssue ?? "EA",
                 serialNumber: item.serialNumber,
-                confidence: item.confidence
+                confidence: item.confidence,
+                hasExplicitSerial: item.hasExplicitSerial
             )
         }
     }
     
     private func extractLINFromDescription(_ description: String) -> String? {
-        // Check if description contains LIN marker with capture group
         guard let regex = try? NSRegularExpression(pattern: "\\[LIN: ([A-Z][0-9A-Z]{5})\\]", options: []) else {
             return nil
         }
@@ -116,49 +476,7 @@ class DA2062ImportViewModel: ObservableObject {
     }
     
     private func cleanDescription(_ description: String) -> String {
-        // Remove LIN marker if present
         return description.replacingOccurrences(of: "\\[LIN: [A-Z][0-9A-Z]{5}\\] ", with: "", options: .regularExpression)
-    }
-    
-    // MARK: - Validation
-    
-    private func validateItems(_ items: [ParsedDA2062Item]) async -> [ValidatedItem] {
-        var validatedItems: [ValidatedItem] = []
-        
-        for (index, item) in items.enumerated() {
-            updateProgress(
-                phase: .validating,
-                currentItem: item.description,
-                processedItems: index
-            )
-            
-            // Validate NSN format
-            let nsnValid = item.nsn?.range(of: "^\\d{4}-\\d{2}-\\d{3}-\\d{4}$", options: .regularExpression) != nil
-            
-            // Validate required fields
-            let hasRequiredFields = !item.description.isEmpty
-            
-            if !nsnValid && item.nsn != nil {
-                addError(ImportError(
-                    itemName: item.description,
-                    error: "Invalid NSN format",
-                    recoverable: true
-                ))
-            }
-            
-            let validated = ValidatedItem(
-                parsed: item,
-                isValid: hasRequiredFields,
-                confidence: item.confidence
-            )
-            
-            validatedItems.append(validated)
-            
-            // Small delay for UI updates
-            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
-        }
-        
-        return validatedItems
     }
     
     // MARK: - Enrichment
@@ -167,6 +485,8 @@ class DA2062ImportViewModel: ObservableObject {
         var enrichedItems: [EnrichedItem] = []
         
         for (index, item) in items.enumerated() {
+            if Task.isCancelled { break }
+            
             updateProgress(
                 phase: .enriching,
                 currentItem: item.parsed.description,
@@ -183,7 +503,6 @@ class DA2062ImportViewModel: ObservableObject {
                     enriched.manufacturer = nsnDetails.manufacturer
                     enriched.partNumber = nsnDetails.partNumber
                 } catch {
-                    // NSN lookup failed, continue with parsed data
                     print("NSN lookup failed for \(nsn): \(error)")
                 }
             }
@@ -197,59 +516,70 @@ class DA2062ImportViewModel: ObservableObject {
         return enrichedItems
     }
     
-    // MARK: - Record Creation
+    // MARK: - Enhanced Property Creation for Local OCR
     
-    private func createPropertyRecords(_ items: [EnrichedItem]) async {
-        var successCount = 0
+    private func createPropertyRecordsEnhanced(_ items: [EnrichedItem]) async throws {
+        var batchItems: [DA2062BatchItem] = []
         
+        // Convert enriched items to batch format
         for (index, item) in items.enumerated() {
+            if Task.isCancelled { break }
+            
             updateProgress(
                 phase: .creating,
                 currentItem: item.officialName ?? item.validated.parsed.description,
                 processedItems: index
             )
             
-            do {
-                let propertyInput = buildProperty(from: item)
-                _ = try await apiService.createProperty(propertyInput)
-                successCount += 1
-            } catch {
-                addError(ImportError(
-                    itemName: item.validated.parsed.description,
-                    error: "Failed to create record: \(error.localizedDescription)",
-                    recoverable: false
-                ))
-            }
+            let batchItem = DA2062BatchItem(
+                name: item.officialName ?? item.validated.parsed.description,
+                description: item.validated.parsed.description,
+                serialNumber: item.validated.parsed.serialNumber,
+                nsn: item.validated.parsed.nsn,
+                quantity: item.validated.parsed.quantity,
+                unit: item.validated.parsed.unitOfIssue,
+                category: "Equipment",
+                importMetadata: BatchImportMetadata(
+                    confidence: item.validated.confidence,
+                    requiresVerification: item.validated.confidence < 0.7 || !item.validated.parsed.hasExplicitSerial,
+                    verificationReasons: buildVerificationReasons(item),
+                    sourceDocumentUrl: nil,
+                    originalQuantity: item.validated.parsed.quantity,
+                    quantityIndex: nil
+                )
+            )
             
-            // Small delay for UI updates
-            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+            batchItems.append(batchItem)
         }
         
-        // Update final processed count
-        progress.processedItems = items.count
-        
-        // Log summary
-        print("Import complete: \(successCount) of \(items.count) items created successfully")
-    }
-    
-    private func buildProperty(from item: EnrichedItem) -> CreatePropertyInput {
-        return CreatePropertyInput(
-            name: item.officialName ?? item.validated.parsed.description,
-            serialNumber: item.validated.parsed.serialNumber ?? generateSerialNumber(),
-            description: item.validated.parsed.description,
-            currentStatus: "Active",
-            propertyModelId: nil,
-            assignedToUserId: nil,
-            nsn: item.validated.parsed.nsn,
-            lin: item.validated.parsed.lin
+        // Use batch import API for better ledger logging
+        try await performBatchImportWithErrorHandling(
+            batchItems: batchItems,
+            source: "local_ocr_ios",
+            sourceReference: "DA2062-Local-\(Int(Date().timeIntervalSince1970))"
         )
     }
     
-    private func generateSerialNumber() -> String {
-        // Generate a temporary serial number
-        let timestamp = Int(Date().timeIntervalSince1970)
-        let random = Int.random(in: 1000...9999)
-        return "TEMP-\(timestamp)-\(random)"
+    private func buildVerificationReasons(_ item: EnrichedItem) -> [String] {
+        var reasons: [String] = []
+        
+        if item.validated.confidence < 0.7 {
+            reasons.append("Low OCR confidence")
+        }
+        
+        if !item.validated.parsed.hasExplicitSerial {
+            reasons.append("Generated serial number")
+        }
+        
+        if item.validated.parsed.nsn == nil {
+            reasons.append("Missing NSN")
+        }
+        
+        if item.validated.parsed.quantity > 1 {
+            reasons.append("Multiple quantity item")
+        }
+        
+        return reasons
     }
     
     // MARK: - Progress Updates
@@ -283,23 +613,24 @@ class DA2062ImportViewModel: ObservableObject {
     
     // MARK: - User Actions
     
-    func cancelImport() {
-        isImporting = false
-        // TODO: Implement cancellation logic
-    }
-    
     func completeImport() {
         isImporting = false
         showingSummary = false
+        partialSuccessInfo = nil
         // Navigate back or refresh properties list
     }
-    
-    // MARK: - Summary Data
-    
-    var importSummary: (total: Int, successful: Int) {
-        let total = progress.totalItems
-        let failed = progress.errors.filter { !$0.recoverable }.count
-        let successful = total - failed
-        return (total, successful)
-    }
+}
+
+// MARK: - Supporting Types
+
+struct PartialSuccessInfo {
+    let totalAttempted: Int
+    let successfulCount: Int
+    let failedCount: Int
+    let errors: [String]
+}
+
+struct ValidationResult {
+    let isValid: Bool
+    let errors: [String]
 } 

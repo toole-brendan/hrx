@@ -142,4 +142,75 @@ struct DA2062Scan: Identifiable {
         self.formNumber = formNumber
         self.requiresVerification = requiresVerification
     }
+}
+
+// MARK: - Enhanced Processing Models for Import Pipeline
+
+// Parsed item from OCR with enhanced metadata
+struct ParsedDA2062Item {
+    let lineNumber: Int
+    let nsn: String?
+    let lin: String?
+    let description: String
+    let quantity: Int
+    let unitOfIssue: String
+    let serialNumber: String?
+    let confidence: Double
+    let hasExplicitSerial: Bool
+}
+
+// Validated item with validation results
+struct ValidatedItem {
+    let parsed: ParsedDA2062Item
+    let isValid: Bool
+    let confidence: Double
+}
+
+// Enriched item with NSN lookup data
+struct EnrichedItem {
+    let validated: ValidatedItem
+    var officialName: String?
+    var manufacturer: String?
+    var partNumber: String?
+    
+    init(validated: ValidatedItem) {
+        self.validated = validated
+    }
+}
+
+// Import progress tracking
+struct ImportProgress {
+    var totalItems: Int
+    var processedItems: Int = 0
+    var currentItem: String = ""
+    var currentPhase: ImportPhase = .parsing
+    var errors: [ImportError] = []
+    
+    var progress: Double {
+        guard totalItems > 0 else { return 0 }
+        return Double(processedItems) / Double(totalItems)
+    }
+    
+    var progressPercentage: Int {
+        Int(progress * 100)
+    }
+}
+
+// Import phases for progress tracking
+enum ImportPhase: String {
+    case scanning = "Scanning document..."
+    case extracting = "Extracting text..."
+    case parsing = "Parsing items..."
+    case validating = "Validating data..."
+    case enriching = "Looking up NSN data..."
+    case creating = "Creating property records..."
+    case complete = "Import complete"
+}
+
+// Import error model
+struct ImportError: Identifiable, Error {
+    let id = UUID()
+    let itemName: String
+    let error: String
+    let recoverable: Bool
 } 
