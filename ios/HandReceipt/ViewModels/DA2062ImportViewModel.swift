@@ -56,6 +56,122 @@ class DA2062ImportViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Process Confirmed Items (from Review Sheet)
+    
+    func processConfirmedItems(_ editableItems: [EditableDA2062Item]) async {
+        // Cancel any existing import
+        currentImportTask?.cancel()
+        
+        // Initialize progress
+        progress = ImportProgress(totalItems: editableItems.count)
+        partialSuccessInfo = nil
+        isImporting = true
+        
+        currentImportTask = Task {
+            do {
+                updateProgress(phase: .creating, currentItem: "Preparing confirmed items for import...")
+                
+                // Convert editable items to batch format
+                let batchItems = convertEditableItemsToBatch(editableItems)
+                
+                // Import using batch API
+                try await performBatchImportWithErrorHandling(
+                    batchItems: batchItems,
+                    source: "reviewed_items_ios",
+                    sourceReference: "DA2062-Reviewed-\(Int(Date().timeIntervalSince1970))"
+                )
+                
+            } catch {
+                if !Task.isCancelled {
+                    handleImportError(error)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Convert Editable Items to Batch Format
+    
+    private func convertEditableItemsToBatch(_ editableItems: [EditableDA2062Item]) -> [DA2062BatchItem] {
+        return editableItems.filter { $0.isSelected && $0.isValid }.map { item in
+            DA2062BatchItem(
+                name: item.description,
+                description: buildEnhancedDescription(for: item),
+                serialNumber: item.serialNumber.trimmingCharacters(in: .whitespacesAndNewlines),
+                nsn: item.nsn.isEmpty ? nil : item.nsn,
+                quantity: Int(item.quantity) ?? 1,
+                unit: item.unit ?? "EA",
+                category: categorizeItem(item.description),
+                importMetadata: BatchImportMetadata(
+                    confidence: item.confidence,
+                    requiresVerification: item.needsVerification,
+                    verificationReasons: getVerificationReasonsForEditableItem(item),
+                    sourceDocumentUrl: nil,
+                    originalQuantity: (Int(item.quantity) ?? 1) > 1 ? Int(item.quantity) : nil,
+                    quantityIndex: nil
+                )
+            )
+        }
+    }
+    
+    private func buildEnhancedDescription(for item: EditableDA2062Item) -> String {
+        var parts: [String] = []
+        
+        if !item.nsn.isEmpty {
+            parts.append("NSN: \(item.nsn)")
+        }
+        
+        if !item.serialNumber.isEmpty && item.hasExplicitSerial {
+            parts.append("S/N: \(item.serialNumber)")
+        }
+        
+        parts.append("Imported from DA-2062")
+        parts.append("Import Date: \(Date().formatted(date: .abbreviated, time: .omitted))")
+        
+        return parts.joined(separator: " | ")
+    }
+    
+    private func categorizeItem(_ description: String) -> String {
+        let desc = description.uppercased()
+        
+        if desc.contains("WEAPON") || desc.contains("RIFLE") || desc.contains("PISTOL") || desc.contains("CARBINE") {
+            return "Weapons"
+        } else if desc.contains("OPTIC") || desc.contains("SIGHT") || desc.contains("SCOPE") {
+            return "Optics"
+        } else if desc.contains("RADIO") || desc.contains("SINCGARS") || desc.contains("ASIP") {
+            return "Communications"
+        } else if desc.contains("VEST") || desc.contains("IOTV") || desc.contains("PLATE") {
+            return "Body Armor"
+        } else if desc.contains("HELMET") || desc.contains("ACH") {
+            return "Protective Gear"
+        } else if desc.contains("NVGS") || desc.contains("NIGHT VISION") {
+            return "Night Vision"
+        } else {
+            return "Equipment"
+        }
+    }
+    
+    private func getVerificationReasonsForEditableItem(_ item: EditableDA2062Item) -> [String] {
+        var reasons: [String] = []
+        
+        if item.confidence < 0.7 {
+            reasons.append("Low OCR confidence (\(Int(item.confidence * 100))%)")
+        }
+        
+        if !item.hasExplicitSerial && !item.serialNumber.isEmpty {
+            reasons.append("Serial number was auto-generated")
+        }
+        
+        if item.quantityConfidence < 0.8 && Int(item.quantity) ?? 1 > 1 {
+            reasons.append("Quantity field had low confidence")
+        }
+        
+        if item.nsn.isEmpty {
+            reasons.append("No NSN detected")
+        }
+        
+        return reasons
+    }
+    
     // MARK: - Enhanced Azure OCR Processing with Fallback
     
     private func processWithAzureOCREnhanced(image: UIImage) async throws {

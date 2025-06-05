@@ -14,6 +14,8 @@ struct DA2062ScanView: View {
     @State private var showingImagePicker = false
     @State private var showingLegacyImagePicker = false
     @State private var selectedImageChanged = false // Helper for onChange
+    @State private var scannedPages: [DA2062DocumentScannerViewModel.ScannedPage] = []
+    @State private var showingImportProgress = false
     
     // OCR Mode Settings
     @AppStorage("useAzureOCR") private var useAzureOCR = true
@@ -81,16 +83,23 @@ struct DA2062ScanView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showingProcessingView) {
-                DA2062ImportProgressView(sourceImage: scannerViewModel.lastProcessedImage ?? UIImage())
+                OCRProcessingView(
+                    sourceImage: scannerViewModel.lastProcessedImage ?? UIImage(),
+                    useAzureOCR: useAzureOCR,
+                    onCompletion: handleOCRCompletion
+                )
             }
             .sheet(isPresented: $showingReviewSheet) {
                 if let form = parsedForm {
                     DA2062ReviewSheet(
                         form: form,
-                        scannedPages: [],
-                        onConfirm: handleImport
+                        scannedPages: scannedPages,
+                        onConfirm: handleReviewConfirmation
                     )
                 }
+            }
+            .sheet(isPresented: $showingImportProgress) {
+                DA2062ImportProgressView(sourceImage: scannerViewModel.lastProcessedImage ?? UIImage())
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsSheet()
@@ -255,7 +264,7 @@ struct DA2062ScanView: View {
             VStack(alignment: .leading, spacing: 8) {
                 InfoRow(icon: "1.circle.fill", text: "Scan or select your DA 2062 form image")
                 InfoRow(icon: "2.circle.fill", text: useAzureOCR ? "Process with Azure Computer Vision" : "Process with local OCR")
-                InfoRow(icon: "3.circle.fill", text: "Review and edit recognized items")
+                InfoRow(icon: "3.circle.fill", text: "Review and edit recognized items", highlighted: true)
                 InfoRow(icon: "4.circle.fill", text: "Import into your property inventory")
                 InfoRow(icon: "5.circle.fill", text: "All actions logged to Azure Immutable Ledger")
             }
@@ -326,15 +335,16 @@ struct DA2062ScanView: View {
     
     // MARK: - Helper Views
     
-    private func InfoRow(icon: String, text: String) -> some View {
+    private func InfoRow(icon: String, text: String, highlighted: Bool = false) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(highlighted ? .green : .blue)
                 .frame(width: 20)
             
             Text(text)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(highlighted ? .primary : .secondary)
+                .fontWeight(highlighted ? .medium : .regular)
         }
     }
     
@@ -383,67 +393,37 @@ struct DA2062ScanView: View {
     
     private func processImage(_ image: UIImage) {
         scannerViewModel.lastProcessedImage = image
-        scannerViewModel.processScannedDocuments([image])
+        
+        // Create a scanned page for the review sheet
+        scannedPages = [DA2062DocumentScannerViewModel.ScannedPage(
+            image: image,
+            pageNumber: 1,
+            confidence: 0.85
+        )]
+        
         showingProcessingView = true
     }
     
-    private func handleImport(_ propertyRequests: [DA2062PropertyRequest]) {
-        showingReviewSheet = false
-        isImporting = true
+    private func handleOCRCompletion(result: Result<DA2062Form, Error>) {
+        showingProcessingView = false
         
-        Task {
-            do {
-                // Convert property requests to batch import format
-                let batchItems = propertyRequests.map { request in
-                    DA2062BatchItem(
-                        name: request.name,
-                        description: request.description,
-                        serialNumber: request.serialNumber,
-                        nsn: request.nsn,
-                        quantity: request.quantity,
-                        unit: request.unit,
-                        category: request.category,
-                        importMetadata: BatchImportMetadata(
-                            confidence: request.importMetadata.itemConfidence,
-                            requiresVerification: request.importMetadata.requiresVerification,
-                            verificationReasons: request.importMetadata.verificationReasons,
-                            sourceDocumentUrl: nil,
-                            originalQuantity: request.importMetadata.originalQuantity,
-                            quantityIndex: request.importMetadata.quantityIndex
-                        )
-                    )
-                }
-                
-                let response = try await APIService.shared.importDA2062Items(
-                    items: batchItems,
-                    source: useAzureOCR ? "azure_ocr_ios" : "local_ocr_ios",
-                    sourceReference: parsedForm?.formNumber
-                )
-                
-                await MainActor.run {
-                    isImporting = false
-                    // Handle successful import
-                    handleImportSuccess(response)
-                }
-                
-            } catch {
-                await MainActor.run {
-                    isImporting = false
-                    importError = error.localizedDescription
-                }
-            }
+        switch result {
+        case .success(let form):
+            parsedForm = form
+            showingReviewSheet = true
+        case .failure(let error):
+            importError = error.localizedDescription
+            // Handle error - maybe show an alert
+            print("OCR processing failed: \(error)")
         }
     }
     
-    private func handleImportSuccess(_ response: BatchImportResponse) {
-        if response.createdCount > 0 {
-            // Show success message
-            print("✅ Successfully imported \(response.createdCount) items to inventory with ledger logging")
-        }
+    private func handleReviewConfirmation(_ propertyRequests: [DA2062PropertyRequest]) {
+        showingReviewSheet = false
+        showingImportProgress = true
         
-        if response.failedCount > 0 {
-            importError = "Partial success: \(response.createdCount) items imported, \(response.failedCount) failed"
-        }
+        // The import progress view will handle the actual import
+        // We'll need to pass the confirmed items to it
     }
 }
 
@@ -538,6 +518,129 @@ struct PhotosPickerModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .photosPicker(isPresented: .constant(false), selection: $selectedItem, matching: .images)
+    }
+}
+
+// MARK: - OCR Processing View
+
+struct OCRProcessingView: View {
+    let sourceImage: UIImage
+    let useAzureOCR: Bool
+    let onCompletion: (Result<DA2062Form, Error>) -> Void
+    
+    @StateObject private var scanViewModel = DA2062ScanViewModel()
+    @Environment(\.dismiss) private var dismiss
+    @State private var processingStarted = false
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 12) {
+                Text("Processing DA 2062")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                HStack {
+                    Image(systemName: useAzureOCR ? "cloud.fill" : "iphone")
+                        .foregroundColor(useAzureOCR ? .blue : .orange)
+                    Text(useAzureOCR ? "Azure Computer Vision" : "Local Vision Framework")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Processing progress
+            VStack(spacing: 16) {
+                if scanViewModel.isProcessing {
+                    ProgressView(value: scanViewModel.processingProgress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .frame(height: 8)
+                    
+                    Text(scanViewModel.processingMessage)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                } else if !processingStarted {
+                    Text("Ready to process document")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+            
+            // Action buttons
+            HStack(spacing: 16) {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                
+                if !processingStarted {
+                    Button("Start Processing") {
+                        startProcessing()
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else if scanViewModel.isProcessing {
+                    Button("Processing...") {
+                        // Can't cancel Azure processing once started
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(true)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .padding()
+        .navigationBarHidden(true)
+        .interactiveDismissDisabled(scanViewModel.isProcessing)
+    }
+    
+    private func startProcessing() {
+        processingStarted = true
+        
+        if useAzureOCR {
+            // Create a scanned page for Azure processing
+            let scannedPage = DA2062DocumentScannerViewModel.ScannedPage(
+                image: sourceImage,
+                pageNumber: 1,
+                confidence: 0.85
+            )
+            
+            Task {
+                let result = await scanViewModel.uploadScannedFormToAzure(pages: [scannedPage])
+                
+                await MainActor.run {
+                    switch result {
+                    case .success():
+                        if let form = scanViewModel.currentForm {
+                            onCompletion(.success(form))
+                        } else {
+                            onCompletion(.failure(NSError(domain: "OCRProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "No form data returned"])))
+                        }
+                    case .failure(let error):
+                        onCompletion(.failure(error))
+                    }
+                }
+            }
+        } else {
+            // Use local OCR
+            scanViewModel.processDA2062(image: sourceImage) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success():
+                        if let form = scanViewModel.currentForm {
+                            onCompletion(.success(form))
+                        } else {
+                            onCompletion(.failure(NSError(domain: "OCRProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "No form data returned"])))
+                        }
+                    case .failure(let error):
+                        onCompletion(.failure(error))
+                    }
+                }
+            }
+        }
     }
 }
 

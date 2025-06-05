@@ -10,6 +10,19 @@ struct DA2062ImportProgressView: View {
     @Environment(\.dismiss) private var dismiss
     
     let sourceImage: UIImage
+    let confirmedItems: [EditableDA2062Item]?
+    
+    // Initialize with just source image (legacy support)
+    init(sourceImage: UIImage) {
+        self.sourceImage = sourceImage
+        self.confirmedItems = nil
+    }
+    
+    // Initialize with confirmed items from review
+    init(sourceImage: UIImage, confirmedItems: [EditableDA2062Item]) {
+        self.sourceImage = sourceImage
+        self.confirmedItems = confirmedItems
+    }
     
     var body: some View {
         NavigationView {
@@ -17,23 +30,29 @@ struct DA2062ImportProgressView: View {
                 // Header with OCR mode indicator
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("DA 2062 Import")
+                        Text(confirmedItems != nil ? "Final Import" : "DA 2062 Import")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                         
-                        HStack {
-                            Image(systemName: viewModel.useAzureOCR ? "cloud.fill" : "iphone")
-                                .foregroundColor(viewModel.useAzureOCR ? .blue : .orange)
-                            Text(viewModel.useAzureOCR ? "Azure Computer Vision" : "Local OCR")
+                        if confirmedItems != nil {
+                            Text("Creating property records from reviewed items")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                        } else {
+                            HStack {
+                                Image(systemName: viewModel.useAzureOCR ? "cloud.fill" : "iphone")
+                                    .foregroundColor(viewModel.useAzureOCR ? .blue : .orange)
+                                Text(viewModel.useAzureOCR ? "Azure Computer Vision" : "Local OCR")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                     
                     Spacer()
                     
-                    // OCR mode toggle
-                    if !viewModel.isImporting {
+                    // OCR mode toggle (only if not using confirmed items)
+                    if !viewModel.isImporting && confirmedItems == nil {
                         Button(action: {
                             viewModel.toggleOCRMode()
                         }) {
@@ -52,12 +71,15 @@ struct DA2062ImportProgressView: View {
                     totalItems: viewModel.progress.totalItems,
                     processedItems: viewModel.progress.processedItems,
                     isImporting: viewModel.isImporting,
-                    useAzureOCR: viewModel.useAzureOCR
+                    useAzureOCR: confirmedItems != nil ? false : viewModel.useAzureOCR
                 )
                 
                 // Status Information
                 if viewModel.isImporting {
-                    ImportStatusCard(progress: viewModel.progress, useAzureOCR: viewModel.useAzureOCR)
+                    ImportStatusCard(
+                        progress: viewModel.progress, 
+                        useAzureOCR: confirmedItems != nil ? false : viewModel.useAzureOCR
+                    )
                 }
                 
                 // Error Display
@@ -71,7 +93,7 @@ struct DA2062ImportProgressView: View {
                     ImportSummaryCard(
                         totalItems: summary.total,
                         successfulItems: summary.successful,
-                        useAzureOCR: viewModel.useAzureOCR
+                        useAzureOCR: confirmedItems != nil ? false : viewModel.useAzureOCR
                     )
                 }
                 
@@ -91,9 +113,13 @@ struct DA2062ImportProgressView: View {
                         }
                         .buttonStyle(.borderedProminent)
                     } else {
-                        Button("Start Import") {
+                        Button(confirmedItems != nil ? "Create Properties" : "Start Import") {
                             Task {
-                                await viewModel.processDA2062WithProgress(image: sourceImage)
+                                if let items = confirmedItems {
+                                    await viewModel.processConfirmedItems(items)
+                                } else {
+                                    await viewModel.processDA2062WithProgress(image: sourceImage)
+                                }
                             }
                         }
                         .buttonStyle(.borderedProminent)
