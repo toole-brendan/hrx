@@ -41,7 +41,7 @@ ssh -i $SSH_KEY_PATH ubuntu@$LIGHTSAIL_IP << 'EOF'
   
   # Verify the test users were created
   echo "🔍 Verifying test user creation..."
-  sudo docker exec $POSTGRES_CONTAINER psql -U handreceipt -d handreceipt -c "SELECT username, name, rank FROM users WHERE username IN ('michael.rodriguez', 'john.doe', 'jane.smith', 'bob.wilson');"
+  sudo docker exec $POSTGRES_CONTAINER psql -U handreceipt -d handreceipt -c "SELECT email, name, rank FROM users WHERE email IN ('admin@handreceipt.com', 'demo@handreceipt.com', 'sample@handreceipt.com');"
   
   # Clean up
   sudo docker exec $POSTGRES_CONTAINER rm /tmp/production_seed.sql
