@@ -21,17 +21,20 @@ class NSNService {
         }
         
         do {
-            let details = try await apiService.lookupNSN(nsn)
-            debugPrint("✅ NSN lookup successful for \(nsn): \(details.name)")
-            return .found(details)
-        } catch APIError.itemNotFound {
-            // 404 is expected for unknown NSNs - not an error
-            debugPrint("ℹ️ NSN \(nsn) not found in database (this is normal for unlisted items)")
-            return .notFound
+            let response = try await apiService.lookupNSN(nsn: nsn)
+            debugPrint("✅ NSN lookup successful for \(nsn): \(response.data.nomenclature)")
+            return .found(response.data)
         } catch {
-            // Only log actual network/API errors
-            debugPrint("⚠️ NSN lookup failed for \(nsn): \(error.localizedDescription)")
-            return .networkError(error)
+            // Check if it's a 404/not found error
+            if let apiError = error as? APIService.APIError, case .itemNotFound = apiError {
+                // 404 is expected for unknown NSNs - not an error
+                debugPrint("ℹ️ NSN \(nsn) not found in database (this is normal for unlisted items)")
+                return .notFound
+            } else {
+                // Only log actual network/API errors
+                debugPrint("⚠️ NSN lookup failed for \(nsn): \(error.localizedDescription)")
+                return .networkError(error)
+            }
         }
     }
     
@@ -51,12 +54,13 @@ class NSNService {
             let batchResults = try await withThrowingTaskGroup(of: (String, NSNDetails?).self) { group in
                 for nsn in batch {
                     group.addTask {
-                        do {
-                            let details = try await self.lookupNSN(nsn)
+                        let lookupResult = await self.lookupNSN(nsn)
+                        switch lookupResult {
+                        case .found(let details):
                             return (nsn, details)
-                        } catch {
+                        case .notFound, .networkError:
                             // If lookup fails, return nil for this NSN
-                            print("Failed to lookup NSN \(nsn): \(error)")
+                            print("Failed to lookup NSN \(nsn)")
                             return (nsn, nil)
                         }
                     }

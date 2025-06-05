@@ -619,7 +619,8 @@ struct DA2062ExportView: View {
             try await viewModel.sendHandReceipt(to: recipientUser.id)
             isGenerating = false
             // Show success alert
-            errorMessage = "Hand Receipt sent to \(recipientUser.rank) \(recipientUser.name)"
+            let rank = recipientUser.rank ?? ""
+            errorMessage = "Hand Receipt sent to \(rank) \(recipientUser.name)"
             showError = true
             // Dismiss the picker and export view after success
             showingRecipientPicker = false

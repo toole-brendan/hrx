@@ -43,6 +43,20 @@ public struct ImportMetadata: Codable {
     let quantityIndex: Int? // If this is item 2 of 3
     let requiresVerification: Bool
     let verificationReasons: [String]
+    
+    enum CodingKeys: String, CodingKey {
+        case source
+        case importDate = "import_date"
+        case formNumber = "form_number"
+        case unitName = "unit_name"
+        case scanConfidence = "scan_confidence"
+        case itemConfidence = "item_confidence"
+        case serialSource = "serial_source"
+        case originalQuantity = "original_quantity"
+        case quantityIndex = "quantity_index"
+        case requiresVerification = "requires_verification"
+        case verificationReasons = "verification_reasons"
+    }
 }
 
 public enum SerialSource: String, Codable {

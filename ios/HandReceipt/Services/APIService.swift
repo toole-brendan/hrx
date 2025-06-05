@@ -128,6 +128,9 @@ public protocol APIServiceProtocol {
     // MARK: - DA2062 Azure OCR Endpoints
     func uploadDA2062Form(pdfData: Data, fileName: String) async throws -> AzureOCRResponse
     func importDA2062Items(items: [DA2062BatchItem], source: String, sourceReference: String?) async throws -> BatchImportResponse
+    
+    // MARK: - User Signature Endpoints
+    func uploadUserSignature(imageData: Data) async throws -> UploadSignatureResponse
 }
 
 // Debug print function to avoid cluttering 
@@ -1624,6 +1627,34 @@ public class APIService: APIServiceProtocol {
         let _: EmptyResponse = try await performRequest(request: request)
         debugPrint("Successfully changed password for user: \(userId)")
     }
+    
+    // MARK: - User Signature Endpoints
+    public func uploadUserSignature(imageData: Data) async throws -> UploadSignatureResponse {
+        debugPrint("Uploading user signature")
+        let endpoint = baseURL.appendingPathComponent("/api/users/signature")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        
+        // Create multipart form data
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        
+        // Add signature image data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"signature\"; filename=\"signature.png\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/png\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        let response = try await performRequest(request: request) as UploadSignatureResponse
+        debugPrint("Successfully uploaded user signature")
+        return response
+    }
 }
 
 // Helper struct for requests expecting no response body (e.g., 204)
@@ -1990,6 +2021,17 @@ public struct BatchImportItem: Codable {
         case serialNumber = "serial_number"
         case status
         case error
+    }
+}
+
+// Signature upload response model
+public struct UploadSignatureResponse: Codable {
+    public let message: String
+    public let signatureUrl: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case message
+        case signatureUrl = "signature_url"
     }
 }
 

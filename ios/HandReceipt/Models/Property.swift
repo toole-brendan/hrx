@@ -141,7 +141,21 @@ public struct Property: Identifiable, Codable {
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
         sourceType = try container.decodeIfPresent(String.self, forKey: .sourceType)
-        importMetadata = try container.decodeIfPresent(ImportMetadata.self, forKey: .importMetadata)
+        
+        // Custom decoding for importMetadata - handle both object and JSON string
+        if let importMetadataString = try container.decodeIfPresent(String.self, forKey: .importMetadata) {
+            // Backend sent as JSON string, parse it
+            if let data = importMetadataString.data(using: .utf8),
+               let parsedMetadata = try? JSONDecoder().decode(ImportMetadata.self, from: data) {
+                importMetadata = parsedMetadata
+            } else {
+                importMetadata = nil
+            }
+        } else {
+            // Try to decode as direct object (fallback)
+            importMetadata = try container.decodeIfPresent(ImportMetadata.self, forKey: .importMetadata)
+        }
+        
         verified = try container.decodeIfPresent(Bool.self, forKey: .verified) ?? false
         verifiedAt = try container.decodeIfPresent(Date.self, forKey: .verifiedAt)
         isAttachable = try container.decodeIfPresent(Bool.self, forKey: .isAttachable)
@@ -202,7 +216,15 @@ public struct Property: Identifiable, Codable {
         try container.encodeIfPresent(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
         try container.encodeIfPresent(sourceType, forKey: .sourceType)
-        try container.encodeIfPresent(importMetadata, forKey: .importMetadata)
+        
+        // Custom encoding for importMetadata - encode as JSON string to match backend expectation
+        if let importMetadata = importMetadata {
+            if let jsonData = try? JSONEncoder().encode(importMetadata),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                try container.encode(jsonString, forKey: .importMetadata)
+            }
+        }
+        
         try container.encode(verified, forKey: .verified)
         try container.encodeIfPresent(verifiedAt, forKey: .verifiedAt)
         try container.encodeIfPresent(isAttachable, forKey: .isAttachable)

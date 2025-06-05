@@ -536,48 +536,6 @@ extension APIService {
         print("DEBUG: Successfully decoded \(propertiesResponse.properties.count) properties")
         return propertiesResponse.properties
     }
-    
-    func uploadUserSignature(imageData: Data) async throws -> UploadSignatureResponse {
-        guard let url = URL(string: "\(baseURLString)/api/user/signature") else {
-            throw APIError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        
-        // Add authorization header if available
-        if let accessToken = AuthManager.shared.getAccessToken() {
-            request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let boundary = "Boundary-\(UUID().uuidString)"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-
-        // Prepare multipart body
-        var body = Data()
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"signature\"; filename=\"signature.png\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: image/png\r\n\r\n".data(using: .utf8)!)
-        body.append(imageData)
-        body.append("\r\n".data(using: .utf8)!)
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        request.httpBody = body
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-        
-        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
-            if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
-                throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
-            }
-            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to upload signature")
-        }
-        
-        return try JSONDecoder().decode(UploadSignatureResponse.self, from: data)
-    }
 }
 
 struct DA2062ErrorResponse: Codable {
@@ -586,14 +544,4 @@ struct DA2062ErrorResponse: Codable {
 
 struct PropertiesResponse: Codable {
     let properties: [Property]
-}
-
-struct UploadSignatureResponse: Codable {
-    let message: String
-    let signatureUrl: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case message
-        case signatureUrl = "signature_url"
-    }
 }
