@@ -9,10 +9,36 @@ class NSNService {
         self.apiService = apiService
     }
     
-    func lookupNSN(_ nsn: String) async throws -> NSNDetails {
-        // Call the backend NSN lookup endpoint
-        let response = try await apiService.lookupNSN(nsn: nsn)
-        return response.data
+    enum NSNLookupResult {
+        case found(NSNDetails)
+        case notFound
+        case networkError(Error)
+    }
+    
+    func lookupNSN(_ nsn: String) async -> NSNLookupResult {
+        guard !nsn.isEmpty, isValidNSNFormat(nsn) else {
+            return .notFound
+        }
+        
+        do {
+            let details = try await apiService.lookupNSN(nsn)
+            debugPrint("✅ NSN lookup successful for \(nsn): \(details.name)")
+            return .found(details)
+        } catch APIError.itemNotFound {
+            // 404 is expected for unknown NSNs - not an error
+            debugPrint("ℹ️ NSN \(nsn) not found in database (this is normal for unlisted items)")
+            return .notFound
+        } catch {
+            // Only log actual network/API errors
+            debugPrint("⚠️ NSN lookup failed for \(nsn): \(error.localizedDescription)")
+            return .networkError(error)
+        }
+    }
+    
+    private func isValidNSNFormat(_ nsn: String) -> Bool {
+        // NSN format: XXXX-XX-XXX-XXXX
+        let nsnPattern = "^\\d{4}-?\\d{2}-?\\d{3}-?\\d{4}$"
+        return nsn.range(of: nsnPattern, options: .regularExpression) != nil
     }
     
     // Batch lookup for multiple NSNs

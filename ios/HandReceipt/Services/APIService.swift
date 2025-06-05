@@ -1925,18 +1925,55 @@ public struct BatchImportMetadata: Codable {
 }
 
 public struct BatchImportResponse: Codable {
-    public let success: Bool
+    public let items: [Property]
     public let createdCount: Int
     public let failedCount: Int
-    public let items: [BatchImportItem]
-    public let errors: [String]?
+    public let totalAttempted: Int
+    public let verifiedCount: Int
+    public let verificationNeeded: [Property]
+    public let failedItems: [BatchFailedItem]?
+    public let summary: BatchImportSummary
+    public let errors: [BatchFailedItem]?
+    public let message: String?
     
     private enum CodingKeys: String, CodingKey {
-        case success
+        case items
         case createdCount = "created_count"
         case failedCount = "failed_count"
-        case items
+        case totalAttempted = "total_attempted"
+        case verifiedCount = "verified_count"
+        case verificationNeeded = "verification_needed"
+        case failedItems = "failed_items"
+        case summary
         case errors
+        case message
+    }
+    
+    // Computed properties for backwards compatibility
+    public var count: Int { createdCount }
+}
+
+public struct BatchFailedItem: Codable {
+    public let item: DA2062BatchItem
+    public let error: String
+    public let reason: String
+}
+
+public struct BatchImportSummary: Codable {
+    public let totalItems: Int
+    public let successfulItems: Int
+    public let failedItems: Int
+    public let requiresVerification: Int
+    public let categories: [String: Int]
+    public let confidenceLevels: [String: Int]
+    
+    private enum CodingKeys: String, CodingKey {
+        case totalItems = "total_items"
+        case successfulItems = "successful_items"
+        case failedItems = "failed_items"
+        case requiresVerification = "requires_verification"
+        case categories
+        case confidenceLevels = "confidence_levels"
     }
 }
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -75,16 +76,18 @@ func (h *DA2062Handler) BatchCreateInventory(c *gin.Context) {
 	}
 
 	// Process items and create Property objects
-	var properties []domain.Property
 	var createdProperties []domain.Property
+	var failedItems []models.BatchFailedItem
 
 	for _, item := range req.Items {
-		// Check if this item needs quantity expansion
-		if item.ImportMetadata != nil &&
-			item.ImportMetadata.OriginalQuantity > 1 &&
-			item.ImportMetadata.SerialSource == "generated" {
-			// This item represents a multi-quantity entry
-			// The frontend should have already done the expansion, but we double-check
+		// Validate item before attempting creation
+		if validationError := validateBatchItem(item); validationError != "" {
+			failedItems = append(failedItems, models.BatchFailedItem{
+				Item:   item,
+				Error:  validationError,
+				Reason: "validation_failed",
+			})
+			continue
 		}
 
 		// Convert ImportMetadata to JSON string for storage
@@ -134,32 +137,41 @@ func (h *DA2062Handler) BatchCreateInventory(c *gin.Context) {
 			property.VerifiedBy = &userID
 		}
 
-		properties = append(properties, property)
-	}
+		// Attempt to create the property
+		if err := h.Repo.CreateProperty(&property); err != nil {
+			// Log error but continue with other items
+			log.Printf("Failed to create property %s (SN: %s): %v", property.Name, property.SerialNumber, err)
 
-	// Create properties in batch
-	for i := range properties {
-		if err := h.Repo.CreateProperty(&properties[i]); err != nil {
-			// Check for duplicate serial number
+			var errorMessage string
+			var reason string
+
+			// Check for specific error types
 			if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "serial_number") {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error":         fmt.Sprintf("Property with serial number '%s' already exists", properties[i].SerialNumber),
-					"created_count": len(createdProperties),
-				})
-				return
+				errorMessage = fmt.Sprintf("Property with serial number '%s' already exists", property.SerialNumber)
+				reason = "duplicate_serial"
+			} else {
+				errorMessage = err.Error()
+				reason = "creation_failed"
 			}
-			log.Printf("Failed to create property: %v", err)
+
+			failedItems = append(failedItems, models.BatchFailedItem{
+				Item:   item,
+				Error:  errorMessage,
+				Reason: reason,
+			})
 			continue
 		}
-		createdProperties = append(createdProperties, properties[i])
+
+		// Successfully created
+		createdProperties = append(createdProperties, property)
 
 		// Log each individual property creation to ledger with DA2062 context
-		errLedger := h.Ledger.LogPropertyCreation(properties[i], userID)
+		errLedger := h.Ledger.LogPropertyCreation(property, userID)
 		if errLedger != nil {
-			log.Printf("WARNING: Failed to log property creation (SN: %s) to ledger: %v", properties[i].SerialNumber, errLedger)
+			log.Printf("WARNING: Failed to log property creation (SN: %s) to ledger: %v", property.SerialNumber, errLedger)
 		} else {
 			log.Printf("✅ Logged DA2062 property creation to immutable ledger: %s (SN: %s)",
-				properties[i].Name, properties[i].SerialNumber)
+				property.Name, property.SerialNumber)
 		}
 	}
 
@@ -194,13 +206,36 @@ func (h *DA2062Handler) BatchCreateInventory(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	// Determine response status
+	statusCode := http.StatusCreated
+	if len(createdProperties) == 0 {
+		statusCode = http.StatusBadRequest
+	} else if len(failedItems) > 0 {
+		statusCode = http.StatusPartialContent // 206 for partial success
+	}
+
+	response := gin.H{
 		"items":               createdProperties,
-		"count":               len(createdProperties),
+		"created_count":       len(createdProperties),
+		"failed_count":        len(failedItems),
+		"total_attempted":     len(req.Items),
 		"verified_count":      len(verified),
 		"verification_needed": verificationNeeded,
+		"failed_items":        failedItems,
 		"summary":             generateImportSummary(createdProperties),
-	})
+	}
+
+	// Add error details if there are failures
+	if len(failedItems) > 0 {
+		response["errors"] = failedItems
+		if len(createdProperties) == 0 {
+			response["error"] = "No items were successfully imported"
+		} else {
+			response["message"] = fmt.Sprintf("Partial success: %d of %d items imported", len(createdProperties), len(req.Items))
+		}
+	}
+
+	c.JSON(statusCode, response)
 }
 
 // VerifyImportedItem verifies an imported property
@@ -439,11 +474,13 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 	var items []models.DA2062ImportItem
 
 	for _, ocrItem := range parsedForm.Items {
-		// Generate or use existing serial number
-		serialNumber := ocrItem.SerialNumber
+		// Only use existing serial number, don't generate placeholders
+		serialNumber := strings.TrimSpace(ocrItem.SerialNumber)
+
+		// Skip items without valid serial numbers
 		if serialNumber == "" {
-			// Generate a placeholder serial for items without serials
-			serialNumber = fmt.Sprintf("NOSERIAL-%s-%d", ocrItem.NSN, time.Now().Unix())
+			log.Printf("Skipping item '%s' - no valid serial number found", ocrItem.ItemDescription)
+			continue
 		}
 
 		// Create import metadata
@@ -456,6 +493,14 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 			RequiresVerification: len(ocrItem.VerificationReasons) > 0 || ocrItem.Confidence < 0.7,
 			VerificationReasons:  ocrItem.VerificationReasons,
 			SourceDocumentURL:    sourceDocumentURL,
+		}
+
+		// Add verification reason if serial number looks auto-generated or suspicious
+		if strings.Contains(strings.ToUpper(serialNumber), "NOSERIAL") ||
+			strings.Contains(strings.ToUpper(serialNumber), "TEMP") ||
+			strings.Contains(strings.ToUpper(serialNumber), "PLACEHOLDER") {
+			importMetadata.RequiresVerification = true
+			importMetadata.VerificationReasons = append(importMetadata.VerificationReasons, "Generated or placeholder serial number")
 		}
 
 		item := models.DA2062ImportItem{
@@ -484,8 +529,10 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 		"total_items": len(items),
 		"metadata":    parsedForm.Metadata,
 		"next_steps": gin.H{
-			"verification_needed": parsedForm.Metadata.RequiresVerification,
-			"message":             "Review items and submit for creation",
+			"verification_needed":  parsedForm.Metadata.RequiresVerification,
+			"items_needing_review": countItemsNeedingReview(items),
+			"suggested_action":     "Review items and submit for creation",
+			"message":              "Review items and submit for creation", // Keep for backwards compatibility
 		},
 	}
 
@@ -983,6 +1030,54 @@ func buildPropertySummaryForLedger(properties []domain.Property) string {
 	}
 
 	return strings.Join(summaries, "; ")
+}
+
+// countItemsNeedingReview counts how many items need user verification
+func countItemsNeedingReview(items []models.DA2062ImportItem) int {
+	count := 0
+	for _, item := range items {
+		if item.ImportMetadata != nil && item.ImportMetadata.RequiresVerification {
+			count++
+		}
+	}
+	return count
+}
+
+// validateBatchItem validates an item before attempting creation
+func validateBatchItem(item models.DA2062ImportItem) string {
+	// Check for required fields
+	if strings.TrimSpace(item.Name) == "" && strings.TrimSpace(item.Description) == "" {
+		return "Item name or description is required"
+	}
+
+	// Check for valid serial number (must not be empty or whitespace only)
+	if strings.TrimSpace(item.SerialNumber) == "" {
+		return "Serial number is required and cannot be empty"
+	}
+
+	// Check for valid quantity
+	if item.Quantity <= 0 {
+		return "Quantity must be greater than 0"
+	}
+
+	// Validate NSN format if provided
+	if item.NSN != "" {
+		nsn := strings.TrimSpace(item.NSN)
+		if len(nsn) > 0 && !isValidNSNFormat(nsn) {
+			return "Invalid NSN format (should be XXXX-XX-XXX-XXXX)"
+		}
+	}
+
+	return "" // No validation errors
+}
+
+// isValidNSNFormat checks if NSN follows the standard format
+func isValidNSNFormat(nsn string) bool {
+	// NSN format: XXXX-XX-XXX-XXXX (4-2-3-4 digits separated by hyphens)
+	// Allow some flexibility for OCR variations
+	nsnPattern := `^\d{4}-?\d{2}-?\d{3}-?\d{4}$`
+	matched, err := regexp.MatchString(nsnPattern, nsn)
+	return err == nil && matched
 }
 
 // RegisterRoutes registers all DA2062-related routes

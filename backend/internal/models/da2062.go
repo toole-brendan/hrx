@@ -42,9 +42,9 @@ type BatchCreateRequest struct {
 
 // VerifyItemRequest represents a verification request for an imported item
 type VerifyItemRequest struct {
-	SerialNumber string `json:"serial_number,omitempty"`
-	NSN          string `json:"nsn,omitempty"`
-	Notes        string `json:"notes,omitempty"`
+	SerialNumber string `json:"serial_number"`
+	NSN          string `json:"nsn"`
+	Notes        string `json:"notes"`
 }
 
 // ImportSummary provides a summary of the import operation
@@ -52,4 +52,11 @@ type ImportSummary struct {
 	TotalItems       int            `json:"total_items"`
 	Categories       map[string]int `json:"categories"`
 	ConfidenceLevels map[string]int `json:"confidence_levels"`
+}
+
+// BatchFailedItem represents an item that failed during batch import
+type BatchFailedItem struct {
+	Item   DA2062ImportItem `json:"item"`
+	Error  string           `json:"error"`
+	Reason string           `json:"reason"` // "validation_failed", "duplicate_serial", "creation_failed"
 }

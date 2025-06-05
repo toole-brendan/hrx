@@ -281,21 +281,50 @@ class DA2062ImportViewModel: ObservableObject {
                 sourceReference: sourceReference
             )
             
-            // Handle partial success
+            // Handle different success scenarios
             if batchResponse.createdCount > 0 && batchResponse.failedCount > 0 {
+                // Partial success - some items created, some failed
                 partialSuccessInfo = PartialSuccessInfo(
-                    totalAttempted: batchItems.count,
+                    totalAttempted: batchResponse.totalAttempted,
                     successfulCount: batchResponse.createdCount,
                     failedCount: batchResponse.failedCount,
-                    errors: batchResponse.errors ?? []
+                    errors: batchResponse.failedItems?.map { failedItem in
+                        PartialSuccessError(
+                            itemName: failedItem.item.name,
+                            serialNumber: failedItem.item.serialNumber ?? "Unknown",
+                            error: failedItem.error,
+                            reason: failedItem.reason
+                        )
+                    } ?? []
                 )
-                updateProgress(phase: .complete, currentItem: "Partial import completed: \(batchResponse.createdCount) of \(batchItems.count) items created")
+                updateProgress(phase: .complete, currentItem: "Partial import completed: \(batchResponse.createdCount) of \(batchResponse.totalAttempted) items created")
+                
+                // Log details for debugging
+                debugPrint("✅ Partial success: \(batchResponse.createdCount) items created, \(batchResponse.failedCount) failed")
+                if let failedItems = batchResponse.failedItems {
+                    for failedItem in failedItems {
+                        debugPrint("❌ Failed item: \(failedItem.item.name) - \(failedItem.error)")
+                    }
+                }
+                
             } else if batchResponse.createdCount > 0 {
+                // Complete success - all items created
                 updateProgress(phase: .complete, currentItem: "Import completed! \(batchResponse.createdCount) items created")
+                debugPrint("✅ Complete success: \(batchResponse.createdCount) items created")
+                
             } else {
+                // Complete failure - no items created
+                var errorMessage = "No items were successfully imported"
+                if let message = batchResponse.message {
+                    errorMessage = message
+                } else if let firstError = batchResponse.failedItems?.first {
+                    errorMessage = firstError.error
+                }
+                
+                debugPrint("❌ Complete failure: \(errorMessage)")
                 throw ImportError(
                     itemName: "Batch Import",
-                    error: "No items were successfully imported",
+                    error: errorMessage,
                     recoverable: true
                 )
             }
@@ -304,6 +333,8 @@ class DA2062ImportViewModel: ObservableObject {
             showingSummary = true
             
         } catch {
+            // Handle API errors
+            debugPrint("❌ Batch import API error: \(error)")
             throw error
         }
     }
@@ -627,10 +658,66 @@ struct PartialSuccessInfo {
     let totalAttempted: Int
     let successfulCount: Int
     let failedCount: Int
-    let errors: [String]
+    let errors: [PartialSuccessError]
+}
+
+struct PartialSuccessError {
+    let itemName: String
+    let serialNumber: String
+    let error: String
+    let reason: String
 }
 
 struct ValidationResult {
     let isValid: Bool
     let errors: [String]
+}
+
+private func enrichWithNSNData(_ items: [ValidatedItem]) async -> [EnrichedItem] {
+    updateProgress(phase: .enriching, currentItem: "Looking up NSN details...")
+    
+    var enrichedItems: [EnrichedItem] = []
+    
+    for (index, validatedItem) in items.enumerated() {
+        if Task.isCancelled { break }
+        
+        updateProgress(
+            phase: .enriching,
+            currentItem: validatedItem.parsed.nsn ?? "Unknown NSN",
+            processedItems: index
+        )
+        
+        var officialName: String?
+        var enhancedDescription: String = validatedItem.parsed.description
+        
+        // Try NSN lookup if available
+        if let nsn = validatedItem.parsed.nsn, !nsn.isEmpty {
+            let lookupResult = await nsnService.lookupNSN(nsn)
+            
+            switch lookupResult {
+            case .found(let nsnDetails):
+                officialName = nsnDetails.name
+                enhancedDescription = nsnDetails.description ?? validatedItem.parsed.description
+                debugPrint("✅ Enriched item with NSN \(nsn): \(nsnDetails.name)")
+                
+            case .notFound:
+                // Not an error - just use original data
+                debugPrint("ℹ️ NSN \(nsn) not in database - using OCR data")
+                
+            case .networkError(let error):
+                // Log but don't fail the import
+                debugPrint("⚠️ NSN lookup network error for \(nsn): \(error.localizedDescription)")
+            }
+        }
+        
+        let enrichedItem = EnrichedItem(
+            validated: validatedItem,
+            officialName: officialName,
+            enhancedDescription: enhancedDescription
+        )
+        
+        enrichedItems.append(enrichedItem)
+    }
+    
+    return enrichedItems
 } 
