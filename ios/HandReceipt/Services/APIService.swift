@@ -1551,7 +1551,7 @@ public class APIService: APIServiceProtocol {
         request.httpBody = body
         
         let response = try await performRequest(request: request) as AzureOCRResponse
-        debugPrint("DA2062 Azure OCR processing completed with \(response.items.count) items")
+        debugPrint("DA2062 Azure OCR processing completed with \(response.items?.count ?? 0) items")
         return response
     }
     
@@ -1789,7 +1789,7 @@ public struct UpdatePositionRequest: Codable {
 public struct AzureOCRResponse: Codable {
     public let success: Bool
     public let formInfo: AzureFormInfo
-    public let items: [AzureOCRItem]
+    public let items: [AzureOCRItem]?  // Made optional to handle null from API
     public let metadata: AzureOCRMetadata
     public let nextSteps: AzureNextSteps
 }
@@ -1820,16 +1820,24 @@ public struct AzureImportMetadata: Codable {
 }
 
 public struct AzureOCRMetadata: Codable {
-    public let processingTime: Double
-    public let pages: Int
-    public let averageConfidence: Double
-    public let sourceDocumentUrl: String
+    public let totalLines: Int?
+    public let processedAt: String?
+    public let sourceImageUrl: String?
+    public let ocrConfidence: Double?
+    public let requiresVerification: Bool?
+    
+    // Legacy fields (kept for compatibility)
+    public let processingTime: Double?
+    public let pages: Int?
+    public let averageConfidence: Double?
+    public let sourceDocumentUrl: String?
 }
 
 public struct AzureNextSteps: Codable {
     public let verificationNeeded: Bool
     public let itemsNeedingReview: Int
-    public let suggestedAction: String
+    public let suggestedAction: String?
+    public let message: String?
 }
 
 // MARK: - Batch Import Models

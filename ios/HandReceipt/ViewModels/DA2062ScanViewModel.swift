@@ -280,24 +280,26 @@ class DA2062ScanViewModel: ObservableObject {
                 return
             }
             
-            if self.processingProgress < 0.8 {
-                self.processingProgress += 0.1
-                
-                // Update message based on progress
-                switch self.processingProgress {
-                case 0..<0.3:
-                    self.processingMessage = "Preparing document for analysis..."
-                case 0.3..<0.5:
-                    self.processingMessage = "Detecting text regions..."
-                case 0.5..<0.7:
-                    self.processingMessage = "Recognizing military terminology..."
-                case 0.7..<0.9:
-                    self.processingMessage = "Extracting form data..."
-                default:
-                    self.processingMessage = "Finalizing results..."
+            Task { @MainActor in
+                if self.processingProgress < 0.8 {
+                    self.processingProgress += 0.1
+                    
+                    // Update message based on progress
+                    switch self.processingProgress {
+                    case 0..<0.3:
+                        self.processingMessage = "Preparing document for analysis..."
+                    case 0.3..<0.5:
+                        self.processingMessage = "Detecting text regions..."
+                    case 0.5..<0.7:
+                        self.processingMessage = "Recognizing military terminology..."
+                    case 0.7..<0.9:
+                        self.processingMessage = "Extracting form data..."
+                    default:
+                        self.processingMessage = "Finalizing results..."
+                    }
+                } else {
+                    timer.invalidate()
                 }
-            } else {
-                timer.invalidate()
             }
         }
         
@@ -356,31 +358,39 @@ class DA2062ScanViewModel: ObservableObject {
     
     // Upload scanned pages to Azure OCR for processing
     func uploadScannedFormToAzure(pages: [DA2062DocumentScannerViewModel.ScannedPage]) async -> Result<Void, Error> {
-        isProcessing = true
-        processingProgress = 0.0
-        processingMethod = "Azure Cloud OCR"
-        processingMessage = "Preparing document for upload..."
-        errorMessage = nil
+        await MainActor.run {
+            isProcessing = true
+            processingProgress = 0.0
+            processingMethod = "Azure Cloud OCR"
+            processingMessage = "Preparing document for upload..."
+            errorMessage = nil
+        }
         
         do {
             // Step 1: Create PDF from scanned pages
-            processingProgress = 0.1
-            processingMessage = "Creating PDF from scanned pages..."
+            await MainActor.run {
+                processingProgress = 0.1
+                processingMessage = "Creating PDF from scanned pages..."
+            }
             
             guard let pdfData = PDFCreationUtility.createPDFFromScannedPages(pages) else {
                 throw NSError(domain: "PDFCreation", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create PDF from scanned images"])
             }
             
             // Step 2: Upload to Azure OCR
-            processingProgress = 0.3
-            processingMessage = "Uploading to Azure OCR service..."
+            await MainActor.run {
+                processingProgress = 0.3
+                processingMessage = "Uploading to Azure OCR service..."
+            }
             
             let fileName = "DA2062_\(Int(Date().timeIntervalSince1970)).pdf"
             let response = try await apiService.uploadDA2062Form(pdfData: pdfData, fileName: fileName)
             
             // Step 3: Process Azure OCR response
-            processingProgress = 0.8
-            processingMessage = "Processing OCR results..."
+            await MainActor.run {
+                processingProgress = 0.8
+                processingMessage = "Processing OCR results..."
+            }
             
             await MainActor.run {
                 self.currentForm = self.convertAzureResponseToForm(response)
@@ -392,7 +402,7 @@ class DA2062ScanViewModel: ObservableObject {
                 let scan = DA2062Scan(
                     date: Date(),
                     pageCount: pages.count,
-                    itemCount: response.items.count,
+                    itemCount: response.items?.count ?? 0,
                     confidence: response.formInfo.confidence,
                     formNumber: response.formInfo.formNumber,
                     requiresVerification: response.nextSteps.verificationNeeded
@@ -421,7 +431,7 @@ class DA2062ScanViewModel: ObservableObject {
     
     // Convert Azure OCR response to local DA2062Form model
     private func convertAzureResponseToForm(_ response: AzureOCRResponse) -> DA2062Form {
-        let items = response.items.map { azureItem in
+        let items = (response.items ?? []).map { azureItem in
             DA2062Item(
                 lineNumber: 0, // Azure doesn't provide line numbers
                 stockNumber: azureItem.nsn,
@@ -603,8 +613,10 @@ class DA2062ScanViewModel: ObservableObject {
     
     func reprocessScan(_ scan: DA2062Scan) {
         // Implementation for reprocessing a previous scan
-        isProcessing = true
-        processingMessage = "Reprocessing scan..."
+        Task { @MainActor in
+            isProcessing = true
+            processingMessage = "Reprocessing scan..."
+        }
         // Add reprocessing logic here
     }
     

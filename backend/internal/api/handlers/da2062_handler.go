@@ -474,12 +474,12 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 	var items []models.DA2062ImportItem
 
 	for _, ocrItem := range parsedForm.Items {
-		// Only use existing serial number, don't generate placeholders
+		// Use existing serial number or mark for manual entry
 		serialNumber := strings.TrimSpace(ocrItem.SerialNumber)
 
-		// Skip items without valid serial numbers
-		if serialNumber == "" {
-			log.Printf("Skipping item '%s' - no valid serial number found", ocrItem.ItemDescription)
+		// Skip items without any description (completely empty)
+		if strings.TrimSpace(ocrItem.ItemDescription) == "" {
+			log.Printf("Skipping empty item with no description")
 			continue
 		}
 
@@ -495,8 +495,11 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 			SourceDocumentURL:    sourceDocumentURL,
 		}
 
-		// Add verification reason if serial number looks auto-generated or suspicious
-		if strings.Contains(strings.ToUpper(serialNumber), "NOSERIAL") ||
+		// Add verification reasons for missing or suspicious serial numbers
+		if serialNumber == "" {
+			importMetadata.VerificationReasons = append(importMetadata.VerificationReasons, "missing_serial_number")
+			importMetadata.RequiresVerification = true
+		} else if strings.Contains(strings.ToUpper(serialNumber), "NOSERIAL") ||
 			strings.Contains(strings.ToUpper(serialNumber), "TEMP") ||
 			strings.Contains(strings.ToUpper(serialNumber), "PLACEHOLDER") {
 			importMetadata.RequiresVerification = true

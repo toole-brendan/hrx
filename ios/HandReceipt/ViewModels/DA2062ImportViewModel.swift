@@ -26,6 +26,7 @@ class DA2062ImportViewModel: ObservableObject {
     
     // MARK: - Main Processing Method with Enhanced Error Handling
     
+    @MainActor
     func processDA2062WithProgress(image: UIImage) async {
         // Cancel any existing import
         currentImportTask?.cancel()
@@ -41,7 +42,7 @@ class DA2062ImportViewModel: ObservableObject {
                     try await processWithAzureOCREnhanced(image: image)
                 } catch {
                     if !Task.isCancelled {
-                        handleImportError(error)
+                        await handleImportError(error)
                     }
                 }
             } else {
@@ -49,7 +50,7 @@ class DA2062ImportViewModel: ObservableObject {
                     try await processWithLocalOCREnhanced(image: image)
                 } catch {
                     if !Task.isCancelled {
-                        handleImportError(error)
+                        await handleImportError(error)
                     }
                 }
             }
@@ -58,6 +59,7 @@ class DA2062ImportViewModel: ObservableObject {
     
     // MARK: - Process Confirmed Items (from Review Sheet)
     
+    @MainActor
     func processConfirmedItems(_ editableItems: [EditableDA2062Item]) async {
         // Cancel any existing import
         currentImportTask?.cancel()
@@ -83,7 +85,7 @@ class DA2062ImportViewModel: ObservableObject {
                 
             } catch {
                 if !Task.isCancelled {
-                    handleImportError(error)
+                    await handleImportError(error)
                 }
             }
         }
@@ -208,7 +210,7 @@ class DA2062ImportViewModel: ObservableObject {
                 updateProgress(phase: .extracting, currentItem: "Azure OCR failed, falling back to local processing...")
                 await fallbackToLocalOCR(image: image)
             } else {
-                handleImportError(error)
+                await handleImportError(error)
             }
         }
     }
@@ -250,7 +252,7 @@ class DA2062ImportViewModel: ObservableObject {
             
         } catch {
             if !Task.isCancelled {
-                handleImportError(error)
+                await handleImportError(error)
             }
         }
     }
@@ -280,7 +282,7 @@ class DA2062ImportViewModel: ObservableObject {
             
         } catch {
             if !Task.isCancelled {
-                handleImportError(error)
+                await handleImportError(error)
             }
         }
     }
@@ -534,6 +536,7 @@ class DA2062ImportViewModel: ObservableObject {
     
     // MARK: - Enhanced Cancellation Support
     
+    @MainActor
     func cancelImport() {
         currentImportTask?.cancel()
         isImporting = false
@@ -566,7 +569,7 @@ class DA2062ImportViewModel: ObservableObject {
     // MARK: - Azure Response Conversion
     
     private func convertAzureResponseToBatch(_ azureResponse: AzureOCRResponse) -> [DA2062BatchItem] {
-        return azureResponse.items.map { azureItem in
+        return (azureResponse.items ?? []).map { azureItem in
             DA2062BatchItem(
                 name: azureItem.name,
                 description: azureItem.description,
@@ -756,19 +759,19 @@ class DA2062ImportViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     private func handleImportError(_ error: Error) {
-        Task { @MainActor in
-            self.isImporting = false
-            self.addError(ImportError(
-                itemName: "Import Process",
-                error: error.localizedDescription,
-                recoverable: false
-            ))
-        }
+        self.isImporting = false
+        self.addError(ImportError(
+            itemName: "Import Process",
+            error: error.localizedDescription,
+            recoverable: false
+        ))
     }
     
     // MARK: - User Actions
     
+    @MainActor
     func completeImport() {
         isImporting = false
         showingSummary = false
