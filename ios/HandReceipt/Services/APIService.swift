@@ -1717,7 +1717,7 @@ public struct NSNSearchResponse: Codable {
     public let count: Int
 }
 
-// Add CreatePropertyInput model
+// Fixed CreatePropertyInput - removed custom CodingKeys
 public struct CreatePropertyInput: Codable {
     public let name: String
     public let serialNumber: String
@@ -1727,17 +1727,6 @@ public struct CreatePropertyInput: Codable {
     public let assignedToUserId: Int?
     public let nsn: String?
     public let lin: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case name
-        case serialNumber = "serial_number"
-        case description
-        case currentStatus = "current_status"
-        case propertyModelId = "property_model_id"
-        case assignedToUserId = "assigned_to_user_id"
-        case nsn
-        case lin
-    }
 }
 
 
@@ -1756,17 +1745,11 @@ public struct UpdateProfileResponse: Decodable {
     public let user: LoginResponse.User
 }
 
-// Component association request/response models
+// Fixed AttachComponentRequest - removed custom CodingKeys
 public struct AttachComponentRequest: Codable {
     public let componentId: Int
     public let position: String?
     public let notes: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case componentId = "component_id"
-        case position
-        case notes
-    }
 }
 
 public struct ComponentsResponse: Decodable {
@@ -1777,6 +1760,7 @@ public struct AttachmentResponse: Decodable {
     public let attachment: AttachmentSummary
 }
 
+// Fixed AttachmentSummary if it needs custom CodingKeys removed
 public struct AttachmentSummary: Decodable {
     public let id: Int
     public let parentPropertyId: Int
@@ -1788,19 +1772,11 @@ public struct AttachmentSummary: Decodable {
     public let position: String?
     public let createdAt: Date
     public let updatedAt: Date
-    
-    private enum CodingKeys: String, CodingKey {
-        case id, parentPropertyId, componentPropertyId, attachedAt, attachedByUserId
-        case notes, attachmentType, position, createdAt, updatedAt
-    }
 }
 
+// Fixed AvailableComponentsResponse
 public struct AvailableComponentsResponse: Decodable {
     public let availableComponents: [Property]
-    
-    private enum CodingKeys: String, CodingKey {
-        case availableComponents = "available_components"
-    }
 }
 
 public struct UpdatePositionRequest: Codable {
@@ -1808,6 +1784,7 @@ public struct UpdatePositionRequest: Codable {
 }
 
 // MARK: - Azure OCR Response Models
+// Fixed version - removed custom CodingKeys since decoder uses .convertFromSnakeCase
 
 public struct AzureOCRResponse: Codable {
     public let success: Bool
@@ -1815,14 +1792,6 @@ public struct AzureOCRResponse: Codable {
     public let items: [AzureOCRItem]
     public let metadata: AzureOCRMetadata
     public let nextSteps: AzureNextSteps
-    
-    private enum CodingKeys: String, CodingKey {
-        case success
-        case formInfo = "form_info"
-        case items
-        case metadata
-        case nextSteps = "next_steps"
-    }
 }
 
 public struct AzureFormInfo: Codable {
@@ -1830,13 +1799,6 @@ public struct AzureFormInfo: Codable {
     public let dodaac: String?
     public let formNumber: String?
     public let confidence: Double
-    
-    private enum CodingKeys: String, CodingKey {
-        case unitName = "unit_name"
-        case dodaac
-        case formNumber = "form_number"
-        case confidence
-    }
 }
 
 public struct AzureOCRItem: Codable {
@@ -1848,17 +1810,6 @@ public struct AzureOCRItem: Codable {
     public let unit: String?
     public let condition: String?
     public let importMetadata: AzureImportMetadata
-    
-    private enum CodingKeys: String, CodingKey {
-        case name
-        case description
-        case nsn
-        case serialNumber = "serial_number"
-        case quantity
-        case unit
-        case condition
-        case importMetadata = "import_metadata"
-    }
 }
 
 public struct AzureImportMetadata: Codable {
@@ -1866,13 +1817,6 @@ public struct AzureImportMetadata: Codable {
     public let requiresVerification: Bool
     public let verificationReasons: [String]
     public let sourceDocumentUrl: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case confidence
-        case requiresVerification = "requires_verification"
-        case verificationReasons = "verification_reasons"
-        case sourceDocumentUrl = "source_document_url"
-    }
 }
 
 public struct AzureOCRMetadata: Codable {
@@ -1880,39 +1824,21 @@ public struct AzureOCRMetadata: Codable {
     public let pages: Int
     public let averageConfidence: Double
     public let sourceDocumentUrl: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case processingTime = "processing_time"
-        case pages
-        case averageConfidence = "average_confidence"
-        case sourceDocumentUrl = "source_document_url"
-    }
 }
 
 public struct AzureNextSteps: Codable {
     public let verificationNeeded: Bool
     public let itemsNeedingReview: Int
     public let suggestedAction: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case verificationNeeded = "verification_needed"
-        case itemsNeedingReview = "items_needing_review"
-        case suggestedAction = "suggested_action"
-    }
 }
 
 // MARK: - Batch Import Models
+// Also fixed these to remove custom CodingKeys
 
 public struct BatchCreateRequest: Codable {
     public let source: String
     public let sourceReference: String?
     public let items: [DA2062BatchItem]
-    
-    private enum CodingKeys: String, CodingKey {
-        case source
-        case sourceReference = "source_reference"
-        case items
-    }
 }
 
 public struct DA2062BatchItem: Codable {
@@ -1924,17 +1850,6 @@ public struct DA2062BatchItem: Codable {
     public let unit: String?
     public let category: String?
     public let importMetadata: BatchImportMetadata?
-    
-    private enum CodingKeys: String, CodingKey {
-        case name
-        case description
-        case serialNumber = "serial_number"
-        case nsn
-        case quantity
-        case unit
-        case category
-        case importMetadata = "import_metadata"
-    }
 }
 
 public struct BatchImportMetadata: Codable {
@@ -1944,15 +1859,6 @@ public struct BatchImportMetadata: Codable {
     public let sourceDocumentUrl: String?
     public let originalQuantity: Int?
     public let quantityIndex: Int?
-    
-    private enum CodingKeys: String, CodingKey {
-        case confidence
-        case requiresVerification = "requires_verification"
-        case verificationReasons = "verification_reasons"
-        case sourceDocumentUrl = "source_document_url"
-        case originalQuantity = "original_quantity"
-        case quantityIndex = "quantity_index"
-    }
 }
 
 public struct BatchImportResponse: Codable {
@@ -1966,19 +1872,6 @@ public struct BatchImportResponse: Codable {
     public let summary: BatchImportSummary
     public let errors: [BatchFailedItem]?
     public let message: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case items
-        case createdCount = "created_count"
-        case failedCount = "failed_count"
-        case totalAttempted = "total_attempted"
-        case verifiedCount = "verified_count"
-        case verificationNeeded = "verification_needed"
-        case failedItems = "failed_items"
-        case summary
-        case errors
-        case message
-    }
     
     // Computed properties for backwards compatibility
     public var count: Int { createdCount }
@@ -1997,15 +1890,6 @@ public struct BatchImportSummary: Codable {
     public let requiresVerification: Int
     public let categories: [String: Int]
     public let confidenceLevels: [String: Int]
-    
-    private enum CodingKeys: String, CodingKey {
-        case totalItems = "total_items"
-        case successfulItems = "successful_items"
-        case failedItems = "failed_items"
-        case requiresVerification = "requires_verification"
-        case categories
-        case confidenceLevels = "confidence_levels"
-    }
 }
 
 public struct BatchImportItem: Codable {
@@ -2014,25 +1898,12 @@ public struct BatchImportItem: Codable {
     public let serialNumber: String?
     public let status: String
     public let error: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case serialNumber = "serial_number"
-        case status
-        case error
-    }
 }
 
 // Signature upload response model
 public struct UploadSignatureResponse: Codable {
     public let message: String
     public let signatureUrl: String?
-    
-    private enum CodingKeys: String, CodingKey {
-        case message
-        case signatureUrl = "signature_url"
-    }
 }
 
  

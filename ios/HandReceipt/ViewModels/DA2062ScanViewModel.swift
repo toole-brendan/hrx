@@ -220,7 +220,7 @@ class DA2062ScanViewModel: ObservableObject {
             do {
                 let form = try self?.parseDA2062Text(text)
                 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self?.currentForm = form
                     self?.isProcessing = false
                     
@@ -248,7 +248,7 @@ class DA2062ScanViewModel: ObservableObject {
                     completion(.success(()))
                 }
             } catch {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self?.isProcessing = false
                     self?.errorMessage = error.localizedDescription
                     completion(.failure(error))
@@ -302,7 +302,7 @@ class DA2062ScanViewModel: ObservableObject {
         }
         
         ocrService.processImage(image) { [weak self] result in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self?.progressTimer?.invalidate()
                 self?.processingProgress = 1.0
                 self?.isProcessing = false

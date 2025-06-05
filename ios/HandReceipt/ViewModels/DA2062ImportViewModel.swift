@@ -741,7 +741,7 @@ class DA2062ImportViewModel: ObservableObject {
     // MARK: - Progress Updates
     
     private func updateProgress(phase: ImportPhase, currentItem: String, processedItems: Int? = nil) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.progress.currentPhase = phase
             self.progress.currentItem = currentItem
             if let processed = processedItems {
@@ -751,13 +751,13 @@ class DA2062ImportViewModel: ObservableObject {
     }
     
     private func addError(_ error: ImportError) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.progress.errors.append(error)
         }
     }
     
     private func handleImportError(_ error: Error) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.isImporting = false
             self.addError(ImportError(
                 itemName: "Import Process",
