@@ -3,7 +3,13 @@ package pdf
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/jung-kurt/gofpdf"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
@@ -247,6 +253,47 @@ func (g *DA2062Generator) addPropertyRow(
 	return currentY + rowHeight
 }
 
+// downloadImage downloads an image from a URL and returns a temporary file path
+func (g *DA2062Generator) downloadImage(url string) (string, error) {
+	if url == "" {
+		return "", fmt.Errorf("empty URL")
+	}
+
+	// Create a temporary file
+	tempDir := os.TempDir()
+	tempFile, err := os.CreateTemp(tempDir, "signature_*.png")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer tempFile.Close()
+
+	// Download the image
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		os.Remove(tempFile.Name())
+		return "", fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		os.Remove(tempFile.Name())
+		return "", fmt.Errorf("failed to download image: status %d", resp.StatusCode)
+	}
+
+	// Copy the image data to the temp file
+	_, err = io.Copy(tempFile, resp.Body)
+	if err != nil {
+		os.Remove(tempFile.Name())
+		return "", fmt.Errorf("failed to save image: %w", err)
+	}
+
+	return tempFile.Name(), nil
+}
+
 func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser UserInfo) {
 	y := 250.0
 	pdf.SetY(y)
@@ -267,15 +314,44 @@ func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser
 
 	// From user signature
 	if fromUser.SignatureURL != "" {
-		// Try to add signature image
-		// Note: This assumes the signature is accessible as a file or needs to be downloaded
-		// You may need to implement signature fetching logic
-		pdf.Image(fromUser.SignatureURL, 10, signatureY, 60, signatureHeight, false, "", 0, "")
+		log.Printf("Adding from user signature: %s", fromUser.SignatureURL)
+		tempFile, err := g.downloadImage(fromUser.SignatureURL)
+		if err != nil {
+			log.Printf("Failed to download from user signature: %v", err)
+		} else {
+			defer os.Remove(tempFile) // Clean up temp file
+
+			// Determine image type from extension or content
+			imageType := g.getImageType(tempFile)
+			if imageType != "" {
+				pdf.ImageOptions(tempFile, 10, signatureY, 60, signatureHeight, false, gofpdf.ImageOptions{
+					ImageType: imageType,
+				}, 0, "")
+			} else {
+				log.Printf("Unsupported image type for signature: %s", tempFile)
+			}
+		}
 	}
 
 	// To user signature
 	if toUser.SignatureURL != "" {
-		pdf.Image(toUser.SignatureURL, 110, signatureY, 60, signatureHeight, false, "", 0, "")
+		log.Printf("Adding to user signature: %s", toUser.SignatureURL)
+		tempFile, err := g.downloadImage(toUser.SignatureURL)
+		if err != nil {
+			log.Printf("Failed to download to user signature: %v", err)
+		} else {
+			defer os.Remove(tempFile) // Clean up temp file
+
+			// Determine image type from extension or content
+			imageType := g.getImageType(tempFile)
+			if imageType != "" {
+				pdf.ImageOptions(tempFile, 110, signatureY, 60, signatureHeight, false, gofpdf.ImageOptions{
+					ImageType: imageType,
+				}, 0, "")
+			} else {
+				log.Printf("Unsupported image type for signature: %s", tempFile)
+			}
+		}
 	}
 
 	pdf.SetY(signatureY + signatureHeight + 2)
@@ -290,6 +366,21 @@ func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser
 	pdf.CellFormat(90, 4, fromUser.Title, "0", 0, "L", false, 0, "")
 	pdf.CellFormat(10, 4, "", "0", 0, "L", false, 0, "")
 	pdf.CellFormat(90, 4, toUser.Title, "0", 1, "L", false, 0, "")
+}
+
+// getImageType determines the image type from file extension
+func (g *DA2062Generator) getImageType(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "JPG"
+	case ".png":
+		return "PNG"
+	case ".gif":
+		return "GIF"
+	default:
+		return ""
+	}
 }
 
 func (g *DA2062Generator) addPageNumbers(pdf *gofpdf.Fpdf) {

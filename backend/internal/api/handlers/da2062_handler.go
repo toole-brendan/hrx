@@ -634,36 +634,63 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		return
 	}
 
-	// Convert user info
-	title := "Property Book Officer"
-	if fromUser.Unit != "" {
-		title = fromUser.Unit
+	// Use user info from request (which includes signature URL from iOS client)
+	fromUserInfo := req.FromUser
+
+	// If no signature URL in request, fall back to database
+	if fromUserInfo.SignatureURL == "" {
+		if fromUser.SignatureURL != nil && *fromUser.SignatureURL != "" {
+			fromUserInfo.SignatureURL = *fromUser.SignatureURL
+		}
 	}
 
-	fromUserInfo := pdf.UserInfo{
-		Name:         fromUser.Name,
-		Rank:         fromUser.Rank,
-		Title:        title,
-		Phone:        fromUser.Phone,
-		SignatureURL: "",
+	// Ensure we have fallback values from database if request doesn't include them
+	if fromUserInfo.Name == "" {
+		fromUserInfo.Name = fromUser.Name
+	}
+	if fromUserInfo.Rank == "" {
+		fromUserInfo.Rank = fromUser.Rank
+	}
+	if fromUserInfo.Phone == "" {
+		fromUserInfo.Phone = fromUser.Phone
+	}
+	if fromUserInfo.Title == "" {
+		fromUserInfo.Title = "Property Book Officer"
+		if fromUser.Unit != "" {
+			fromUserInfo.Title = fromUser.Unit
+		}
 	}
 
-	// Include signature URL if available
-	if fromUser.SignatureURL != nil && *fromUser.SignatureURL != "" {
-		fromUserInfo.SignatureURL = *fromUser.SignatureURL
-	}
-
-	// Set to user info (same as from for self hand receipt)
-	toUserInfo := fromUserInfo
-	if req.ToUser.Name != "" {
-		toUserInfo = req.ToUser
-		// If a specific to-user is provided, try to fetch their signature
-		if req.ToUserID != 0 {
-			toUserData, err := h.Repo.GetUserByID(req.ToUserID)
-			if err == nil && toUserData.SignatureURL != nil && *toUserData.SignatureURL != "" {
+	// Set to user info
+	toUserInfo := req.ToUser
+	if req.ToUserID != 0 {
+		// For in-app delivery, fetch recipient's signature from database if not in request
+		toUserData, err := h.Repo.GetUserByID(req.ToUserID)
+		if err == nil {
+			// Use recipient data from database for missing fields
+			if toUserInfo.Name == "" {
+				toUserInfo.Name = toUserData.Name
+			}
+			if toUserInfo.Rank == "" {
+				toUserInfo.Rank = toUserData.Rank
+			}
+			if toUserInfo.Phone == "" {
+				toUserInfo.Phone = toUserData.Phone
+			}
+			if toUserInfo.Title == "" {
+				toUserInfo.Title = "Property Book Officer"
+				if toUserData.Unit != "" {
+					toUserInfo.Title = toUserData.Unit
+				}
+			}
+			// Use signature from database if not provided in request
+			if toUserInfo.SignatureURL == "" && toUserData.SignatureURL != nil && *toUserData.SignatureURL != "" {
 				toUserInfo.SignatureURL = *toUserData.SignatureURL
 			}
 		}
+	} else if toUserInfo.Name == "" {
+		// For self hand receipt, use from user info
+		toUserInfo = fromUserInfo
 	}
 
 	// Convert unit info
