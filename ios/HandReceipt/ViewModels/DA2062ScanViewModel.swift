@@ -441,10 +441,10 @@ class DA2062ScanViewModel: ObservableObject {
                 quantity: azureItem.quantity,
                 unitOfIssue: azureItem.unit,
                 serialNumber: azureItem.serialNumber,
-                condition: azureItem.condition,
+                condition: nil, // Azure response doesn't have condition field
                 confidence: azureItem.importMetadata.confidence,
                 quantityConfidence: azureItem.importMetadata.confidence, // Use same confidence for quantity
-                hasExplicitSerial: azureItem.serialNumber?.contains("NOSERIAL") != true
+                hasExplicitSerial: !(azureItem.serialNumber?.isEmpty ?? true)
             )
         }
         
