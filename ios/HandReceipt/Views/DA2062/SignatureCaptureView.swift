@@ -8,6 +8,7 @@ struct SignatureCaptureView: View {
     // PencilKit canvas
     @State private var canvasView = PKCanvasView()
     @State private var toolPicker = PKToolPicker()
+    @State private var hasStrokes = false
     
     var body: some View {
         NavigationView {
@@ -30,23 +31,37 @@ struct SignatureCaptureView: View {
                         
                         Button("Save") {
                             print("DEBUG: Save button tapped")
+                            print("DEBUG: hasStrokes state: \(hasStrokes)")
+                            
                             // Render the drawing to an image
                             let drawing = canvasView.drawing
                             
-                            // Use the canvas bounds as the full signature area
-                            let signatureBounds = canvasView.bounds
-                            print("DEBUG: Canvas bounds: \(signatureBounds)")
+                            print("DEBUG: Canvas bounds: \(canvasView.bounds)")
                             print("DEBUG: Drawing bounds: \(drawing.bounds)")
                             print("DEBUG: Number of strokes: \(drawing.strokes.count)")
                             
-                            let image = drawing.image(from: signatureBounds, scale: 2.0)
-                            print("DEBUG: Generated signature image size: \(image.size)")
+                            // Create a signature area that's properly sized
+                            let signatureRect = CGRect(x: 0, y: 0, width: 400, height: 200)
                             
+                            // Generate the image using a consistent bounds
+                            let image = drawing.image(from: signatureRect, scale: 2.0)
+                            print("DEBUG: Generated signature image size: \(image.size)")
+                            print("DEBUG: Image description: \(image)")
+                            
+                            // Test if the image has actual content
+                            if let cgImage = image.cgImage {
+                                print("DEBUG: CGImage exists with size: \(cgImage.width)x\(cgImage.height)")
+                            } else {
+                                print("DEBUG: WARNING - No CGImage found!")
+                            }
+                            
+                            print("DEBUG: About to call onSave callback")
                             onSave(image)            // pass image back to DA2062ExportView
+                            print("DEBUG: onSave callback completed, dismissing view")
                             dismiss()               // dismiss the signature capture view
                         }
                         .buttonStyle(TextLinkButtonStyle())
-                        .disabled(canvasView.drawing.strokes.isEmpty)  // disable if nothing drawn
+                        .disabled(!hasStrokes)  // disable if nothing drawn
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
@@ -77,7 +92,13 @@ struct SignatureCaptureView: View {
                         .foregroundColor(AppColors.tertiaryText)
                         .kerning(AppFonts.wideKerning)
                     
-                    CanvasRepresentable(canvasView: $canvasView, toolPicker: toolPicker)
+                    CanvasRepresentable(
+                        canvasView: $canvasView, 
+                        toolPicker: toolPicker,
+                        onDrawingChanged: { hasDrawing in
+                            hasStrokes = hasDrawing
+                        }
+                    )
                         .frame(height: 200)
                         .background(Color.white)
                         .cornerRadius(8)
@@ -90,9 +111,10 @@ struct SignatureCaptureView: View {
                     // Clear button
                     Button("Clear") {
                         canvasView.drawing = PKDrawing()  // reset the canvas
+                        hasStrokes = false
                     }
                     .buttonStyle(.minimalSecondary)
-                    .disabled(canvasView.drawing.strokes.isEmpty)
+                    .disabled(!hasStrokes)
                 }
                 .padding(.horizontal, 24)
                 
@@ -142,6 +164,7 @@ struct SignatureCaptureView: View {
 struct CanvasRepresentable: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     let toolPicker: PKToolPicker
+    let onDrawingChanged: (Bool) -> Void
     
     func makeUIView(context: Context) -> PKCanvasView {
         canvasView.delegate = context.coordinator
@@ -153,19 +176,23 @@ struct CanvasRepresentable: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        let coordinator = Coordinator(self)
+        coordinator.onDrawingChanged = onDrawingChanged
+        return coordinator
     }
     
     class Coordinator: NSObject, PKCanvasViewDelegate {
         var parent: CanvasRepresentable
+        var onDrawingChanged: ((Bool) -> Void)?
         
         init(_ parent: CanvasRepresentable) {
             self.parent = parent
         }
         
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            // This delegate method is called when the drawing changes
-            // We could use this to provide real-time feedback if needed
+            // Update the drawing state when strokes change
+            let hasStrokes = !canvasView.drawing.strokes.isEmpty
+            onDrawingChanged?(hasStrokes)
         }
     }
 }

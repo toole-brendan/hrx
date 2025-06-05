@@ -429,18 +429,44 @@ struct DA2062ExportView: View {
         print("DEBUG: Loading signature for user ID: \(userId)")
         
         let fileName = "signature_\(userId).png"
-        let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                          .appendingPathComponent(fileName)
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsPath.appendingPathComponent(fileName)
         
+        print("DEBUG: Documents directory: \(documentsPath.path)")
         print("DEBUG: Looking for signature at: \(fileURL.path)")
+        
+        // List all files in documents directory for debugging
+        do {
+            let files = try FileManager.default.contentsOfDirectory(atPath: documentsPath.path)
+            print("DEBUG: Files in documents directory: \(files)")
+        } catch {
+            print("DEBUG: Could not list documents directory: \(error)")
+        }
+        
+        // Check UserDefaults flag
+        let hasSavedFlag = UserDefaults.standard.bool(forKey: "signature_saved_\(userId)")
+        print("DEBUG: UserDefaults signature_saved flag: \(hasSavedFlag)")
         
         if FileManager.default.fileExists(atPath: fileURL.path) {
             print("DEBUG: Signature file exists")
+            
+            // Get file attributes
+            do {
+                let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+                let fileSize = attributes[.size] as? Int ?? 0
+                let modificationDate = attributes[.modificationDate] as? Date
+                print("DEBUG: File size: \(fileSize) bytes")
+                print("DEBUG: File modification date: \(modificationDate?.description ?? "unknown")")
+            } catch {
+                print("DEBUG: Could not get file attributes: \(error)")
+            }
+            
             if let imageData = try? Data(contentsOf: fileURL) {
                 print("DEBUG: Successfully loaded signature data, size: \(imageData.count) bytes")
                 if let image = UIImage(data: imageData) {
                     print("DEBUG: Successfully created UIImage from data, size: \(image.size)")
                     signatureImage = image
+                    print("DEBUG: Signature loaded and UI state updated")
                 } else {
                     print("DEBUG: Failed to create UIImage from signature data")
                 }
@@ -449,11 +475,18 @@ struct DA2062ExportView: View {
             }
         } else {
             print("DEBUG: Signature file does not exist")
+            // Clear the UserDefaults flag if file doesn't exist
+            if hasSavedFlag {
+                print("DEBUG: Clearing UserDefaults flag since file doesn't exist")
+                UserDefaults.standard.set(false, forKey: "signature_saved_\(userId)")
+            }
         }
     }
     
     private func saveSignatureImage(_ image: UIImage) {
         print("DEBUG: saveSignatureImage called with image size: \(image.size)")
+        print("DEBUG: Image scale: \(image.scale)")
+        print("DEBUG: Image description: \(image)")
         
         guard let pngData = image.pngData() else {
             print("DEBUG: Failed to convert image to PNG data")
@@ -469,28 +502,53 @@ struct DA2062ExportView: View {
         print("DEBUG: PNG data size: \(pngData.count) bytes")
         
         let fileName = "signature_\(userId).png"
-        let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                          .appendingPathComponent(fileName)
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsPath.appendingPathComponent(fileName)
         
+        print("DEBUG: Documents directory: \(documentsPath.path)")
         print("DEBUG: Saving signature to: \(fileURL.path)")
         
+        // Check if directory exists and is writable
+        let documentsDir = documentsPath.path
+        let isWritable = FileManager.default.isWritableFile(atPath: documentsDir)
+        print("DEBUG: Documents directory writable: \(isWritable)")
+        
         do {
+            // Ensure the directory exists
+            try FileManager.default.createDirectory(at: documentsPath, withIntermediateDirectories: true, attributes: nil)
+            
+            // Write the file
             try pngData.write(to: fileURL, options: .atomic)
+            
+            // Verify the file was written
+            let fileExists = FileManager.default.fileExists(atPath: fileURL.path)
+            print("DEBUG: File exists after write: \(fileExists)")
+            
+            if fileExists {
+                let fileSize = try FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int ?? 0
+                print("DEBUG: Written file size: \(fileSize) bytes")
+            }
+            
             UserDefaults.standard.set(true, forKey: "signature_saved_\(userId)")  // flag indicating a saved signature
             signatureImage = UIImage(data: pngData)  // update state to show preview
-            print("DEBUG: Signature saved successfully to local storage")
+            print("DEBUG: Signature saved successfully to local storage and UI state updated")
             
             // Upload to backend (async)
             Task.detached {
                 do {
                     let response = try await APIService.shared.uploadUserSignature(imageData: pngData)
-                    print("DEBUG: Signature uploaded successfully to backend: \(response.message)")
+                    await MainActor.run {
+                        print("DEBUG: Signature uploaded successfully to backend: \(response.message)")
+                    }
                 } catch {
-                    print("DEBUG: Failed to upload signature to backend: \(error)")
+                    await MainActor.run {
+                        print("DEBUG: Failed to upload signature to backend: \(error)")
+                    }
                 }
             }
         } catch {
             print("DEBUG: Error saving signature image to local storage: \(error)")
+            print("DEBUG: Error details: \(error.localizedDescription)")
         }
     }
     
