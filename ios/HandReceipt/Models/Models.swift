@@ -6,31 +6,33 @@ import Foundation
 
 public struct UserSummary: Codable, Identifiable, Hashable {
     public let id: Int
-    public let username: String
+    public let email: String?
     public let rank: String?
     public let lastName: String?
     public let firstName: String?
     public let unit: String?
     
-    public init(id: Int, username: String, rank: String? = nil, lastName: String? = nil, firstName: String? = nil, unit: String? = nil) {
+    public init(id: Int, email: String? = nil, rank: String? = nil, lastName: String? = nil, firstName: String? = nil, unit: String? = nil) {
         self.id = id
-        self.username = username
+        self.email = email
         self.rank = rank
         self.lastName = lastName
         self.firstName = firstName
         self.unit = unit
     }
     
-    // Computed property for full name compatibility with User
+    // Computed property for display name - prefer rank + last name
     public var name: String {
-        if let firstName = firstName, let lastName = lastName {
+        if let rank = rank, let lastName = lastName, !rank.isEmpty && !lastName.isEmpty {
+            return "\(rank) \(lastName)"
+        } else if let firstName = firstName, let lastName = lastName {
             return "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
-        } else if let firstName = firstName {
-            return firstName
         } else if let lastName = lastName {
             return lastName
+        } else if let firstName = firstName {
+            return firstName
         } else {
-            return username
+            return email ?? "Unknown User"
         }
     }
 }

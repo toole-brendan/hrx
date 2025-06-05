@@ -302,11 +302,11 @@ struct PropertyRequestCard: View {
                                 .compatibleKerning(AppFonts.militaryTracking)
                             
                             if let owner = ownerInfo {
-                                Text("\(owner.rank ?? "") \(owner.lastName ?? owner.username)")
+                                Text("\(owner.rank ?? "") \(owner.lastName ?? "Unknown")")
                                     .font(AppFonts.bodyBold)
                                     .foregroundColor(AppColors.primaryText)
                                 
-                                Text("@\(owner.username)")
+                                Text(owner.email ?? "No email")
                                     .font(AppFonts.caption)
                                     .foregroundColor(AppColors.secondaryText)
                             } else {

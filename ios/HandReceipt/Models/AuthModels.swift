@@ -29,7 +29,7 @@ public struct LoginResponse: Decodable {
     public struct User: Codable {
         public let id: Int
         public let uuid: String?
-        // public let username: String // REMOVED: Username field
+
         public let email: String?
         public let firstName: String?
         public let lastName: String?
@@ -84,7 +84,7 @@ public struct LoginResponse: Decodable {
         enum CodingKeys: String, CodingKey {
             case id
             case uuid
-            // case username // REMOVED: Username field
+
             case email
             case firstName = "first_name"
             case lastName = "last_name"
@@ -100,7 +100,7 @@ public struct LoginResponse: Decodable {
              unit: String? = nil, role: String? = nil, status: String? = nil) {
             self.id = id
             self.uuid = uuid
-            // self.username = username // REMOVED: Username field
+
             self.email = email
             self.firstName = firstName
             self.lastName = lastName
@@ -116,7 +116,7 @@ public struct LoginResponse: Decodable {
             
             id = try container.decode(Int.self, forKey: .id)
             uuid = try container.decodeIfPresent(String.self, forKey: .uuid)
-            // username = try container.decode(String.self, forKey: .username) // REMOVED: Username field
+
             email = try container.decodeIfPresent(String.self, forKey: .email)
             firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
             lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
@@ -180,7 +180,7 @@ public struct UserResponse: Decodable {
 
 // Add registration request model
 public struct RegisterCredentials: Encodable {
-    // public let username: String // REMOVED: Username field
+
     public let email: String
     public let password: String
     public let first_name: String
@@ -192,7 +192,7 @@ public struct RegisterCredentials: Encodable {
     public init(email: String, password: String, 
                 first_name: String, last_name: String, rank: String, 
                 unit: String, role: String = "user") {
-        // self.username = username // REMOVED: Username field
+
         self.email = email
         self.password = password
         self.first_name = first_name
@@ -203,7 +203,7 @@ public struct RegisterCredentials: Encodable {
     }
     
     enum CodingKeys: String, CodingKey {
-        // case username // REMOVED: Username field
+
         case email, password
         case first_name = "first_name"
         case last_name = "last_name"

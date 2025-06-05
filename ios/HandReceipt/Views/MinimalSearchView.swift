@@ -1005,9 +1005,9 @@ class SearchViewModel: ObservableObject {
             SearchResult(
                 type: .person,
                 title: "\(user.rank ?? "") \(user.name)",
-                subtitle: user.username,
+                                        subtitle: user.email ?? "No email",
                 metadata: [
-                    .init(icon: "at", value: "@\(user.username)"),
+                                          .init(icon: "envelope", value: user.email ?? "No email"),
                     .init(icon: "building", value: user.unit ?? "Unknown Unit")
                 ],
                 relevanceScore: 0.8 // Fixed relevance for user results

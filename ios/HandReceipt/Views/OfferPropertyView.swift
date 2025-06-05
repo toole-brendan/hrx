@@ -279,7 +279,7 @@ struct OfferConnectionRow: View {
                                 .stroke(isSelected ? AppColors.accent : AppColors.border, lineWidth: 1)
                         )
                     
-                    Text((connection.connectedUser?.lastName ?? connection.connectedUser?.username ?? "?").prefix(1))
+                                                Text((connection.connectedUser?.lastName ?? "?").prefix(1))
                         .font(AppFonts.bodyBold)
                         .foregroundColor(isSelected ? AppColors.accent : AppColors.secondaryText)
                 }
@@ -287,11 +287,11 @@ struct OfferConnectionRow: View {
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
                     if let user = connection.connectedUser {
-                        Text("\(user.rank ?? "") \(user.lastName ?? user.username)")
+                        Text("\(user.rank ?? "") \(user.lastName ?? "Unknown")")
                             .font(AppFonts.bodyBold)
                             .foregroundColor(AppColors.primaryText)
                         
-                        Text("@\(user.username)")
+                        Text(user.email ?? "No email")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
                     }

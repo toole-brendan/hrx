@@ -683,7 +683,7 @@ struct MinimalAssignedUserCard: View {
                 Text("\(user.rank ?? "") \(user.lastName ?? "")")
                     .font(AppFonts.bodyMedium)
                     .foregroundColor(AppColors.primaryText)
-                Text("@\(user.username)")
+                                        Text(user.email ?? "No email")
                     .font(AppFonts.monoCaption)
                     .foregroundColor(AppColors.secondaryText)
             }

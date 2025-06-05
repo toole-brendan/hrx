@@ -58,12 +58,12 @@ struct ProfileView: View {
                     
                     ProfileDivider()
                     
-                    ProfileInfoRow(
-                        label: "USERNAME",
-                        value: "@\(user.username)",
-                        icon: "at",
-                        valueFont: .mono
-                    )
+                                ProfileInfoRow(
+                label: "EMAIL",
+                value: user.email ?? "No email",
+                icon: "envelope",
+                valueFont: .mono
+            )
                     
                     ProfileDivider()
                     

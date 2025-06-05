@@ -82,7 +82,7 @@ class AuthViewModel: ObservableObject {
     func logout() {
         isLoading = true
         errorMessage = nil
-        print("AuthViewModel: Initiating logout for user \(currentUser?.user.username ?? "unknown")")
+        print("AuthViewModel: Initiating logout for user \(currentUser?.user.email ?? "unknown")")
 
         Task {
             do {

@@ -605,10 +605,10 @@ struct DashboardView: View {
             if currentUser == nil {
                 if let user = authManager.currentUser {
                     currentUser = user
-                    debugPrint("DashboardView: Loaded user from environment - \(user.username)")
+                    debugPrint("DashboardView: Loaded user from environment - \(user.email ?? "unknown")")
                 } else if let user = AuthManager.shared.currentUser {
                     currentUser = user
-                    debugPrint("DashboardView: Loaded user from singleton - \(user.username)")
+                    debugPrint("DashboardView: Loaded user from singleton - \(user.email ?? "unknown")")
                 }
             }
             

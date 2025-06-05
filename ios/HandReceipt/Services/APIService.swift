@@ -522,7 +522,7 @@ public class APIService: APIServiceProtocol {
 
         // Use UserResponse to decode and then convert to LoginResponse for compatibility
         let response = try await performRequest(request: request) as UserResponse
-        debugPrint("Session check successful, user: \(response.user.username)")
+                        debugPrint("Session check successful, user: \(response.user.email ?? "unknown")")
         // Convert to LoginResponse to maintain compatibility with existing code
         return response.toLoginResponse()
     }
@@ -1213,7 +1213,7 @@ public class APIService: APIServiceProtocol {
         request.httpMethod = "GET"
         
         let user = try await performRequest(request: request) as UserSummary
-        debugPrint("Successfully fetched user: \(user.username)")
+                    debugPrint("Successfully fetched user: \(user.email ?? "unknown")")
         return user
     }
 

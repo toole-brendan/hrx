@@ -38,7 +38,7 @@ struct ConnectionsView: View {
         } else {
             return filtered.filter { connection in
                 let user = connection.connectedUser
-                return user?.username.localizedCaseInsensitiveContains(searchText) ?? false ||
+                return user?.email?.localizedCaseInsensitiveContains(searchText) ?? false ||
                        user?.lastName?.localizedCaseInsensitiveContains(searchText) ?? false ||
                        user?.rank?.localizedCaseInsensitiveContains(searchText) ?? false
             }
@@ -368,7 +368,7 @@ struct CleanConnectionCard: View {
                     .fill(AppColors.success.opacity(0.1))
                     .frame(width: 48, height: 48)
                     .overlay(
-                        Text((connection.connectedUser?.lastName ?? connection.connectedUser?.username ?? "?").prefix(1))
+                                                    Text((connection.connectedUser?.lastName ?? "?").prefix(1))
                             .font(AppFonts.bodyBold)
                             .foregroundColor(AppColors.success)
                     )
@@ -376,11 +376,11 @@ struct CleanConnectionCard: View {
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
                     if let user = connection.connectedUser {
-                        Text("\(user.rank ?? "") \(user.lastName ?? user.username)")
+                        Text("\(user.rank ?? "") \(user.lastName ?? "Unknown")")
                             .font(AppFonts.bodyBold)
                             .foregroundColor(AppColors.primaryText)
                         
-                        Text("@\(user.username)")
+                        Text(user.email ?? "No email")
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
                     }
@@ -421,18 +421,18 @@ struct CleanPendingRequestCard: View {
                     .fill(AppColors.warning.opacity(0.1))
                     .frame(width: 48, height: 48)
                     .overlay(
-                        Text((request.requester.lastName ?? request.requester.username).prefix(1))
+                                                    Text((request.requester.lastName ?? "?").prefix(1))
                             .font(AppFonts.bodyBold)
                             .foregroundColor(AppColors.warning)
                     )
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(request.requester.rank ?? "") \(request.requester.lastName ?? request.requester.username)")
+                                            Text("\(request.requester.rank ?? "") \(request.requester.lastName ?? "Unknown")")
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.primaryText)
                     
-                    Text("@\(request.requester.username)")
+                                            Text(request.requester.email ?? "No email")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.secondaryText)
                     
@@ -603,18 +603,18 @@ struct CleanUserSearchResultCard: View {
                 .fill(AppColors.accent.opacity(0.1))
                 .frame(width: 44, height: 44)
                 .overlay(
-                    Text((user.lastName ?? user.username).prefix(1))
+                                                Text((user.lastName ?? "?").prefix(1))
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.accent)
                 )
             
             // User Info
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(user.rank ?? "") \(user.lastName ?? user.username)")
+                                    Text("\(user.rank ?? "") \(user.lastName ?? "Unknown")")
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.primaryText)
                 
-                Text("@\(user.username)")
+                                    Text(user.email ?? "No email")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
             }

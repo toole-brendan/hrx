@@ -84,10 +84,10 @@ struct UserListItemView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
              let displayName = "\(user.rank ?? "") \(user.lastName ?? "")".trimmingCharacters(in: .whitespaces)
-             Text(displayName.isEmpty ? user.username : displayName) // Fallback to username if rank/last name missing
+                                 Text(displayName.isEmpty ? (user.email ?? "Unknown User") : displayName) // Fallback to email if rank/last name missing
                  .font(.headline)
                  .foregroundColor(AppColors.primaryText) // Theme text color
-             Text("@\(user.username)")
+                             Text(user.email ?? "No email")
                  .font(.subheadline)
                  .foregroundColor(AppColors.secondaryText) // Theme secondary text color
          }
@@ -102,7 +102,7 @@ struct UserSelectionView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView { // Add NavView for preview context
             UserSelectionView(onUserSelected: { user in
-                print("Preview: Selected user \(user.username)")
+                print("Preview: Selected user \(user.email ?? "unknown")")
             })
         }
         .preferredColorScheme(.dark) // Preview in dark mode

@@ -337,7 +337,7 @@ struct CleanUserRow: View {
                 Text("\(user.rank ?? "") \(user.lastName ?? "")")
                     .font(AppFonts.bodyMedium)
                     .foregroundColor(AppColors.primaryText)
-                Text("@\(user.username)")
+                                    Text(user.email ?? "No email")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.secondaryText)
                 Text("ID: #\(user.id)")

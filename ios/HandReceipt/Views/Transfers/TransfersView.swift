@@ -345,7 +345,7 @@ struct ElegantTransferCard: View {
                                 Text("\(fromUser.rank ?? "") \(fromUser.lastName ?? "")")
                                     .font(AppFonts.bodyMedium)
                                     .foregroundColor(AppColors.primaryText)
-                                Text("@\(fromUser.username)")
+                                Text(fromUser.email ?? "No email")
                                     .font(AppFonts.caption)
                                     .foregroundColor(AppColors.secondaryText)
                             }
@@ -366,7 +366,7 @@ struct ElegantTransferCard: View {
                                 Text("\(toUser.rank ?? "") \(toUser.lastName ?? "")")
                                     .font(AppFonts.bodyMedium)
                                     .foregroundColor(AppColors.primaryText)
-                                Text("@\(toUser.username)")
+                                Text(toUser.email ?? "No email")
                                     .font(AppFonts.caption)
                                     .foregroundColor(AppColors.secondaryText)
                             }

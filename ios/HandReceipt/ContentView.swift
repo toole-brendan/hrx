@@ -67,7 +67,7 @@ struct ContentView: View {
                 .zIndex(1) // Ensure it's on top
             } else if !authManager.isAuthenticated {
                 LoginView { loginResponse in
-                    debugPrint("ContentView: Login successful for user \(loginResponse.user.username)")
+                    debugPrint("ContentView: Login successful for user \(loginResponse.user.email ?? "unknown")")
                     Task {
                         // Update AuthManager with login response
                         await authManager.login(response: loginResponse)
@@ -81,7 +81,7 @@ struct ContentView: View {
                 AuthenticatedTabView(apiService: apiService)
                     .environmentObject(authManager)
                 .onAppear {
-                    debugPrint("AuthenticatedTabView appeared - user is authenticated as \(authManager.currentUser?.username ?? "unknown")")
+                    debugPrint("AuthenticatedTabView appeared - user is authenticated as \(authManager.currentUser?.email ?? "unknown")")
                 }
             }
         }
@@ -120,7 +120,7 @@ struct ContentView: View {
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.primaryText)
                 if let user = authManager.currentUser {
-                    Text("User: \(user.username) (ID: \(user.id))")
+                    Text("User: \(user.email ?? "no email") (ID: \(user.id))")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.primaryText)
                 }
