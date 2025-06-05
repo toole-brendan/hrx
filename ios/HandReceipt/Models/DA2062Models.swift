@@ -84,9 +84,10 @@ struct EditableDA2062Item: Identifiable {
     }
     
     var needsVerification: Bool {
-        confidence < 0.7 || 
-        (!hasExplicitSerial && !serialNumber.isEmpty) ||
-        (quantityConfidence < 0.8 && Int(quantity) ?? 1 > 1)
+        return confidence < 0.7 
+            || serialNumber.isEmpty 
+            || (!hasExplicitSerial && !serialNumber.isEmpty)
+            || (quantityConfidence < 0.8 && Int(quantity) ?? 1 > 1)
     }
     
     // Initialize from DA2062Item

@@ -11,6 +11,7 @@ struct DA2062ReviewSheet: View {
     @State private var isImporting = false
     @State private var importError: String?
     @State private var showingImportProgress = false
+    @State private var importCompleted = false
     @StateObject private var scanViewModel = DA2062ScanViewModel()
     @Environment(\.presentationMode) var presentationMode
     
@@ -81,6 +82,15 @@ struct DA2062ReviewSheet: View {
                             .font(AppFonts.monoBody)
                             .foregroundColor(AppColors.primaryText)
                     }
+                    
+                    HStack {
+                        Text("Selected for import:")
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                        Text("\(editableItems.filter { $0.isSelected }.count)")
+                            .font(AppFonts.monoBody)
+                            .foregroundColor(AppColors.accent)
+                    }
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,6 +116,21 @@ struct DA2062ReviewSheet: View {
             .listStyle(PlainListStyle())
             .background(AppColors.appBackground)
             
+            // Import status message
+            if let importError = importError {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text(importError)
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.1))
+            }
+            
             // Action buttons
             HStack(spacing: 16) {
                 Button("Cancel") {
@@ -113,7 +138,7 @@ struct DA2062ReviewSheet: View {
                 }
                 .buttonStyle(MinimalSecondaryButtonStyle())
                 
-                Button("Import Items") {
+                Button(isImporting ? "Importing..." : "Import Items (\(editableItems.filter { $0.isSelected }.count))") {
                     Task {
                         await importItemsToBackend()
                     }
@@ -138,38 +163,58 @@ struct DA2062ReviewSheet: View {
                 onDismiss: { showingPagePreview = false }
             )
         }
-        .sheet(isPresented: $showingImportProgress) {
-            DA2062ImportProgressView(sourceImage: scannedPages.first?.image ?? UIImage())
-        }
         .onAppear {
             loadEditableItems()
+            // Set the current form in the scan view model
+            scanViewModel.currentForm = form
+        }
+        .alert("Import Complete", isPresented: $importCompleted) {
+            Button("View My Properties") {
+                presentationMode.wrappedValue.dismiss()
+            }
+        } message: {
+            Text("Successfully imported items to your property inventory. All actions have been logged to the Azure Immutable Ledger.")
         }
     }
     
-    // MARK: - Azure OCR Import Methods
+    // MARK: - Import Methods
     
     private func importItemsToBackend() async {
         isImporting = true
         importError = nil
-        showingImportProgress = true
         
-        scanViewModel.currentForm = form
+        // Filter only selected and valid items
+        let selectedItems = editableItems.filter { $0.isSelected && $0.isValid }
         
-        let result = await scanViewModel.importVerifiedItems(editableItems)
+        guard !selectedItems.isEmpty else {
+            importError = "No valid items selected for import"
+            isImporting = false
+            return
+        }
         
-        switch result {
-        case .success(let response):
-            print("Successfully imported \(response.createdCount) items")
+        let result = await scanViewModel.importVerifiedItems(selectedItems)
+        
+        await MainActor.run {
             isImporting = false
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                showingImportProgress = false
-                presentationMode.wrappedValue.dismiss()
+            switch result {
+            case .success(let response):
+                if response.createdCount > 0 {
+                    importCompleted = true
+                    print("✅ Successfully imported \(response.createdCount) items with ledger logging")
+                } else {
+                    importError = "No items were imported. Please check the error details."
+                }
+                
+                if response.failedCount > 0 {
+                    let failureMessage = response.failedItems?.first?.error ?? "Some items failed to import"
+                    importError = "Partial success: \(response.createdCount) imported, \(response.failedCount) failed. \(failureMessage)"
+                }
+                
+            case .failure(let error):
+                importError = error.localizedDescription
+                print("❌ Import failed: \(error)")
             }
-            
-        case .failure(let error):
-            importError = error.localizedDescription
-            isImporting = false
         }
     }
     
@@ -311,7 +356,7 @@ struct DA2062ItemRowWithVerification: View {
                             .cornerRadius(4)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 4)
-                                    .stroke(AppColors.border, lineWidth: 1)
+                                    .stroke(item.description.isEmpty ? AppColors.destructive : AppColors.border, lineWidth: 1)
                             )
                     }
                     
@@ -410,8 +455,8 @@ struct DA2062ItemRowWithVerification: View {
                                     .stroke(AppColors.border, lineWidth: 1)
                             )
                             .onChange(of: item.serialNumber) { newValue in
-                                if !newValue.isEmpty && !item.hasExplicitSerial {
-                                    item.hasExplicitSerial = false
+                                if !newValue.isEmpty {
+                                    item.hasExplicitSerial = true  // Treat user-entered serial as explicit (not generated)
                                 }
                             }
                     }
@@ -452,7 +497,9 @@ struct DA2062ItemRowWithVerification: View {
             reasons.append("Low OCR confidence (\(Int(item.confidence * 100))%)")
         }
         
-        if !item.hasExplicitSerial && !item.serialNumber.isEmpty {
+        if item.serialNumber.isEmpty {
+            reasons.append("No serial number provided (will be auto-generated)")
+        } else if !item.hasExplicitSerial {
             reasons.append("Serial number will be auto-generated")
         }
         

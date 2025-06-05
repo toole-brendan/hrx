@@ -1,489 +1,77 @@
-Great. I’ll provide a step-by-step, file-by-file and line-by-line implementation guide for both frontend (iOS) and backend (Go) to complete the 'Export DA 2062' feature. This will include making the export modal UI fully functional and implementing the in-app delivery to a recipient's document box.
+Thanks for the detailed context. I’ll now review the `hrx` GitHub repo to verify and flesh out the DA2062 import feature, especially the step that allows users to review and edit recognized items after OCR processing. I’ll ensure this intermediate step includes editable fields for all recognized item properties, applies proper validation, and transitions correctly to the ledger logging step.
 
+I'll get back to you shortly with proposed updates or fixes based on the existing codebase.
 
-## iOS (Swift) – Frontend Implementation
 
-### 1. `MyPropertiesView.swift` – Launching and Closing the Export Modal
+# DA2062 OCR Import – UI & Error Handling Review
 
-* **Add an onDismiss handler** to the `.fullScreenCover` that presents `DA2062ExportView` so that when the modal closes, selection mode is exited and selections are cleared. Modify the `.fullScreenCover` at around **line 159-165** as follows:
+## 1. Item Review UI (Modal Overlay vs. Separate Screen)
 
-```swift
-.fullScreenCover(
-    isPresented: $showingDA2062Export,
-    onDismiss: {
-        // Exit selection mode and clear selected items when modal closes
-        isSelectMode = false
-        selectedPropertiesForExport.removeAll()
-    }
-) {
-    DA2062ExportView(preSelectedPropertyIDs: Array(selectedPropertiesForExport))
-        .onAppear {
-            print("DA2062ExportView full screen cover appeared")
-        }
-}
-```
+**Design Approach:** We can present the post-scan item review either as a modal overlay or a dedicated screen. There’s no strong preference indicated, so the choice can depend on usability and implementation ease. The current implementation uses a **modal review sheet** that slides up over the scan view (with page thumbnails for context). This overlay approach keeps the user on the scanning flow while reviewing items, and allows showing the scanned page for reference (e.g. tapping a thumbnail opens a page preview modal).
 
-This ensures that after exporting, the user’s property list returns to normal (no lingering “selected” state). The new `onDismiss` resets `isSelectMode` and empties `selectedPropertiesForExport`, similar to how tapping “Cancel” does.
-
-### 2. `DA2062ExportView.swift` – Completing the Export Modal UI
-
-#### **Unit Info Editing:**
-
-In the **Unit Information** section’s header, the “Edit” button is currently a stub. We will implement it by presenting a sheet with editable fields for unit info.
-
-* **Step 2a:** Add a state property to track the editor sheet, e.g. at the top of the view struct:
-
-  ```swift
-  @State private var showingUnitInfoEditor = false
-  ```
-
-* **Step 2b:** Modify the `ElegantSectionHeader` for Unit Information (around **line 95-102**) to call our new action:
-
-  ```swift
-  ElegantSectionHeader(
-      title: "Unit Information",
-      subtitle: "Organization details for this hand receipt",
-      style: .serif,
-      action: { showingUnitInfoEditor = true }, // open editor
-      actionLabel: "Edit"
-  )
-  ```
-
-* **Step 2c:** Define a simple editor view for unit info. For example, **after** the main `DA2062ExportView` struct, add a new view struct:
-
-  ```swift
-  struct UnitInfoEditorView: View {
-      @Binding var unitInfo: DA2062ExportViewModel.UnitInfo
-      @Environment(\.dismiss) private var dismiss
-
-      var body: some View {
-          NavigationView {
-              Form {
-                  Section(header: Text("Unit Details")) {
-                      TextField("Unit Name", text: $unitInfo.unitName)
-                      TextField("DODAAC", text: $unitInfo.dodaac)
-                      TextField("Stock Number", text: $unitInfo.stockNumber)
-                      TextField("Location", text: $unitInfo.location)
-                  }
-              }
-              .navigationBarTitle("Edit Unit Info", displayMode: .inline)
-              .navigationBarItems(
-                  leading: Button("Cancel") { dismiss() },
-                  trailing: Button("Save") { dismiss() }
-              )
-          }
-      }
-  }
-  ```
-
-  This presents a form for editing **Unit Name, DODAAC, Stock Number,** and **Location**. Tapping Save simply dismisses the sheet (the bound values in `viewModel.unitInfo` are already updated via the binding).
-
-* **Step 2d:** Present this sheet in `DA2062ExportView`. Add after the `.alert` modifier (or at the bottom of the `body`):
-
-  ```swift
-  .sheet(isPresented: $showingUnitInfoEditor) {
-      UnitInfoEditorView(unitInfo: $viewModel.unitInfo)
-  }
-  ```
-
-With these changes, tapping **Edit** under Unit Information will show a form where the user can modify their unit details (initially pre-filled from user defaults).
-
-#### **Property Selection Improvements:**
-
-The property selection section already supports **Select All** and **Clear** actions, as well as category filters. These call `viewModel.selectAll()`, `clearSelection()`, etc., which are implemented in **DA2062ExportViewModel**. No code changes are needed here beyond confirming they function.
-
-#### **Delivery Method – In-App Recipient Option:**
-
-We add a new **“Send to User”** option to deliver the PDF directly into another user’s in-app document box, as an alternative to Download/Share or Email.
-
-* **Step 2e:** Introduce state for the recipient picker in `DA2062ExportView`:
-
-  ```swift
-  @State private var showingRecipientPicker = false
-  @State private var selectedConnection: UserConnection?
-  ```
-
-  Also, initialize a Connections view model to fetch the user’s connections (friends):
-
-  ```swift
-  @StateObject private var connectionsViewModel = ConnectionsViewModel(apiService: APIService())
-  ```
-
-  (This assumes a ConnectionsViewModel exists similar to the one used in property transfers.)
-
-* **Step 2f:** Add a **“Send to User”** button in the `actionButtons` VStack (beneath the existing “Generate & Share” and “Email PDF” buttons). For example, at around **line 229** insert:
-
-  ```swift
-  Button(action: { 
-      // Load connections and show picker
-      await MainActor.run { connectionsViewModel.loadConnections() }
-      showingRecipientPicker = true 
-  }) {
-      HStack {
-          Image(systemName: "person.crop.circle.badge.arrow.right")
-              .font(.system(size: 16, weight: .regular))
-          Text("Send to User")
-              .font(AppFonts.bodyMedium)
-      }
-  }
-  .buttonStyle(.minimalSecondary)
-  .disabled(viewModel.selectedPropertyIDs.isEmpty)
-  ```
-
-  This uses an appropriate SF Symbol and is disabled unless at least one item is selected (similar to the Email button logic).
-
-* **Step 2g:** Present the recipient picker as a sheet. After the alert modifier, add:
-
-  ```swift
-  .sheet(isPresented: $showingRecipientPicker) {
-      NavigationView {
-          VStack {
-              // Header with Cancel and Send
-              HStack {
-                  Button("Cancel") { showingRecipientPicker = false }
-                      .padding(.leading)
-                  Spacer()
-                  Text("Send Hand Receipt")
-                      .font(.headline)
-                  Spacer()
-                  Button("Send") {
-                      Task { await sendHandReceiptInApp() }
-                  }
-                  .disabled(selectedConnection == nil)
-                  .padding(.trailing)
-              }
-              .padding(.vertical)
-              Divider()
-              // List connections
-              ScrollView {
-                  VStack(spacing: 0) {
-                      if connectionsViewModel.connections.isEmpty {
-                          Text("No connections available").padding()
-                      }
-                      ForEach(connectionsViewModel.connections) { connection in
-                          Button(action: {
-                              selectedConnection = connection
-                          }) {
-                              HStack {
-                                  Text(connection.connectedUser?.name ?? "Unknown")
-                                  Spacer()
-                                  Image(systemName: selectedConnection?.id == connection.id 
-                                          ? "checkmark.circle.fill" 
-                                          : "circle")
-                                      .foregroundColor(AppColors.accent)
-                              }
-                              .padding()
-                          }
-                          .background(selectedConnection?.id == connection.id 
-                                      ? AppColors.accent.opacity(0.1) 
-                                      : Color.clear)
-                      }
-                  }
-              }
-          }
-          .navigationBarHidden(true)
-      }
-  }
-  ```
-
-  This sheet is modeled after the transfer UI, listing the user’s connections (from `connectionsViewModel.connections`) with a checkmark for the selected user. The **Send** button is enabled only when a connection is selected. Tapping **Send** calls an async function `sendHandReceiptInApp()` to perform the in-app export.
-
-* **Step 2h:** Implement the `sendHandReceiptInApp()` helper inside `DA2062ExportView` (e.g., in the `// MARK: - Helper Methods` section):
-
-  ```swift
-  private func sendHandReceiptInApp() async {
-      guard let connection = selectedConnection,
-            let recipientUser = connection.connectedUser else { return }
-      isGenerating = true
-      do {
-          try await viewModel.sendHandReceipt(to: recipientUser.id)
-          isGenerating = false
-          // Show success alert
-          errorMessage = "Hand Receipt sent to \(recipientUser.rank) \(recipientUser.name)"
-          showError = true
-          // Dismiss the picker and export view after success
-          showingRecipientPicker = false
-          // Optionally, auto-dismiss the entire export view:
-          // dismiss() 
-      } catch {
-          isGenerating = false
-          errorMessage = error.localizedDescription
-          showError = true
-      }
-  }
-  ```
-
-  This function retrieves the selected `recipientUser` and calls a new view model method `sendHandReceipt(to:)`. On success, we set a confirmation message and present it via the existing `.alert` (which uses `errorMessage`/`showError`). We also close the picker sheet. (You may call `dismiss()` to close the export view automatically if desired.)
-
-#### **View Model and API Integration for In-App Send:**
-
-Now we update the view model and API service to support generating/sending the PDF to a user.
-
-### 3. `DA2062ExportViewModel.swift` – Handling Recipient and Send Request
-
-* **Step 3a:** Add a property to hold the selected recipient user ID (if any). For example, in `DA2062ExportViewModel` add:
-
-  ```swift
-  @Published var recipientUserId: Int? = nil
-  ```
-
-  If more info is needed (like recipient name for UI), we could store a `User` model or reuse the `UserInfo` struct, but ID is sufficient for the request.
-
-* **Step 3b:** Modify the `generatePDF()` request assembly to include `ToUser` and `ToUserID` if a recipient is set. At about **line 94-102**, where we create `GeneratePDFRequest`:
-
-  ```swift
-  let toUserInfo = recipientUserId != nil 
-      ? PDFUserInfo(name: userInfo.name, rank: userInfo.rank, title: userInfo.title, phone: userInfo.phone)
-      : PDFUserInfo(name: userInfo.name, rank: userInfo.rank, title: userInfo.title, phone: userInfo.phone)
-  let toUserIdVal = recipientUserId ?? 0
-
-  let request = GeneratePDFRequest(
-      propertyIDs: Array(selectedPropertyIDs),
-      groupByCategory: groupByCategory,
-      includeQRCodes: includeQRCodes,
-      sendEmail: false,
-      recipients: [],
-      fromUser: PDFUserInfo(name: userInfo.name, rank: userInfo.rank, title: userInfo.title, phone: userInfo.phone),
-      toUser: toUserInfo,
-      unitInfo: PDFUnitInfo(unitName: unitInfo.unitName, dodaac: unitInfo.dodaac, stockNumber: unitInfo.stockNumber, location: unitInfo.location),
-      toUserId: toUserIdVal
-  )
-  return try await apiService.generateDA2062PDF(request: request)
-  ```
-
-  Here we populate `toUser` and `to_user_id` when `recipientUserId` is set. (In this simplified approach, we reuse the current user’s info for `toUser` since the backend will fetch the actual recipient details; alternatively, you could pass the recipient’s name/rank if known).
-
-* **Step 3c:** Add a new method to handle the in-app send (no PDF data expected back):
-
-  ```swift
-  func sendHandReceipt(to recipientId: Int) async throws {
-      // Build request similar to generatePDF, but expecting JSON response
-      let request = GeneratePDFRequest(
-          propertyIDs: Array(selectedPropertyIDs),
-          groupByCategory: groupByCategory,
-          includeQRCodes: includeQRCodes,
-          sendEmail: false,
-          recipients: [],
-          fromUser: PDFUserInfo(name: userInfo.name, rank: userInfo.rank, title: userInfo.title, phone: userInfo.phone),
-          toUser: PDFUserInfo(name: userInfo.name, rank: userInfo.rank, title: userInfo.title, phone: userInfo.phone),
-          unitInfo: PDFUnitInfo(unitName: unitInfo.unitName, dodaac: unitInfo.dodaac, stockNumber: unitInfo.stockNumber, location: unitInfo.location),
-          toUserId: recipientId
-      )
-      _ = try await apiService.sendDA2062InApp(request: request)
-      // We ignore the returned document here, but could handle it if needed
-  }
-  ```
-
-  This is similar to `generatePDF()` but uses a different API call that returns a `Document`.
-
-### 4. `APIService.swift` – API Endpoints for DA 2062 Export
-
-We add new methods to the shared API service to call the backend endpoints. Insert the following in `APIService` (e.g., under a **DA2062** mark):
-
-```swift
-// MARK: - DA2062 Hand Receipt Endpoints
-
-public func generateDA2062PDF(request: GeneratePDFRequest) async throws -> Data {
-    let endpoint = baseURL.appendingPathComponent("/api/da2062/generate-pdf")
-    var urlRequest = URLRequest(url: endpoint)
-    urlRequest.httpMethod = "POST"
-    urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-    urlRequest.httpBody = try JSONEncoder().encode(request)
-
-    let (data, response) = try await URLSession.shared.data(for: urlRequest)
-    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-        if let err = try? JSONDecoder().decode(APIError.self, from: data) {
-            throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: err.error])
-        }
-        throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to generate PDF"])
-    }
-    return data  // PDF binary data
-}
-
-public func emailDA2062PDF(request: GeneratePDFRequest) async throws {
-    // Similar setup as above
-    let endpoint = baseURL.appendingPathComponent("/api/da2062/generate-pdf")
-    var urlRequest = URLRequest(url: endpoint)
-    urlRequest.httpMethod = "POST"
-    urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-    urlRequest.httpBody = try JSONEncoder().encode(request)
-
-    let (data, response) = try await URLSession.shared.data(for: urlRequest)
-    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
-        if let err = try? JSONDecoder().decode(APIError.self, from: data) {
-            throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: err.error])
-        }
-        throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to email PDF"])
-    }
-    // No further action needed on success (server sends email)
-}
-
-public func sendDA2062InApp(request: GeneratePDFRequest) async throws -> Document {
-    let endpoint = baseURL.appendingPathComponent("/api/da2062/generate-pdf")
-    var urlRequest = URLRequest(url: endpoint)
-    urlRequest.httpMethod = "POST"
-    urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-    urlRequest.httpBody = try JSONEncoder().encode(request)
-
-    let (data, response) = try await URLSession.shared.data(for: urlRequest)
-    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
-        if let err = try? JSONDecoder().decode(APIError.self, from: data) {
-            throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: err.error])
-        }
-        throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to send hand receipt"])
-    }
-    // Decode the returned document
-    let result = try JSONDecoder().decode([String: Document].self, from: data)
-    guard let document = result["document"] else {
-        throw NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"])
-    }
-    return document
-}
-```
-
-These functions correspond to the backend `POST /api/da2062/generate-pdf` endpoint. The `generateDA2062PDF` returns raw PDF bytes (status 200 on success), `emailDA2062PDF` triggers an email (no return data, but we treat 200/201 as success), and `sendDA2062InApp` expects a 201 Created with a JSON body containing the created `Document`. The `Document` model here is the same Codable struct defined in **DocumentModels.swift**.
-
-> **Note:** The `baseURL` used above should be the API base (e.g., from config or `VITE_API_URL`). Also, we handle error decoding into an `APIError` struct for better messages (this assumes an `APIError: Codable` exists to parse `{"error": "..."}`).
-
-### 5. **Testing the iOS Flow (manually):**
-
-* Run the app, select one or multiple properties in **My Properties** screen, tap **Export DA 2062**. The modal shows unit info, selected items count, and options.
-* Try editing unit info via the **Edit** button – changes should reflect in the form (if you generate the PDF, the updated info will apply).
-* Test **Select All**, **Clear**, and **Filter** to ensure item selection updates the count subtitle.
-* **Generate & Share** should produce a PDF and open the iOS share sheet (e.g. you can preview the PDF or save it).
-* **Email PDF:** entering an email in the alert and tapping Send will call our backend to email the PDF (or open the Mail composer if left blank).
-* **Send to User:** tapping this opens your connections list. Pick a user and tap **Send**. A success alert should appear if the backend delivered the form. The selected recipient (if seeded and connected) can log in and find the document in their inbox.
-
-## Backend (Go) – Server-Side Implementation
-
-### 6. `backend/internal/api/handlers/da2062_handler.go` – Handling PDF Generation and Delivery
-
-The `DA2062Handler.GenerateDA2062PDF` endpoint already generates the PDF and handles direct download or emailing. We will extend it to handle in-app delivery when a `to_user_id` is provided in the request.
-
-* **Step 6a:** **Define behavior for in-app send.** In the `GenerateDA2062PDF` function, after generating the PDF buffer (after line 690), add a branch to handle the case where a recipient user is specified (`req.ToUserID != 0`) and we are not emailing. We insert this *before* the existing `else` (download) clause:
-
-```go
-// ... after formNumber is generated:
-formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), userID)
-
-// Handle in-app delivery to another user
-if req.ToUserID != 0 {
-    // Verify the recipient is a connection/friend of the sender
-    connected, err := h.Repo.CheckUserConnection(userID, req.ToUserID)
-    if err != nil || !connected {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Recipient must be in your connections"})
-        return
-    }
-    // Fetch recipient details
-    recipient, err := h.Repo.GetUserByID(req.ToUserID)
-    if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Recipient not found"})
-        return
-    }
-    // Upload PDF to storage
-    ctx := c.Request.Context()
-    fileKey := fmt.Sprintf("da2062/export_%d_%d.pdf", userID, time.Now().UnixNano())
-    err = h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuffer.Bytes()), int64(pdfBuffer.Len()), "application/pdf")
-    if err != nil {
-        log.Printf("Failed to upload DA2062 PDF: %v", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store PDF"})
-        return
-    }
-    // Get a presigned URL for the PDF (for attachments)
-    fileURL, err := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour)
-    if err != nil {
-        log.Printf("Warning: could not get presigned URL, proceeding without it: %v", err)
-        fileURL = ""
-    }
-
-    // Prepare title for document(s)
-    var title string
-    if len(properties) == 1 {
-        // Single item – include item name
-        title = fmt.Sprintf("Hand Receipt for %s", properties[0].Name)
-    } else {
-        title = fmt.Sprintf("Hand Receipt - %d Items", len(properties))
-    }
-
-    // Create document record for recipient (inbox)
-    doc := &domain.Document{
-        Type:            domain.DocumentTypeTransferForm,
-        Subtype:         stringPtr("DA2062"),
-        Title:           title,
-        SenderUserID:    userID,
-        RecipientUserID: req.ToUserID,
-        PropertyID:      nil, // no single property association for multiple items
-        FormData:        "{}",  // could include metadata if needed
-        Description:     nil,
-        Attachments:     nil,
-        Status:          domain.DocumentStatusUnread,
-        SentAt:          time.Now(),
-    }
-    // Attach PDF URL if available
-    if fileURL != "" {
-        attachmentsArr := []string{fileURL}
-        attachJSON, _ := json.Marshal(attachmentsArr)
-        attachStr := string(attachJSON)
-        doc.Attachments = &attachStr
-    }
-    if err := h.Repo.CreateDocument(doc); err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record"})
-        return
-    }
-    // Optionally, create a copy for sender's "Sent" box (as in transfer workflow)
-    // Here we skip creating a duplicate document; the sender can view this in their Sent list by virtue of being senderUserID.
-
-    // Log the export action to the ledger
-    if err := h.Ledger.LogDA2062Export(userID, len(properties), "app", recipient.Email); err != nil {
-        log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
-    }
-
-    // Respond with the created document
-    c.JSON(http.StatusCreated, gin.H{
-        "document": doc,
-        "message":  fmt.Sprintf("DA 2062 sent to %s %s", recipient.Rank, recipient.Name),
-    })
-    return
-}
-```
-
-Let’s break down this added code:
-
-* We check that the target user is in the sender’s connections (friends list) using `Repo.CheckUserConnection`. This prevents sending hand receipts to arbitrary users.
-* We fetch the recipient’s `User` record to use in the title/message and ensure existence.
-* We upload the PDF to storage (e.g., S3) and get a presigned URL for it. We create a unique `fileKey` using the current user ID and timestamp (nanoseconds) to avoid name collisions. If the presigned URL fails, we proceed without it (the document can still be recorded, but the attachment link will be empty).
-* We create a new `Document` entry in the `documents` table for the recipient:
-
-  * `Type` is set to **`transfer_form`** (since a hand receipt is essentially a transfer document).
-  * `Subtype` is `"DA2062"` to specify the form type.
-  * `Title` is a user-friendly description of the document. We use the item name if only one property, otherwise a generic count.
-  * `SenderUserID` is the current user (`userID`), `RecipientUserID` is the target user.
-  * `PropertyID` is left nil for multiple items (if it were a single item, we could set it, but it’s optional).
-  * `FormData` is just an empty JSON `{}` here (no structured form data needed for now).
-  * `Attachments` is set to an array containing the PDF’s URL (as JSON text) if we obtained one.
-  * `Status` is `"unread"` and `SentAt` is now.
-    We then call `h.Repo.CreateDocument(doc)` to save this record.
-* We do **not** explicitly create a second document for the sender. Unlike the transfer acceptance flow (which created two records for sender/recipient copies), here the single document will be visible in both users’ document lists: the recipient will see it in their **Inbox**, and the sender (as the document’s sender) can see it under **Sent**. (If separate sender copy is desired, similar code can be added, but it’s not strictly necessary.)
-* We log the event via `Ledger.LogDA2062Export`. We pass the action as `"app"` to denote an in-app delivery, and include the recipient’s email for reference. (The ledger service will record an export event with method "app".)
-* Finally, we return an HTTP **201 Created** response containing the new document and a message. The iOS app will parse this to confirm success. This response format matches how maintenance form sends respond with a document and message.
-
-With this branch in place, whenever the request JSON includes a `to_user_id` (and no `send_email` flag), the code will take this path, storing the PDF and creating a document instead of returning the file directly.
-
-#### **No Changes** are needed in `domain/models.go` or the repository layer – we are reusing the existing `Document` model and `CreateDocument` repository method (used by maintenance forms). The `documents` table (from migration **013**) already supports what we need: fields for sender, recipient, subtype, attachments, etc..
-
-### 7. Testing the Backend
-
-Ensure you have some connection between two users in the database (see `015_seed_test_user_mock_data.sql` for sample connections). Run the backend and use an HTTP client (or the iOS app) to test:
-
-* **Download PDF (no recipient):** Send a POST to `/api/da2062/generate-pdf` with JSON containing `property_ids` and no `to_user_id`. You should receive a 200 with PDF content (`Content-Type: application/pdf`). The ledger should log a `"download"` event.
-
-* **Email PDF:** Send a request with `send_email: true` and `recipients: ["someone@example.mil"]`. You should get a 200 JSON with a success message, and an email should be sent via the `DA2062EmailService` (configure your email service accordingly). The documents table is not involved in pure email sends (no document entry is created in this case).
-
-* **In-App Send:** Send a request with a valid `to_user_id` of a connected user (and `send_email: false`). Expect a **201** response with a JSON containing the new document record and a confirmation message. Verify the `documents` table has a new entry:
-
-  * `type = 'transfer_form'`, `subtype = 'DA2062'`, `sender_user_id = [your ID]`, `recipient_user_id = [target ID]`, and `attachments` containing the PDF URL (verify the URL is accessible if opened).
-  * On the recipient’s account, calling `GET /api/documents?box=inbox` should list this document (status `unread`). On the sender’s account, `?box=sent` should list it as well. Both users can retrieve it via `GET /api/documents/{id}` (the API ensures only sender or recipient can access a document).
-
-* **Edge cases:** If you try a `to_user_id` that is not your connection, you should get a 400 error `"Recipient must be in your connections"` due to our check. If the user ID doesn’t exist, a 404 `"Recipient not found"` is returned.
-
-By following these steps, we’ve made the **“Export DA 2062”** feature fully functional. On iOS, users can select items and choose to **Download**, **Email**, or **Send to User**. The backend now supports generating the DA 2062 PDF, emailing it, or delivering it in-app by creating a document entry for the recipient (using the existing `documents` infrastructure). This allows a user to fill out a hand receipt (DA Form 2062), optionally select a connected recipient, and send the completed form to that person’s document box – with fallback options to save or email the PDF if needed. All that remains is to deploy the changes and verify in an integrated environment.
+**Pros of Modal Overlay:**
+
+* Keeps the context of the scan visible (user can refer back to the form image easily).
+* Feels like a quick “overlay” review step rather than a full navigation away.
+
+**Pros of Separate Screen:**
+
+* More screen real estate for editing, potentially simpler navigation (especially if using full-screen modals which are similar to new screens).
+* Clear separation of scanning vs. reviewing phases.
+
+Given the implementation, using the modal **ReviewSheet** is working well. It provides a custom navigation bar with Cancel and Add Item actions, and likely will include a confirm/import button. Since there’s no objection to either approach, we can continue with the modal sheet as implemented. It offers a good balance – an overlay that can be dismissed or confirmed, without losing the scan data in the background. If any complexity arises, switching to a standard push navigation would also be acceptable. For now, **the modal review sheet is an appropriate choice**, and we’ll proceed with it as is.
+
+## 2. Manual Editing of All Fields Before Import
+
+Yes – **users should be able to manually edit all fields** of each scanned item prior to importing. The UI supports this by presenting each item in an editable form row. When the user expands an item, they can edit:
+
+* **Item Description (Name):** The main description/name of the item. This field is required (either Name or Description must be filled for an item to pass validation). The app provides a text field for the description.
+* **NSN:** The National Stock Number, if recognized. The UI provides an NSN text field for corrections or input (prefilled if OCR found one, but user can edit or add if missing).
+* **Quantity:** The quantity of that item. An editable text field (number pad) is provided for quantity, defaulting to the OCR value or 1.
+* **Unit:** The unit of issue (e.g. “EA” for each, “BX” for box, etc.). This is also editable, defaulting to “EA” if not detected.
+* **Serial Number:** The serial number of the item. The UI allows editing this as well. If the OCR didn’t find a serial, the field may be blank – the user can enter it or leave blank to auto-generate one as noted by the placeholder text. A label indicates “(Generated)” if the serial was not explicitly found.
+
+Each item row also has a checkbox to **select/deselect** the item for import. This means a user can remove an item from the import by unchecking it (for example, if an OCR result is garbage or not needed). There’s also an **“Add Item”** button to manually add any missing item that the OCR might have overlooked, and the ability to delete an item entry (swipe to delete is enabled via the List view). In summary, the interface is designed to let the user fully curate the list of items: edit any field, add missing entries, or remove incorrect ones, ensuring that by the time we submit to the backend, each item has complete and clean data.
+
+**Why this is important:** The batch import API requires certain fields for each item and will reject items with missing critical data. For instance, an item with no name/description will be invalid, and an item with no serial is also considered invalid by the server validation. By allowing manual edits, the user can fix OCR mistakes (fill in a missing name, correct a serial number, etc.) before we send the data. This prevents unnecessary failures. The design documentation emphasized enhancing user feedback and allowing manual verification for exactly this reason. All fields (description, NSN, quantity, unit, serial) are editable in the review step, which aligns with the requirement to let users correct OCR results for accuracy.
+
+## 3. Handling Verification, Duplicates, and Partial Imports
+
+The system is built to robustly handle items that require verification or encounter errors, without blocking the entire import. Key behaviors include:
+
+* **Verification Flags:** Each OCR-scanned item carries a confidence score and reasons it might need user review. If an item is low confidence or missing some data, it is marked `requiresVerification = true` in its metadata. Such items, when imported, will be created in an **unverified** state in the database (so they don’t count as fully accounted until a user verifies them). This means the item still gets imported, but is flagged for follow-up. The UI highlights these items with a warning icon and lists the “Verification Required” reasons (e.g. low OCR confidence, auto-generated serial, etc.). This implementation ensures that **imperfect OCR data doesn’t halt the process** – users can import now and verify or correct details later if needed.
+
+* **Duplicate Serial Handling:** If an item’s serial number already exists in the inventory database, the backend will reject that item as a duplicate. The import API explicitly returns an error like *“Property with serial number 'XYZ' already exists”* for such items. In our logic, when a create attempt fails due to a duplicate serial, we record that item as a failed entry with reason `"duplicate_serial"`. **Crucially, this does not abort the whole batch.** The import continues processing other items. This behavior was a deliberate enhancement – the test plan specifies that duplicate serial errors should fail only that item while others succeed. The server will return a partial success status (HTTP 206) if at least one item was imported and others failed. The UI or summary will then indicate something like “Partial import completed: X of Y items created,” and list the failed items with the duplicate error message. This way, a single duplicate doesn’t prevent all other new items from being saved.
+
+* **Skipping Invalid Items:** Items that are clearly incomplete or invalid are skipped from the import request. On the client side, before calling the API we filter out any item that is not selected or is missing required fields. For example, if an item has no serial number or no description after the user review, we log a warning and exclude it from the batch. (The debug output shows *“⚠️ Skipping item '' - missing required fields...”* in such cases.) This ensures we only send valid, user-vetted items. The goal is to avoid known failures – for instance, earlier the backend would generate placeholder serials for missing ones, but this led to conflicts; the new approach is to **not attempt importing an item that lacks a real serial or description**. The user has the opportunity to fill in those fields; if they don’t, the item won’t be imported (and the app informs them no valid items were available if all are filtered out).
+
+* **Partial Batch Creation:** The combination of the above means the batch import is **gracefully partial**. In code, after processing all items, we classify outcomes: if some items failed and some succeeded, we return a 206 Partial Content with both the created items and the failed items list. If all items failed validation or creation, the server returns a 400 with an `"error": "No items were successfully imported"` message (as we saw in the console output). The client is prepared to handle partial success – the UI will show a summary of how many items succeeded vs failed, and detailed reasons per item.
+
+In summary, **the system allows partial imports and emphasizes per-item error handling**. Users can proceed with importing the good items while being clearly notified of any that weren’t imported (and why). Verification-needed items are imported in a flagged state for later review, and duplicates or other errors are isolated to individual items. This approach aligns with the robust error-handling goals set out (e.g. *“duplicate serial errors don’t abort entire batch”* and *“graceful handling of imperfect OCR data”*).
+
+## 4. OCR Extraction Results & Current Error Analysis
+
+The latest test run indicates that the Azure OCR is **indeed functioning and extracting data** from the DA2062 form, but the batch import failed for all items due to data issues that require attention. Let’s break down the console output and what it tells us:
+
+* **OCR Successfully Read Text:** The console log shows item data like *“Mine Resistance Ambush Protected, M1233, 54324…”* and *“Heavy Armored Ground Ambulance (HAGA) Vehicle…”*, as well as a name “Stacey”【User’s log】. These correspond to real content on the form (vehicle names, etc.), indicating the OCR engine captured the text. The presence of these details confirms the OCR step worked correctly – it recognized equipment names and other fields from the image. This is a positive sign that our Azure Computer Vision integration is extracting the raw data as expected.
+
+* **Import Errors – Missing Fields:** Two of the items in the output had **empty Name/Description fields** (the log shows `\"name\":\"\"` and `\"description\":\"\"` for those entries). The backend validation immediately flagged each of those with *“Item name or description is required”*. This is expected behavior: we cannot create a property without at least a name or description to identify it. In the OCR context, it means those lines from the form didn’t yield any recognizable item name (perhaps only an NSN was detected, or the OCR text was too uncertain and left it blank). The solution is to have the user fill in a proper description for these entries during the review step. The UI already highlights such cases – an item with an empty description will appear as “New Item” in red text (indicating it’s invalid) and requires the user to enter the details before it can be imported. Until that is done, our logic will skip the item (or the backend will reject it as seen). So this error outcome was a result of testing the raw OCR output without manual fixes; in normal use, we expect the user to correct or remove these before final import.
+
+* **Import Errors – Duplicate Serials:** The other two items failed because of **duplicate serial number errors**. The log shows errors: *“Property with serial number 'RESISTANCE' already exists”* and similarly for 'LOBERT'. In these cases, the OCR did output a string for the serial number field – but those strings are clearly suspicious. “RESISTANCE” is not a typical serial; it appears to be part of the item name (“Mine **Resistant** Ambush Protected”) misinterpreted as a serial. “LOBERT” looks like a mis-read of a name (“Robert”) that got mistakenly put into the serial field. The backend caught that there are already properties with those exact serial strings (likely from previous tests or seed data), thus flagging them as duplicates. Even if they weren’t duplicates in the database, they are obviously wrong values for serials in this context.
+
+  **Cause:** These errors highlight that the OCR parsing logic picked up some text in the wrong columns. For example, the line containing “Robert Stacey, May 2011, WHEN USED AT:” (from the form’s signature block or remarks) was interpreted as an item: it became an entry with name/description “lobert Stacey, , May , ) • WHEN USED A:” and serial “LOBERT” in the JSON. Similarly, part of the vehicle name “Mine Resistant …” may have confused the parser into splitting “RESISTANCE” as a serial. This is a known challenge – the form has text outside the item table (like preparer’s name, dates, etc.) and the OCR text segmentation needs to filter those out.
+
+  **Resolution:** With the manual review UI, the user can easily spot these bogus entries and **deselect or delete them** prior to import. In our UI, the “Robert Stacey…” line would appear with multiple verification warnings (low confidence, missing NSN, etc.), signaling it’s likely not a valid item. The user can remove it. If an item with a duplicate serial is actually legitimate (say the form listed an item that truly is already in the system), the app should inform the user so they don’t create a duplicate. Our partial import mechanism would handle it gracefully by skipping that item, but ideally the user knows before hitting import. We could enhance the UI to perhaps check for duplicates in advance (e.g. a warning icon if a scanned serial already exists in inventory). For now, the backend’s error message provides that feedback post-import. The key point is that other items would still import. (In the test, none imported because every item had an issue. But if even one item was valid and unique, it would have succeeded – the code would then return `created_count` > 0 and `failed_count` for the others.)
+
+* **OCR Confidence and Verification:** The console output also included a metadata snippet for each item with flags like `"requires_verification": true` and reasons such as `"Low OCR confidence"`, `"Missing NSN"`, `"Multiple quantity item"`. This is the system working as intended to tag uncertain data. For example, the vehicle entry had “Low OCR confidence” – meaning the OCR wasn’t very sure about that text – and indeed it garbled some parts of the name. Another had “Missing NSN”, indicating the OCR couldn’t find a NSN in that line. Another had “Multiple quantity item”, which likely corresponds to the one with quantity 7 and no serial, a scenario needing special handling. These reasons are surfaced to the user in the review UI (under a “Verification Required” section for the item). The fact they appeared in the log confirms that our OCR processing pipeline is correctly flagging items for review. It’s actually good that we see those, because it means the system is aware of what needs verification. The user interface will use these flags to draw attention to those items (with the ⚠️ icon and listing the specific issues). The expectation is the user will review each flagged item – add the missing NSN if possible, break a multiple-quantity item into individual entries or let the system generate serials, etc. – before finalizing the import.
+
+**Conclusion:** The OCR extraction portion is functioning (we got the raw data), and the error feedback from the batch import is working as designed (preventing bad data from being created, and explaining why). The next steps revolve around **refining the workflow to address these errors**: ensuring the user fixes or skips problematic items in the review step. Once the user corrects the empty fields and removes the spurious “LOBERT” entry, for example, a subsequent import should succeed for the remaining items. We’ve implemented measures like auto-generating placeholder serials for multi-quantity items (with a “GEN-...” format to ensure uniqueness) and marking those with a verification note (*“Serial number was auto-generated”*). Those placeholders will avoid immediate duplicates, but they still prompt the user that actual serials may need to be input later (or the items verified).
+
+Overall, **the system is on track**: OCR is pulling the data, and our validation logic is catching the issues that need human attention. By leveraging the manual edit & verification UI, we can correct these issues. After that, the batch import should create the items successfully (as also outlined in the test plan’s “Normal Success Flow” with all items parsed and imported). The user will then get a clear summary of what was imported and what was not, fulfilling the requirements for a robust and user-friendly DA2062 import feature.
+
+## References and Sources
+
+* Code Reference – **Backend Validation & Error Handling**: Validation for required fields and serials; duplicate serial error handling in batch import; partial success response structure.
+* Code Reference – **iOS UI for Editing**: Review sheet UI showing editable fields for Description, NSN, Quantity, Unit, Serial. Also, verification warnings UI.
+* Code Reference – **Client-Side Filtering**: Skip logic for items missing description or serial, and skipping placeholder serial entries.
+* Design/Test Documentation: **Verification & Import Enhancements** – partial import behavior, skipping empty serials, and improved error messaging. These confirm the intended handling of the issues observed (no item created if required fields missing, duplicate serials don’t block others, etc.).
