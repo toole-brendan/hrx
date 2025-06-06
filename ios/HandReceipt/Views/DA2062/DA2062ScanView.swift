@@ -9,6 +9,7 @@ struct DA2062ScanView: View {
     @State private var showingProcessingView = false
     @State private var showingReviewSheet = false
     @State private var parsedForm: DA2062Form?
+    @State private var formToReview: DA2062Form?
     @State private var importError: String?
     @State private var isImporting = false
     @State private var showingSettings = false
@@ -92,27 +93,12 @@ struct DA2062ScanView: View {
                     onCompletion: handleOCRCompletion
                 )
             }
-            .sheet(isPresented: $showingReviewSheet) {
-                if let form = parsedForm {
-                    DA2062ReviewSheet(
-                        form: form,
-                        scannedPages: scannedPages,
-                        onConfirm: handleReviewConfirmation
-                    )
-                } else {
-                    // Debug view to show when parsedForm is nil
-                    VStack {
-                        Text("⚠️ No form data available")
-                            .font(.title)
-                            .padding()
-                        Text("parsedForm is nil")
-                            .foregroundColor(.red)
-                        Button("Close") {
-                            showingReviewSheet = false
-                        }
-                        .padding()
-                    }
-                }
+            .sheet(item: $formToReview) { form in
+                DA2062ReviewSheet(
+                    form: form,
+                    scannedPages: scannedPages,
+                    onConfirm: handleReviewConfirmation
+                )
             }
             .sheet(isPresented: $showingImportProgress) {
                 DA2062ImportProgressView(sourceImage: scannerViewModel.lastProcessedImage ?? UIImage())
@@ -429,9 +415,11 @@ struct DA2062ScanView: View {
         switch result {
         case .success(let form):
             print("✅ Received form with \(form.items.count) items")
+            print("📝 Form details: formNumber=\(form.formNumber ?? "nil"), unitName=\(form.unitName ?? "nil")")
             parsedForm = form
-            showingReviewSheet = true
-            print("📋 Review sheet should now be shown: \(showingReviewSheet)")
+            formToReview = form  // Set the form to review
+            print("🔍 formToReview is now set: \(formToReview != nil)")
+            print("📊 State check - parsedForm: \(parsedForm != nil), formToReview: \(formToReview != nil)")
         case .failure(let error):
             importError = error.localizedDescription
             // Handle error - maybe show an alert
@@ -440,7 +428,7 @@ struct DA2062ScanView: View {
     }
     
     private func handleReviewConfirmation(_ propertyRequests: [DA2062PropertyRequest]) {
-        showingReviewSheet = false
+        formToReview = nil  // Dismiss the sheet
         showingImportProgress = true
         
         // The import progress view will handle the actual import
