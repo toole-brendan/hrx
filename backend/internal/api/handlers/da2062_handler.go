@@ -497,6 +497,11 @@ func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA
 			SourceDocumentURL:    sourceDocumentURL,
 		}
 
+		// Ensure VerificationReasons is not nil – initialize as empty slice if no reasons were added
+		if len(importMetadata.VerificationReasons) == 0 {
+			importMetadata.VerificationReasons = []string{}
+		}
+
 		// Add verification reasons for missing or suspicious serial numbers
 		if serialNumber == "" {
 			importMetadata.VerificationReasons = append(importMetadata.VerificationReasons, "missing_serial_number")

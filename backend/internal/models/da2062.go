@@ -16,7 +16,7 @@ type ImportMetadata struct {
 	OriginalQuantity     int       `json:"original_quantity,omitempty"`
 	QuantityIndex        int       `json:"quantity_index,omitempty"`
 	RequiresVerification bool      `json:"requires_verification"`
-	VerificationReasons  []string  `json:"verification_reasons,omitempty"`
+	VerificationReasons  []string  `json:"verification_reasons"`
 	SourceDocumentURL    string    `json:"source_document_url,omitempty"` // URL to original scanned form
 }
 

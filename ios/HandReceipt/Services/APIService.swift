@@ -1590,8 +1590,8 @@ public class APIService: APIServiceProtocol {
                     debugPrint("   - Item \(index + 1): \(item.name)")
                     debugPrint("     NSN: \(item.nsn ?? "N/A"), Serial: \(item.serialNumber ?? "N/A")")
                     debugPrint("     Requires verification: \(item.importMetadata.requiresVerification)")
-                    if !item.importMetadata.verificationReasons.isEmpty {
-                        debugPrint("     Reasons: \(item.importMetadata.verificationReasons.joined(separator: ", "))")
+                    if let reasons = item.importMetadata.verificationReasons, !reasons.isEmpty {
+                        debugPrint("     Reasons: \(reasons.joined(separator: ", "))")
                     }
                 }
             }
@@ -1882,7 +1882,7 @@ public struct AzureImportMetadata: Codable {
     public let serialSource: String
     public let originalQuantity: Int
     public let requiresVerification: Bool
-    public let verificationReasons: [String]
+    public let verificationReasons: [String]?
     public let sourceDocumentUrl: String?
     
     // Add computed property for backward compatibility
@@ -1957,7 +1957,7 @@ public struct BatchImportMetadata: Codable {
     public init(from azureMetadata: AzureImportMetadata) {
         self.confidence = azureMetadata.confidence // Uses computed property
         self.requiresVerification = azureMetadata.requiresVerification
-        self.verificationReasons = azureMetadata.verificationReasons
+        self.verificationReasons = azureMetadata.verificationReasons ?? []
         self.sourceDocumentUrl = azureMetadata.sourceDocumentUrl
         self.originalQuantity = azureMetadata.originalQuantity
         self.quantityIndex = nil
