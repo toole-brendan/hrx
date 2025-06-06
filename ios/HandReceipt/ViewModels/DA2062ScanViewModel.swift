@@ -407,7 +407,7 @@ class DA2062ScanViewModel: ObservableObject {
                     itemCount: response.items?.count ?? 0,
                     confidence: response.formInfo.confidence,
                     formNumber: response.formInfo.formNumber,
-                    requiresVerification: response.nextSteps.verificationNeeded
+                    requiresVerification: response.nextSteps?.verificationNeeded ?? false
                 )
                 self.recentScans.insert(scan, at: 0)
                 

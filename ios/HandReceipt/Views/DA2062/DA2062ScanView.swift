@@ -88,6 +88,7 @@ struct DA2062ScanView: View {
                 OCRProcessingView(
                     sourceImage: scannerViewModel.lastProcessedImage ?? UIImage(),
                     useAzureOCR: useAzureOCR,
+                    scanViewModel: scannerViewModel,
                     onCompletion: handleOCRCompletion
                 )
             }
@@ -98,6 +99,19 @@ struct DA2062ScanView: View {
                         scannedPages: scannedPages,
                         onConfirm: handleReviewConfirmation
                     )
+                } else {
+                    // Debug view to show when parsedForm is nil
+                    VStack {
+                        Text("⚠️ No form data available")
+                            .font(.title)
+                            .padding()
+                        Text("parsedForm is nil")
+                            .foregroundColor(.red)
+                        Button("Close") {
+                            showingReviewSheet = false
+                        }
+                        .padding()
+                    }
                 }
             }
             .sheet(isPresented: $showingImportProgress) {
@@ -409,16 +423,19 @@ struct DA2062ScanView: View {
     }
     
     private func handleOCRCompletion(result: Result<DA2062Form, Error>) {
+        print("🔵 handleOCRCompletion called")
         showingProcessingView = false
         
         switch result {
         case .success(let form):
+            print("✅ Received form with \(form.items.count) items")
             parsedForm = form
             showingReviewSheet = true
+            print("📋 Review sheet should now be shown: \(showingReviewSheet)")
         case .failure(let error):
             importError = error.localizedDescription
             // Handle error - maybe show an alert
-            print("OCR processing failed: \(error)")
+            print("❌ OCR processing failed: \(error)")
         }
     }
     
@@ -530,9 +547,9 @@ struct PhotosPickerModifier: ViewModifier {
 struct OCRProcessingView: View {
     let sourceImage: UIImage
     let useAzureOCR: Bool
+    let scanViewModel: DA2062ScanViewModel
     let onCompletion: (Result<DA2062Form, Error>) -> Void
     
-    @StateObject private var scanViewModel = DA2062ScanViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var processingStarted = false
     @State private var showError = false
@@ -637,7 +654,12 @@ struct OCRProcessingView: View {
                     switch result {
                     case .success():
                         if let form = scanViewModel.currentForm {
-                            onCompletion(.success(form))
+                            print("✅ Azure OCR completed, form has \(form.items.count) items")
+                            dismiss()
+                            // Small delay to ensure dismiss completes before showing next sheet
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                onCompletion(.success(form))
+                            }
                         } else {
                             errorMessage = "No form data returned from OCR processing"
                             showError = true

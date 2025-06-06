@@ -1835,11 +1835,12 @@ public struct UpdatePositionRequest: Codable {
 // Fixed version - removed custom CodingKeys since decoder uses .convertFromSnakeCase
 
 public struct AzureOCRResponse: Codable {
-    public let success: Bool
+    public let success: Bool?
     public let formInfo: AzureFormInfo
     public let items: [AzureOCRItem]?  // Made optional to handle null from API
-    public let metadata: AzureOCRMetadata
-    public let nextSteps: AzureNextSteps
+    public let totalItems: Int?
+    public let metadata: AzureOCRMetadata?
+    public let nextSteps: AzureNextSteps?
 }
 
 public struct AzureFormInfo: Codable {
@@ -1859,18 +1860,6 @@ public struct AzureOCRItem: Codable {
     public let category: String?
     public let sourceRef: String?
     public let importMetadata: AzureImportMetadata
-    
-    enum CodingKeys: String, CodingKey {
-        case name
-        case description
-        case nsn
-        case serialNumber = "serial_number"
-        case quantity
-        case unit
-        case category
-        case sourceRef = "source_ref"
-        case importMetadata = "import_metadata"
-    }
 }
 
 public struct AzureImportMetadata: Codable {
@@ -1888,19 +1877,6 @@ public struct AzureImportMetadata: Codable {
     // Add computed property for backward compatibility
     public var confidence: Double {
         return max(scanConfidence, itemConfidence ?? scanConfidence)
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case source
-        case importDate = "import_date"
-        case formNumber = "form_number"
-        case scanConfidence = "scan_confidence"     // Updated to match backend
-        case itemConfidence = "item_confidence"     // Added to match backend
-        case serialSource = "serial_source"
-        case originalQuantity = "original_quantity"
-        case requiresVerification = "requires_verification"
-        case verificationReasons = "verification_reasons"
-        case sourceDocumentUrl = "source_document_url"
     }
 }
 
