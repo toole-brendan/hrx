@@ -311,6 +311,15 @@ public class APIService: APIServiceProtocol {
             debugPrint("Request headers: \(headers)")
         }
         
+        // Log request body for debugging (only for JSON requests)
+        if let body = modifiedRequest.httpBody,
+           let contentType = modifiedRequest.value(forHTTPHeaderField: "Content-Type"),
+           contentType.contains("application/json"),
+           let jsonString = String(data: body, encoding: .utf8) {
+            let truncated = jsonString.count > 300 ? String(jsonString.prefix(300)) + "..." : jsonString
+            debugPrint("Request body (truncated): \(truncated)")
+        }
+        
         // Log request body if present
         if let httpBody = modifiedRequest.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
             debugPrint("Request body: \(bodyString)")
@@ -388,22 +397,41 @@ public class APIService: APIServiceProtocol {
                 debugPrint("Successfully decoded response of type \(T.self)")
                 return decodedObject
             } catch {
-                debugPrint("ERROR: Decoding failed with error: \(error)")
-                debugPrint("Raw data being decoded: \(String(data: data, encoding: .utf8) ?? "Invalid UTF8")")
+                debugPrint("❌ ERROR: Decoding failed for type \(T.self)")
+                debugPrint("Error: \(error)")
+                
+                // Show a truncated version of the raw data for debugging
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    let truncated = jsonString.count > 500 ? String(jsonString.prefix(500)) + "..." : jsonString
+                    debugPrint("Raw data (truncated): \(truncated)")
+                }
                 
                 // More detailed decoding error information
                 if let decodingError = error as? DecodingError {
                     switch decodingError {
                     case .typeMismatch(let type, let context):
-                        debugPrint("Type mismatch: Expected \(type) but got something else. Path: \(context.codingPath.map { $0.stringValue })")
+                        let path = context.codingPath.map { $0.stringValue }.joined(separator: " → ")
+                        debugPrint("🔄 Type mismatch: Expected \(type) at path: \(path)")
+                        debugPrint("   Debug: \(context.debugDescription)")
                     case .valueNotFound(let type, let context):
-                        debugPrint("Value not found: Expected \(type) but found nil. Path: \(context.codingPath.map { $0.stringValue })")
+                        let path = context.codingPath.map { $0.stringValue }.joined(separator: " → ")
+                        debugPrint("❓ Value not found: Expected \(type) at path: \(path)")
+                        debugPrint("   Debug: \(context.debugDescription)")
                     case .keyNotFound(let key, let context):
-                        debugPrint("Key '\(key.stringValue)' not found. Path: \(context.codingPath.map { $0.stringValue })")
+                        let path = context.codingPath.map { $0.stringValue }.joined(separator: " → ")
+                        debugPrint("🔑 Key '\(key.stringValue)' not found at path: \(path)")
+                        debugPrint("   Debug: \(context.debugDescription)")
+                        
+                        // Special handling for common issues
+                        if key.stringValue == "form_number" && path.contains("importMetadata") {
+                            debugPrint("   💡 Hint: Check if backend is using snake_case vs camelCase for this field")
+                        }
                     case .dataCorrupted(let context):
-                        debugPrint("Data corrupted: \(context.debugDescription). Path: \(context.codingPath.map { $0.stringValue })")
+                        let path = context.codingPath.map { $0.stringValue }.joined(separator: " → ")
+                        debugPrint("💥 Data corrupted at path: \(path)")
+                        debugPrint("   Debug: \(context.debugDescription)")
                     @unknown default:
-                        debugPrint("Unknown decoding error type: \(decodingError)")
+                        debugPrint("❌ Unknown decoding error type: \(decodingError)")
                     }
                 }
                 
@@ -1550,9 +1578,29 @@ public class APIService: APIServiceProtocol {
         
         request.httpBody = body
         
-        let response = try await performRequest(request: request) as AzureOCRResponse
-        debugPrint("DA2062 Azure OCR processing completed with \(response.items?.count ?? 0) items")
-        return response
+        do {
+            let response = try await performRequest(request: request) as AzureOCRResponse
+            debugPrint("✅ DA2062 Azure OCR processing completed successfully")
+            debugPrint("   - Form number: \(response.formInfo.formNumber ?? "N/A")")
+            debugPrint("   - Confidence: \(response.formInfo.confidence)")
+            debugPrint("   - Items found: \(response.items?.count ?? 0)")
+            
+            if let items = response.items {
+                for (index, item) in items.enumerated() {
+                    debugPrint("   - Item \(index + 1): \(item.name)")
+                    debugPrint("     NSN: \(item.nsn ?? "N/A"), Serial: \(item.serialNumber ?? "N/A")")
+                    debugPrint("     Requires verification: \(item.importMetadata.requiresVerification)")
+                    if !item.importMetadata.verificationReasons.isEmpty {
+                        debugPrint("     Reasons: \(item.importMetadata.verificationReasons.joined(separator: ", "))")
+                    }
+                }
+            }
+            
+            return response
+        } catch {
+            debugPrint("❌ Failed to decode Azure OCR response: \(error)")
+            throw error
+        }
     }
     
     public func importDA2062Items(items: [DA2062BatchItem], source: String, sourceReference: String?) async throws -> BatchImportResponse {
@@ -1811,6 +1859,18 @@ public struct AzureOCRItem: Codable {
     public let category: String?
     public let sourceRef: String?
     public let importMetadata: AzureImportMetadata
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case description
+        case nsn
+        case serialNumber = "serial_number"
+        case quantity
+        case unit
+        case category
+        case sourceRef = "source_ref"
+        case importMetadata = "import_metadata"
+    }
 }
 
 public struct AzureImportMetadata: Codable {
