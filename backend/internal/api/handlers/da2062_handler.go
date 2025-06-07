@@ -1110,11 +1110,47 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 		da2062.GET("/:reference/items", h.GetDA2062Items)
 		da2062.GET("/unverified", h.GetUnverifiedItems)
 		da2062.PUT("/verify/:id", h.VerifyImportedItem)
-
+		da2062.GET("/table-check", h.CheckDocumentTable)
 	}
 
 	inventory := router.Group("/inventory")
 	{
 		inventory.POST("/batch", h.BatchCreateInventory)
 	}
+}
+
+// CheckDocumentTable checks if the documents table exists
+func (h *DA2062Handler) CheckDocumentTable(c *gin.Context) {
+	// Try to get document count - if table doesn't exist, it will error
+	docs, err := h.Repo.GetDocumentsForUser(1, nil, nil)
+
+	if err != nil {
+		// Check if error contains table not found message
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "documents") && (strings.Contains(errMsg, "does not exist") || strings.Contains(errMsg, "doesn't exist")) {
+			c.JSON(http.StatusOK, gin.H{
+				"documents_table_exists": false,
+				"error":                  "Table does not exist",
+				"details":                errMsg,
+				"timestamp":              time.Now().Format(time.RFC3339),
+			})
+			return
+		}
+
+		// Some other error occurred
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":     "Failed to check table",
+			"details":   errMsg,
+			"timestamp": time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// If we got here, table exists
+	c.JSON(http.StatusOK, gin.H{
+		"documents_table_exists": true,
+		"document_count":         len(docs),
+		"timestamp":              time.Now().Format(time.RFC3339),
+		"message":                "Table exists and is accessible",
+	})
 }
