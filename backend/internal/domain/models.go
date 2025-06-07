@@ -1,8 +1,51 @@
 package domain
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
 	"time"
 )
+
+// JSONStringArray is a custom type for handling []string in JSONB columns
+type JSONStringArray []string
+
+// Value implements the driver.Valuer interface for GORM
+func (jsa JSONStringArray) Value() (driver.Value, error) {
+	if jsa == nil {
+		return "[]", nil
+	}
+	data, err := json.Marshal([]string(jsa))
+	if err != nil {
+		return nil, err
+	}
+	return string(data), nil
+}
+
+// Scan implements the sql.Scanner interface for GORM
+func (jsa *JSONStringArray) Scan(value interface{}) error {
+	if value == nil {
+		*jsa = JSONStringArray{}
+		return nil
+	}
+
+	var data []byte
+	switch v := value.(type) {
+	case []byte:
+		data = v
+	case string:
+		data = []byte(v)
+	default:
+		return fmt.Errorf("cannot scan %T into JSONStringArray", value)
+	}
+
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+	*jsa = JSONStringArray(arr)
+	return nil
+}
 
 // User represents a user in the system with military-specific fields
 type User struct {
@@ -402,21 +445,21 @@ type CorrectionEvent struct {
 
 // Document represents a document (like maintenance forms) sent between users
 type Document struct {
-	ID              uint       `json:"id" gorm:"primaryKey"`
-	Type            string     `json:"type" gorm:"not null"`          // 'maintenance_form', 'transfer_form', etc.
-	Subtype         *string    `json:"subtype" gorm:"column:subtype"` // 'DA2404', 'DA5988E', etc.
-	Title           string     `json:"title" gorm:"not null"`
-	SenderUserID    uint       `json:"senderUserId" gorm:"column:sender_user_id;not null"`
-	RecipientUserID uint       `json:"recipientUserId" gorm:"column:recipient_user_id;not null"`
-	PropertyID      *uint      `json:"propertyId" gorm:"column:property_id"`
-	FormData        string     `json:"formData" gorm:"column:form_data;type:jsonb;not null"` // Complete form data
-	Description     *string    `json:"description"`
-	Attachments     []string   `json:"attachments" gorm:"type:jsonb"` // Array of photo URLs
-	Status          string     `json:"status" gorm:"default:'unread';not null"`
-	SentAt          time.Time  `json:"sentAt" gorm:"column:sent_at;not null;default:CURRENT_TIMESTAMP"`
-	ReadAt          *time.Time `json:"readAt" gorm:"column:read_at"`
-	CreatedAt       time.Time  `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt       time.Time  `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+	ID              uint            `json:"id" gorm:"primaryKey"`
+	Type            string          `json:"type" gorm:"not null"`          // 'maintenance_form', 'transfer_form', etc.
+	Subtype         *string         `json:"subtype" gorm:"column:subtype"` // 'DA2404', 'DA5988E', etc.
+	Title           string          `json:"title" gorm:"not null"`
+	SenderUserID    uint            `json:"senderUserId" gorm:"column:sender_user_id;not null"`
+	RecipientUserID uint            `json:"recipientUserId" gorm:"column:recipient_user_id;not null"`
+	PropertyID      *uint           `json:"propertyId" gorm:"column:property_id"`
+	FormData        string          `json:"formData" gorm:"column:form_data;type:jsonb;not null"` // Complete form data
+	Description     *string         `json:"description"`
+	Attachments     JSONStringArray `json:"attachments" gorm:"type:jsonb"` // Array of photo URLs
+	Status          string          `json:"status" gorm:"default:'unread';not null"`
+	SentAt          time.Time       `json:"sentAt" gorm:"column:sent_at;not null;default:CURRENT_TIMESTAMP"`
+	ReadAt          *time.Time      `json:"readAt" gorm:"column:read_at"`
+	CreatedAt       time.Time       `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt       time.Time       `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
 
 	// Relationships
 	Sender    *User     `json:"sender,omitempty" gorm:"foreignKey:SenderUserID"`
@@ -452,24 +495,24 @@ const (
 
 // CreateDocumentInput represents input for creating a document
 type CreateDocumentInput struct {
-	Type            string    `json:"type" binding:"required"`
-	Subtype         *string   `json:"subtype"`
-	Title           string    `json:"title" binding:"required"`
-	RecipientUserID uint      `json:"recipientUserId" binding:"required"`
-	PropertyID      *uint     `json:"propertyId"`
-	FormData        string    `json:"formData" binding:"required"`
-	Description     *string   `json:"description"`
-	Attachments     *[]string `json:"attachments"`
+	Type            string           `json:"type" binding:"required"`
+	Subtype         *string          `json:"subtype"`
+	Title           string           `json:"title" binding:"required"`
+	RecipientUserID uint             `json:"recipientUserId" binding:"required"`
+	PropertyID      *uint            `json:"propertyId"`
+	FormData        string           `json:"formData" binding:"required"`
+	Description     *string          `json:"description"`
+	Attachments     *JSONStringArray `json:"attachments"`
 }
 
 // CreateMaintenanceFormInput represents input for creating a maintenance form
 type CreateMaintenanceFormInput struct {
-	PropertyID       uint     `json:"propertyId" binding:"required"`
-	RecipientUserID  uint     `json:"recipientUserId" binding:"required"`
-	FormType         string   `json:"formType" binding:"required"` // DA2404, DA5988E
-	Description      string   `json:"description" binding:"required"`
-	FaultDescription *string  `json:"faultDescription"`
-	Attachments      []string `json:"attachments"` // Photo URLs
+	PropertyID       uint            `json:"propertyId" binding:"required"`
+	RecipientUserID  uint            `json:"recipientUserId" binding:"required"`
+	FormType         string          `json:"formType" binding:"required"` // DA2404, DA5988E
+	Description      string          `json:"description" binding:"required"`
+	FaultDescription *string         `json:"faultDescription"`
+	Attachments      JSONStringArray `json:"attachments"` // Photo URLs
 }
 
 // GeneralLedgerEvent represents a consolidated event from any ledger table,

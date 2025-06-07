@@ -854,13 +854,13 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			PropertyID:      nil,  // no single property association for multiple items
 			FormData:        "{}", // could include metadata if needed
 			Description:     nil,
-			Attachments:     []string{}, // Initialize as empty slice instead of nil
+			Attachments:     domain.JSONStringArray{}, // Initialize as empty JSONStringArray
 			Status:          domain.DocumentStatusUnread,
 			SentAt:          time.Now(),
 		}
 		// Attach PDF URL if available
 		if fileURL != "" {
-			doc.Attachments = []string{fileURL}
+			doc.Attachments = domain.JSONStringArray{fileURL}
 		}
 		if err := h.Repo.CreateDocument(doc); err != nil {
 			log.Printf("ERROR: Failed to create document record: %v", err)

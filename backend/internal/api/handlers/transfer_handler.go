@@ -1023,11 +1023,12 @@ func (h *TransferHandler) createInAppDocumentRecord(ctx context.Context, transfe
 		Status:          domain.DocumentStatusUnread,
 		SentAt:          time.Now(),
 		FormData:        "{}",
+		Attachments:     domain.JSONStringArray{}, // Initialize as empty JSONStringArray
 	}
 
 	// Add attachment URL if available
 	if fileURL != "" {
-		doc.Attachments = []string{fileURL}
+		doc.Attachments = domain.JSONStringArray{fileURL}
 	}
 
 	if err := h.Repo.CreateDocument(doc); err != nil {
