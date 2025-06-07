@@ -655,6 +655,16 @@ func (h *DA2062Handler) GetDA2062Items(c *gin.Context) {
 
 // GenerateDA2062PDF generates a PDF from selected properties
 func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
+	// Version check for debugging deployment issues
+	if c.Query("version_check") == "true" {
+		c.JSON(http.StatusOK, gin.H{
+			"version":                "2024-06-07-v2-with-document-table",
+			"has_document_migration": true,
+			"attachments_type":       "array",
+		})
+		return
+	}
+
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
