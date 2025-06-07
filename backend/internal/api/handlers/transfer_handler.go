@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -1028,9 +1027,7 @@ func (h *TransferHandler) createInAppDocumentRecord(ctx context.Context, transfe
 
 	// Add attachment URL if available
 	if fileURL != "" {
-		attachments := []string{fileURL}
-		attachJSON, _ := json.Marshal(attachments)
-		doc.Attachments = stringPtr(string(attachJSON))
+		doc.Attachments = []string{fileURL}
 	}
 
 	if err := h.Repo.CreateDocument(doc); err != nil {

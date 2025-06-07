@@ -80,17 +80,6 @@ func (h *DocumentHandler) CreateMaintenanceForm(c *gin.Context) {
 		return
 	}
 
-	var attachmentsJSON *string
-	if len(req.Attachments) > 0 {
-		attachmentsBytes, err := json.Marshal(req.Attachments)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process attachments"})
-			return
-		}
-		attachmentsStr := string(attachmentsBytes)
-		attachmentsJSON = &attachmentsStr
-	}
-
 	// Create document
 	document := &domain.Document{
 		Type:            domain.DocumentTypeMaintenanceForm,
@@ -101,7 +90,7 @@ func (h *DocumentHandler) CreateMaintenanceForm(c *gin.Context) {
 		PropertyID:      &req.PropertyID,
 		FormData:        string(formDataJSON),
 		Description:     &req.Description,
-		Attachments:     attachmentsJSON,
+		Attachments:     req.Attachments,
 		Status:          domain.DocumentStatusUnread,
 		SentAt:          time.Now(),
 	}
@@ -262,11 +251,8 @@ func (h *DocumentHandler) EmailDocument(c *gin.Context) {
 
 	// Extract PDF URL from attachments
 	var pdfURL string
-	if document.Attachments != nil {
-		var attachments []string
-		if err := json.Unmarshal([]byte(*document.Attachments), &attachments); err == nil && len(attachments) > 0 {
-			pdfURL = attachments[0]
-		}
+	if len(document.Attachments) > 0 {
+		pdfURL = document.Attachments[0]
 	}
 
 	if pdfURL == "" {

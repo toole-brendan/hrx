@@ -1,164 +1,127 @@
-Thanks. I’ll investigate both the iOS and backend code in the `hrx` repo to determine why the Azure OCR decoding fails. I’ll verify whether the Swift decoder expects `import_metadata` to always be present and if the backend's Azure OCR JSON response structure ever omits it. I’ll identify mismatches between the expected schema and actual response, and suggest how to fix the decoding failure or make the API/decoder more resilient.
+Thanks for the clarification. I’ll investigate what might be causing the 'Export Error' when trying to generate and share a DA 2062 export as a PDF using your app, which appears to involve custom logic. I’ll look into possible format issues, encoding problems, or rendering faults that would consistently cause this export to fail.
+
+I’ll get back to you with insights and recommendations shortly.
 
 
-# Diagnosing Azure OCR Response Decoding Failure (iOS vs. Backend Schema Mismatch)
+# Diagnostic Report: DA 2062 PDF Export Error on iOS
 
-## iOS Decoding Model Expectations
+## Issue Overview
 
-On the iOS side, the app defines a data model for the Azure OCR import response using Swift `Codable` structures. In this model, each OCR item includes an `importMetadata` field **as a non-optional property**, meaning the JSON must always contain this key for decoding to succeed. For example, the `AzureOCRItem` struct in Swift is defined as:
+When attempting to export a DA Form 2062 as a PDF on an iOS app (iPhone 16 Pro, iOS 18.4), the app consistently displays an **“Export Error”** with the message: **“The data couldn’t be read because it isn’t in the correct format.”** This occurs regardless of which property items are selected or which recipient is chosen. The error suggests a data formatting or parsing issue during the export process, likely related to how the app generates or handles the PDF data. Below we investigate potential causes in the JSON data handling, PDF generation logic, data format inconsistencies, and signature/attachment serialization. We then provide recommendations to resolve the error.
 
-```swift
-public struct AzureOCRItem: Codable {
-    public let name: String  
-    public let description: String  
-    public let nsn: String?  
-    public let serialNumber: String?  
-    public let quantity: Int  
-    public let unit: String?  
-    public let category: String?  
-    public let sourceRef: String?  
-    public let importMetadata: AzureImportMetadata  // non-optional
-    enum CodingKeys: String, CodingKey {
-        case name, description, nsn  
-        case serialNumber = "serial_number"  
-        case quantity, unit, category  
-        case sourceRef = "source_ref"  
-        case importMetadata = "import_metadata"  
-    }
-}
-```
+## JSON Encoding/Decoding Issues
 
-In this model, `importMetadata` is a required nested object (of type `AzureImportMetadata`), not an optional. The Swift decoder will **fail** if `import_metadata` is missing from any item in the JSON payload. Similarly, many fields inside `AzureImportMetadata` are defined as non-optional to match expected response keys. For instance, `verificationReasons` is defined as a non-optional array of strings (`[String]`), not a `Optional` type:
+One probable cause is a **mismatch in JSON format between the server and client**, leading to JSON parsing failures on the iOS side. The error message (“data couldn’t be read… incorrect format”) is typical of a `JSONDecoder` failure in Swift. Key points to consider:
 
-```swift
-public struct AzureImportMetadata: Codable {
-    public let source: String  
-    public let importDate: Date?        // optional (date parsing)  
-    public let formNumber: String       // non-optional  
-    public let scanConfidence: Double   // non-optional  
-    public let itemConfidence: Double?  // optional  
-    public let serialSource: String     // non-optional  
-    public let originalQuantity: Int    // non-optional  
-    public let requiresVerification: Bool         // non-optional  
-    public let verificationReasons: [String]      // non-optional array  
-    public let sourceDocumentUrl: String?         // optional  
-    enum CodingKeys: String, CodingKey { … }
-}
-```
+* **Response JSON vs. Client Model Mismatch:** The server returns a JSON response containing a `document` object (with metadata about the generated hand receipt). However, if the structure or types in this JSON don’t exactly match the Swift `Document` model, decoding will fail. For example, the backend’s `Document` includes fields like `propertyId`, `attachments`, etc.. If the Swift model marks these differently (wrong type or not optional when the JSON can be `null`), decoding triggers an error. A known issue is the **Attachments field**: the backend serializes `attachments` as a JSON string containing an array (i.e. a string of the form `"[\"url1\", \"url2\"]"`), whereas the iOS client likely expects an array type.
 
-Because properties like `formNumber`, `originalQuantity`, `requiresVerification`, and `verificationReasons` are non-optional here, the decoder expects the JSON to always include these keys (even if their values are empty or false). Any missing required key will trigger a decoding error.
+* **Double-encoded Attachments:** In the server code, when a PDF is generated for in-app delivery, a presigned URL for the PDF file is put into an array and then marshaled to JSON, but stored as a string in the `attachments` field. As a result, the JSON response might include something like `"attachments": "[\"https://...signed_url...\"]"` (a string) instead of an actual JSON array. If the Swift `Document` model defines `attachments` as an array of strings (`[String]`) or similar, the `JSONDecoder` will be unable to decode the string into an array, raising a format error. This is a strong candidate for the error: the data is technically valid JSON, but **not in the format the decoder expects**, hence “isn’t in the correct format.” The decoding code on iOS illustrates that it expects to parse the `"document"` key into a `Document` struct, which would fail if any field is improperly formatted.
 
-Notably, the iOS JSON decoder is configured with a `.convertFromSnakeCase` strategy. This means keys like `import_metadata` or `verification_reasons` in JSON are automatically mapped to `importMetadata` and `verificationReasons` in the Swift structs without needing explicit coding keys for those top-level objects. In summary, **the iOS app assumes that every item’s JSON will include an `import_metadata` object and all its expected sub-fields (or at least default values for them)**.
+* **Optional vs Non-Optional Fields:** The server may omit or set `null` for fields like `propertyId` or `description` (for example, when multiple items are exported, `propertyId` is `null` in JSON). If the Swift model isn’t using optionals for these fields, the decoder will throw a type mismatch error (e.g. expecting an `Int` but found `nil`). This would also yield the generic format error. Ensuring the Swift model uses optional types for any field that can be null (e.g. `propertyId`, `description`, `readAt`) is crucial.
 
-## Backend Azure OCR Response Structure
+* **Date Format Misalignment:** The backend likely returns timestamps (such as `sentAt`, `createdAt`) as ISO8601 strings by default (e.g. `"2025-06-06T17:45:51Z"`). If the `Document` model in Swift uses a `Date` type for these, `JSONDecoder` needs a matching date decoding strategy (e.g. `.iso8601`). If not set, the decoder will not know how to parse the date string, leading to a decoding failure. In the absence of a custom strategy, a date string in JSON is “not the correct format” for a Swift `Date` property. This could be another factor if the model wasn’t configured for date decoding.
 
-On the backend, the Azure OCR upload endpoint (`POST /api/da2062/upload`) processes an uploaded form image and returns a JSON payload containing the parsed items and metadata. The server constructs this response in the `DA2062Handler.respondWithParsedForm` function. Critically, for each parsed OCR item, the backend creates an `ImportMetadata` struct and attaches it to the item before appending to the result list:
+* **Request JSON Structure:** On the encoding side (when the app sends the export request), any improper JSON structure could also cause server-side errors. The request payload includes lists of property IDs, user info, etc., which the app encodes with `JSONEncoder`. If, for instance, a property ID or user ID isn’t encoded as the expected type, the server might respond with a parsing error. However, in this case the server is indeed processing the request and returning a response (HTTP 201), so the request JSON is likely okay. The issue occurs when reading the response on iOS. Still, it’s worth ensuring the request uses the correct keys and types (the Swift `GeneratePDFRequest` uses coding keys that match the server (`property_ids`, `from_user`, etc.), which seems correct).
 
-```go
-// Pseudocode from respondWithParsedForm
-for each ocrItem in parsedForm.Items {
-    importMetadata := models.ImportMetadata{ ... }
-    // populate importMetadata fields (source, formNumber, confidence, etc.)
-    item := models.DA2062ImportItem{
-        Name:           ocrItem.ItemDescription,
-        Description:    ocrItem.ItemDescription,
-        SerialNumber:   serialNumber,     // trimmed OCR serial or ""
-        NSN:            ocrItem.NSN,      // or "" if none
-        Quantity:       ocrItem.Quantity, // default 1 if not found
-        SourceRef:      parsedForm.FormNumber,
-        ImportMetadata: &importMetadata,  // attach metadata pointer
-    }
-    items = append(items, item)
-}
-```
+**Why this matters:** Swift’s decoding is strict about types. A single mis-typed field (e.g. a string where an object or array was expected) will cause a `.dataCorrupted` or `.typeMismatch` error internally. The user sees only the generic “data couldn’t be read” message unless the app catches and handles the error. In our case, the code simply throws the error, which surfaces this generic message to the UI. Thus, addressing JSON format mismatches is critical.
 
-In the Go `DA2062ImportItem` definition, the `ImportMetadata` field is a pointer marked with `omitempty` in JSON tags. This means if the pointer is `nil` the `import_metadata` key would be omitted in the output. **However, as shown above, the code always sets this pointer to a real `ImportMetadata` struct for every item** (unless an item is skipped entirely for being invalid). Thus, under normal conditions, **every item in the `items` array will include an `import_metadata` object in the JSON**. The backend does not intentionally leave out the `import_metadata` key for any returned item – it is always present as long as the item itself is included.
+## PDF Generation Logic Issues
 
-That said, within the `ImportMetadata` object, some fields have `omitempty` tags and might be omitted if they are zero-valued. The `ImportMetadata` struct is defined (in `backend/internal/models/da2062.go`) as follows:
+Although the error text suggests a format/parsing issue (rather than a typical PDF rendering issue), we should also examine the **custom PDF generation logic** for potential problems. The DA 2062 PDF is generated by custom code (server-side Go using a PDF library) and then delivered to the app. Potential areas of concern include:
 
-```go
-type ImportMetadata struct {
-    Source               string    `json:"source"`  
-    ImportDate           time.Time `json:"import_date"`  
-    FormNumber           string    `json:"form_number,omitempty"`  
-    UnitName             string    `json:"unit_name,omitempty"`  
-    ScanConfidence       float64   `json:"scan_confidence"`  
-    ItemConfidence       float64   `json:"item_confidence"`  
-    SerialSource         string    `json:"serial_source"`  
-    OriginalQuantity     int       `json:"original_quantity,omitempty"`  
-    QuantityIndex        int       `json:"quantity_index,omitempty"`  
-    RequiresVerification bool      `json:"requires_verification"`  
-    VerificationReasons  []string  `json:"verification_reasons,omitempty"`  
-    SourceDocumentURL    string    `json:"source_document_url,omitempty"`  
-}
-```
+* **Validity of Generated PDF:** The backend uses a library (e.g. `gofpdf`) to construct the PDF. If the PDF content were somehow corrupted or not properly formed, an attempt to handle that PDF data on iOS could fail. For example, if the app tried to initialize an iOS PDF viewer or `PDFDocument` with invalid data, it might result in an “incorrect format” error. However, in this workflow the app is not directly parsing the PDF bytes (the error arises before any viewer is shown). The PDF generation step on the server appears to succeed (the server returns status 201 Created, not an error), so the PDF file itself is likely well-formed.
 
-Notice the `omitempty` tags on certain fields – for example, `form_number`, `unit_name`, `original_quantity`, `quantity_index`, and `verification_reasons`. If these fields are empty/zero, they will **not appear in the JSON**. The backend code populates many of these fields based on OCR results:
+* **Content-Type and Response Handling:** The export endpoint has dual behaviors – it can return JSON (for in-app delivery) or raw PDF data (for direct download) depending on parameters. If the app were misidentifying the response type, it could, for instance, treat a PDF binary response as JSON. That would definitely trigger a “data isn’t in correct format” error (since parsing PDF bytes as JSON would fail). In our case, when exporting to a connected recipient (in-app hand receipt), the server correctly returns JSON (status 201). For a direct “Download PDF” scenario, the server would return `Content-Type: application/pdf` with status 200 and raw PDF bytes. It’s important that the client code differentiate these cases. The current iOS implementation checks the HTTP status code: it expects 201 for the in-app JSON response, and presumably would handle a 200 differently. If that logic were flawed (e.g. expecting JSON when a PDF stream comes back), the format error would occur. Ensuring that the app’s network layer uses the appropriate handling (e.g. if status == 200 and content-type is PDF, handle as file data, otherwise decode JSON) is vital.
 
-* `Source` is set to `"azure_ocr"` (always present).
-* `FormNumber` is set to the parsed or generated form identifier (always non-empty, since the code generates a default if none is found).
-* `ScanConfidence` comes from the OCR item’s confidence (always set, default \~0.8 if not calculated).
-* `SerialSource` is derived (e.g., `"ocr_explicit"`, `"ocr_inferred"`, or `"none"`) based on whether a serial number was detected.
-* `OriginalQuantity` is set to the quantity found (defaults to 1 if not detected) and thus usually non-zero.
-* `RequiresVerification` is a boolean (always present in JSON, even if `false`) indicating if the item needs manual review.
-* **`VerificationReasons`** is a list of strings explaining why verification is needed. The code appends to this slice for certain conditions (e.g., missing NSN or description). If no verification issues are detected, this slice remains empty/nil.
+* **Custom Rendering on iOS:** If there is any client-side PDF rendering (for example, if the app tries to generate or modify the PDF after receiving data), that could introduce errors. From the design, PDF generation is done on the backend, but if offline or for preview the app might use iOS PDFKit or `UIGraphicsPDFRenderer`. If any such custom rendering logic is present, it should be checked for correctness. Common pitfalls include misusing PDF context APIs or corrupting the PDF data stream. In this scenario, however, since the error occurs during the export request/response, it’s more likely tied to data format rather than drawing commands.
 
-Crucially, if `VerificationReasons` ends up empty, the `verification_reasons` key will be omitted from the JSON due to `omitempty`. Likewise, other optional fields like `unit_name` (not used in OCR import) or `quantity_index` (unused here) might not appear at all.
+**Summary:** The PDF generation process itself does not appear to throw an error (no “Failed to generate PDF” message from the server). The “Export Error” arises when handling the output. Thus, while the PDF library (gofpdf) should be kept up-to-date and its output validated, the focus should be on how the PDF’s metadata and data are transmitted to the app, rather than the drawing of the PDF content.
 
-## Schema Mismatch and Decoding Failure
+## Data Format Inconsistencies in Property/User Data
 
-The decoding failure on iOS is happening because the **actual JSON from the backend doesn’t perfectly match the Swift `Codable` expectations**. In particular, the **iOS decoder is likely encountering a missing key for a non-optional property**, causing a `.keyNotFound` decoding error.
+Inconsistencies or edge cases in the data content could also lead to format errors if not handled properly. We should verify that **all property and user fields are formatted in ways both the backend and iOS expect**. Relevant considerations include:
 
-From the analysis above, the most probable culprit is the `verification_reasons` field inside `import_metadata`. The Swift model requires `verificationReasons: [String]` for every item, but the backend **omits** `verification_reasons` when there are no reasons to report. In a successful OCR of a clean form, many items might not require verification, yielding an empty reasons list. The backend would then send JSON like:
+* **Unexpected Characters or Encoding:** Property names, unit names, or other text fields might contain characters (e.g. ampersands, quotes, non-ASCII characters) that need proper encoding. JSON encoding (via `JSONEncoder/Decoder` and Go’s `encoding/json`) will escape special characters as needed, so this usually isn’t a direct cause of a parsing error (the JSON remains valid). However, if any field contains a character that isn’t properly escaped, it could break the JSON format. This is unlikely with standard libraries, but worth ensuring (for instance, verify that all text fields are strings in JSON and that no binary data sneaks in unencoded).
 
-```json
-{
-  "name": "ITEM NAME",
-  "description": "ITEM NAME",
-  "nsn": "1234-56-789-0123",
-  "serial_number": "ABC123",
-  "quantity": 1,
-  "unit": "", 
-  "category": "",
-  "source_ref": "DA2062-...",
-  "import_metadata": {
-    "source": "azure_ocr",
-    "import_date": "0001-01-01T00:00:00Z",       // default time if not set
-    "form_number": "DA2062-...",
-    "scan_confidence": 0.85,
-    "item_confidence": 0.0,
-    "serial_source": "ocr_explicit",
-    "original_quantity": 1,
-    "requires_verification": false,
-    // "verification_reasons": [...]  <--- **omitted because empty** 
-    "source_document_url": "/storage/da2062-scans/..."
-  }
-}
-```
+* **Numeric vs String Mismatch:** All IDs (userID, propertyID, etc.) should be numeric in JSON. If somehow a number is sent as a string (or vice versa), decoding will fail. For example, `senderUserId` is an unsigned int on the backend and should appear as a number in JSON. If the Swift model expected a `String` for these IDs, or if the JSON accidentally quoted the number, that’s a mismatch. Similarly, enumerated fields like `type` and `status` are strings (e.g. `"transfer_form"`, `"unread"`). The Swift side might use an enum or constants for these. We should ensure the raw values match exactly. A typo or case difference (e.g. expecting `DocumentTypeTransferForm = "TRANSFER_FORM"` vs receiving `"transfer_form"`) would cause decoding to fail or produce `nil` which may not be handled.
 
-When the iOS app tries to decode this item, it will not find a `verification_reasons` key under `import_metadata`. Since `AzureImportMetadata.verificationReasons` is not optional in Swift, the decoding process will throw an error (the app’s debug logs confirm it “Failed to decode Azure OCR response”). In essence, the **schema mismatch is that the backend treats some fields as optional/omittable, while the iOS client expects them to always be present**.
+* **Date/Time Formats:** As mentioned, the `sentAt`, `createdAt`, `updatedAt` fields are likely ISO8601 timestamps in the JSON. The Swift decoder by default doesn’t auto-parse ISO strings into `Date` unless configured. If the `Document` model has these as `String`, then it’s fine (they’ll just be stored as-is). But if they are `Date`, the app must specify `JSONDecoder.dateDecodingStrategy = .iso8601` (or a custom formatter) before decoding. An inconsistency here (e.g. treating a date string as a Date without proper decoding rules) will throw a decoding error. Given iOS 18.4 context, it’s possible newer Swift versions might have improved handling, but explicit strategy is still required for ISO strings.
 
-Other fields could potentially cause similar issues if omitted or if types don’t align:
+* **Missing or Additional Fields:** The backend’s JSON for `document` may include nested objects or omit certain fields based on `omitempty`. For instance, the `sender` and `recipient` sub-objects (with user details) are marked as `omitempty`. If the server included them (e.g. preloaded user data), the JSON would have a nested `sender` object. If the Swift `Document` model doesn’t have a corresponding nested struct or `sender` property, the decoder will ignore it (which is fine). Extra fields in JSON that have no matching Swift property are ignored by default – they *do not* cause an error. However, missing required fields do cause an error. If the Swift model treats something as non-optional that the server omitted, that’s effectively a missing field scenario. We should audit the Swift `Document` model to ensure all its non-optional properties always appear in the JSON. For example, if `attachments` was non-optional `[String]` in Swift, but the server sometimes omits `attachments` (when there are none, it might be `null` or not present), that’s a problem. The safe route is to make such fields optional.
 
-* **`verification_reasons`** – as discussed, missing key causes failure.
-* **`form_number`** – iOS expects a `String`. The backend includes this key if parsed or even generates a default form ID, so it’s usually present. (If it were omitted, that would also break decoding, but in this case the backend always provides a form number.)
-* **`original_quantity`** – iOS expects an `Int`. The backend sets this to the item’s quantity (default 1 if not found), so it should be non-zero and included for virtually all items. No issue here unless a quantity somehow came through as 0 and got omitted (the parsing code avoids 0 by defaulting to 1).
-* **`import_date`** – iOS expects a `Date?`. The backend’s `ImportDate` field is not marked optional, so even if not set it shows up as a timestamp (likely `"0001-01-01T00:00:00Z"`). The iOS custom date decoder can handle standard ISO8601 timestamps, so this probably parses to a Date (year 0001) rather than causing a crash.
-* **`unit` and `category`** – iOS marks these as `String?`. The backend sends them as empty strings if not populated (they are not omitted in JSON). An empty string will decode into a non-nil optional (which is fine). No type mismatch here.
-* **`items` array** – The entire `items` list is optional in `AzureOCRResponse` (noted “Made optional to handle null from API”). In a normal successful response, `items` will be an array (possibly empty). The only time it might be `null` is if the backend explicitly returned `items: null` or omitted it. The code shows that if no items are found, the Go slice could be `nil`, which JSON encodes as `null`. The iOS optional handles that gracefully. So this is by design and not the source of the failure (the failure occurred even though Azure OCR did return items, indicating a deeper key issue within items).
+* **Consistent Use of JSON Keys:** The coding keys should match exactly between client and server. The server uses camelCase JSON keys (e.g. `"recipientUserId"`, `"signature_url"` inside user info). Swift’s `Codable` will, by default, expect property names that match exactly (including case) unless coding keys are provided or a key decoding strategy (like convertFromSnakeCase) is set. We see that the Swift request model uses custom CodingKeys to match snake\_case for the request body, but for the response `Document`, hopefully keys match (likely camelCase in the Swift model as well). A mismatch like using `signatureUrl` vs `signatureURL` in Swift without a CodingKey could cause the decoder to not find the key and throw a `.keyNotFound` error. All these need to be reviewed.
 
-In summary, **the decoding failure stems from a **missing key** in the JSON for a field that the Swift model treats as non-optional**. The prime suspect is `verification_reasons` within `import_metadata` (and possibly any similar field with `omitempty`). Essentially, the backend’s flexibility (omitting empty fields) is at odds with the iOS client’s strict expectations.
+In summary, any inconsistency between what the backend sends and what the client expects can result in a parsing error. Given that the error happens consistently for all inputs, it points to a systemic format mismatch (like the attachments or a field type) rather than a one-off bad data value.
 
-## Resolving the Issue
+## Signature Image & Attachment Serialization
 
-To fix this compatibility issue, we have two approaches: adjust the iOS decoding model to be more lenient, or adjust the backend response to always include expected keys.
+Handling of **signature images and attachments** is another area to investigate, as it involves encoding binary or external data references, which can easily lead to format issues if done incorrectly:
 
-**1. Update the iOS Decoding Logic:**
-Modify the Swift models so that fields which might not always appear are marked as optional or given default values. For example, changing the definition of `verificationReasons` to `public let verificationReasons: [String]?` (an optional array) would allow the decoder to treat a missing `verification_reasons` key as simply `nil` (or you could provide a default empty array in a custom initializer). Similarly, if there were any other fields prone to omission, mark them optional. In this case, `importMetadata` itself could remain non-optional (since the backend always sends it), but within `AzureImportMetadata` the `verificationReasons` should be optional or have a default. This change ensures that the decoder doesn’t throw an error when the key is absent – instead, e.g. `item.importMetadata.verificationReasons` would simply be `nil` or an empty list when no reasons were provided. The app can handle that as “no verification issues” without failing.
+* **Signature URL Handling:** The app includes a signature URL for the current user (and potentially would handle the recipient’s signature) when generating the PDF. On iOS, this `signatureUrl` is likely a file URL or a data URL saved in user defaults for the user’s signature image. The client sends this URL string in the JSON request (`from_user.signature_url`). The server then attempts to use it when generating the PDF: the Go PDF generator code tries to download the image from the provided `SignatureURL`. If the URL is a local file path (e.g. `file:///var/mobile/Containers/.../signature.png`), the server obviously cannot reach it. The PDF generator logs a failure to download in that case but does **not** abort the PDF creation – it just skips that signature image (so the PDF is generated without that signature). This scenario wouldn’t cause a JSON error, but it means the signature isn’t appearing on the PDF. The fix would be to ensure the signature is uploaded to a server-accessible location. For instance, the user’s signature should be stored in the backend (and `SignatureURL` should point to a cloud storage URL or API endpoint). In the meantime, if `signatureUrl` is invalid, it might be better for the app not to send it (let the server fall back to any stored signature on file, as the code does). While this won’t fix the export error, it’s an important consistency to address to meet user expectations for signatures.
 
-**2. Update the Backend Response:**
-Alter the server-side JSON formatting so that required keys are never omitted. The goal is to make the JSON schema strictly match what the iOS client expects. Concretely, the backend could ensure `verification_reasons` is always present by sending an empty array when there are no reasons. This could be done by removing the `omitempty` tag on `VerificationReasons` in the `ImportMetadata` struct (so an empty slice serializes as `[]` instead of disappearing). Another option is to initialize `VerificationReasons` to an empty slice (`[]string{}`) instead of leaving it `nil` when no reasons are added – however, even an empty slice with `omitempty` will be omitted (since length 0 is considered empty), so removing `omitempty` is the more reliable fix. Similarly, if there were any chance that `form_number` or `original_quantity` could be empty/zero in some edge case, we’d ensure those keys still appear (perhaps by not using `omitempty`, or by setting a default non-empty value as is already done for form number). Ensuring the backend always returns **`"verification_reasons": []`** (at minimum) in every item’s `import_metadata` will satisfy the Swift decoder’s requirement for that key, even if it’s just an empty list.
+* **Attachment Field Serialization:** As discussed, the `attachments` field in the `Document` record is meant to hold an array of file URLs (in this context, the PDF file URL for the generated form). Internally, the server stores this in a JSONB column and in Go it’s represented as a `*string` containing JSON. The server code takes the array of URLs and marshals it into a JSON string before saving/returning. This double-encoding is likely problematic for the client. Ideally, the attachments should be an actual JSON array in the API response, not a string. In other words, the API response should look like `"attachments": ["https://..."]` rather than `"attachments": "[\"https://...\"]"`. The incorrect format currently requires the client to decode a string then parse JSON inside it, which `Codable` won’t do automatically. If the Swift model expected `attachments: [String]`, it will error on encountering a string. If it expected `String`, it would get the whole JSON text as one string (no error) – but then the app would have to manually decode that string to get the array, which is clunky. Most likely, the intention was to use an array.
 
-In this scenario, the quickest remedy is likely on the **iOS side** – marking the problematic field optional – because it requires only a client update and handles any current or future omissions gracefully. The client already made the entire `items` array optional to handle `null` cases, so making sub-fields optional is consistent with that defensive approach. On the other hand, fixing the **backend** to always include the field can be seen as making the API more explicit and self-consistent (clients won’t have to guess defaults for missing keys). In the long run, you might implement both: have the backend include `verification_reasons: []` when no reasons exist **and** treat it as optional on iOS for robustness.
+* **Impact of Attachments on Export Flow:** In the in-app export flow (to a recipient), the PDF file is uploaded to cloud storage and its URL is placed in the `attachments`. The server then creates a `Document` record and returns it to the sender with a success message. The receiver can later retrieve this record and use the URL to download the PDF. The sender’s app doesn’t necessarily need to use the URL. Therefore, one workaround could be to **ignore the attachments field on the sender side**. If the Swift `Document` model did not even include an `attachments` property, the decoder would ignore that JSON key and succeed (since extra keys are allowed). The fact that we see a failure implies the app is trying to decode it. It may be beneficial for the client to simply exclude or ignore attachments in this response, since the sender might not need to use the URL. The focus for the sender is likely just the confirmation message. However, if the app will display the sent hand-receipt in a “Sent documents” list, it will need to parse attachments properly.
 
-**Recommended action:** Update the iOS model for `AzureImportMetadata` to make `verificationReasons` an optional property (or provide a default empty array during decoding). This change will immediately resolve the crash on decoding. In parallel, consider adjusting the server to always return an empty array for `verification_reasons` so that future clients (or other platforms) don’t encounter the same issue. By aligning the backend JSON schema with the Swift model – or vice versa – we ensure that the Azure OCR import feature works reliably without runtime decoding errors.
+* **Serialization of Other Attachments (if any):** While DA 2062 export likely only deals with the PDF file itself as an attachment, any similar serialization (like if multiple images or files were attached to forms) should be done consistently. The same principle applies: the API should return arrays/objects, not JSON-in-strings, and the client should be ready to decode them. If any part of the system encodes complex data as JSON strings (sometimes done to easily store in a text column), it’s better to decode that on the server side and send a proper JSON structure to the app.
+
+In short, **the attachment serialization is a prime suspect for the format error.** Fixing it will likely resolve the decoding issue. Additionally, proper handling of signature images (ensuring the server has a valid image URL or the app doesn’t send an unusable one) will improve the overall PDF output, though it’s not the direct cause of the crash.
+
+## Recommendations and Fixes
+
+To address the consistent export error and ensure PDF exports work smoothly, we recommend the following actions:
+
+**1. Align JSON Models Between Server and Client:** Audit the Swift `Document` struct against the server’s `Document` JSON structure. For each field:
+
+* Ensure the data type matches (e.g. `attachments` should be an array of `String` if the server sends an array, or make it `String` if the server continues to send a JSON string – the former is preferable).
+* Mark fields optional in Swift if they can be null/missing in JSON (e.g. `propertyId`, `description`, `readAt`, `attachments` should likely be optional).
+* Add CodingKeys or adjust property names in Swift to exactly match JSON keys (e.g. if Swift uses `senderUserID` vs JSON `senderUserId`, fix via `enum CodingKeys` or renaming).
+* Remove or ignore fields that the app doesn’t use. If the attachments field is not immediately needed on the sending side, you could omit it from the Swift model to avoid parsing it (unknown keys will be ignored by `JSONDecoder`). This can be a temporary measure until the API is fixed to send the proper type.
+
+**2. Fix Attachment Serialization on the Backend:** It’s best to correct the API to return a true JSON array for `attachments`. Since the backend already marshals the array to a JSON string, a fix could be:
+
+* Change the `Document.Attachments` field in Go to a concrete slice type (e.g. `[]string` with proper JSON tags) so that encoding it produces a JSON array. GORM can still store it in JSONB, and `encoding/json` will output an array structure. This would eliminate the double encoding.
+* Alternatively, post-process the `doc` before responding: unmarshal the `Attachments` string into an array and put that into the response. For example, build the response like `c.JSON(201, gin.H{"document": doc, "document":{"attachments": attachmentsArr, ...}})`. However, this is a bit hacky – adjusting the model is cleaner.
+* Ensure consistency for all similar cases (if any other API fields are stored as JSON strings).
+
+Once the server returns `"attachments": [...]` (array), update the Swift model `attachments: [String]?` accordingly. The decoding should then work without error.
+
+**3. Enhance JSON Decoding Robustness on iOS:** Even with perfect alignment, decoding can fail if something unexpected comes along. It’s good practice to handle errors gracefully:
+
+* Use `do-catch` when calling `JSONDecoder.decode`. If a `DecodingError` is caught, log or inspect the error (`error.localizedDescription` and the associated context) to pinpoint which field caused it. For instance, a DecodingError might say **“Expected to decode Array<…> but found a string/data instead”**, confirming the attachments issue. This information can be used in debugging and to show a more user-friendly message.
+* Provide the user a friendly alert if parsing fails (e.g. “Failed to parse export data. Please try again later.”) rather than the generic system message.
+* Consider using `JSONDecoder.keyDecodingStrategy` or `dateDecodingStrategy` if needed. For example, if you prefer snake\_case in Swift property names, you can use `.convertFromSnakeCase` to automatically map JSON keys. In this project, it’s probably easier to explicitly match the keys via CodingKeys as has been done in some places.
+* Set `decoder.dateDecodingStrategy = .iso8601` when decoding date fields, if you have `Date` properties. This will allow decoding ISO8601 timestamp strings into `Date` objects. Make sure the format matches (Go’s default `time.Time` JSON is RFC3339, which is compatible with ISO8601 format used by Foundation’s parser).
+
+**4. Verify PDF Response Handling:** Double-check the logic for handling the export response:
+
+* In the **“Send PDF to connection”** flow, the app expects JSON (status 201). We’ve addressed making sure this JSON can be decoded.
+* In the **“Download PDF”** flow (if the app implements it), ensure the app does not attempt JSON decoding. Instead, when a 200 OK with content-type `application/pdf` is returned, handle it by saving the data or presenting a preview. The code could check `if response.mimeType == "application/pdf"` or use the absence of a `"document"` key to determine that raw PDF was returned. Currently, the code seems to throw a generic error on any status != 201 – you may need a separate path for status 200. For example, you could create a different API call function for “downloadPDF” that expects `Data` instead of decoding JSON. This separation can prevent format confusion.
+* Test the “Download PDF” scenario (if available) to ensure no similar error occurs. The user should be able to receive the PDF file. You might allow them to share it or open it with an iOS PDF viewer. Using **QuickLook (QLPreviewController)** or **PDFKit’s PDFView** are good options to display the PDF on device once you have the `Data`.
+
+**5. Address the Signature Image Workflow:** To avoid missing signatures:
+
+* If the user’s signature is stored only locally, consider providing an upload mechanism so the backend has it (e.g. upload the signature image to the server when the user creates or updates their profile). The `SignatureURL` in the database can then point to a cloud URL (as seen in the backend User model). In our case, the backend does try to fall back to `fromUser.SignatureURL` from the DB if the request’s `signatureUrl` is empty. So ensuring the server has a copy of the signature will allow it to embed it in the PDF. Until then, if the app has a local signature but it isn’t uploaded, it may be better not to send a `file://` URL (the server can’t use it). Instead, send `nil` and let the server use whatever is on file (or leave it blank).
+* For the recipient’s signature, the code sets `toUser.signatureUrl = nil` by default. If you plan to include recipient signatures, you’d need a similar approach (i.e. store and retrieve via server). This doesn’t directly affect the export error, but it’s part of the feature completeness.
+
+**6. Testing and Validation:** After making the above changes, thoroughly test the export on a variety of cases:
+
+* Different numbers of selected properties (including single and multiple items).
+* Various recipients, including sending to oneself if that’s allowed (toUserId = 0 path, which triggers the PDF download response).
+* Ensure that in all cases the iOS app no longer crashes or shows the format error. Instead, it should either show a success confirmation or handle the PDF file appropriately (e.g. open a preview or confirm email sent).
+* Check the actual PDF content: verify unit info, selected items, and signatures appear as expected on the PDF document. This ensures that the data passed (unit names, user titles, etc.) are all handled without format issues on the PDF as well.
+
+**7. Swift & iOS SDK Guidance:** Finally, leverage iOS frameworks for any future enhancements:
+
+* If at some point local PDF generation is needed (say, for offline mode), you can use **UIGraphicsPDFRenderer** or **PDFKit** to create PDF files on device. Apple’s SDK handles a lot of formatting details, but you must still ensure data is in the correct format (e.g. images as `UIImage`, text as `String`).
+* To present or share the PDF received from the server, consider using a **UIDocumentInteractionController** or **QLPreviewController**. This way you don’t need to manually parse PDF data – you let the system display it. Just be sure the data you feed it is exactly the PDF bytes from the server (no transformations needed if the server already created a PDF).
+* Continue to use `Codable` for JSON as it simplifies parsing, but remain cautious about schema changes. If the backend changes, update the client model correspondingly. For instance, if more fields are added to the document JSON, you can ignore them if unneeded, or map them if they are relevant to the app (thanks to `Codable`’s flexibility, unknown fields are safely ignored).
+
+By implementing these fixes and best practices, the **“incorrect format”** error should be resolved. The iOS app will successfully parse the export response and proceed with sending or saving the PDF. In turn, users will be able to generate DA 2062 hand receipt PDFs without encountering the export error, and all data (including attachments and signatures) will be handled in a robust, compatible way.
+
+## Sources
+
+* Excerpt from backend handler showing PDF URL attachment being JSON-encoded as a string. This highlights the double-encoding of the attachments field, which can cause JSON decoding issues on iOS.
+* Definition of the Document model on the backend, indicating types (note `attachments` as `*string` and timestamps as `time.Time`). The JSON output of these fields must match the iOS expectations (e.g., array vs string, string vs Date).
+* iOS export view model code where the response is decoded into a `Document` using `JSONDecoder`. This is the point of failure if the JSON isn’t in the expected format (e.g., an attachments string where an array is expected).
+* PDF generation logic reference showing how signature URLs are used. This underscores the need for valid, accessible URLs for signatures (to include them in the PDF) but also shows that generation continues even if downloads fail, focusing our troubleshooting on JSON handling rather than PDF creation.

@@ -411,7 +411,7 @@ type Document struct {
 	PropertyID      *uint      `json:"propertyId" gorm:"column:property_id"`
 	FormData        string     `json:"formData" gorm:"column:form_data;type:jsonb;not null"` // Complete form data
 	Description     *string    `json:"description"`
-	Attachments     *string    `json:"attachments" gorm:"type:jsonb"` // Array of photo URLs
+	Attachments     []string   `json:"attachments" gorm:"type:jsonb"` // Array of photo URLs
 	Status          string     `json:"status" gorm:"default:'unread';not null"`
 	SentAt          time.Time  `json:"sentAt" gorm:"column:sent_at;not null;default:CURRENT_TIMESTAMP"`
 	ReadAt          *time.Time `json:"readAt" gorm:"column:read_at"`

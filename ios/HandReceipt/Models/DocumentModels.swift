@@ -15,14 +15,14 @@ public struct Document: Codable, Identifiable {
     public let propertyId: Int?
     public let formData: String
     public let description: String?
-    public let attachments: String?
+    public let attachments: [String]?
     public let status: DocumentStatus
     public let sentAt: Date
     public let readAt: Date?
     public let createdAt: Date
     public let updatedAt: Date
     
-    public init(id: Int, type: String, subtype: String?, title: String, senderUserId: Int, recipientUserId: Int, propertyId: Int?, formData: String, description: String?, attachments: String?, status: DocumentStatus, sentAt: Date, readAt: Date?, createdAt: Date, updatedAt: Date) {
+    public init(id: Int, type: String, subtype: String?, title: String, senderUserId: Int, recipientUserId: Int, propertyId: Int?, formData: String, description: String?, attachments: [String]?, status: DocumentStatus, sentAt: Date, readAt: Date?, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.type = type
         self.subtype = subtype
@@ -284,12 +284,7 @@ extension Document {
     }
     
     public var attachmentsArray: [String] {
-        guard let attachments = attachments,
-              let data = attachments.data(using: .utf8),
-              let array = try? JSONSerialization.jsonObject(with: data) as? [String] else {
-            return []
-        }
-        return array
+        return attachments ?? []
     }
     
     public var isUnread: Bool {

@@ -850,10 +850,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		}
 		// Attach PDF URL if available
 		if fileURL != "" {
-			attachmentsArr := []string{fileURL}
-			attachJSON, _ := json.Marshal(attachmentsArr)
-			attachStr := string(attachJSON)
-			doc.Attachments = &attachStr
+			doc.Attachments = []string{fileURL}
 		}
 		if err := h.Repo.CreateDocument(doc); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record"})
