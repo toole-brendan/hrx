@@ -853,7 +853,10 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			doc.Attachments = []string{fileURL}
 		}
 		if err := h.Repo.CreateDocument(doc); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record"})
+			log.Printf("ERROR: Failed to create document record: %v", err)
+			log.Printf("Document details: Type=%s, Title=%s, SenderID=%d, RecipientID=%d, Attachments=%v",
+				doc.Type, doc.Title, doc.SenderUserID, doc.RecipientUserID, doc.Attachments)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record", "details": err.Error()})
 			return
 		}
 
@@ -1097,6 +1100,7 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 		da2062.GET("/:reference/items", h.GetDA2062Items)
 		da2062.GET("/unverified", h.GetUnverifiedItems)
 		da2062.PUT("/verify/:id", h.VerifyImportedItem)
+
 	}
 
 	inventory := router.Group("/inventory")
