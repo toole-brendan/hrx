@@ -94,9 +94,21 @@ func Connect() (*gorm.DB, error) {
 func Migrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&domain.User{},
+		&domain.UserConnection{},
 		&domain.Property{},
+		&domain.PropertyComponent{},
+		&domain.PropertyType{},
+		&domain.PropertyModel{},
 		&domain.Transfer{},
+		&domain.TransferOffer{},
+		&domain.TransferOfferRecipient{},
 		&domain.Activity{},
+		&domain.Attachment{},
+		&domain.TransferItem{},
+		&domain.OfflineSyncQueue{},
+		&domain.ImmuDBReference{},
+		&domain.Document{},
+		&domain.CorrectionEvent{},
 	)
 }
 

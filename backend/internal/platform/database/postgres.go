@@ -63,6 +63,7 @@ func ConnectDB() (*gorm.DB, error) {
 		&domain.TransferItem{},     // Added
 		&domain.OfflineSyncQueue{}, // Added
 		&domain.ImmuDBReference{},  // Added
+		&domain.Document{},         // Added - for maintenance forms and DA2062 documents
 	)
 	if err != nil {
 		log.Printf("Auto-migration failed: %v\n", err)
