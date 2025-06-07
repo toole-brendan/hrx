@@ -844,7 +844,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			PropertyID:      nil,  // no single property association for multiple items
 			FormData:        "{}", // could include metadata if needed
 			Description:     nil,
-			Attachments:     nil,
+			Attachments:     []string{}, // Initialize as empty slice instead of nil
 			Status:          domain.DocumentStatusUnread,
 			SentAt:          time.Now(),
 		}
