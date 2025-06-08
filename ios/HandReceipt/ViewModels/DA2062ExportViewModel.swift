@@ -411,18 +411,116 @@ extension APIService {
         }
         
         guard httpResponse.statusCode == 201 else {
+            // Log the response for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("DEBUG: Non-201 response (\(httpResponse.statusCode)): \(responseString)")
+            }
+            
             if let errorData = try? JSONDecoder().decode(DA2062ErrorResponse.self, from: data) {
                 throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorData.error)
             }
+            
+            // Try to parse as generic error response
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+               let errorMessage = jsonObject["error"] as? String {
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorMessage)
+            }
+            
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to send hand receipt")
         }
         
-        // Decode the returned document
-        let result = try JSONDecoder().decode([String: Document].self, from: data)
-        guard let document = result["document"] else {
-            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Invalid server response")
+        // Debug: Print raw response for troubleshooting
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("DEBUG: DA2062 in-app send response: \(responseString)")
         }
-        return document
+        
+        // Configure decoder to handle ISO8601 dates from backend
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        
+        // Use custom date decoding to handle various ISO8601 formats
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
+        
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            // Try multiple date formats
+            let dateFormatters = [
+                "yyyy-MM-dd'T'HH:mm:ss'Z'",           // ISO 8601 UTC
+                "yyyy-MM-dd'T'HH:mm:ssZ",             // ISO 8601 with Z
+                "yyyy-MM-dd'T'HH:mm:ss.SSSZ",         // ISO 8601 with milliseconds
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",       // ISO 8601 with milliseconds and Z
+                "yyyy-MM-dd'T'HH:mm:ss",              // ISO 8601 without timezone
+            ]
+            
+            for format in dateFormatters {
+                let formatter = DateFormatter()
+                formatter.dateFormat = format
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(abbreviation: "UTC")
+                
+                if let date = formatter.date(from: dateString) {
+                    return date
+                }
+            }
+            
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
+        }
+        
+        do {
+            // First try to decode as the expected format
+            let result = try decoder.decode([String: Document].self, from: data)
+            guard let document = result["document"] else {
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Invalid server response - missing document")
+            }
+            return document
+        } catch {
+            print("DEBUG: Failed to decode Document response: \(error)")
+            
+            // Try to decode just to see the structure
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                print("DEBUG: Response structure: \(jsonObject.keys)")
+                if let documentData = jsonObject["document"] as? [String: Any] {
+                    print("DEBUG: Document keys: \(documentData.keys)")
+                    // Check specific fields that might be problematic
+                    if let attachments = documentData["attachments"] {
+                        print("DEBUG: Attachments type: \(type(of: attachments)), value: \(attachments)")
+                    }
+                    if let sentAt = documentData["sentAt"] {
+                        print("DEBUG: sentAt type: \(type(of: sentAt)), value: \(sentAt)")
+                    }
+                }
+            }
+            
+            // If decoding fails, try to provide more specific error information
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .typeMismatch(let type, let context):
+                    print("DEBUG: Type mismatch - expected \(type)")
+                    print("DEBUG: Context path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                    print("DEBUG: Debug description: \(context.debugDescription)")
+                case .valueNotFound(let type, let context):
+                    print("DEBUG: Value not found - type: \(type)")
+                    print("DEBUG: Context path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .keyNotFound(let key, let context):
+                    print("DEBUG: Key not found - key: \(key.stringValue)")
+                    print("DEBUG: Context path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .dataCorrupted(let context):
+                    print("DEBUG: Data corrupted")
+                    print("DEBUG: Context path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                    print("DEBUG: Debug description: \(context.debugDescription)")
+                @unknown default:
+                    print("DEBUG: Unknown decoding error")
+                }
+            }
+            
+            // Return a more user-friendly error message
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Unable to process server response. Please try again.")
+        }
     }
     
     func getUserProperties() async throws -> [Property] {

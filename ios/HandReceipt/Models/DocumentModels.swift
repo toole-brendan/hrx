@@ -57,6 +57,44 @@ public struct Document: Codable, Identifiable {
         case createdAt
         case updatedAt
     }
+    
+    // Custom decoding to handle potential backend format issues
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(Int.self, forKey: .id)
+        type = try container.decode(String.self, forKey: .type)
+        subtype = try container.decodeIfPresent(String.self, forKey: .subtype)
+        title = try container.decode(String.self, forKey: .title)
+        senderUserId = try container.decode(Int.self, forKey: .senderUserId)
+        recipientUserId = try container.decode(Int.self, forKey: .recipientUserId)
+        propertyId = try container.decodeIfPresent(Int.self, forKey: .propertyId)
+        formData = try container.decode(String.self, forKey: .formData)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        
+        // Handle attachments - could be array, string, or null
+        if let attachmentsArray = try? container.decodeIfPresent([String].self, forKey: .attachments) {
+            attachments = attachmentsArray
+        } else if let attachmentsString = try? container.decodeIfPresent(String.self, forKey: .attachments) {
+            // If it's a JSON string, try to parse it
+            if let data = attachmentsString.data(using: .utf8),
+               let parsed = try? JSONDecoder().decode([String].self, from: data) {
+                attachments = parsed
+            } else if attachmentsString.isEmpty || attachmentsString == "[]" {
+                attachments = []
+            } else {
+                attachments = nil
+            }
+        } else {
+            attachments = nil
+        }
+        
+        status = try container.decode(DocumentStatus.self, forKey: .status)
+        sentAt = try container.decode(Date.self, forKey: .sentAt)
+        readAt = try container.decodeIfPresent(Date.self, forKey: .readAt)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
 }
 
 public enum DocumentStatus: String, Codable, CaseIterable {

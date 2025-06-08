@@ -536,21 +536,42 @@ struct DA2062ExportView: View {
                 // If a recipient is selected, send in-app instead of generating for share
                 if let connection = selectedConnection,
                    let recipientUser = connection.connectedUser {
+                    AppLogger.debug("Sending hand receipt to user ID: \(recipientUser.id)")
                     try await viewModel.sendHandReceipt(to: recipientUser.id)
                     isGenerating = false
                     // Show success alert
                     let rank = recipientUser.rank ?? ""
-                    errorMessage = "Hand Receipt sent to \(rank) \(recipientUser.name)"
+                    let name = recipientUser.name
+                    errorMessage = "Hand Receipt sent to \(rank) \(name)"
                     showError = true
                 } else {
                     // No recipient selected - generate PDF for sharing
+                    AppLogger.debug("Generating PDF for share sheet")
                     generatedPDF = try await viewModel.generatePDF()
                     isGenerating = false
                     showingShareSheet = true
                 }
             } catch {
                 isGenerating = false
-                errorMessage = error.localizedDescription
+                AppLogger.error("Export failed: \(error)")
+                
+                // Provide more user-friendly error messages
+                if let apiError = error as? APIService.APIError {
+                    switch apiError {
+                    case .serverError(_, let message):
+                        errorMessage = message
+                    case .badRequest(let message):
+                        errorMessage = message
+                    case .unauthorized:
+                        errorMessage = "Authentication required. Please log in again."
+                    case .notFound:
+                        errorMessage = "The requested resource was not found."
+                    default:
+                        errorMessage = "An error occurred. Please try again."
+                    }
+                } else {
+                    errorMessage = "Unable to complete export. Please check your connection and try again."
+                }
                 showError = true
             }
         }
@@ -587,17 +608,37 @@ struct DA2062ExportView: View {
               let recipientUser = connection.connectedUser else { return }
         isGenerating = true
         do {
+            AppLogger.debug("Sending hand receipt in-app to user ID: \(recipientUser.id)")
             try await viewModel.sendHandReceipt(to: recipientUser.id)
             isGenerating = false
             // Show success alert
             let rank = recipientUser.rank ?? ""
-            errorMessage = "Hand Receipt sent to \(rank) \(recipientUser.name)"
+            let name = recipientUser.name
+            errorMessage = "Hand Receipt sent to \(rank) \(name)"
             showError = true
             // Dismiss the picker and export view after success
             showingRecipientPicker = false
         } catch {
             isGenerating = false
-            errorMessage = error.localizedDescription
+            AppLogger.error("In-app send failed: \(error)")
+            
+            // Provide more user-friendly error messages
+            if let apiError = error as? APIService.APIError {
+                switch apiError {
+                case .serverError(_, let message):
+                    errorMessage = message
+                case .badRequest(let message):
+                    errorMessage = message
+                case .unauthorized:
+                    errorMessage = "Authentication required. Please log in again."
+                case .notFound:
+                    errorMessage = "The requested resource was not found."
+                default:
+                    errorMessage = "An error occurred. Please try again."
+                }
+            } else {
+                errorMessage = "Unable to send hand receipt. Please check your connection and try again."
+            }
             showError = true
         }
     }
