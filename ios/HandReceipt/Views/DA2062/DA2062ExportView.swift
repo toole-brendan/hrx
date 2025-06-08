@@ -1,11 +1,26 @@
 import SwiftUI
 import MessageUI
+import UIKit
+
+// Disable emoji keyboard to prevent RTIInputSystemClient errors
+extension UITextField {
+    open override var textInputMode: UITextInputMode? {
+        // Disable emoji keyboard to prevent RTIInputSystemClient errors
+        for mode in UITextInputMode.activeInputModes {
+            if mode.primaryLanguage == "emoji" {
+                return nil
+            }
+        }
+        return super.textInputMode
+    }
+}
 
 struct DA2062ExportView: View {
     @StateObject private var viewModel = DA2062ExportViewModel()
     @State private var showingMailComposer = false
     @State private var showingShareSheet = false
     @State private var showingRecipientInput = false
+    @State private var showingEmailSheet = false
     @State private var emailRecipients = ""
     @State private var generatedPDF: Data?
     @State private var isGenerating = false
@@ -69,6 +84,8 @@ struct DA2062ExportView: View {
                 MinimalLoadingOverlay(message: "Generating DA 2062...")
             }
         }
+        .keyboardAdaptive() // Add keyboard handling
+        .ignoresSafeArea(.keyboard, edges: .bottom) // Add proper keyboard handling
         .navigationBarHidden(true)
         .sheet(isPresented: $showingMailComposer) {
             if let pdfData = generatedPDF {
@@ -95,10 +112,24 @@ struct DA2062ExportView: View {
         }
         .sheet(isPresented: $showingSignatureCapture) {
             SignatureCaptureView { image in 
-                print("DEBUG: SignatureCaptureView onSave callback called")
+                AppLogger.debug("SignatureCaptureView onSave callback called")
                 // Callback on save: persist image and upload
                 saveSignatureImage(image)
             }
+        }
+        .sheet(isPresented: $showingEmailSheet) {
+            EmailRecipientsSheet(
+                emailRecipients: $emailRecipients,
+                onSend: {
+                    showingEmailSheet = false
+                    Task {
+                        await generateAndEmail()
+                    }
+                },
+                onCancel: {
+                    showingEmailSheet = false
+                }
+            )
         }
         .sheet(isPresented: $showingRecipientPicker) {
             NavigationView {
@@ -363,17 +394,17 @@ struct DA2062ExportView: View {
         VStack(spacing: 12) {
             Button(action: generateAndShare) {
                 HStack {
-                    Image(systemName: "square.and.arrow.up")
+                    Image(systemName: selectedConnection != nil ? "paperplane.fill" : "square.and.arrow.up")
                         .font(.system(size: 16, weight: .regular))
-                    Text("Generate & Share")
+                    Text(selectedConnection != nil ? "Send Hand Receipt" : "Generate & Share")
                         .font(AppFonts.bodyMedium)
                 }
             }
             .buttonStyle(.minimalPrimary)
-            .disabled(viewModel.selectedPropertyIDs.isEmpty || selectedConnection == nil || signatureImage == nil)
+            .disabled(viewModel.selectedPropertyIDs.isEmpty || signatureImage == nil)
             
             Button(action: {
-                showingRecipientInput = true
+                showingEmailSheet = true
             }) {
                 HStack {
                     Image(systemName: "envelope")
@@ -384,19 +415,6 @@ struct DA2062ExportView: View {
             }
             .buttonStyle(.minimalSecondary)
             .disabled(viewModel.selectedPropertyIDs.isEmpty || !MFMailComposeViewController.canSendMail() || selectedConnection == nil || signatureImage == nil)
-            .alert("Email Recipients", isPresented: $showingRecipientInput) {
-                TextField("Enter email addresses", text: $emailRecipients)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                Button("Send") {
-                    Task {
-                        await generateAndEmail()
-                    }
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("Enter recipient email addresses separated by commas")
-            }
             
             Button(action: { 
                 Task {
@@ -422,96 +440,47 @@ struct DA2062ExportView: View {
     
     private func loadSavedSignature() {
         guard let userId = AuthManager.shared.getUserId() else {
-            print("DEBUG: Failed to get user ID when loading signature")
+            AppLogger.debug("Failed to get user ID when loading signature")
             return
         }
         
-        print("DEBUG: Loading signature for user ID: \(userId)")
+        AppLogger.debug("Loading signature for user ID: \(userId)")
         
         let fileName = "signature_\(userId).png"
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fileURL = documentsPath.appendingPathComponent(fileName)
         
-        print("DEBUG: Documents directory: \(documentsPath.path)")
-        print("DEBUG: Looking for signature at: \(fileURL.path)")
-        
-        // List all files in documents directory for debugging
-        do {
-            let files = try FileManager.default.contentsOfDirectory(atPath: documentsPath.path)
-            print("DEBUG: Files in documents directory: \(files)")
-        } catch {
-            print("DEBUG: Could not list documents directory: \(error)")
-        }
-        
-        // Check UserDefaults flag
-        let hasSavedFlag = UserDefaults.standard.bool(forKey: "signature_saved_\(userId)")
-        print("DEBUG: UserDefaults signature_saved flag: \(hasSavedFlag)")
-        
         if FileManager.default.fileExists(atPath: fileURL.path) {
-            print("DEBUG: Signature file exists")
-            
-            // Get file attributes
-            do {
-                let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
-                let fileSize = attributes[.size] as? Int ?? 0
-                let modificationDate = attributes[.modificationDate] as? Date
-                print("DEBUG: File size: \(fileSize) bytes")
-                print("DEBUG: File modification date: \(modificationDate?.description ?? "unknown")")
-            } catch {
-                print("DEBUG: Could not get file attributes: \(error)")
-            }
-            
-            if let imageData = try? Data(contentsOf: fileURL) {
-                print("DEBUG: Successfully loaded signature data, size: \(imageData.count) bytes")
-                if let image = UIImage(data: imageData) {
-                    print("DEBUG: Successfully created UIImage from data, size: \(image.size)")
-                    signatureImage = image
-                    print("DEBUG: Signature loaded and UI state updated")
-                } else {
-                    print("DEBUG: Failed to create UIImage from signature data")
-                }
+            if let imageData = try? Data(contentsOf: fileURL),
+               let image = UIImage(data: imageData) {
+                signatureImage = image
+                AppLogger.info("Signature loaded successfully")
             } else {
-                print("DEBUG: Failed to read signature data from file")
+                AppLogger.warning("Failed to load signature image data")
             }
         } else {
-            print("DEBUG: Signature file does not exist")
-            // Clear the UserDefaults flag if file doesn't exist
-            if hasSavedFlag {
-                print("DEBUG: Clearing UserDefaults flag since file doesn't exist")
-                UserDefaults.standard.set(false, forKey: "signature_saved_\(userId)")
-            }
+            AppLogger.debug("No saved signature found")
         }
     }
     
     private func saveSignatureImage(_ image: UIImage) {
-        print("DEBUG: saveSignatureImage called with image size: \(image.size)")
-        print("DEBUG: Image scale: \(image.scale)")
-        print("DEBUG: Image description: \(image)")
+        AppLogger.debug("saveSignatureImage called with image size: \(image.size)")
         
         guard let pngData = image.pngData() else {
-            print("DEBUG: Failed to convert image to PNG data")
+            AppLogger.error("Failed to convert image to PNG data")
             return
         }
         
         guard let userId = AuthManager.shared.getUserId() else {
-            print("DEBUG: Failed to get user ID from AuthManager")
+            AppLogger.error("Failed to get user ID from AuthManager")
             return
         }
         
-        print("DEBUG: Saving signature for user ID: \(userId)")
-        print("DEBUG: PNG data size: \(pngData.count) bytes")
+        AppLogger.debug("Saving signature for user ID: \(userId)")
         
         let fileName = "signature_\(userId).png"
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fileURL = documentsPath.appendingPathComponent(fileName)
-        
-        print("DEBUG: Documents directory: \(documentsPath.path)")
-        print("DEBUG: Saving signature to: \(fileURL.path)")
-        
-        // Check if directory exists and is writable
-        let documentsDir = documentsPath.path
-        let isWritable = FileManager.default.isWritableFile(atPath: documentsDir)
-        print("DEBUG: Documents directory writable: \(isWritable)")
         
         do {
             // Ensure the directory exists
@@ -520,41 +489,31 @@ struct DA2062ExportView: View {
             // Write the file
             try pngData.write(to: fileURL, options: .atomic)
             
-            // Verify the file was written
-            let fileExists = FileManager.default.fileExists(atPath: fileURL.path)
-            print("DEBUG: File exists after write: \(fileExists)")
-            
-            if fileExists {
-                let fileSize = try FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int ?? 0
-                print("DEBUG: Written file size: \(fileSize) bytes")
-            }
-            
             UserDefaults.standard.set(true, forKey: "signature_saved_\(userId)")  // flag indicating a saved signature
             signatureImage = UIImage(data: pngData)  // update state to show preview
-            print("DEBUG: Signature saved successfully to local storage and UI state updated")
+            AppLogger.info("Signature saved successfully to local storage")
             
             // Upload to backend (async)
             Task.detached {
                 do {
                     let response = try await APIService.shared.uploadUserSignature(imageData: pngData)
                     await MainActor.run {
-                        print("DEBUG: Signature uploaded successfully to backend: \(response.message)")
+                        AppLogger.info("Signature uploaded successfully to backend")
                         
                         // Store the signature URL for future PDF generation
                         if let signatureUrl = response.signatureUrl {
                             UserDefaults.standard.set(signatureUrl, forKey: "user_signature_url_\(userId)")
-                            print("DEBUG: Stored signature URL: \(signatureUrl)")
+                            AppLogger.debug("Stored signature URL: \(signatureUrl)")
                         }
                     }
                 } catch {
                     await MainActor.run {
-                        print("DEBUG: Failed to upload signature to backend: \(error)")
+                        AppLogger.error("Failed to upload signature to backend: \(error)")
                     }
                 }
             }
         } catch {
-            print("DEBUG: Error saving signature image to local storage: \(error)")
-            print("DEBUG: Error details: \(error.localizedDescription)")
+            AppLogger.error("Error saving signature image to local storage: \(error)")
         }
     }
     
@@ -574,9 +533,21 @@ struct DA2062ExportView: View {
         Task {
             isGenerating = true
             do {
-                generatedPDF = try await viewModel.generatePDF()
-                isGenerating = false
-                showingShareSheet = true
+                // If a recipient is selected, send in-app instead of generating for share
+                if let connection = selectedConnection,
+                   let recipientUser = connection.connectedUser {
+                    try await viewModel.sendHandReceipt(to: recipientUser.id)
+                    isGenerating = false
+                    // Show success alert
+                    let rank = recipientUser.rank ?? ""
+                    errorMessage = "Hand Receipt sent to \(rank) \(recipientUser.name)"
+                    showError = true
+                } else {
+                    // No recipient selected - generate PDF for sharing
+                    generatedPDF = try await viewModel.generatePDF()
+                    isGenerating = false
+                    showingShareSheet = true
+                }
             } catch {
                 isGenerating = false
                 errorMessage = error.localizedDescription

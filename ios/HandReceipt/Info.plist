@@ -53,5 +53,11 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>UISupportsDocumentBrowser</key>
+	<false/>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
 </dict>
 </plist>

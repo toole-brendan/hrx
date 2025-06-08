@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import AVFoundation
 
 @main
 struct HandReceiptApp: App {
@@ -35,6 +36,18 @@ struct HandReceiptApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         print("🚀 AppDelegate: didFinishLaunchingWithOptions")
+        
+        // Configure audio session to prevent HALC_ProxyIOContext errors
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(false)
+        } catch {
+            AppLogger.error("Failed to configure audio session: \(error)")
+        }
+        
+        // Disable system logging for known issues
+        UserDefaults.standard.set(false, forKey: "PKDisableDefaults")
+        
         return true
     }
     
