@@ -472,12 +472,9 @@ extension APIService {
         }
         
         do {
-            // First try to decode as the expected format
-            let result = try decoder.decode([String: Document].self, from: data)
-            guard let document = result["document"] else {
-                throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Invalid server response - missing document")
-            }
-            return document
+            // Decode using the existing SendMaintenanceFormResponse structure
+            let response = try decoder.decode(SendMaintenanceFormResponse.self, from: data)
+            return response.document
         } catch {
             print("DEBUG: Failed to decode Document response: \(error)")
             
