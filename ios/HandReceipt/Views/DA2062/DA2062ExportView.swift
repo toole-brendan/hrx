@@ -559,9 +559,9 @@ struct DA2062ExportView: View {
                 if let apiError = error as? APIService.APIError {
                     switch apiError {
                     case .serverError(_, let message):
-                        errorMessage = message
+                        errorMessage = message ?? "Server error occurred"
                     case .badRequest(let message):
-                        errorMessage = message
+                        errorMessage = message ?? "Bad request"
                     case .unauthorized:
                         errorMessage = "Authentication required. Please log in again."
                     case .notFound:
@@ -580,7 +580,7 @@ struct DA2062ExportView: View {
     private func generateAndEmail() async {
         isGenerating = true
         do {
-            if emailRecipients.isEmpty {
+            if emailRecipients.trimmingCharacters(in: .whitespaces).isEmpty {
                 generatedPDF = try await viewModel.generatePDF()
                 isGenerating = false
                 showingMailComposer = true
@@ -626,9 +626,9 @@ struct DA2062ExportView: View {
             if let apiError = error as? APIService.APIError {
                 switch apiError {
                 case .serverError(_, let message):
-                    errorMessage = message
+                    errorMessage = message ?? "Server error occurred"
                 case .badRequest(let message):
-                    errorMessage = message
+                    errorMessage = message ?? "Bad request"
                 case .unauthorized:
                     errorMessage = "Authentication required. Please log in again."
                 case .notFound:
