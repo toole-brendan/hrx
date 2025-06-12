@@ -236,7 +236,7 @@ func (r *PostgresRepository) SearchUsers(query string, excludeUserID uint) ([]do
 	searchPattern := "%" + query + "%"
 
 	err := r.db.Where(
-		"id != ? AND (LOWER(name) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?)",
+		"id != ? AND (LOWER(CONCAT(first_name, ' ', last_name)) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?)",
 		excludeUserID, searchPattern, searchPattern, searchPattern,
 	).Limit(20).Find(&users).Error
 

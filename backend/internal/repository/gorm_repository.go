@@ -247,7 +247,7 @@ func (r *gormRepository) SearchUsers(query string, excludeUserID uint) ([]domain
 	searchPattern := "%" + query + "%"
 
 	err := r.db.Where(
-		"id != ? AND (LOWER(name) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?)",
+		"id != ? AND (LOWER(CONCAT(first_name, ' ', last_name)) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?)",
 		excludeUserID, searchPattern, searchPattern, searchPattern,
 	).Limit(20).Find(&users).Error
 

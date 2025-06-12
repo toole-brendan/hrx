@@ -58,7 +58,7 @@ type User struct {
 	Rank         string    `json:"rank" gorm:"not null"`
 	Unit         string    `json:"unit"`
 	Phone        string    `json:"phone"`                                    // NEW: Added for contact info
-	DoDID        string    `json:"dodid" gorm:"column:dodid;unique"`         // NEW: Department of Defense ID
+	DoDID        *string   `json:"dodid" gorm:"column:dodid;unique"`         // NEW: Department of Defense ID
 	SignatureURL *string   `json:"signatureUrl" gorm:"column:signature_url"` // NEW: URL to stored signature image
 	CreatedAt    time.Time `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt    time.Time `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP"`

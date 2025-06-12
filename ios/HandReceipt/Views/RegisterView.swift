@@ -208,7 +208,6 @@ struct RegisterView: View {
     private var isFormValid: Bool {
         !firstName.isEmpty &&
         !lastName.isEmpty &&
-        !username.isEmpty &&
         !email.isEmpty &&
         !password.isEmpty &&
         !confirmPassword.isEmpty &&
