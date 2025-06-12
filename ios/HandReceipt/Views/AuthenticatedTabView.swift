@@ -26,7 +26,8 @@ struct AuthenticatedTabView: View {
                     .init(icon: "house", label: "Home", tag: 0),
                     .init(icon: "shippingbox", label: "Property", tag: 1),
                     .init(icon: "arrow.left.arrow.right", label: "Transfers", tag: 2),
-                    .init(icon: "person", label: "Profile", tag: 3, badge: documentService.unreadCount > 0 ? "\(documentService.unreadCount)" : nil)
+                    .init(icon: "network", label: "Network", tag: 3),
+                    .init(icon: "person", label: "Profile", tag: 4, badge: documentService.unreadCount > 0 ? "\(documentService.unreadCount)" : nil)
                 ]
             )
         }
@@ -56,6 +57,10 @@ struct AuthenticatedTabView: View {
                     .transition(.opacity)
                 
             case 3:
+                ConnectionsView()
+                    .transition(.opacity)
+                
+            case 4:
                 ProfileView()
                     .transition(.opacity)
                 

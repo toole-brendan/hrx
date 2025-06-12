@@ -68,24 +68,16 @@ struct ProfileView: View {
                     ProfileInfoRow(
                         label: "NAME",
                         value: formatUserName(user: user),
-                        icon: "person"
+                        icon: "person",
+                        valueFont: .mono
                     )
                     
                     ProfileDivider()
                     
-                                ProfileInfoRow(
-                label: "EMAIL",
-                value: user.email ?? "No email",
-                icon: "envelope",
-                valueFont: .mono
-            )
-                    
-                    ProfileDivider()
-                    
                     ProfileInfoRow(
-                        label: "USER ID",
-                        value: "#\(user.id)",
-                        icon: "number",
+                        label: "EMAIL",
+                        value: user.email ?? "No email",
+                        icon: "envelope",
                         valueFont: .mono
                     )
                     
@@ -94,7 +86,8 @@ struct ProfileView: View {
                     ProfileInfoRow(
                         label: "RANK",
                         value: user.rank,
-                        icon: "star"
+                        icon: "star",
+                        valueFont: .mono
                     )
                 }
                 .cleanCard(padding: 0)

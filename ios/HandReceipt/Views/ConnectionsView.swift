@@ -46,42 +46,34 @@ struct ConnectionsView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             AppColors.appBackground.ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 40) {
-                    // Header section
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("Network")
-                                .font(AppFonts.serifTitle)
-                                .foregroundColor(AppColors.primaryText)
-                            Spacer()
-                            Button(action: { showingAddConnection = true }) {
-                                Image(systemName: "person.badge.plus")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
-                        
-                        Divider()
-                            .background(AppColors.divider)
-                    }
-                    
-                    // Main content
+            VStack(spacing: 0) {
+                // Custom minimal navigation bar - matches other views
+                MinimalNavigationBar(
+                    title: "NETWORK",
+                    titleStyle: .mono,
+                    showBackButton: false,
+                    trailingItems: [
+                        .init(icon: "person.badge.plus", action: { showingAddConnection = true })
+                    ]
+                )
+                .background(AppColors.secondaryBackground)
+                
+                ScrollView {
                     VStack(spacing: 32) {
+                        // Main content
                         if viewModel.isLoading {
                             loadingView
                         } else {
                             mainContent
                         }
+                        
+                        // Bottom padding
+                        Color.clear.frame(height: 80)
                     }
-                    
-                    // Bottom padding
-                    Color.clear.frame(height: 80)
+                    .padding(.top, 16)
                 }
             }
         }

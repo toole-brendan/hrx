@@ -78,9 +78,10 @@ public struct MinimalTabBar: View {
                     }
                     
                     Text(item.label.uppercased())
-                        .font(AppFonts.caption)
+                        .font(AppFonts.micro)
                         .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
                         .compatibleKerning(AppFonts.wideKerning)
+                        .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
