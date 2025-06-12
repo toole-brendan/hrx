@@ -81,10 +81,6 @@ struct LoginView: View {
                             VStack(alignment: .leading, spacing: 20) {
                                 // Header section
                                 VStack(alignment: .leading, spacing: 16) {
-                                    Text("Welcome Back")
-                                        .font(AppFonts.serifHero)
-                                        .foregroundColor(AppColors.primaryText)
-                                    
                                     Text("Sign in to continue")
                                         .font(AppFonts.body)
                                         .foregroundColor(AppColors.tertiaryText)

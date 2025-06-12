@@ -61,6 +61,9 @@ struct SerialNumberRequestView: View {
                     serialNumber: trimmedSerial,
                     notes: requestNotes
                 )
+                
+                // Trigger sync after successful transfer request
+                OfflineSyncService.shared.startSync()
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription

@@ -412,3 +412,32 @@ func (h *PropertyHandler) GetPropertyTransferHistory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// CheckSerialExists godoc
+// @Summary Check if serial number exists
+// @Description Check if a property with the given serial number already exists
+// @Tags Property
+// @Produce json
+// @Param serial query string true "Serial Number"
+// @Success 200 {object} map[string]bool "exists: true/false"
+// @Failure 400 {object} map[string]string "error: Serial number parameter is required"
+// @Failure 500 {object} map[string]string "error: Failed to check serial number"
+// @Router /property/check-serial [get]
+// @Security BearerAuth
+func (h *PropertyHandler) CheckSerialExists(c *gin.Context) {
+	serialNumber := c.Query("serial")
+	if serialNumber == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Serial number parameter is required"})
+		return
+	}
+
+	// Check if property exists with this serial number
+	property, err := h.Repo.GetPropertyBySerialNumber(serialNumber)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check serial number"})
+		return
+	}
+
+	exists := property != nil
+	c.JSON(http.StatusOK, gin.H{"exists": exists})
+}

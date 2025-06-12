@@ -22,6 +22,7 @@ import UserManagement from "./pages/UserManagement";
 import CorrectionLogPage from './pages/CorrectionLogPage';
 import LedgerVerificationPage from './pages/LedgerVerificationPage';
 import { queryClient } from "./lib/queryClient";
+import { startPeriodicSync, stopPeriodicSync, setupConnectivityListeners } from "./services/syncService";
 
 // Define interfaces for component props with ID parameters
 interface ItemPageProps {
@@ -76,6 +77,18 @@ function Router() {
 }
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Start periodic sync and set up connectivity listeners
+    startPeriodicSync();
+    const cleanupConnectivity = setupConnectivityListeners();
+    
+    // Cleanup on unmount
+    return () => {
+      stopPeriodicSync();
+      cleanupConnectivity();
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

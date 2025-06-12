@@ -471,7 +471,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       
       setCreateItemModalOpen(false);
     } catch (error: any) {
-      if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
+      if (error.message?.includes('duplicate') || error.message?.includes('unique') || error.message?.includes('already exists')) {
         toast({
           title: "Duplicate Serial Number",
           description: `An item with serial number ${itemData.serialNumber} already exists.`,

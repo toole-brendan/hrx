@@ -101,6 +101,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			property.GET("", propertyHandler.GetAllProperties)
 			property.POST("", propertyHandler.CreateProperty)
 			property.GET("/user/:userId", propertyHandler.GetPropertysByUser)
+			property.GET("/check-serial", propertyHandler.CheckSerialExists)
 			property.GET("/history/:serialNumber", propertyHandler.GetPropertyHistory)
 			property.GET("/serial/:serialNumber", propertyHandler.GetPropertyBySerialNumber)
 			property.GET("/serial/:serialNumber/transfers", propertyHandler.GetPropertyTransferHistory)

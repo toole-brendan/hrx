@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Plus, Package } from 'lucide-react';
+import { Loader2, Plus, Package, AlertCircle } from 'lucide-react';
 import { categoryOptions } from '@/lib/propertyUtils';
 import { useToast } from '@/hooks/use-toast';
+import { checkSerialExists, syncProperties } from '@/services/syncService';
 
 interface CreatePropertyDialogProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
   onSubmit,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidatingSerial, setIsValidatingSerial] = useState(false);
+  const [serialError, setSerialError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     serialNumber: '',
@@ -46,6 +49,34 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
     assignToSelf: true,
   });
   const { toast } = useToast();
+
+  const validateSerialNumber = async (serialNumber: string) => {
+    if (!serialNumber.trim()) {
+      setSerialError(null);
+      return;
+    }
+
+    if (serialNumber.length < 3) {
+      setSerialError("Serial number must be at least 3 characters");
+      return;
+    }
+
+    setIsValidatingSerial(true);
+    try {
+      const exists = await checkSerialExists(serialNumber);
+      if (exists) {
+        setSerialError("A property with this serial number already exists");
+      } else {
+        setSerialError(null);
+      }
+    } catch (error) {
+      console.error('Error validating serial number:', error);
+      // Don't show error to user for validation failures
+      setSerialError(null);
+    } finally {
+      setIsValidatingSerial(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,9 +91,23 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
       return;
     }
 
+    // Check for existing serial error
+    if (serialError) {
+      toast({
+        title: "Validation Error",
+        description: serialError,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
+      
+      // Trigger sync after successful creation
+      syncProperties();
+      
       // Reset form on success
       setFormData({
         name: '',
@@ -73,6 +118,7 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
         lin: '',
         assignToSelf: true,
       });
+      setSerialError(null);
       onClose();
     } catch (error) {
       // Error handling is done in the parent component
@@ -83,6 +129,12 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Validate serial number on change with debouncing
+    if (field === 'serialNumber') {
+      const timer = setTimeout(() => validateSerialNumber(value), 500);
+      return () => clearTimeout(timer);
+    }
   };
 
   return (
@@ -101,15 +153,28 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="serial-number">Serial Number*</Label>
-              <Input
-                id="serial-number"
-                value={formData.serialNumber}
-                onChange={(e) => handleChange('serialNumber', e.target.value.toUpperCase())}
-                placeholder="e.g., W123456 or 12345678"
-                className="rounded-none font-mono"
-                required
-                disabled={isSubmitting}
-              />
+              <div className="relative">
+                <Input
+                  id="serial-number"
+                  value={formData.serialNumber}
+                  onChange={(e) => handleChange('serialNumber', e.target.value.toUpperCase())}
+                  placeholder="e.g., W123456 or 12345678"
+                  className={`rounded-none font-mono ${serialError ? 'border-destructive' : ''}`}
+                  required
+                  disabled={isSubmitting}
+                />
+                {isValidatingSerial && (
+                  <div className="absolute right-3 top-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              {serialError && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  {serialError}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 This must match the physical serial number on the equipment
               </p>
@@ -215,7 +280,7 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
               type="submit" 
               variant="blue" 
               className="rounded-none" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || isValidatingSerial || !!serialError}
             >
               {isSubmitting ? (
                 <>

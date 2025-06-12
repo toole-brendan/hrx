@@ -465,7 +465,23 @@ struct CreatePropertyView: View {
     
     private func createProperty() {
         Task {
+            // Check server for existing property with same serial number
+            do {
+                let _ = try await viewModel.apiService.getPropertyBySN(serialNumber: viewModel.serialNumber)
+                // If we get here, property exists – show duplicate error
+                showingDuplicateAlert = true
+                return
+            } catch let error as APIService.APIError where error == .itemNotFound {
+                // OK: no existing property found, proceed with creation
+            } catch {
+                // Handle other errors (network, etc.) but still proceed
+                print("Warning: Could not check for duplicate serial number: \(error)")
+            }
+            
+            // Proceed to create since no duplicate was found
             if await viewModel.createProperty(photo: selectedImage) {
+                // Trigger sync after successful creation
+                OfflineSyncService.shared.startSync()
                 showingSuccessAlert = true
             }
         }
@@ -819,6 +835,22 @@ class CreatePropertyViewModel: ObservableObject {
     
     var isValid: Bool {
         !serialNumber.isEmpty && !itemName.isEmpty
+    }
+    
+    func checkDuplicate() async -> Bool {
+        guard !serialNumber.isEmpty else { return false }
+        do {
+            let _ = try await apiService.getPropertyBySN(serialNumber: serialNumber)
+            return true  // Found a property with this serial
+        } catch let apiError as APIService.APIError {
+            if apiError == .itemNotFound {
+                return false  // No duplicate found
+            }
+            // On other errors (network, etc.) we could either treat as "no duplicate" or surface an error
+            return false
+        } catch {
+            return false
+        }
     }
     
     func createProperty(photo: UIImage?) async -> Bool {

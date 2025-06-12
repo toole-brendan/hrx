@@ -121,6 +121,10 @@ class PropertyDetailViewModel: ObservableObject {
                  let newTransfer = try await apiService.requestTransfer(propertyId: propertyToTransfer.id, targetUserId: targetUser.id)
                  print("PropertyDetailVM: Transfer request successful - ID \(newTransfer.id)")
                  self.transferRequestState = .success(transferId: newTransfer.id)
+                 
+                 // Trigger sync after successful transfer request
+                 OfflineSyncService.shared.startSync()
+                 
                  // Schedule state reset
                  self.scheduleTransferStateReset(delay: 3.0)
                  // TODO: Optionally refresh property details or navigate away

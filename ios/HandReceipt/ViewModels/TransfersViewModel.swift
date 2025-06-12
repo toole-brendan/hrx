@@ -137,6 +137,10 @@ class TransfersViewModel: ObservableObject {
                 _ = try await apiService.approveTransfer(transferId: transferId) // Pass Int
                 print("TransfersViewModel: Successfully approved transfer ID \(transferId)")
                 actionState = .success("Transfer Approved")
+                
+                // Trigger sync after successful transfer approval
+                OfflineSyncService.shared.startSync()
+                
                 // Refresh the list to show updated status
                 fetchTransfers()
                 // Schedule state clear after delay
@@ -159,6 +163,10 @@ class TransfersViewModel: ObservableObject {
                 _ = try await apiService.rejectTransfer(transferId: transferId) // Pass Int
                 print("TransfersViewModel: Successfully rejected transfer ID \(transferId)")
                 actionState = .success("Transfer Rejected")
+                
+                // Trigger sync after successful transfer rejection
+                OfflineSyncService.shared.startSync()
+                
                 // Refresh the list to show updated status
                 fetchTransfers()
                 scheduleActionStateClear()
