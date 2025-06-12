@@ -3,7 +3,6 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -59,7 +58,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Compare passwords
-	err = bcrypt.CompareHashAndPassword([]byte(domainUser.Password), []byte(credentials.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(domainUser.PasswordHash), []byte(credentials.Password))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
@@ -78,20 +77,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Split full name into first and last for response
-	names := strings.SplitN(domainUser.Name, " ", 2)
-	firstName := names[0]
-	lastName := ""
-	if len(names) > 1 {
-		lastName = names[1]
-	}
+	// Use new name fields directly
+	firstName := domainUser.FirstName
+	lastName := domainUser.LastName
 
 	// Convert domain.User to models.User for JWT service
 	modelUser := models.User{
 		ID:           domainUser.ID,
 		UUID:         uuid.New(), // Generate new UUID since domain.User doesn't have it
 		Email:        domainUser.Email,
-		PasswordHash: domainUser.Password,
+		PasswordHash: domainUser.PasswordHash,
 		FirstName:    firstName,
 		LastName:     lastName,
 		Rank:         domainUser.Rank,
@@ -157,20 +152,16 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Split full name into first and last for response
-	names := strings.SplitN(domainUser.Name, " ", 2)
-	firstName := names[0]
-	lastName := ""
-	if len(names) > 1 {
-		lastName = names[1]
-	}
+	// Use new name fields directly
+	firstName := domainUser.FirstName
+	lastName := domainUser.LastName
 
 	// Convert domain.User to models.User
 	modelUser := models.User{
 		ID:           domainUser.ID,
 		UUID:         uuid.New(),
 		Email:        domainUser.Email,
-		PasswordHash: domainUser.Password,
+		PasswordHash: domainUser.PasswordHash,
 		FirstName:    firstName,
 		LastName:     lastName,
 		Rank:         domainUser.Rank,
@@ -222,11 +213,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Create domain.User for repository (since repository expects domain.User)
 	domainUser := &domain.User{
-		Email:    createUserInput.Email,
-		Password: string(hashedPassword),
-		Name:     createUserInput.FirstName + " " + createUserInput.LastName,
-		Rank:     createUserInput.Rank,
-		Unit:     createUserInput.Unit,
+		Email:        createUserInput.Email,
+		PasswordHash: string(hashedPassword),
+		FirstName:    createUserInput.FirstName,
+		LastName:     createUserInput.LastName,
+		Rank:         createUserInput.Rank,
+		Unit:         createUserInput.Unit,
 	}
 
 	if err := h.repo.CreateUser(domainUser); err != nil {
@@ -249,7 +241,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		ID:           domainUser.ID,
 		UUID:         uuid.New(),
 		Email:        createUserInput.Email,
-		PasswordHash: domainUser.Password,
+		PasswordHash: domainUser.PasswordHash,
 		FirstName:    createUserInput.FirstName,
 		LastName:     createUserInput.LastName,
 		Rank:         createUserInput.Rank,
@@ -310,13 +302,9 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	// Split full name into first and last for response
-	names := strings.SplitN(domainUser.Name, " ", 2)
-	firstName := names[0]
-	lastName := ""
-	if len(names) > 1 {
-		lastName = names[1]
-	}
+	// Use new name fields directly
+	firstName := domainUser.FirstName
+	lastName := domainUser.LastName
 
 	// Return user data - convert domain.User to UserDTO
 	c.JSON(http.StatusOK, gin.H{

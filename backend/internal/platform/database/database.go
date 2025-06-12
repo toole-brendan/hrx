@@ -125,9 +125,10 @@ func CreateDefaultUser(db *gorm.DB) error {
 			Email: "admin@handreceipt.com",
 			// Note: This is NOT secure and is just for initial setup
 			// In real code, you would hash this password
-			Password: "$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS", // "password"
-			Name:     "Admin User",
-			Rank:     "System Administrator",
+			PasswordHash: "$2b$10$xfTImAQbmP6d7S8JGSLDXeu0yDqLRQbYdJ4Jt.1J0C8vMnGJzPXOS", // "password"
+			FirstName:    "Admin",
+			LastName:     "User",
+			Rank:         "System Administrator",
 		}
 
 		result := db.Create(&defaultUser)

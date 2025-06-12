@@ -157,16 +157,6 @@ export default function Dashboard() {
     // Add last name if available
     if (user.lastName) {
       parts.push(user.lastName);
-    } else if (user.name) {
-      // Fallback: try to extract last name from full name
-      const nameParts = user.name.split(/[,\s]+/);
-      if (nameParts.length > 1) {
-        // Assuming format "RANK LastName, FirstName" or "FirstName LastName"
-        const possibleLastName = user.name.includes(',') ? nameParts[1] : nameParts[nameParts.length - 1];
-        if (possibleLastName && !rankAbbreviations[possibleLastName]) {
-          parts.push(possibleLastName);
-        }
-      }
     }
     
     return parts.join(" ");

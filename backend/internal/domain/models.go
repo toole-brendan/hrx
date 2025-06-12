@@ -52,8 +52,9 @@ type User struct {
 	ID uint `json:"id" gorm:"primaryKey"`
 	// Username     string    `json:"username" gorm:"uniqueIndex;not null"` // REMOVED: Username field
 	Email        string    `json:"email" gorm:"uniqueIndex;not null"`
-	Password     string    `json:"-" gorm:"not null"` // Password is omitted from JSON responses
-	Name         string    `json:"name" gorm:"not null"`
+	PasswordHash string    `json:"-" gorm:"not null"` // Updated field name for consistency
+	FirstName    string    `json:"first_name" gorm:"not null"`
+	LastName     string    `json:"last_name" gorm:"not null"`
 	Rank         string    `json:"rank" gorm:"not null"`
 	Unit         string    `json:"unit"`
 	Phone        string    `json:"phone"`                                    // NEW: Added for contact info
@@ -349,10 +350,11 @@ const (
 // CreateUserInput represents input for creating a user
 type CreateUserInput struct {
 	// Username string `json:"username" binding:"required"` // REMOVED: Username field
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-	Name     string `json:"name" binding:"required"`
-	Rank     string `json:"rank" binding:"required"`
+	Email     string `json:"email" binding:"required,email"`
+	Password  string `json:"password" binding:"required"`
+	FirstName string `json:"first_name" binding:"required"`
+	LastName  string `json:"last_name" binding:"required"`
+	Rank      string `json:"rank" binding:"required"`
 }
 
 // CreatePropertyInput represents input for creating a property item
@@ -505,7 +507,7 @@ type CreateDocumentInput struct {
 	Attachments     *JSONStringArray `json:"attachments"`
 }
 
-// CreateMaintenanceFormInput represents input for creating a maintenance form
+// CreateMaintenanceFormInput represents input for creating/sending maintenance forms
 type CreateMaintenanceFormInput struct {
 	PropertyID       uint            `json:"propertyId" binding:"required"`
 	RecipientUserID  uint            `json:"recipientUserId" binding:"required"`

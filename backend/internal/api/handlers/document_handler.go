@@ -105,7 +105,7 @@ func (h *DocumentHandler) CreateMaintenanceForm(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"document": document,
-		"message":  fmt.Sprintf("Maintenance form sent to %s %s", recipient.Rank, recipient.Name),
+		"message":  fmt.Sprintf("Maintenance form sent to %s %s", recipient.Rank, recipient.LastName),
 	})
 }
 
@@ -292,7 +292,7 @@ func (h *DocumentHandler) EmailDocument(c *gin.Context) {
 
 	// Send email
 	senderInfo := email.UserInfo{
-		Name:  user.Name,
+		Name:  user.FirstName + " " + user.LastName,
 		Rank:  user.Rank,
 		Title: user.Unit,
 		Phone: user.Phone,

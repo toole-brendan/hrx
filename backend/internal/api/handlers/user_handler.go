@@ -326,12 +326,10 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		user.Email = *updateReq.Email
 	}
 	if updateReq.FirstName != nil {
-		// Domain User has "Name" field, we'll update it with first name
-		if updateReq.LastName != nil {
-			user.Name = *updateReq.FirstName + " " + *updateReq.LastName
-		} else {
-			user.Name = *updateReq.FirstName
-		}
+		user.FirstName = *updateReq.FirstName
+	}
+	if updateReq.LastName != nil {
+		user.LastName = *updateReq.LastName
 	}
 	if updateReq.Rank != nil {
 		user.Rank = *updateReq.Rank
@@ -346,14 +344,9 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	// Return updated user data
-	// Split full name into first and last for response
-	names := strings.SplitN(user.Name, " ", 2)
-	firstName := names[0]
-	lastName := ""
-	if len(names) > 1 {
-		lastName = names[1]
-	}
+	// Return updated user data using the new fields directly
+	firstName := user.FirstName
+	lastName := user.LastName
 
 	response := models.UserDTO{
 		ID: user.ID,
@@ -428,7 +421,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	}
 
 	// Verify current password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(changePasswordReq.CurrentPassword))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(changePasswordReq.CurrentPassword))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
 		return
@@ -442,7 +435,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	}
 
 	// Update password in database
-	user.Password = string(hashedPassword)
+	user.PasswordHash = string(hashedPassword)
 	if err := h.repo.UpdateUser(user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return

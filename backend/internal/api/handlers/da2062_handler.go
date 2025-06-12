@@ -725,7 +725,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 
 	// Ensure we have fallback values from database if request doesn't include them
 	if fromUserInfo.Name == "" {
-		fromUserInfo.Name = fromUser.Name
+		fromUserInfo.Name = fromUser.FirstName + " " + fromUser.LastName
 	}
 	if fromUserInfo.Rank == "" {
 		fromUserInfo.Rank = fromUser.Rank
@@ -748,7 +748,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		if err == nil {
 			// Use recipient data from database for missing fields
 			if toUserInfo.Name == "" {
-				toUserInfo.Name = toUserData.Name
+				toUserInfo.Name = toUserData.FirstName + " " + toUserData.LastName
 			}
 			if toUserInfo.Rank == "" {
 				toUserInfo.Rank = toUserData.Rank
@@ -878,7 +878,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		// Respond with the created document
 		c.JSON(http.StatusCreated, gin.H{
 			"document": doc,
-			"message":  fmt.Sprintf("DA 2062 sent to %s %s", recipient.Rank, recipient.Name),
+			"message":  fmt.Sprintf("DA 2062 sent to %s %s", recipient.Rank, recipient.LastName),
 		})
 		return
 	}

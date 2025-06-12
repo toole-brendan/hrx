@@ -664,7 +664,7 @@ func (h *TransferHandler) RequestBySerial(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"transfer": transfer,
-		"message":  fmt.Sprintf("Transfer request sent to %s", property.AssignedToUser.Name),
+		"message":  fmt.Sprintf("Transfer request sent to %s", property.AssignedToUser.LastName),
 	})
 }
 
@@ -915,7 +915,7 @@ func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *d
 
 	// Prepare user info for PDF generation
 	fromInfo := pdf.UserInfo{
-		Name:         fromUser.Name,
+		Name:         fromUser.FirstName + " " + fromUser.LastName,
 		Rank:         fromUser.Rank,
 		Title:        fromUser.Unit, // Use unit as title
 		Phone:        fromUser.Phone,
@@ -926,7 +926,7 @@ func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *d
 	}
 
 	toInfo := pdf.UserInfo{
-		Name:         toUser.Name,
+		Name:         toUser.FirstName + " " + toUser.LastName,
 		Rank:         toUser.Rank,
 		Title:        toUser.Unit, // Use unit as title
 		Phone:        toUser.Phone,

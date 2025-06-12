@@ -163,7 +163,9 @@ const Sidebar = ({
                 M
               </div>
               <div>
-                <p className="text-sm font-medium tracking-wider profile-name">CPT Rodriguez, Michael</p>
+                <p className="text-sm font-medium tracking-wider profile-name">
+                  {user?.rank} {user?.lastName}
+                </p>
                 <p className="text-xs tracking-wide text-gray-400">Company Commander</p>
               </div>
             </div>
@@ -313,7 +315,9 @@ const Sidebar = ({
               M
             </div>
             <div>
-              <p className="text-sm font-medium tracking-wider profile-name">CPT Rodriguez, Michael</p>
+              <p className="text-sm font-medium tracking-wider profile-name">
+                {user?.rank} {user?.lastName}
+              </p>
               <p className="text-xs tracking-wide text-gray-400">Company Commander</p>
             </div>
           </div>
