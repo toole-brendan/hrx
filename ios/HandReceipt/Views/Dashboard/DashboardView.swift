@@ -12,6 +12,8 @@ struct DashboardView: View {
     @State private var navigateToSensitiveItems = false
     @State private var showingSearch = false
     @State private var showingDA2062Scan = false
+    @State private var showConnectionsList = false
+    @State private var showPendingRequests = false
     
     // Tab switching callback
     var onTabSwitch: ((Int) -> Void)?
@@ -148,7 +150,6 @@ struct DashboardView: View {
         VStack(spacing: 24) {
             ElegantSectionHeader(
                 title: "Overview",
-                subtitle: "Current system status",
                 style: .serif
             )
             
@@ -163,30 +164,6 @@ struct DashboardView: View {
                     trend: .neutral
                 )
                 .onTapGesture { onTabSwitch?(1) }
-                
-                MinimalStatCard(
-                    title: "Pending Transfers",
-                    value: String(format: "%02d", pendingTransfers),
-                    subtitle: "Awaiting approval",
-                    trend: pendingTransfers > 0 ? .up("\(pendingTransfers)") : .neutral
-                )
-                .onTapGesture { onTabSwitch?(2) }
-                
-                MinimalStatCard(
-                    title: "Verified Items",
-                    value: "\(verifiedItems.verified)/\(verifiedItems.total)",
-                    subtitle: "Verification rate",
-                    trend: .up("98%")
-                )
-                .onTapGesture { navigateToSensitiveItems = true }
-                
-                MinimalStatCard(
-                    title: "Maintenance Due",
-                    value: String(format: "%02d", maintenanceNeeded),
-                    subtitle: "Items requiring service",
-                    trend: maintenanceNeeded > 0 ? .down("\(maintenanceNeeded)") : .neutral
-                )
-                .onTapGesture { navigateToMaintenance = true }
             }
         }
     }
@@ -203,27 +180,9 @@ struct DashboardView: View {
                 GridItem(.flexible())
             ], spacing: 16) {
                 ActionButton(
-                    icon: "arrow.left.arrow.right",
-                    title: "Transfer",
-                    action: { onTabSwitch?(2) }
-                )
-                
-                ActionButton(
                     icon: "magnifyingglass",
                     title: "Search",
                     action: { showingSearch = true }
-                )
-                
-                ActionButton(
-                    icon: "person.badge.plus",
-                    title: "Connect",
-                    action: {}
-                )
-                
-                ActionButton(
-                    icon: "wrench",
-                    title: "Maintain",
-                    action: { navigateToMaintenance = true }
                 )
                 
                 ActionButton(
@@ -283,7 +242,7 @@ struct DashboardView: View {
                 title: "Network",
                 subtitle: "Connected users",
                 style: .serif,
-                action: {},
+                action: { showConnectionsList = true },
                 actionLabel: "View All"
             )
             
@@ -293,12 +252,14 @@ struct DashboardView: View {
                     label: "Connected",
                     icon: "person.2"
                 )
+                .onTapGesture { showConnectionsList = true }
                 
                 NetworkCard(
                     value: pendingConnectionRequests,
                     label: "Pending",
                     icon: "clock"
                 )
+                .onTapGesture { showPendingRequests = true }
             }
         }
     }
@@ -570,13 +531,26 @@ struct DashboardView: View {
                 destination: SensitiveItemsView(),
                 isActive: $navigateToSensitiveItems
             ) { EmptyView() }
+            
+            NavigationLink(
+                destination: ConnectionsView(),
+                isActive: $showConnectionsList
+            ) { EmptyView() }
+            
+            NavigationLink(
+                destination: ConnectionsView(),
+                isActive: $showPendingRequests
+            ) { EmptyView() }
         }
     }
     
     // MARK: - Helper Methods
     private func getWelcomeMessage() -> String {
         guard let user = currentUser else { return "Welcome" }
-        return "Welcome, \(user.name)"
+        let rank = user.rank
+        let lastName = user.lastName ?? ""
+        let displayName = "\(rank) \(lastName)".trimmingCharacters(in: .whitespaces)
+        return displayName.isEmpty ? "Welcome" : "Welcome, \(displayName)"
     }
     
     private func calculateOperationalPercentage() -> Int {
