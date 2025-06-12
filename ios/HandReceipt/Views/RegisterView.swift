@@ -12,7 +12,6 @@ struct RegisterView: View {
     @State private var confirmPassword = ""
     @State private var selectedRank = ""
     @State private var unit = ""
-    @State private var showingLogin = false
     
     let militaryRanks = [
         "PVT", "PV2", "PFC", "SPC", "CPL", "SGT", "SSG", "SFC", "MSG", "1SG", "SGM",
@@ -180,7 +179,7 @@ struct RegisterView: View {
                                         .foregroundColor(AppColors.tertiaryText)
                                     
                                     Button("Sign in") {
-                                        showingLogin = true
+                                        dismiss()
                                     }
                                     .buttonStyle(TextLinkButtonStyle())
                                 }
@@ -198,11 +197,7 @@ struct RegisterView: View {
             .navigationBarHidden(true)
         }
         .navigationViewStyle(.stack)
-        .sheet(isPresented: $showingLogin) {
-            LoginView { loginResponse in
-                dismiss()
-            }
-        }
+
     }
     
     private var isFormValid: Bool {
@@ -229,7 +224,7 @@ struct RegisterView: View {
             )
             
             if viewModel.isRegistered {
-                showingLogin = true
+                dismiss()
             }
         }
     }
