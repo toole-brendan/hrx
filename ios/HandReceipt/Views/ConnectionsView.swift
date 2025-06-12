@@ -47,10 +47,12 @@ struct ConnectionsView: View {
     
     var body: some View {
         ZStack {
-            AppColors.appBackground.ignoresSafeArea()
+            // Opaque background
+            AppColors.appBackground
+                .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom minimal navigation bar - matches other views
+                // Custom minimal navigation bar
                 MinimalNavigationBar(
                     title: "NETWORK",
                     titleStyle: .mono,
@@ -59,7 +61,6 @@ struct ConnectionsView: View {
                         .init(icon: "person.badge.plus", action: { showingAddConnection = true })
                     ]
                 )
-                .background(AppColors.secondaryBackground)
                 
                 ScrollView {
                     VStack(spacing: 32) {
@@ -77,7 +78,6 @@ struct ConnectionsView: View {
                 }
             }
         }
-        .navigationTitle("")
         .navigationBarHidden(true)
         .sheet(isPresented: $showingAddConnection) {
             AddConnectionView()
