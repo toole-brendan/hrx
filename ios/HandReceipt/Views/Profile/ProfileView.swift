@@ -41,6 +41,21 @@ struct ProfileView: View {
         .navigationBarHidden(true)
     }
     
+    // MARK: - Helper Functions
+    
+    private func formatUserName(user: LoginResponse.User) -> String {
+        if let lastName = user.lastName, let firstName = user.firstName,
+           !lastName.isEmpty, !firstName.isEmpty {
+            return "\(lastName), \(firstName)"
+        } else if let lastName = user.lastName, !lastName.isEmpty {
+            return lastName
+        } else if let firstName = user.firstName, !firstName.isEmpty {
+            return firstName
+        } else {
+            return "No name available"
+        }
+    }
+    
     // MARK: - Sections
     
     private var profileInfoSection: some View {
@@ -52,7 +67,7 @@ struct ProfileView: View {
                 VStack(spacing: 0) {
                     ProfileInfoRow(
                         label: "NAME",
-                        value: "\(user.rank) \(user.name)",
+                        value: formatUserName(user: user),
                         icon: "person"
                     )
                     

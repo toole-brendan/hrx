@@ -553,7 +553,7 @@ public class APIService: APIServiceProtocol {
 
         // Use UserResponse to decode and then convert to LoginResponse for compatibility
         let response = try await performRequest(request: request) as UserResponse
-                        debugPrint("Session check successful, user: \(response.user.email ?? "unknown")")
+        debugPrint("Session check successful, user: \(response.user.email ?? "unknown")")
         // Convert to LoginResponse to maintain compatibility with existing code
         return response.toLoginResponse()
     }

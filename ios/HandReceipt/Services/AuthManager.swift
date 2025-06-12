@@ -135,11 +135,11 @@ class AuthManager: ObservableObject {
             let apiService = APIService()
             let loginResponse = try await apiService.checkSession()
             
-            // Token is valid, update user data
-            await MainActor.run {
-                self.currentUser = loginResponse.user
-                self.isAuthenticated = true
-            }
+                    // Token is valid, update user data
+        await MainActor.run {
+            self.currentUser = loginResponse.user
+            self.isAuthenticated = true
+        }
             persistUser(loginResponse.user)
             
         } catch {

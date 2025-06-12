@@ -84,10 +84,9 @@ public struct LoginResponse: Decodable {
         enum CodingKeys: String, CodingKey {
             case id
             case uuid
-
             case email
-            case firstName = "first_name"
-            case lastName = "last_name"
+            case firstName
+            case lastName
             case rank
             case unit
             case role

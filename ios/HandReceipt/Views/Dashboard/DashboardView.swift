@@ -14,6 +14,7 @@ struct DashboardView: View {
     @State private var showingDA2062Scan = false
     @State private var showConnectionsList = false
     @State private var showPendingRequests = false
+    @State private var showingProfile = false
     
     // Tab switching callback
     var onTabSwitch: ((Int) -> Void)?
@@ -65,7 +66,6 @@ struct DashboardView: View {
                         // Main content
                         VStack(spacing: 40) {
                             statsOverview
-                            quickActions
                             
                             // Documents Inbox card if there are unread documents
                             if documentService.unreadCount > 0 {
@@ -120,7 +120,7 @@ struct DashboardView: View {
                             .foregroundColor(AppColors.primaryText)
                     }
                     
-                    Button(action: {}) {
+                    Button(action: { showingProfile = true }) {
                         Image(systemName: "person.circle")
                             .font(.system(size: 24, weight: .light))
                             .foregroundColor(AppColors.primaryText)
@@ -153,71 +153,129 @@ struct DashboardView: View {
                 style: .serif
             )
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
-                MinimalStatCard(
-                    title: "Total Properties",
-                    value: String(format: "%04d", totalProperties),
-                    subtitle: "Items tracked",
-                    trend: .neutral
-                )
-                .onTapGesture { onTabSwitch?(1) }
+            VStack(spacing: 16) {
+                // First row: Total Properties and Import DA-2062
+                HStack(spacing: 16) {
+                    Button(action: { onTabSwitch?(1) }) {
+                        VStack(spacing: 12) {
+                            Text(String(format: "%04d", totalProperties))
+                                .font(AppFonts.monoHeadline)
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Text("Total Properties".uppercased())
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .compatibleKerning(AppFonts.wideKerning)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 80)
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button(action: { showingDA2062Scan = true }) {
+                        VStack(spacing: 12) {
+                            Image(systemName: "doc.text.viewfinder")
+                                .font(.system(size: 24, weight: .light))
+                                .foregroundColor(AppColors.primaryText)
+                            
+                            Text("Import DA-2062".uppercased())
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .compatibleKerning(AppFonts.wideKerning)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 80)
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                
+                // Second row: Documents and empty space
+                HStack(spacing: 16) {
+                    NavigationLink(destination: DocumentsView()) {
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Image(systemName: "tray")
+                                    .font(.system(size: 24, weight: .light))
+                                    .foregroundColor(AppColors.primaryText)
+                                
+                                // Unread badge
+                                if documentService.unreadCount > 0 {
+                                    VStack {
+                                        HStack {
+                                            Spacer()
+                                            Text("\(documentService.unreadCount)")
+                                                .font(AppFonts.caption2)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(AppColors.accent)
+                                                .clipShape(Capsule())
+                                                .offset(x: 8, y: -8)
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            
+                            Text("Documents".uppercased())
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .compatibleKerning(AppFonts.wideKerning)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 80)
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(AppColors.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    // Empty space to maintain 2-column layout
+                    Spacer()
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
     }
     
-    private var quickActions: some View {
+
+    
+    private var networkSection: some View {
         VStack(spacing: 24) {
             ElegantSectionHeader(
-                title: "Quick Actions",
-                style: .serif
+                title: "Network",
+                subtitle: "Connected users",
+                style: .serif,
+                action: { showConnectionsList = true },
+                actionLabel: "View All"
             )
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
-                ActionButton(
-                    icon: "magnifyingglass",
-                    title: "Search",
-                    action: { showingSearch = true }
-                )
-                
-                ActionButton(
-                    icon: "doc.text.viewfinder",
-                    title: "Import DA-2062",
-                    action: { showingDA2062Scan = true }
-                )
-                
-                NavigationLink(destination: DocumentsView()) {
+            HStack(spacing: 16) {
+                Button(action: { showConnectionsList = true }) {
                     VStack(spacing: 12) {
-                        ZStack {
-                            Image(systemName: "tray")
-                                .font(.system(size: 24, weight: .light))
-                                .foregroundColor(AppColors.primaryText)
-                            
-                            // Unread badge
-                            if documentService.unreadCount > 0 {
-                                VStack {
-                                    HStack {
-                                        Spacer()
-                                        Text("\(documentService.unreadCount)")
-                                            .font(AppFonts.caption2)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(AppColors.accent)
-                                            .clipShape(Capsule())
-                                            .offset(x: 8, y: -8)
-                                    }
-                                    Spacer()
-                                }
-                            }
-                        }
+                        Text("\(connections.count)")
+                            .font(AppFonts.monoHeadline)
+                            .foregroundColor(AppColors.primaryText)
                         
-                        Text("Documents".uppercased())
+                        Text("Connected".uppercased())
                             .font(AppFonts.caption)
                             .foregroundColor(AppColors.secondaryText)
                             .compatibleKerning(AppFonts.wideKerning)
@@ -232,34 +290,28 @@ struct DashboardView: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
-            }
-        }
-    }
-    
-    private var networkSection: some View {
-        VStack(spacing: 24) {
-            ElegantSectionHeader(
-                title: "Network",
-                subtitle: "Connected users",
-                style: .serif,
-                action: { showConnectionsList = true },
-                actionLabel: "View All"
-            )
-            
-            HStack(spacing: 16) {
-                NetworkCard(
-                    value: connections.count,
-                    label: "Connected",
-                    icon: "person.2"
-                )
-                .onTapGesture { showConnectionsList = true }
                 
-                NetworkCard(
-                    value: pendingConnectionRequests,
-                    label: "Pending",
-                    icon: "clock"
-                )
-                .onTapGesture { showPendingRequests = true }
+                Button(action: { showPendingRequests = true }) {
+                    VStack(spacing: 12) {
+                        Text("\(pendingConnectionRequests)")
+                            .font(AppFonts.monoHeadline)
+                            .foregroundColor(AppColors.primaryText)
+                        
+                        Text("Pending".uppercased())
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.secondaryText)
+                            .compatibleKerning(AppFonts.wideKerning)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 80)
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
     }
@@ -330,70 +382,7 @@ struct DashboardView: View {
     
     // MARK: - Supporting Components
     
-    struct ActionButton: View {
-        let icon: String
-        let title: String
-        let action: () -> Void
-        
-        var body: some View {
-            Button(action: action) {
-                VStack(spacing: 12) {
-                    Image(systemName: icon)
-                        .font(.system(size: 24, weight: .light))
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Text(title.uppercased())
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
-                        .compatibleKerning(AppFonts.wideKerning)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 80)
-                .background(AppColors.secondaryBackground)
-                .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(AppColors.border, lineWidth: 1)
-                )
-            }
-            .buttonStyle(PlainButtonStyle())
-        }
-    }
-    
-    struct NetworkCard: View {
-        let value: Int
-        let label: String
-        let icon: String
-        
-        var body: some View {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 32, weight: .thin))
-                    .foregroundColor(AppColors.tertiaryText)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(value)")
-                        .font(AppFonts.monoHeadline)
-                        .foregroundColor(AppColors.primaryText)
-                    
-                    Text(label.uppercased())
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.secondaryText)
-                        .compatibleKerning(AppFonts.wideKerning)
-                }
-                
-                Spacer()
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
-        }
-    }
+
     
     struct ActivityRow: View {
         let transfer: Transfer
@@ -540,6 +529,11 @@ struct DashboardView: View {
             NavigationLink(
                 destination: ConnectionsView(),
                 isActive: $showPendingRequests
+            ) { EmptyView() }
+            
+            NavigationLink(
+                destination: ProfileView(),
+                isActive: $showingProfile
             ) { EmptyView() }
         }
     }
