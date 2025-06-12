@@ -17,7 +17,6 @@ type User struct {
 	LastName     string         `json:"last_name" gorm:"not null"`
 	Rank         string         `json:"rank"`
 	Unit         string         `json:"unit"`
-	Role         UserRole       `json:"role" gorm:"type:varchar(50);default:'user'"`
 	Status       UserStatus     `json:"status" gorm:"type:varchar(20);default:'active'"`
 	LastLoginAt  *time.Time     `json:"last_login_at"`
 	CreatedAt    time.Time      `json:"created_at"`
@@ -30,16 +29,6 @@ type User struct {
 	IssuedReceipts    []HandReceipt `json:"issued_receipts,omitempty" gorm:"foreignKey:FromUserID"`
 	AuditLogs         []AuditLog    `json:"audit_logs,omitempty" gorm:"foreignKey:UserID"`
 }
-
-type UserRole string
-
-const (
-	RoleUser            UserRole = "user"
-	RoleAdmin           UserRole = "admin"
-	RoleSuperAdmin      UserRole = "super_admin"
-	RolePropertyOfficer UserRole = "property_officer"
-	RoleCommander       UserRole = "commander"
-)
 
 type UserStatus string
 

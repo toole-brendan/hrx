@@ -26,7 +26,6 @@ type JWTService struct {
 type Claims struct {
 	UserID    uint              `json:"user_id"`
 	Email     string            `json:"email"`
-	Role      models.UserRole   `json:"role"`
 	Status    models.UserStatus `json:"status"`
 	SessionID string            `json:"session_id"`
 	TokenType string            `json:"token_type"` // "access" or "refresh"
@@ -79,7 +78,6 @@ func (s *JWTService) generateToken(user models.User, sessionID, tokenType string
 	claims := &Claims{
 		UserID:    user.ID,
 		Email:     user.Email,
-		Role:      user.Role,
 		Status:    user.Status,
 		SessionID: sessionID,
 		TokenType: tokenType,
@@ -322,7 +320,6 @@ func (s *JWTService) GetUserFromToken(tokenString string) (*models.UserDTO, erro
 	return &models.UserDTO{
 		ID:     claims.UserID,
 		Email:  claims.Email,
-		Role:   claims.Role,
 		Status: claims.Status,
 	}, nil
 }

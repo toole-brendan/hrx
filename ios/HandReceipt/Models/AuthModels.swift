@@ -187,11 +187,10 @@ public struct RegisterCredentials: Encodable {
     public let last_name: String
     public let rank: String
     public let unit: String
-    public let role: String
     
     public init(email: String, password: String, 
                 first_name: String, last_name: String, rank: String, 
-                unit: String, role: String = "user") {
+                unit: String) {
 
         self.email = email
         self.password = password
@@ -199,7 +198,6 @@ public struct RegisterCredentials: Encodable {
         self.last_name = last_name
         self.rank = rank
         self.unit = unit
-        self.role = role
     }
     
     enum CodingKeys: String, CodingKey {
@@ -207,6 +205,6 @@ public struct RegisterCredentials: Encodable {
         case email, password
         case first_name = "first_name"
         case last_name = "last_name"
-        case rank, unit, role
+        case rank, unit
     }
 } 

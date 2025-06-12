@@ -38,7 +38,6 @@ type UserDTO struct {
 	LastName    string     `json:"last_name"`
 	Rank        string     `json:"rank"`
 	Unit        string     `json:"unit"`
-	Role        UserRole   `json:"role"`
 	Status      UserStatus `json:"status"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -46,13 +45,12 @@ type UserDTO struct {
 }
 
 type CreateUserRequest struct {
-	Email     string   `json:"email" validate:"required,email"`
-	Password  string   `json:"password" validate:"required,min=8"`
-	FirstName string   `json:"first_name" validate:"required,min=2,max=50"`
-	LastName  string   `json:"last_name" validate:"required,min=2,max=50"`
-	Rank      string   `json:"rank" validate:"max=20"`
-	Unit      string   `json:"unit" validate:"max=100"`
-	Role      UserRole `json:"role" validate:"required,oneof=user admin super_admin property_officer commander"`
+	Email     string `json:"email" validate:"required,email"`
+	Password  string `json:"password" validate:"required,min=8"`
+	FirstName string `json:"first_name" validate:"required,min=2,max=50"`
+	LastName  string `json:"last_name" validate:"required,min=2,max=50"`
+	Rank      string `json:"rank" validate:"max=20"`
+	Unit      string `json:"unit" validate:"max=100"`
 }
 
 type UpdateUserRequest struct {
@@ -61,7 +59,6 @@ type UpdateUserRequest struct {
 	LastName  *string     `json:"last_name,omitempty" validate:"omitempty,min=2,max=50"`
 	Rank      *string     `json:"rank,omitempty" validate:"omitempty,max=20"`
 	Unit      *string     `json:"unit,omitempty" validate:"omitempty,max=100"`
-	Role      *UserRole   `json:"role,omitempty" validate:"omitempty,oneof=user admin super_admin property_officer commander"`
 	Status    *UserStatus `json:"status,omitempty" validate:"omitempty,oneof=active inactive suspended pending"`
 }
 

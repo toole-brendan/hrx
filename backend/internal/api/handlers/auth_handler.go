@@ -91,8 +91,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		LastName:     lastName,
 		Rank:         domainUser.Rank,
 		Unit:         domainUser.Unit,
-		Role:         models.UserRole("user"), // Default role
-		Status:       models.StatusActive,     // Default status
+		Status:       models.StatusActive, // Default status
 		CreatedAt:    domainUser.CreatedAt,
 		UpdatedAt:    domainUser.UpdatedAt,
 	}
@@ -115,7 +114,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			LastName:  lastName,
 			Rank:      domainUser.Rank,
 			Unit:      domainUser.Unit,
-			Role:      modelUser.Role,
 			Status:    modelUser.Status,
 		},
 	}
@@ -166,7 +164,6 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		LastName:     lastName,
 		Rank:         domainUser.Rank,
 		Unit:         domainUser.Unit,
-		Role:         models.UserRole("user"),
 		Status:       models.StatusActive,
 		CreatedAt:    domainUser.CreatedAt,
 		UpdatedAt:    domainUser.UpdatedAt,
@@ -246,7 +243,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		LastName:     createUserInput.LastName,
 		Rank:         createUserInput.Rank,
 		Unit:         createUserInput.Unit,
-		Role:         createUserInput.Role,
 		Status:       models.StatusActive,
 		CreatedAt:    domainUser.CreatedAt,
 		UpdatedAt:    domainUser.UpdatedAt,
@@ -269,7 +265,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			LastName:  createUserInput.LastName,
 			Rank:      createUserInput.Rank,
 			Unit:      createUserInput.Unit,
-			Role:      models.UserRole("user"),
 			Status:    models.StatusActive,
 			CreatedAt: domainUser.CreatedAt,
 			UpdatedAt: domainUser.UpdatedAt,
@@ -316,7 +311,6 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 			LastName:  lastName,
 			Rank:      domainUser.Rank,
 			Unit:      domainUser.Unit,
-			Role:      models.UserRole("user"),
 			Status:    models.StatusActive,
 			CreatedAt: domainUser.CreatedAt,
 			UpdatedAt: domainUser.UpdatedAt,
