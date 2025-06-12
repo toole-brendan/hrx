@@ -2,7 +2,6 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create custom types
-CREATE TYPE user_role AS ENUM ('user', 'admin', 'super_admin', 'property_officer', 'commander');
 CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended', 'pending');
 CREATE TYPE equipment_status AS ENUM ('available', 'assigned', 'in_transit', 'maintenance', 'retired', 'lost', 'damaged');
 CREATE TYPE equipment_condition AS ENUM ('serviceable', 'unserviceable', 'needs_repair', 'beyond_repair', 'new');
@@ -16,14 +15,12 @@ CREATE TYPE audit_action AS ENUM ('create', 'update', 'delete', 'view', 'login',
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     uuid UUID DEFAULT uuid_generate_v4() UNIQUE NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     rank VARCHAR(50),
     unit VARCHAR(100),
-    role user_role DEFAULT 'user' NOT NULL,
     status user_status DEFAULT 'active' NOT NULL,
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -186,9 +183,7 @@ CREATE TABLE refresh_tokens (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_status ON users(status);
 CREATE INDEX idx_users_deleted_at ON users(deleted_at);
 
