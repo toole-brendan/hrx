@@ -188,7 +188,7 @@ struct ConnectionsView: View {
             }
             
             // Filter pills
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 ForEach(ConnectionFilter.allCases, id: \.self) { filter in
                     CleanFilterPill(
                         title: filter.rawValue,
@@ -198,8 +198,8 @@ struct ConnectionsView: View {
                     ) {
                         selectedFilter = filter
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                Spacer()
             }
         }
     }
@@ -324,29 +324,28 @@ struct CleanFilterPill: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
-                HStack(spacing: 6) {
+            VStack(spacing: 6) {
+                HStack(spacing: 4) {
                     Image(systemName: icon)
                         .font(.system(size: 12, weight: .medium))
                     Text(title.uppercased())
-                        .font(AppFonts.captionBold)
-                        .compatibleKerning(1.2)
+                        .font(.system(size: 12, weight: .semibold))
+                        .compatibleKerning(0.5)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
                 }
                 
                 if count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(isSelected ? AppColors.accent : AppColors.quaternaryText)
                 }
                 
                 Rectangle()
-                    .fill(isSelected ? AppColors.primaryText : Color.clear)
+                    .fill(isSelected ? AppColors.accent : Color.clear)
                     .frame(height: 2)
             }
-            .foregroundColor(isSelected ? AppColors.primaryText : AppColors.tertiaryText)
-            .padding(.horizontal, 8)
+            .foregroundColor(isSelected ? AppColors.accent : AppColors.tertiaryText)
+            .padding(.horizontal, 4)
         }
         .buttonStyle(PlainButtonStyle())
     }
