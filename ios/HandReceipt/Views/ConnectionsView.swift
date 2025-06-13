@@ -52,7 +52,7 @@ struct ConnectionsView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom minimal navigation bar
+                // Custom minimal navigation bar - matches MyPropertiesView
                 MinimalNavigationBar(
                     title: "NETWORK",
                     titleStyle: .mono,
@@ -61,6 +61,8 @@ struct ConnectionsView: View {
                         .init(icon: "person.badge.plus", action: { showingAddConnection = true })
                     ]
                 )
+                .background(AppColors.secondaryBackground)
+                .zIndex(1)
                 
                 ScrollView {
                     VStack(spacing: 32) {
@@ -78,6 +80,7 @@ struct ConnectionsView: View {
                 }
             }
         }
+        .navigationTitle("")
         .navigationBarHidden(true)
         .sheet(isPresented: $showingAddConnection) {
             AddConnectionView()
@@ -328,6 +331,8 @@ struct CleanFilterPill: View {
                     Text(title.uppercased())
                         .font(AppFonts.captionBold)
                         .compatibleKerning(1.2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 
                 if count > 0 {

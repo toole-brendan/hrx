@@ -39,8 +39,8 @@ struct GeometricRefreshView: View {
     var body: some View {
         ZStack {
             // Background fade
-            AppColors.appBackground
-                .opacity(0.95)
+            AppColors.secondaryBackground
+                .opacity(0.98)
             
             VStack(spacing: 20) {
                 // Geometric cube loader

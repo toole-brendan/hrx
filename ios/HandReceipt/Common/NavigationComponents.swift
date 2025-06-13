@@ -88,7 +88,7 @@ public struct MinimalNavigationBar: View {
             .padding(.vertical, 10)
             .background(
                 AppColors.secondaryBackground
-                    .ignoresSafeArea(edges: .top)
+                    .ignoresSafeArea(.container, edges: .top)
             )
             
             // Subtle divider
@@ -96,10 +96,7 @@ public struct MinimalNavigationBar: View {
                 .fill(AppColors.divider)
                 .frame(height: 1)
         }
-        .background(
-            AppColors.secondaryBackground
-                .ignoresSafeArea(edges: .top)
-        )
+        .background(AppColors.secondaryBackground)
     }
     
     @ViewBuilder
