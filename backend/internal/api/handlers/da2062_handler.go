@@ -809,7 +809,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		// Create signature metadata for logging
 		signatureMetadata := map[string]interface{}{
 			"from": map[string]interface{}{
-				"angle":      -45,
+				"angle":      -90,
 				"x":          10,
 				"y":          245,
 				"width":      70,
@@ -817,7 +817,7 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 				"applied_at": time.Now(),
 			},
 			"to": map[string]interface{}{
-				"angle":      -45,
+				"angle":      -90,
 				"x":          110,
 				"y":          245,
 				"width":      70,

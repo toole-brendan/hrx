@@ -300,18 +300,46 @@ struct DA2062ExportView: View {
             // Display either the saved signature or a placeholder
             VStack(spacing: 12) {
                 if let sigImage = signatureImage {
-                    Image(uiImage: sigImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: 100)
-                        .padding(8)
-                        .background(Color.white)
-                        .cornerRadius(4)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(AppColors.border, lineWidth: 1)
-                        )
+                    VStack(spacing: 8) {
+                        // Signature preview header
+                        HStack {
+                            Text("Signature Preview")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                            
+                            Spacer()
+                            
+                            Text("As Written")
+                                .font(AppFonts.caption)
+                                .foregroundColor(AppColors.secondaryText)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(4)
+                        }
+                        
+                        // Signature with rotation preview
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white)
+                                .frame(height: 120)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
+                                )
+                            
+                                                         // Signature displayed horizontally for readability
+                             GeometryReader { geometry in
+                                 Image(uiImage: sigImage)
+                                     .resizable()
+                                     .scaledToFit()
+                                     .frame(maxHeight: 80)
+                                     .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                             }
+                            .frame(height: 120)
+                        }
                         .shadow(color: AppColors.shadowColor.opacity(0.1), radius: 2, y: 1)
+                    }
                 } else {
                     VStack(spacing: 8) {
                         Image(systemName: "signature")
@@ -437,6 +465,8 @@ struct DA2062ExportView: View {
     }
     
     // MARK: - Helper Methods
+    
+
     
     private func loadSavedSignature() {
         guard let userId = AuthManager.shared.getUserId() else {

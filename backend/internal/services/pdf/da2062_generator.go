@@ -41,7 +41,7 @@ type UserInfo struct {
 
 // New structure for signature positioning
 type SignatureMetadata struct {
-	Angle  float64 `json:"angle"`  // Rotation angle (default -45)
+	Angle  float64 `json:"angle"`  // Rotation angle (default -90)
 	X      float64 `json:"x"`      // X position
 	Y      float64 `json:"y"`      // Y position
 	Width  float64 `json:"width"`  // Signature width
@@ -380,9 +380,9 @@ func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser
 	pdf.SetXY(10, y)
 	pdf.CellFormat(80, 4, "HAND RECEIPT HOLDER", "0", 1, "L", false, 0, "")
 
-	// Add FROM signature diagonally
+	// Add FROM signature with 90-degree rotation
 	fromMetadata := SignatureMetadata{
-		Angle: -45, X: 10, Y: y + 5, Width: 70, Height: 15,
+		Angle: -90, X: 10, Y: y + 5, Width: 70, Height: 15,
 	}
 	if fromUser.SignatureMetadata.Width > 0 {
 		fromMetadata = fromUser.SignatureMetadata
@@ -403,9 +403,9 @@ func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser
 	pdf.SetXY(110, y)
 	pdf.CellFormat(85, 4, "RECEIVING OFFICER", "0", 1, "L", false, 0, "")
 
-	// Add TO signature diagonally
+	// Add TO signature with 90-degree rotation
 	toMetadata := SignatureMetadata{
-		Angle: -45, X: 110, Y: y + 5, Width: 70, Height: 15,
+		Angle: -90, X: 110, Y: y + 5, Width: 70, Height: 15,
 	}
 	if toUser.SignatureMetadata.Width > 0 {
 		toMetadata = toUser.SignatureMetadata
@@ -441,14 +441,14 @@ func (g *DA2062Generator) storeSignatureMetadata(fromUser, toUser UserInfo, from
 	log.Printf("Signature metadata: %s", string(data))
 }
 
-// addDiagonalSignature adds a signature image with diagonal placement
+// addDiagonalSignature adds a signature image with 90-degree rotation for forms
 func (g *DA2062Generator) addDiagonalSignature(pdf *gofpdf.Fpdf, user UserInfo, defaultX, defaultY, defaultWidth, defaultHeight float64) {
 	// Use metadata if available, otherwise use defaults
 	x := defaultX
 	y := defaultY
 	width := defaultWidth
 	height := defaultHeight
-	angle := -45.0 // Default diagonal angle
+	angle := -90.0 // Default 90-degree rotation for forms
 
 	if user.SignatureMetadata.Width > 0 {
 		x = user.SignatureMetadata.X
@@ -458,7 +458,7 @@ func (g *DA2062Generator) addDiagonalSignature(pdf *gofpdf.Fpdf, user UserInfo, 
 		angle = user.SignatureMetadata.Angle
 	}
 
-	log.Printf("Adding diagonal signature at (%.1f, %.1f) with angle %.1f", x, y, angle)
+	log.Printf("Adding signature at (%.1f, %.1f) with %.1f° rotation", x, y, angle)
 
 	if user.SignatureURL == "" {
 		log.Printf("No signature URL provided")
@@ -475,8 +475,8 @@ func (g *DA2062Generator) addDiagonalSignature(pdf *gofpdf.Fpdf, user UserInfo, 
 	// Create rotated signature
 	rotatedFile, err := g.createDiagonalSignature(tempFile, angle)
 	if err != nil {
-		log.Printf("Failed to create diagonal signature: %v", err)
-		// Fallback to horizontal signature
+		log.Printf("Failed to create rotated signature: %v", err)
+		// Fallback to unrotated signature
 		g.addHorizontalSignature(pdf, tempFile, x, y, width, height)
 		return
 	}
@@ -485,15 +485,15 @@ func (g *DA2062Generator) addDiagonalSignature(pdf *gofpdf.Fpdf, user UserInfo, 
 	// Add the rotated signature to PDF
 	imageType := g.getImageType(rotatedFile)
 	if imageType != "" {
-		// Adjust position for centered diagonal placement
-		diagonalX := x + (width * 0.1)  // Slight offset for visual balance
-		diagonalY := y - (height * 0.2) // Move up slightly for diagonal effect
+		// Adjust position for centered rotated placement
+		adjustedX := x + (width * 0.1)  // Slight offset for visual balance
+		adjustedY := y - (height * 0.2) // Move up slightly for rotation effect
 
-		pdf.ImageOptions(rotatedFile, diagonalX, diagonalY, width, height, false, gofpdf.ImageOptions{
+		pdf.ImageOptions(rotatedFile, adjustedX, adjustedY, width, height, false, gofpdf.ImageOptions{
 			ImageType: imageType,
 		}, 0, "")
 	} else {
-		log.Printf("Unsupported image type for diagonal signature: %s", rotatedFile)
+		log.Printf("Unsupported image type for rotated signature: %s", rotatedFile)
 	}
 }
 
@@ -515,17 +515,17 @@ func (g *DA2062Generator) createDiagonalSignature(originalFile string, angle flo
 		return "", fmt.Errorf("failed to open signature: %w", err)
 	}
 
-	// Default angle is -45 degrees for diagonal placement
+	// Default angle is -90 degrees for form rotation
 	if angle == 0 {
-		angle = -45.0
+		angle = -90.0
 	}
 
-	// Rotate by specified angle (counter-clockwise for proper diagonal)
+	// Rotate by specified angle (counter-clockwise for proper orientation)
 	rotated := imaging.Rotate(src, angle, image.Transparent)
 
 	// Create temp file for rotated signature
 	tempDir := os.TempDir()
-	rotatedFile, err := os.CreateTemp(tempDir, "signature_diagonal_*.png")
+	rotatedFile, err := os.CreateTemp(tempDir, "signature_rotated_*.png")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
