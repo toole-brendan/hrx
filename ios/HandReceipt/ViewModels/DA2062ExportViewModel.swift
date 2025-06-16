@@ -200,6 +200,13 @@ class DA2062ExportViewModel: ObservableObject {
         )
         
         try await apiService.emailDA2062PDF(request: request)
+        
+        // Refresh documents to show the sender copy
+        await MainActor.run {
+            Task {
+                await DocumentService.shared.loadDocuments()
+            }
+        }
     }
     
     func sendHandReceipt(to recipientId: Int) async throws {
@@ -247,6 +254,13 @@ class DA2062ExportViewModel: ObservableObject {
         )
         
         _ = try await apiService.sendDA2062InApp(request: request)
+        
+        // Refresh documents to show the sender copy
+        await MainActor.run {
+            Task {
+                await DocumentService.shared.loadDocuments()
+            }
+        }
     }
 }
 

@@ -228,6 +228,18 @@ public struct DocumentsResponse: Codable {
         case count
         case unreadCount = "unread_count"
     }
+    
+    // Custom decoding to handle missing unread_count field gracefully
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Required fields
+        documents = try container.decode([Document].self, forKey: .documents)
+        count = try container.decode(Int.self, forKey: .count)
+        
+        // Optional field with fallback
+        unreadCount = try container.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
+    }
 }
 
 public struct DocumentResponse: Codable {

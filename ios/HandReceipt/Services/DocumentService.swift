@@ -21,7 +21,9 @@ class DocumentService: ObservableObject {
             documents = response.documents
             unreadCount = response.unreadCount
             calculateUnreadMaintenanceCount()
+            AppLogger.info("Documents loaded successfully: \(documents.count) total, \(unreadCount) unread")
         } catch {
+            AppLogger.error("Failed to load documents: \(error)")
             print("Failed to load documents: \(error)")
         }
         

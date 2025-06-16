@@ -143,7 +143,12 @@ func (h *DocumentHandler) GetDocuments(c *gin.Context) {
 	}
 
 	// Get unread count
-	unreadCount, _ := h.Repo.GetUnreadDocumentCount(userID)
+	unreadCount, err := h.Repo.GetUnreadDocumentCount(userID)
+	if err != nil {
+		// Log the error but don't fail the request
+		fmt.Printf("WARNING: Failed to get unread count for user %d: %v\n", userID, err)
+		unreadCount = 0
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"documents":    documents,
