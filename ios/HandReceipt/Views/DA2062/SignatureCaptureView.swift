@@ -14,7 +14,8 @@ struct SignatureCaptureView: View {
             VStack(spacing: 16) {
                 // Canvas
                 SignatureCanvas(canvas: $canvas, hasStrokes: $hasStrokes)
-                    .frame(maxWidth: .infinity, height: 200)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 200)
                     .background(Color.white)
                     .cornerRadius(8)
                     .overlay(

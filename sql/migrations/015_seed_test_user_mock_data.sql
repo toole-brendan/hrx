@@ -1,10 +1,10 @@
 -- Migration: 015_seed_test_user_mock_data.sql
--- Description: Populate comprehensive mock data for test user (toole.brendan@gmail.com) with new transfer offers system
+-- Description: Populate comprehensive mock data for test user (toole.brendan@gmail.com) with corrected schema
 
 -- Clear existing data first (optional - use with caution in production)
 -- Delete in proper order to respect foreign key constraints
 
--- Get user IDs first
+-- Get user IDs first (excluding admin)
 DO $$
 DECLARE
     user_ids INTEGER[];
@@ -34,28 +34,25 @@ BEGIN
     -- Delete user connections (both directions)
     DELETE FROM user_connections WHERE user_id = ANY(user_ids) OR connected_user_id = ANY(user_ids);
     
-    -- Finally delete users
-    DELETE FROM users WHERE id = ANY(user_ids);
+    -- Delete test users (keep admin and existing main user)
+    DELETE FROM users WHERE id = ANY(user_ids) AND email != 'toole.brendan@gmail.com';
 END $$;
 
--- 1. Create test users with updated password hash (no username field)
-INSERT INTO users (email, password, "name", rank, unit, phone, dodid, created_at, updated_at)
+-- 1. Create additional test users (toole.brendan@gmail.com already exists)
+INSERT INTO users (email, password_hash, first_name, last_name, rank, unit, phone, dodid, created_at, updated_at)
 VALUES 
-    ('toole.brendan@gmail.com', 
-     '$2a$10$D78v.wjjIXZNvKA5r/COb.jpm10XGmg5.gO0m0hKqAMuztodFqYW2',  -- bcrypt hash for "Yankees1!"
-     'Brendan Toole', '1LT', '2-506, 3BCT', '910-555-0123', '1234567890', NOW(), NOW()),
     ('john.doe@example.mil',
      '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
-     'John Doe', 'SFC', '2-506, 3BCT', '910-555-0124', '1234567891', NOW(), NOW()),
+     'John', 'Doe', 'SFC', '2-506, 3BCT', '910-555-0124', '1234567891', NOW(), NOW()),
     ('sarah.thompson@example.mil',
      '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
-     'Sarah Thompson', '1LT', '2-506, 3BCT', '910-555-0125', '1234567892', NOW(), NOW()),
+     'Sarah', 'Thompson', '1LT', '2-506, 3BCT', '910-555-0125', '1234567892', NOW(), NOW()),
     ('james.wilson@example.mil',
      '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
-     'James Wilson', 'SSG', '2-506, 3BCT', '910-555-0126', '1234567893', NOW(), NOW()),
+     'James', 'Wilson', 'SSG', '2-506, 3BCT', '910-555-0126', '1234567893', NOW(), NOW()),
     ('alice.smith@example.mil',
      '$2a$10$OO/VXUqj6dgahfl5haZmbO394yvakX8qd/48n1D5/snhbloAxiwQO',  -- bcrypt hash for "password123"
-     'Alice Smith', 'CPT', '2-506, 3BCT', '910-555-0127', '1234567894', NOW(), NOW())
+     'Alice', 'Smith', 'CPT', '2-506, 3BCT', '910-555-0127', '1234567894', NOW(), NOW())
 ON CONFLICT (email) DO NOTHING;
 
 -- 2. Establish user connections (network)
@@ -489,8 +486,8 @@ VALUES
 ON CONFLICT (nsn) DO NOTHING;
 
 -- Summary of test data created:
--- Users: 5 (Brendan + 4 friends)
--- User connections: 3 accepted, 1 pending
+-- Users: 6 total (1 existing + 1 admin + 4 new friends)
+-- User connections: 7 total (3 bidirectional accepted + 1 pending)
 -- Properties: 11 total (8 for Brendan, 1 each for John, Sarah, James)
 -- Transfer offers: 3 active offers showing different scenarios
 -- Traditional transfers: 2 completed (historical), 1 pending request
