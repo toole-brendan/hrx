@@ -1,11 +1,11 @@
 -- sql/migrations/019_da2062_signatures.sql
 CREATE TABLE IF NOT EXISTS da2062_signatures (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+    id BIGSERIAL PRIMARY KEY,
+    document_id BIGINT REFERENCES documents(id) ON DELETE CASCADE,
     
     -- User references for FROM/TO signatures only
-    from_user_id UUID REFERENCES users(id) NOT NULL,
-    to_user_id UUID REFERENCES users(id) NOT NULL,
+    from_user_id BIGINT REFERENCES users(id) NOT NULL,
+    to_user_id BIGINT REFERENCES users(id) NOT NULL,
     
     -- Signature image URLs
     from_signature_url TEXT,
@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS da2062_signatures (
     */
     
     -- Timestamps
-    signed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    signed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_da2062_signatures_document ON da2062_signatures(document_id);
