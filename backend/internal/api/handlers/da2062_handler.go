@@ -873,10 +873,10 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 
 		// Create document record for recipient (inbox)
 		subtype := "DA2062"
-		doc := &domain.Document{
+		recipientDoc := &domain.Document{
 			Type:            domain.DocumentTypeTransferForm,
 			Subtype:         &subtype,
-			Title:           title,
+			Title:           fmt.Sprintf("Received: %s", title),
 			SenderUserID:    userID,
 			RecipientUserID: req.ToUserID,
 			PropertyID:      nil,  // no single property association for multiple items
@@ -888,14 +888,37 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 		}
 		// Attach PDF URL if available
 		if fileURL != "" {
-			doc.Attachments = domain.JSONStringArray{fileURL}
+			recipientDoc.Attachments = domain.JSONStringArray{fileURL}
 		}
-		if err := h.Repo.CreateDocument(doc); err != nil {
-			log.Printf("ERROR: Failed to create document record: %v", err)
+		if err := h.Repo.CreateDocument(recipientDoc); err != nil {
+			log.Printf("ERROR: Failed to create document record for recipient: %v", err)
 			log.Printf("Document details: Type=%s, Title=%s, SenderID=%d, RecipientID=%d, Attachments=%v",
-				doc.Type, doc.Title, doc.SenderUserID, doc.RecipientUserID, doc.Attachments)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record", "details": err.Error()})
+				recipientDoc.Type, recipientDoc.Title, recipientDoc.SenderUserID, recipientDoc.RecipientUserID, recipientDoc.Attachments)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document record for recipient", "details": err.Error()})
 			return
+		}
+
+		// Create document record for sender (copy in their inbox)
+		senderDoc := &domain.Document{
+			Type:            domain.DocumentTypeTransferForm,
+			Subtype:         &subtype,
+			Title:           fmt.Sprintf("Sent: %s", title),
+			SenderUserID:    userID,
+			RecipientUserID: userID, // Sender gets a copy
+			PropertyID:      nil,
+			FormData:        "{}",
+			Description:     nil,
+			Attachments:     domain.JSONStringArray{},
+			Status:          domain.DocumentStatusRead, // Mark as read since sender created it
+			SentAt:          time.Now(),
+		}
+		// Attach PDF URL if available
+		if fileURL != "" {
+			senderDoc.Attachments = domain.JSONStringArray{fileURL}
+		}
+		if err := h.Repo.CreateDocument(senderDoc); err != nil {
+			log.Printf("WARNING: Failed to create document record for sender: %v", err)
+			// Don't fail the request if sender copy creation fails
 		}
 
 		// Log the export action to the ledger
@@ -903,10 +926,10 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
 		}
 
-		// Respond with the created document
+		// Respond with the created document (recipient's document)
 		c.JSON(http.StatusCreated, gin.H{
-			"document": doc,
-			"message":  fmt.Sprintf("DA 2062 sent to %s %s", recipient.Rank, recipient.LastName),
+			"document": recipientDoc,
+			"message":  fmt.Sprintf("DA 2062 sent to %s %s (copy saved to your Documents)", recipient.Rank, recipient.LastName),
 		})
 		return
 	}
@@ -928,13 +951,58 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			return
 		}
 
+		// Upload PDF to storage for sender's Documents inbox
+		ctx := c.Request.Context()
+		fileKey := fmt.Sprintf("da2062/email_%d_%d.pdf", userID, time.Now().UnixNano())
+		err = h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuffer.Bytes()), int64(pdfBuffer.Len()), "application/pdf")
+		if err != nil {
+			log.Printf("WARNING: Failed to upload PDF for sender's Documents: %v", err)
+		} else {
+			// Get a presigned URL for the PDF
+			fileURL, err := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour)
+			if err != nil {
+				log.Printf("Warning: could not get presigned URL for sender's copy: %v", err)
+				fileURL = ""
+			}
+
+			// Create document record for sender's inbox
+			var title string
+			if len(properties) == 1 {
+				title = fmt.Sprintf("Emailed Hand Receipt for %s", properties[0].Name)
+			} else {
+				title = fmt.Sprintf("Emailed Hand Receipt - %d Items", len(properties))
+			}
+
+			subtype := "DA2062"
+			senderDoc := &domain.Document{
+				Type:            domain.DocumentTypeTransferForm,
+				Subtype:         &subtype,
+				Title:           title,
+				SenderUserID:    userID,
+				RecipientUserID: userID, // Sender gets a copy
+				PropertyID:      nil,
+				FormData:        "{}",
+				Description:     nil,
+				Attachments:     domain.JSONStringArray{},
+				Status:          domain.DocumentStatusRead, // Mark as read since sender created it
+				SentAt:          time.Now(),
+			}
+			// Attach PDF URL if available
+			if fileURL != "" {
+				senderDoc.Attachments = domain.JSONStringArray{fileURL}
+			}
+			if err := h.Repo.CreateDocument(senderDoc); err != nil {
+				log.Printf("WARNING: Failed to create document record for sender's email copy: %v", err)
+			}
+		}
+
 		// Log to ledger
 		if err := h.Ledger.LogDA2062Export(userID, len(properties), "email", strings.Join(req.Recipients, ",")); err != nil {
 			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"message":     "DA 2062 emailed successfully",
+			"message":     "DA 2062 emailed successfully (copy saved to your Documents)",
 			"form_number": formNumber,
 			"recipients":  req.Recipients,
 			"item_count":  len(properties),

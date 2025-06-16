@@ -1,5 +1,4 @@
 import SwiftUI
-import MessageUI
 import UIKit
 
 // Disable emoji keyboard to prevent RTIInputSystemClient errors
@@ -17,15 +16,15 @@ extension UITextField {
 
 struct DA2062ExportView: View {
     @StateObject private var viewModel = DA2062ExportViewModel()
-    @State private var showingMailComposer = false
     @State private var showingShareSheet = false
     @State private var showingRecipientInput = false
-    @State private var showingEmailSheet = false
-    @State private var emailRecipients = ""
+
     @State private var generatedPDF: Data?
     @State private var isGenerating = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showSuccess = false
+    @State private var successMessage = ""
     @State private var showingUnitInfoEditor = false
     @State private var showingRecipientPicker = false
     @State private var selectedConnection: UserConnection?
@@ -87,16 +86,7 @@ struct DA2062ExportView: View {
         .keyboardAdaptive() // Add keyboard handling
         .ignoresSafeArea(.keyboard, edges: .bottom) // Add proper keyboard handling
         .navigationBarHidden(true)
-        .sheet(isPresented: $showingMailComposer) {
-            if let pdfData = generatedPDF {
-                MailComposerView(
-                    subject: "DA Form 2062 - \(viewModel.formNumber)",
-                    body: generateEmailBody(),
-                    recipients: emailRecipients.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) },
-                    attachments: [(data: pdfData, mimeType: "application/pdf", fileName: "DA2062_\(viewModel.formNumber).pdf")]
-                )
-            }
-        }
+
         .sheet(isPresented: $showingShareSheet) {
             if let pdfData = generatedPDF {
                 ShareSheet(items: [pdfData])
@@ -106,6 +96,16 @@ struct DA2062ExportView: View {
             Button("OK") { }
         } message: {
             Text(errorMessage)
+        }
+        .alert("✅ Success", isPresented: $showSuccess) {
+            Button("OK") { 
+                // Dismiss the view after successful operations
+                if successMessage.contains("Hand Receipt sent") || successMessage.contains("DA 2062 sent") {
+                    dismiss()
+                }
+            }
+        } message: {
+            Text(successMessage)
         }
         .sheet(isPresented: $showingUnitInfoEditor) {
             UnitInfoEditorView(unitInfo: $viewModel.unitInfo)
@@ -117,20 +117,7 @@ struct DA2062ExportView: View {
                 saveSignatureImage(image)
             }
         }
-        .sheet(isPresented: $showingEmailSheet) {
-            EmailRecipientsSheet(
-                emailRecipients: $emailRecipients,
-                onSend: {
-                    showingEmailSheet = false
-                    Task {
-                        await generateAndEmail()
-                    }
-                },
-                onCancel: {
-                    showingEmailSheet = false
-                }
-            )
-        }
+
         .sheet(isPresented: $showingRecipientPicker) {
             NavigationView {
                 VStack {
@@ -404,15 +391,7 @@ struct DA2062ExportView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                Divider()
-                    .padding(.horizontal, 16)
-                
-                MinimalToggleRow(
-                    isOn: $viewModel.groupByCategory,
-                    icon: "folder",
-                    title: "Group by Category",
-                    subtitle: "Organize items by type"
-                )
+
             }
             .cleanCard(padding: 0)
         }
@@ -422,27 +401,14 @@ struct DA2062ExportView: View {
         VStack(spacing: 12) {
             Button(action: generateAndShare) {
                 HStack {
-                    Image(systemName: selectedConnection != nil ? "paperplane.fill" : "square.and.arrow.up")
+                    Image(systemName: selectedConnection != nil ? "paperplane.fill" : "doc.pdf")
                         .font(.system(size: 16, weight: .regular))
-                    Text(selectedConnection != nil ? "Send Hand Receipt" : "Generate & Share")
+                    Text(selectedConnection != nil ? "Send Hand Receipt" : "Generate PDF")
                         .font(AppFonts.bodyMedium)
                 }
             }
             .buttonStyle(.minimalPrimary)
             .disabled(viewModel.selectedPropertyIDs.isEmpty || signatureImage == nil)
-            
-            Button(action: {
-                showingEmailSheet = true
-            }) {
-                HStack {
-                    Image(systemName: "envelope")
-                        .font(.system(size: 16, weight: .regular))
-                    Text("Email PDF")
-                        .font(AppFonts.bodyMedium)
-                }
-            }
-            .buttonStyle(.minimalSecondary)
-            .disabled(viewModel.selectedPropertyIDs.isEmpty || !MFMailComposeViewController.canSendMail() || selectedConnection == nil || signatureImage == nil)
             
             Button(action: { 
                 Task {
@@ -547,17 +513,7 @@ struct DA2062ExportView: View {
         }
     }
     
-    private func generateEmailBody() -> String {
-        """
-        Please find attached the DA Form 2062 Hand Receipt.
-        
-        Form Number: \(viewModel.formNumber)
-        Date: \(Date().formatted())
-        Items: \(viewModel.selectedPropertyIDs.count)
-        
-        This document was generated electronically via HandReceipt.
-        """
-    }
+
     
     private func generateAndShare() {
         Task {
@@ -569,11 +525,12 @@ struct DA2062ExportView: View {
                     AppLogger.debug("Sending hand receipt to user ID: \(recipientUser.id)")
                     try await viewModel.sendHandReceipt(to: recipientUser.id)
                     isGenerating = false
-                    // Show success alert
-                    let rank = recipientUser.rank ?? ""
+                    // Show success alert (name already includes rank)
                     let name = recipientUser.name
-                    errorMessage = "Hand Receipt sent to \(rank) \(name)"
-                    showError = true
+                    let itemCount = viewModel.selectedPropertyIDs.count
+                    let itemText = itemCount == 1 ? "item" : "items"
+                    successMessage = "Hand Receipt sent to \(name)\n\n\(itemCount) \(itemText) transferred successfully\n\nA copy has been saved to your Documents inbox"
+                    showSuccess = true
                 } else {
                     // No recipient selected - generate PDF for sharing
                     AppLogger.debug("Generating PDF for share sheet")
@@ -589,49 +546,25 @@ struct DA2062ExportView: View {
                 if let apiError = error as? APIService.APIError {
                     switch apiError {
                     case .serverError(_, let message):
-                        errorMessage = message ?? "Server error occurred"
+                        errorMessage = message ?? "Server error occurred. Please try again or contact support."
                     case .badRequest(let message):
-                        errorMessage = message ?? "Bad request"
+                        errorMessage = message ?? "Invalid request. Please check your selection and try again."
                     case .unauthorized:
-                        errorMessage = "Authentication required. Please log in again."
+                        errorMessage = "Authentication expired. Please log in again."
                     case .notFound:
-                        errorMessage = "The requested resource was not found."
+                        errorMessage = "Recipient not found or no longer available."
                     default:
-                        errorMessage = "An error occurred. Please try again."
+                        errorMessage = "Unable to send hand receipt. Please try again."
                     }
                 } else {
-                    errorMessage = "Unable to complete export. Please check your connection and try again."
+                    errorMessage = "Network connection failed. Please check your internet connection and try again."
                 }
                 showError = true
             }
         }
     }
     
-    private func generateAndEmail() async {
-        isGenerating = true
-        do {
-            if emailRecipients.trimmingCharacters(in: .whitespaces).isEmpty {
-                generatedPDF = try await viewModel.generatePDF()
-                isGenerating = false
-                showingMailComposer = true
-            } else {
-                let recipients = emailRecipients
-                    .components(separatedBy: ",")
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
-                
-                try await viewModel.emailPDF(to: recipients)
-                isGenerating = false
-                
-                errorMessage = "DA 2062 sent successfully to \(recipients.count) recipient(s)"
-                showError = true
-            }
-        } catch {
-            isGenerating = false
-            errorMessage = error.localizedDescription
-            showError = true
-        }
-    }
+
     
     private func sendHandReceiptInApp() async {
         guard let connection = selectedConnection,
@@ -641,12 +574,13 @@ struct DA2062ExportView: View {
             AppLogger.debug("Sending hand receipt in-app to user ID: \(recipientUser.id)")
             try await viewModel.sendHandReceipt(to: recipientUser.id)
             isGenerating = false
-            // Show success alert
-            let rank = recipientUser.rank ?? ""
+            // Show success alert (name already includes rank)
             let name = recipientUser.name
-            errorMessage = "Hand Receipt sent to \(rank) \(name)"
-            showError = true
-            // Dismiss the picker and export view after success
+            let itemCount = viewModel.selectedPropertyIDs.count
+            let itemText = itemCount == 1 ? "item" : "items"
+            successMessage = "Hand Receipt sent to \(name)\n\n\(itemCount) \(itemText) transferred successfully\n\nA copy has been saved to your Documents inbox"
+            showSuccess = true
+            // Dismiss the picker after success
             showingRecipientPicker = false
         } catch {
             isGenerating = false
@@ -656,18 +590,18 @@ struct DA2062ExportView: View {
             if let apiError = error as? APIService.APIError {
                 switch apiError {
                 case .serverError(_, let message):
-                    errorMessage = message ?? "Server error occurred"
+                    errorMessage = message ?? "Server error occurred. Please try again or contact support."
                 case .badRequest(let message):
-                    errorMessage = message ?? "Bad request"
+                    errorMessage = message ?? "Invalid request. Please check your selection and try again."
                 case .unauthorized:
-                    errorMessage = "Authentication required. Please log in again."
+                    errorMessage = "Authentication expired. Please log in again."
                 case .notFound:
-                    errorMessage = "The requested resource was not found."
+                    errorMessage = "Recipient not found or no longer available."
                 default:
-                    errorMessage = "An error occurred. Please try again."
+                    errorMessage = "Unable to send hand receipt. Please try again."
                 }
             } else {
-                errorMessage = "Unable to send hand receipt. Please check your connection and try again."
+                errorMessage = "Network connection failed. Please check your internet connection and try again."
             }
             showError = true
         }
@@ -870,40 +804,7 @@ struct MinimalLoadingOverlay: View {
     }
 }
 
-// MARK: - Mail and Share Components
-
-struct MailComposerView: UIViewControllerRepresentable {
-    let subject: String
-    let body: String
-    let recipients: [String]
-    let attachments: [(data: Data, mimeType: String, fileName: String)]
-    
-    func makeUIViewController(context: Context) -> MFMailComposeViewController {
-        let composer = MFMailComposeViewController()
-        composer.mailComposeDelegate = context.coordinator
-        composer.setSubject(subject)
-        composer.setMessageBody(body, isHTML: false)
-        composer.setToRecipients(recipients)
-        
-        for attachment in attachments {
-            composer.addAttachmentData(attachment.data, mimeType: attachment.mimeType, fileName: attachment.fileName)
-        }
-        
-        return composer
-    }
-    
-    func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-    
-    class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
-        func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
-            controller.dismiss(animated: true)
-        }
-    }
-}
+// MARK: - Share Components
 
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
