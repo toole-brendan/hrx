@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
@@ -29,11 +31,30 @@ type UnitInfo struct {
 }
 
 type UserInfo struct {
-	Name         string `json:"name"`
-	Rank         string `json:"rank"`
-	Title        string `json:"title"`
-	Phone        string `json:"phone"`
-	SignatureURL string `json:"signature_url"`
+	Name              string            `json:"name"`
+	Rank              string            `json:"rank"`
+	Title             string            `json:"title"`
+	Phone             string            `json:"phone"`
+	SignatureURL      string            `json:"signature_url"`
+	SignatureMetadata SignatureMetadata `json:"signature_metadata,omitempty"`
+}
+
+// New structure for signature positioning
+type SignatureMetadata struct {
+	Angle  float64 `json:"angle"`  // Rotation angle (default -45)
+	X      float64 `json:"x"`      // X position
+	Y      float64 `json:"y"`      // Y position
+	Width  float64 `json:"width"`  // Signature width
+	Height float64 `json:"height"` // Signature height
+}
+
+// Structure to store signature data for the database
+type DA2062SignatureData struct {
+	FromUserID    string            `json:"from_user_id"`
+	ToUserID      string            `json:"to_user_id"`
+	FromSignature SignatureMetadata `json:"from"`
+	ToSignature   SignatureMetadata `json:"to"`
+	SignedAt      time.Time         `json:"signed_at"`
 }
 
 type GenerateOptions struct {
@@ -347,122 +368,128 @@ func (g *DA2062Generator) downloadImage(url string) (string, error) {
 }
 
 func (g *DA2062Generator) addSignatureSection(pdf *gofpdf.Fpdf, fromUser, toUser UserInfo) {
-	// Use correct Y position from template (220 instead of 250)
-	y := 220.0
+	y := 240.0 // Position near bottom of page
 	pdf.SetY(y)
 
-	// Load template for exact positioning
-	template, err := g.loadTemplate()
-	if err != nil {
-		log.Printf("Warning: Could not load template for signature positioning: %v", err)
-		// Fallback to default positioning
-		g.addSignatureSectionFallback(pdf, fromUser, toUser, y)
-		return
-	}
+	// Add signature section divider
+	pdf.SetDrawColor(0, 0, 0)
+	pdf.Line(10, y-5, 200, y-5)
 
-	// Add signature section header
-	pdf.SetFont("Arial", "B", 9)
-	pdf.CellFormat(0, 5, "SIGNATURE SECTION", "0", 1, "L", false, 0, "")
-	pdf.Ln(2)
-
-	// Get template signature fields
-	signatures := template.Sections.SignatureSection.Signatures
-	if len(signatures) < 4 {
-		log.Printf("Warning: Template has insufficient signature fields (%d), using fallback", len(signatures))
-		g.addSignatureSectionFallback(pdf, fromUser, toUser, y)
-		return
-	}
-
-	// Add all 4 signature fields as per official template
-	g.addSignatureField(pdf, signatures[0], fromUser, "holder")       // Hand Receipt Holder signature
-	g.addSignatureField(pdf, signatures[1], fromUser, "holder_name")  // Hand Receipt Holder printed name
-	g.addSignatureField(pdf, signatures[2], toUser, "commander")      // Company Commander signature
-	g.addSignatureField(pdf, signatures[3], toUser, "commander_name") // Company Commander printed name
-
-	// Add witness signature fields (military standard requires 4 total)
-	// Note: For now using fromUser/toUser, but this should be extended to support witness users
-	pdf.Ln(5)
+	// FROM signature block (left side)
 	pdf.SetFont("Arial", "", 7)
-	pdf.CellFormat(95, 4, "WITNESS (if required):", "0", 0, "L", false, 0, "")
-	pdf.CellFormat(95, 4, "DATE:", "0", 1, "L", false, 0, "")
+	pdf.SetXY(10, y)
+	pdf.CellFormat(80, 4, "HAND RECEIPT HOLDER", "0", 1, "L", false, 0, "")
 
-	// Signature lines for witnesses
-	pdf.SetY(pdf.GetY() + 2)
-	pdf.CellFormat(95, 15, "", "T", 0, "L", false, 0, "")
-	pdf.CellFormat(95, 15, "", "T", 1, "L", false, 0, "")
+	// Add FROM signature diagonally
+	fromMetadata := SignatureMetadata{
+		Angle: -45, X: 10, Y: y + 5, Width: 70, Height: 15,
+	}
+	if fromUser.SignatureMetadata.Width > 0 {
+		fromMetadata = fromUser.SignatureMetadata
+	}
+	fromUser.SignatureMetadata = fromMetadata
+	g.addDiagonalSignature(pdf, fromUser, fromMetadata.X, fromMetadata.Y, fromMetadata.Width, fromMetadata.Height)
+
+	// FROM printed name and date
+	pdf.SetXY(10, y+20)
+	pdf.SetFont("Arial", "", 8)
+	pdf.CellFormat(80, 4, fmt.Sprintf("%s %s", fromUser.Rank, fromUser.Name), "T", 0, "L", false, 0, "")
+	pdf.SetXY(90, y+20)
+	pdf.SetFont("Arial", "", 7)
+	pdf.CellFormat(20, 4, time.Now().Format("02 Jan 2006"), "0", 1, "L", false, 0, "")
+
+	// TO signature block (right side)
+	pdf.SetFont("Arial", "", 7)
+	pdf.SetXY(110, y)
+	pdf.CellFormat(85, 4, "RECEIVING OFFICER", "0", 1, "L", false, 0, "")
+
+	// Add TO signature diagonally
+	toMetadata := SignatureMetadata{
+		Angle: -45, X: 110, Y: y + 5, Width: 70, Height: 15,
+	}
+	if toUser.SignatureMetadata.Width > 0 {
+		toMetadata = toUser.SignatureMetadata
+	}
+	toUser.SignatureMetadata = toMetadata
+	g.addDiagonalSignature(pdf, toUser, toMetadata.X, toMetadata.Y, toMetadata.Width, toMetadata.Height)
+
+	// TO printed name and date
+	pdf.SetXY(110, y+20)
+	pdf.SetFont("Arial", "", 8)
+	pdf.CellFormat(85, 4, fmt.Sprintf("%s %s", toUser.Rank, toUser.Name), "T", 0, "L", false, 0, "")
+	pdf.SetXY(195, y+20)
+	pdf.SetFont("Arial", "", 7)
+	pdf.CellFormat(20, 4, time.Now().Format("02 Jan 2006"), "0", 1, "L", false, 0, "")
+
+	// Store signature metadata for database
+	g.storeSignatureMetadata(fromUser, toUser, fromMetadata, toMetadata)
 }
 
-// addSignatureField adds a single signature field with diagonal placement
-func (g *DA2062Generator) addSignatureField(pdf *gofpdf.Fpdf, field TemplateElement, user UserInfo, fieldType string) {
-	x := field.X
-	y := field.Y
-	width := field.Width
-	height := field.Height
-
-	// Position for this field
-	pdf.SetXY(x, y)
-	pdf.SetFont("Arial", "", 7)
-
-	// Add field label
-	if field.Label != "" {
-		pdf.CellFormat(width, 4, field.Label, "0", 1, "L", false, 0, "")
-		pdf.SetXY(x, y+4)
+// Helper to store signature metadata
+func (g *DA2062Generator) storeSignatureMetadata(fromUser, toUser UserInfo, fromMeta, toMeta SignatureMetadata) {
+	// This metadata can be passed back to the handler for storage
+	signatureData := DA2062SignatureData{
+		FromUserID:    fromUser.Name, // Should be actual user ID
+		ToUserID:      toUser.Name,   // Should be actual user ID
+		FromSignature: fromMeta,
+		ToSignature:   toMeta,
+		SignedAt:      time.Now(),
 	}
 
-	// Add signature line
-	pdf.CellFormat(width, height-4, "", "T", 1, "L", false, 0, "")
-
-	// Add diagonal signature if available
-	signatureY := y + 4
-	if user.SignatureURL != "" && (fieldType == "holder" || fieldType == "commander") {
-		g.addDiagonalSignature(pdf, user.SignatureURL, x, signatureY, width, height-4)
-	}
-
-	// Add printed name for name fields
-	if fieldType == "holder_name" || fieldType == "commander_name" {
-		pdf.SetXY(x, signatureY+2)
-		pdf.SetFont("Arial", "", 8)
-		nameText := fmt.Sprintf("%s %s", user.Rank, user.Name)
-		if fieldType == "commander_name" {
-			nameText = fmt.Sprintf("%s %s, %s", user.Rank, user.Name, user.Title)
-		}
-		pdf.CellFormat(width, 8, nameText, "0", 1, "L", false, 0, "")
-	}
+	// Log for now - in production, return this data
+	data, _ := json.Marshal(signatureData)
+	log.Printf("Signature metadata: %s", string(data))
 }
 
 // addDiagonalSignature adds a signature image with diagonal placement
-func (g *DA2062Generator) addDiagonalSignature(pdf *gofpdf.Fpdf, signatureURL string, x, y, width, height float64) {
-	log.Printf("Adding diagonal signature: %s at position (%.1f, %.1f)", signatureURL, x, y)
+func (g *DA2062Generator) addDiagonalSignature(pdf *gofpdf.Fpdf, user UserInfo, defaultX, defaultY, defaultWidth, defaultHeight float64) {
+	// Use metadata if available, otherwise use defaults
+	x := defaultX
+	y := defaultY
+	width := defaultWidth
+	height := defaultHeight
+	angle := -45.0 // Default diagonal angle
 
-	tempFile, err := g.downloadImage(signatureURL)
+	if user.SignatureMetadata.Width > 0 {
+		x = user.SignatureMetadata.X
+		y = user.SignatureMetadata.Y
+		width = user.SignatureMetadata.Width
+		height = user.SignatureMetadata.Height
+		angle = user.SignatureMetadata.Angle
+	}
+
+	log.Printf("Adding diagonal signature at (%.1f, %.1f) with angle %.1f", x, y, angle)
+
+	if user.SignatureURL == "" {
+		log.Printf("No signature URL provided")
+		return
+	}
+
+	tempFile, err := g.downloadImage(user.SignatureURL)
 	if err != nil {
 		log.Printf("Failed to download signature: %v", err)
 		return
 	}
-	defer os.Remove(tempFile) // Clean up temp file
+	defer os.Remove(tempFile)
 
-	// Create rotated version of the signature
-	rotatedFile, err := g.createDiagonalSignature(tempFile)
+	// Create rotated signature
+	rotatedFile, err := g.createDiagonalSignature(tempFile, angle)
 	if err != nil {
 		log.Printf("Failed to create diagonal signature: %v", err)
 		// Fallback to horizontal signature
 		g.addHorizontalSignature(pdf, tempFile, x, y, width, height)
 		return
 	}
-	defer os.Remove(rotatedFile) // Clean up rotated file
+	defer os.Remove(rotatedFile)
 
-	// Determine image type
+	// Add the rotated signature to PDF
 	imageType := g.getImageType(rotatedFile)
 	if imageType != "" {
-		// Adjust dimensions for diagonal placement
-		diagonalWidth := width * 0.8 // Slightly smaller to fit diagonally
-		diagonalHeight := height * 0.8
+		// Adjust position for centered diagonal placement
+		diagonalX := x + (width * 0.1)  // Slight offset for visual balance
+		diagonalY := y - (height * 0.2) // Move up slightly for diagonal effect
 
-		// Center the diagonal signature in the field
-		centerX := x + (width-diagonalWidth)/2
-		centerY := y + (height-diagonalHeight)/2
-
-		pdf.ImageOptions(rotatedFile, centerX, centerY, diagonalWidth, diagonalHeight, false, gofpdf.ImageOptions{
+		pdf.ImageOptions(rotatedFile, diagonalX, diagonalY, width, height, false, gofpdf.ImageOptions{
 			ImageType: imageType,
 		}, 0, "")
 	} else {
@@ -481,105 +508,37 @@ func (g *DA2062Generator) addHorizontalSignature(pdf *gofpdf.Fpdf, tempFile stri
 }
 
 // createDiagonalSignature creates a rotated version of the signature image
-func (g *DA2062Generator) createDiagonalSignature(originalFile string) (string, error) {
-	// For now, we'll implement a simple approach using image transformation
-	// In a full implementation, you'd use image processing libraries like imaging/draw2d
+func (g *DA2062Generator) createDiagonalSignature(originalFile string, angle float64) (string, error) {
+	// Open the original image
+	src, err := imaging.Open(originalFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to open signature: %w", err)
+	}
 
-	// Create a temporary file for the rotated signature
+	// Default angle is -45 degrees for diagonal placement
+	if angle == 0 {
+		angle = -45.0
+	}
+
+	// Rotate by specified angle (counter-clockwise for proper diagonal)
+	rotated := imaging.Rotate(src, angle, image.Transparent)
+
+	// Create temp file for rotated signature
 	tempDir := os.TempDir()
 	rotatedFile, err := os.CreateTemp(tempDir, "signature_diagonal_*.png")
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp file for diagonal signature: %w", err)
+		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
-	rotatedFile.Close()
+	defer rotatedFile.Close()
 
-	// For now, return the original file (this would be replaced with actual rotation logic)
-	// TODO: Implement actual image rotation using imaging library
-	// This is a placeholder that copies the original file
-	originalData, err := os.ReadFile(originalFile)
+	// Save rotated image as PNG
+	err = imaging.Save(rotated, rotatedFile.Name())
 	if err != nil {
 		os.Remove(rotatedFile.Name())
-		return "", fmt.Errorf("failed to read original signature: %w", err)
-	}
-
-	err = os.WriteFile(rotatedFile.Name(), originalData, 0644)
-	if err != nil {
-		os.Remove(rotatedFile.Name())
-		return "", fmt.Errorf("failed to write diagonal signature: %w", err)
+		return "", fmt.Errorf("failed to save rotated signature: %w", err)
 	}
 
 	return rotatedFile.Name(), nil
-}
-
-// addSignatureSectionFallback provides fallback signature section when template loading fails
-func (g *DA2062Generator) addSignatureSectionFallback(pdf *gofpdf.Fpdf, fromUser, toUser UserInfo, y float64) {
-	pdf.SetY(y + 7) // Account for header
-
-	// Add the 4 required signature fields manually
-	pdf.SetFont("Arial", "", 7)
-
-	// Left column - Hand Receipt Holder
-	pdf.SetXY(10, y+10)
-	pdf.CellFormat(85, 4, "SIGNATURE OF HAND RECEIPT HOLDER", "0", 1, "L", false, 0, "")
-	pdf.SetXY(10, y+14)
-	pdf.CellFormat(85, 15, "", "T", 1, "L", false, 0, "")
-
-	// Add signature if available
-	if fromUser.SignatureURL != "" {
-		g.addDiagonalSignature(pdf, fromUser.SignatureURL, 10, y+14, 85, 15)
-	}
-
-	pdf.SetXY(10, y+31)
-	pdf.CellFormat(85, 4, "PRINTED NAME OF HAND RECEIPT HOLDER", "0", 1, "L", false, 0, "")
-	pdf.SetXY(10, y+35)
-	pdf.SetFont("Arial", "", 8)
-	pdf.CellFormat(85, 8, fmt.Sprintf("%s %s", fromUser.Rank, fromUser.Name), "T", 1, "L", false, 0, "")
-
-	// Right column - Company Commander
-	pdf.SetXY(105, y+10)
-	pdf.SetFont("Arial", "", 7)
-	pdf.CellFormat(90, 4, "SIGNATURE OF COMPANY COMMANDER OR AUTHORIZED REPRESENTATIVE", "0", 1, "L", false, 0, "")
-	pdf.SetXY(105, y+14)
-	pdf.CellFormat(90, 15, "", "T", 1, "L", false, 0, "")
-
-	// Add signature if available
-	if toUser.SignatureURL != "" {
-		g.addDiagonalSignature(pdf, toUser.SignatureURL, 105, y+14, 90, 15)
-	}
-
-	pdf.SetXY(105, y+31)
-	pdf.CellFormat(90, 4, "PRINTED NAME AND TITLE", "0", 1, "L", false, 0, "")
-	pdf.SetXY(105, y+35)
-	pdf.SetFont("Arial", "", 8)
-	pdf.CellFormat(90, 8, fmt.Sprintf("%s %s, %s", toUser.Rank, toUser.Name, toUser.Title), "T", 1, "L", false, 0, "")
-}
-
-// loadTemplate loads the DA2062 template (helper method)
-func (g *DA2062Generator) loadTemplate() (*DA2062Template, error) {
-	// Get the project root directory
-	pwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	// Navigate to the backend directory if we're not already there
-	templatePath := filepath.Join(pwd, "backend", "assets", "forms", "DA_Form_2062_reference.json")
-	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
-		// Try from current directory if backend path doesn't exist
-		templatePath = filepath.Join(pwd, "assets", "forms", "DA_Form_2062_reference.json")
-	}
-
-	data, err := os.ReadFile(templatePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read template file: %w", err)
-	}
-
-	var template DA2062Template
-	if err := json.Unmarshal(data, &template); err != nil {
-		return nil, fmt.Errorf("failed to parse template JSON: %w", err)
-	}
-
-	return &template, nil
 }
 
 // getImageType determines the image type from file extension

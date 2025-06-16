@@ -804,6 +804,34 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 	// Generate form number
 	formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), userID)
 
+	// Store signature data if signatures are included (signatures are always included per options above)
+	if fromUserInfo.SignatureURL != "" || toUserInfo.SignatureURL != "" {
+		// Create signature metadata for logging
+		signatureMetadata := map[string]interface{}{
+			"from": map[string]interface{}{
+				"angle":      -45,
+				"x":          10,
+				"y":          245,
+				"width":      70,
+				"height":     15,
+				"applied_at": time.Now(),
+			},
+			"to": map[string]interface{}{
+				"angle":      -45,
+				"x":          110,
+				"y":          245,
+				"width":      70,
+				"height":     15,
+				"applied_at": time.Now(),
+			},
+		}
+
+		// TODO: Implement da2062_signatures table insertion
+		// This would require adding the table operations to the repository
+		log.Printf("Signature data would be stored: from_user=%d, to_user=%d", userID, req.ToUserID)
+		log.Printf("Signature metadata: %+v", signatureMetadata)
+	}
+
 	// Handle in-app delivery to another user
 	if req.ToUserID != 0 {
 		// Verify the recipient is a connection/friend of the sender
