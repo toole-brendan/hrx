@@ -90,7 +90,7 @@ const Register: React.FC = () => {
         setLocation('/login');
       } else {
         const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
+        throw new Error(error.error || error.message || 'Registration failed');
       }
     } catch (error: any) {
       toast({
