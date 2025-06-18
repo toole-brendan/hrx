@@ -34,20 +34,10 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // TODO: These should come from API calls to get user connections and available units
   // Mock data for dropdown options - in production, these would come from an API
-  const recentTransferRecipients = [
-    { id: "1", name: "SGT James Wilson" },
-    { id: "2", name: "CPT Sarah Johnson" },
-    { id: "3", name: "SPC Michael Rodriguez" },
-    { id: "4", name: "2LT Thomas Brown" }
-  ];
-
-  const unitOptions = [
-    { id: "1", name: "Alpha Company, 2-506 IN" },
-    { id: "2", name: "Bravo Company, 2-506 IN" },
-    { id: "3", name: "Charlie Company, 2-506 IN" },
-    { id: "4", name: "HHC, 2-506 IN" }
-  ];
+  const mockConnections: { id: string; name: string }[] = [];
+  const unitOptions: { id: string; name: string }[] = [];
 
   // Create transfer mutation
   const createTransferMutation = useMutation({
@@ -167,7 +157,7 @@ const TransferRequestModal: React.FC<TransferRequestModalProps> = ({
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
                 <SelectContent>
-                  {recentTransferRecipients.map((person) => (
+                  {mockConnections.map((person) => (
                     <SelectItem key={person.id} value={person.name}>
                       {person.name}
                     </SelectItem>

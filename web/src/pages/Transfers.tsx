@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
 // import { useParams } from 'react-router-dom'; // Removed import as it's not installed/used
-import { user as mockUser } from "@/lib/mockData"; // Keep mockUser for now
 import { Transfer } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { recordToBlockchain, isBlockchainEnabled } from "@/lib/blockchain";
@@ -270,7 +269,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
               transferId: transfer.id,
               date: new Date().toISOString()
             },
-            user.name
+            user.name || currentUser || 'Unknown User'
           );
           console.log(`Blockchain record created: ${blockchainRecord.txId}`);
           // Optional: Add blockchain TX to toast?
@@ -282,8 +281,10 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     }
   };
 
-  // Use the mock user directly for the demo
-  const currentUser = mockUser.name; // "CPT Rodriguez, Michael"
+  // Use the actual authenticated user instead of mock data
+  const currentUser = user?.name || 
+    (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || 
+    'Unknown User';
 
   // Update useEffect to use query data
   useEffect(() => {

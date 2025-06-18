@@ -7,32 +7,6 @@ import {
   Notification 
 } from "@/types";
 
-// Mock User
-export const user: User = {
-  id: "RODMC01",
-  username: "michael.rodriguez",
-  name: "CPT Rodriguez, Michael",
-  rank: "Captain",
-  position: "Company Commander",
-  unit: "Bravo Company, 2-87 Infantry Battalion",
-  yearsOfService: 6,
-  commandTime: "3 months",
-  responsibility: "Primary Hand Receipt Holder for company-level property",
-  valueManaged: "$4.2M Equipment Value",
-  upcomingEvents: [
-    { title: "NTC Rotation Prep", date: "Ongoing" },
-    { title: "Equipment Reset", date: "In Progress" },
-    { title: "Command Maintenance", date: "Next Week" }
-  ],
-  equipmentSummary: {
-    vehicles: 72,
-    weapons: 143,
-    communications: 95,
-    opticalSystems: 63,
-    sensitiveItems: 210
-  }
-};
-
 // Mock Inventory Items
 export const inventory: Property[] = [
   {
