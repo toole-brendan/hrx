@@ -90,28 +90,35 @@ const Login: React.FC = () => {
     console.log("🔧 DEV LOGIN ACTIVATED! Using test credentials...");
     
     // Use test credentials to actually authenticate with the backend
-    form.setValue("email", "michael.rodriguez@example.com");
-    form.setValue("password", "password123");
+    form.setValue("email", "toole.brendan@gmail.com");
+    form.setValue("password", "Yankees1!");
     
     // Show loading state
     setIsLoading(true);
     
     try {
       // Perform actual login with test credentials
-      await login("michael.rodriguez@example.com", "password123");
+      await login("toole.brendan@gmail.com", "Yankees1!");
       console.log("✅ Dev login successful via API!");
       toast({
-        title: "Dev Login Successful",
-        description: "Welcome, Michael Rodriguez",
+        title: "🔧 Dev Login Successful",
+        description: "Logged in as Brendan Toole",
       });
       navigate("/dashboard");
     } catch (error) {
       console.error("❌ Dev login failed:", error);
+      
+      // More specific error handling
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
-        title: "Dev Login Failed",
-        description: "Could not authenticate with dev credentials",
+        title: "🔧 Dev Login Failed",
+        description: `Dev credentials failed: ${errorMessage}`,
         variant: "destructive",
       });
+      
+      // Reset form if dev login fails
+      form.setValue("email", "");
+      form.setValue("password", "");
     } finally {
       setIsLoading(false);
     }
@@ -221,7 +228,7 @@ const Login: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <span>Dev Login</span>
+                      <span>Sign In</span>
                       <i className="fas fa-arrow-right text-sm"></i>
                     </>
                   )}
