@@ -3,8 +3,10 @@ import { DocumentsInbox } from '@/components/documents/DocumentsInbox';
 
 export default function Documents() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <DocumentsInbox />
+    <div className="min-h-screen bg-app-background">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <DocumentsInbox />
+      </div>
     </div>
   );
 } 

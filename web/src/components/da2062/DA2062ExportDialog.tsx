@@ -7,14 +7,11 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
-import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Textarea } from '../ui/textarea';
-// Note: Replace with your actual UI components
 import { useToast } from '@/hooks/use-toast';
 import {
   Mail,
@@ -28,6 +25,14 @@ import {
   Filter,
   Loader2,
 } from 'lucide-react';
+
+// iOS Components
+import { 
+  CleanCard, 
+  ElegantSectionHeader, 
+  StatusBadge,
+  MinimalLoadingView
+} from '@/components/ios';
 
 interface Property {
   id: string;
@@ -266,9 +271,9 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-app-background">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-primary-text">
             <FileText className="h-5 w-5" />
             Export DA 2062 Hand Receipt
           </DialogTitle>
@@ -276,158 +281,173 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
 
         <div className="space-y-6">
           {/* Unit Information */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Building2 className="h-4 w-4" />
-                Unit Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="unitName" className="text-xs">Unit Name</Label>
-                  <Input
-                    id="unitName"
-                    value={unitInfo.unitName}
-                    onChange={(e) => setUnitInfo(prev => ({ ...prev, unitName: e.target.value }))}
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="dodaac" className="text-xs">DODAAC</Label>
-                  <Input
-                    id="dodaac"
-                    value={unitInfo.dodaac}
-                    onChange={(e) => setUnitInfo(prev => ({ ...prev, dodaac: e.target.value }))}
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="location" className="text-xs">Location</Label>
-                  <Input
-                    id="location"
-                    value={unitInfo.location}
-                    onChange={(e) => setUnitInfo(prev => ({ ...prev, location: e.target.value }))}
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="stockNumber" className="text-xs">Stock Number</Label>
-                  <Input
-                    id="stockNumber"
-                    value={unitInfo.stockNumber}
-                    onChange={(e) => setUnitInfo(prev => ({ ...prev, stockNumber: e.target.value }))}
-                    className="h-8"
-                  />
-                </div>
+          <CleanCard>
+            <div className="mb-4">
+              <ElegantSectionHeader 
+                title="UNIT INFORMATION" 
+                size="sm"
+                subtitle="Organization details"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="unitName" className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Unit Name</Label>
+                <Input
+                  id="unitName"
+                  value={unitInfo.unitName}
+                  onChange={(e) => setUnitInfo(prev => ({ ...prev, unitName: e.target.value }))}
+                  className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <Label htmlFor="dodaac" className="text-tertiary-text text-xs uppercase tracking-wide font-medium">DODAAC</Label>
+                <Input
+                  id="dodaac"
+                  value={unitInfo.dodaac}
+                  onChange={(e) => setUnitInfo(prev => ({ ...prev, dodaac: e.target.value }))}
+                  className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="location" className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Location</Label>
+                <Input
+                  id="location"
+                  value={unitInfo.location}
+                  onChange={(e) => setUnitInfo(prev => ({ ...prev, location: e.target.value }))}
+                  className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="stockNumber" className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Stock Number</Label>
+                <Input
+                  id="stockNumber"
+                  value={unitInfo.stockNumber}
+                  onChange={(e) => setUnitInfo(prev => ({ ...prev, stockNumber: e.target.value }))}
+                  className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+            </div>
+          </CleanCard>
 
           {/* Property Selection */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Select Properties
-                </div>
-                <Badge variant="secondary">
-                  {selectedCount} selected
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Quick Actions */}
-              <div className="flex items-center gap-2 mb-4">
-                <Button variant="outline" size="sm" onClick={selectAll}>
-                  Select All
-                </Button>
-                <Button variant="outline" size="sm" onClick={clearSelection}>
-                  Clear
-                </Button>
-                <Separator orientation="vertical" className="h-6" />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => selectByCategory('weapon')}
-                >
-                  Weapons Only
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => selectByCategory('equipment')}
-                >
-                  Equipment Only
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={selectSensitiveItems}
-                >
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Sensitive Items
-                </Button>
+          <CleanCard>
+            <div className="mb-4">
+              <div className="flex items-center justify-between">
+                <ElegantSectionHeader 
+                  title="SELECT PROPERTIES" 
+                  size="sm"
+                  subtitle="Choose items to include"
+                />
+                <StatusBadge status="pending" size="sm">
+                  {selectedCount} SELECTED
+                </StatusBadge>
               </div>
+            </div>
+            
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={selectAll}
+                className="rounded-none border-ios-border"
+              >
+                Select All
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearSelection}
+                className="rounded-none border-ios-border"
+              >
+                Clear
+              </Button>
+              <div className="h-6 w-px bg-ios-divider" />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => selectByCategory('weapon')}
+                className="rounded-none border-ios-border"
+              >
+                Weapons Only
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => selectByCategory('equipment')}
+                className="rounded-none border-ios-border"
+              >
+                Equipment Only
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={selectSensitiveItems}
+                className="rounded-none border-ios-border flex items-center gap-1"
+              >
+                <AlertTriangle className="h-3 w-3" />
+                Sensitive Items
+              </Button>
+            </div>
 
-              {/* Property List */}
-                             {isLoading ? (
-                 <div className="flex justify-center py-8">
-                   <Loader2 className="h-6 w-6 animate-spin" />
-                 </div>
-               ) : (
-                <div className="max-h-64 overflow-y-auto border rounded">
-                  {properties.map((property) => (
-                    <div
-                      key={property.id}
-                      className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => togglePropertySelection(property.id)}
-                    >
-                      <Checkbox
-                        checked={selectedPropertyIds.has(property.id)}
-                        onChange={() => togglePropertySelection(property.id)}
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{property.name}</div>
-                        <div className="text-xs text-gray-500">
-                          SN: {property.serialNumber}
-                          {property.nsn && ` • NSN: ${property.nsn}`}
-                        </div>
+            {/* Property List */}
+            {isLoading ? (
+              <MinimalLoadingView 
+                text="Loading properties..." 
+                size="md"
+                className="py-8"
+              />
+            ) : (
+              <div className="max-h-64 overflow-y-auto border border-ios-border rounded-none">
+                {properties.map((property) => (
+                  <div
+                    key={property.id}
+                    className="flex items-center gap-3 p-3 border-b border-ios-divider last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => togglePropertySelection(property.id)}
+                  >
+                    <Checkbox
+                      checked={selectedPropertyIds.has(property.id)}
+                      onChange={() => togglePropertySelection(property.id)}
+                      className="rounded-none"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-primary-text">{property.name}</div>
+                      <div className="text-xs text-secondary-text">
+                        SN: {property.serialNumber}
+                        {property.nsn && ` • NSN: ${property.nsn}`}
                       </div>
-                      {property.isSensitive && (
-                        <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      )}
-                      <Badge 
-                        variant={property.status === 'Operational' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {property.status}
-                      </Badge>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    {property.isSensitive && (
+                      <AlertTriangle className="h-4 w-4 text-ios-warning flex-shrink-0" />
+                    )}
+                    <StatusBadge 
+                      status={property.status === 'Operational' ? 'operational' : 'maintenance'}
+                      size="sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </CleanCard>
 
           {/* Export Options */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Settings className="h-4 w-4" />
-                Export Options
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <CleanCard>
+            <div className="mb-4">
+              <ElegantSectionHeader 
+                title="EXPORT OPTIONS" 
+                size="sm"
+                subtitle="Configure output format"
+              />
+            </div>
+            <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="groupByCategory"
                   checked={groupByCategory}
                   onCheckedChange={(checked) => setGroupByCategory(checked === true)}
+                  className="rounded-none"
                 />
-                <Label htmlFor="groupByCategory" className="text-sm">
+                <Label htmlFor="groupByCategory" className="text-sm text-primary-text font-normal cursor-pointer">
                   Group by Category
                 </Label>
               </div>
@@ -436,22 +456,25 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                   id="includeQRCodes"
                   checked={includeQRCodes}
                   onCheckedChange={(checked) => setIncludeQRCodes(checked === true)}
+                  className="rounded-none"
                 />
-                <Label htmlFor="includeQRCodes" className="text-sm">
+                <Label htmlFor="includeQRCodes" className="text-sm text-primary-text font-normal cursor-pointer">
                   Include QR Codes
                 </Label>
               </div>
 
-              <Separator />
+              <div className="h-px bg-ios-divider my-4" />
 
               {/* Export Mode */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Export Method</Label>
+                <Label className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Export Method</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant={exportMode === 'download' ? 'default' : 'outline'}
                     onClick={() => setExportMode('download')}
-                    className="justify-start"
+                    className={exportMode === 'download' 
+                      ? 'bg-primary-text hover:bg-black/90 text-white rounded-none' 
+                      : 'border-ios-border rounded-none'}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF
@@ -459,7 +482,9 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                   <Button
                     variant={exportMode === 'email' ? 'default' : 'outline'}
                     onClick={() => setExportMode('email')}
-                    className="justify-start"
+                    className={exportMode === 'email' 
+                      ? 'bg-primary-text hover:bg-black/90 text-white rounded-none' 
+                      : 'border-ios-border rounded-none'}
                   >
                     <Mail className="h-4 w-4 mr-2" />
                     Email PDF
@@ -467,8 +492,8 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                 </div>
 
                 {exportMode === 'email' && (
-                  <div>
-                    <Label htmlFor="emailRecipients" className="text-xs">
+                  <div className="mt-4">
+                    <Label htmlFor="emailRecipients" className="text-tertiary-text text-xs uppercase tracking-wide font-medium">
                       Email Recipients (comma-separated)
                     </Label>
                     <Textarea
@@ -476,22 +501,29 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                       value={emailRecipients}
                       onChange={(e) => setEmailRecipients(e.target.value)}
                       placeholder="email1@example.com, email2@example.com"
-                      className="h-20"
+                      className="mt-2 border-ios-border rounded-none resize-none focus:border-ios-accent focus:ring-0"
+                      rows={3}
                     />
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CleanCard>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isGenerating}>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            disabled={isGenerating}
+            className="border-ios-border rounded-none"
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleGenerate} 
             disabled={selectedCount === 0 || isGenerating}
+            className="bg-primary-text hover:bg-black/90 text-white rounded-none"
           >
             {isGenerating ? (
               <>

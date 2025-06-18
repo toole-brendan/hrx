@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { FileText, User, Calendar, Paperclip, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { getDocuments, markAsRead, Document } from '@/services/documentService';
 import { DocumentViewer } from './DocumentViewer';
+
+// iOS Components
+import { 
+  CleanCard, 
+  ElegantSectionHeader, 
+  StatusBadge,
+  MinimalEmptyState,
+  MinimalLoadingView
+} from '@/components/ios';
 
 export const DocumentsInbox: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('inbox');
@@ -38,66 +45,98 @@ export const DocumentsInbox: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading documents...</div>
-      </div>
+      <MinimalLoadingView 
+        text="Loading documents..." 
+        size="lg"
+        className="py-16"
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-destructive">Failed to load documents</div>
-      </div>
+      <CleanCard className="py-16 text-center">
+        <p className="text-ios-destructive text-lg">Failed to load documents</p>
+        <p className="text-secondary-text mt-2">Please try again later.</p>
+      </CleanCard>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Documents</h2>
-        <p className="text-muted-foreground">Maintenance forms and other documents</p>
+      {/* Header */}
+      <div className="mb-8">
+        <ElegantSectionHeader 
+          title="DOCUMENTS" 
+          className="mb-4"
+        />
+        
+        <div>
+          <h1 className="text-3xl font-light tracking-tight text-primary-text">
+            Document Management
+          </h1>
+          <p className="text-secondary-text mt-1">
+            Maintenance forms and official documents
+          </p>
+        </div>
       </div>
 
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="inbox" className="relative">
-            Inbox
-            {(data?.unread_count ?? 0) > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                {data?.unread_count}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="sent">Sent</TabsTrigger>
-          <TabsTrigger value="all">All Documents</TabsTrigger>
-        </TabsList>
+      {/* Tabs */}
+      <CleanCard padding="none">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+          <div className="border-b border-ios-border">
+            <TabsList className="grid grid-cols-3 w-full bg-transparent">
+              <TabsTrigger 
+                value="inbox" 
+                className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none relative"
+              >
+                INBOX
+                {(data?.unread_count ?? 0) > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 h-5 min-w-[1.25rem] bg-ios-destructive text-white rounded-full text-[10px] flex items-center justify-center absolute -top-1 -right-1">
+                    {data?.unread_count}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sent"
+                className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
+              >
+                SENT
+              </TabsTrigger>
+              <TabsTrigger 
+                value="all"
+                className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
+              >
+                ALL DOCUMENTS
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <TabsContent value={selectedTab} className="mt-6">
-          {(data?.documents.length ?? 0) === 0 ? (
-            <Card className="p-8 text-center">
-              <CardContent className="pt-6">
-                <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  {selectedTab === 'inbox' ? 'No documents received' : 
-                   selectedTab === 'sent' ? 'No documents sent' : 'No documents'}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {data?.documents.map((doc) => (
-                <DocumentCard
-                  key={doc.id}
-                  document={doc}
-                  selectedTab={selectedTab}
-                  onView={() => handleViewDocument(doc)}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value={selectedTab} className="p-6">
+            {(data?.documents.length ?? 0) === 0 ? (
+              <MinimalEmptyState
+                title={selectedTab === 'inbox' ? 'No documents received' : 
+                       selectedTab === 'sent' ? 'No documents sent' : 'No documents'}
+                description={selectedTab === 'inbox' ? 'New documents will appear here' : 
+                            selectedTab === 'sent' ? 'Documents you send will appear here' : 
+                            'Your document history will appear here'}
+                icon={<FileText className="h-12 w-12" />}
+              />
+            ) : (
+              <div className="space-y-4">
+                {data?.documents.map((doc) => (
+                  <DocumentCard
+                    key={doc.id}
+                    document={doc}
+                    selectedTab={selectedTab}
+                    onView={() => handleViewDocument(doc)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CleanCard>
 
       {/* Document Viewer */}
       {selectedDocument && (
@@ -125,60 +164,67 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, selectedTab, onVi
   const isUnread = document.status === 'unread';
 
   return (
-    <Card
-      className={`p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
-        isUnread ? 'border-primary bg-primary/5' : ''
-      }`}
+    <CleanCard
+      hoverable
       onClick={onView}
+      className={isUnread ? 'border-ios-accent bg-ios-accent/5' : ''}
     >
-      <CardContent className="p-0">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              {isUnread && (
-                <Badge variant="secondary" className="text-xs">
-                  NEW
-                </Badge>
-              )}
-              <Badge variant="outline" className="text-xs">
-                {document.subtype || document.type}
-              </Badge>
-            </div>
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            {isUnread && (
+              <StatusBadge status="pending" size="sm">
+                NEW
+              </StatusBadge>
+            )}
+            <span className="text-xs uppercase tracking-wide text-tertiary-text font-medium">
+              {document.subtype || document.type}
+            </span>
+          </div>
 
-            <h3 className="font-medium mb-2 line-clamp-2">{document.title}</h3>
+          <h3 className="font-medium text-primary-text mb-2 line-clamp-2">
+            {document.title}
+          </h3>
 
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+          <div className="flex items-center gap-4 text-sm text-secondary-text mb-2">
+            <span className="flex items-center gap-1">
+              <User className="w-3 h-3" />
+              {selectedTab === 'sent'
+                ? `To: ${document.recipient?.rank || ''} ${document.recipient?.name || 'Unknown'}`
+                : `From: ${document.sender?.rank || ''} ${document.sender?.name || 'Unknown'}`
+              }
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {format(new Date(document.sentAt), 'MMM d, yyyy')}
+            </span>
+            {attachments.length > 0 && (
               <span className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                {selectedTab === 'sent'
-                  ? `To: ${document.recipient?.rank || ''} ${document.recipient?.name || 'Unknown'}`
-                  : `From: ${document.sender?.rank || ''} ${document.sender?.name || 'Unknown'}`
-                }
+                <Paperclip className="w-3 h-3" />
+                {attachments.length}
               </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {format(new Date(document.sentAt), 'MMM d, yyyy')}
-              </span>
-              {attachments.length > 0 && (
-                <span className="flex items-center gap-1">
-                  <Paperclip className="w-3 h-3" />
-                  {attachments.length}
-                </span>
-              )}
-            </div>
-
-            {document.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {document.description}
-              </p>
             )}
           </div>
 
-          <Button variant="ghost" size="sm" className="ml-4">
-            <Eye className="w-4 h-4" />
-          </Button>
+          {document.description && (
+            <p className="text-sm text-tertiary-text line-clamp-2">
+              {document.description}
+            </p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="ml-4 hover:bg-gray-100 rounded-none"
+          onClick={(e) => {
+            e.stopPropagation();
+            onView();
+          }}
+        >
+          <Eye className="w-4 h-4" />
+        </Button>
+      </div>
+    </CleanCard>
   );
 }; 
