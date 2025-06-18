@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* D-Din Font */
+/* iOS-Matching Font System */
 @font-face {
   font-family: 'D-Din';
   src: url('/fonts/d-din.woff2') format('woff2');
@@ -81,81 +81,256 @@
   --transition-slow: 500ms;
   
   /* Radius */
-  --radius: 0rem; /* 8VC uses square corners */
+  --radius: 0rem; /* iOS uses minimal rounded corners */
   
-  /* 8VC Light Theme Color Palette as DEFAULT */
-  /* Base colors */
-  --background: 0 0% 100%; /* White */
-  --foreground: 0 0% 7%; /* Dark gray #111111 */
+  /* iOS AppColors - Exact matches from AppColors.swift */
+  --app-background: #FAFAFA;
+  --secondary-background: #FFFFFF;
+  --tertiary-background: #F5F5F5;
+  --elevated-background: #FFFFFF;
   
-  /* Card colors */
-  --card: 0 0% 92%; /* Light gray - Adjusted slightly darker */
-  --card-foreground: 0 0% 7%; /* Dark gray text */
+  --primary-text: #000000;
+  --secondary-text: #4A4A4A;
+  --tertiary-text: #6B6B6B;
+  --quaternary-text: #9B9B9B;
   
-  /* Popover colors */
+  --accent: #0066CC;
+  --accent-hover: #0052A3;
+  --accent-muted: #E6F0FF;
+  
+  --destructive: #DC3545;
+  --destructive-dim: #B02A37;
+  --success: #28A745;
+  --success-dim: #1E7B34;
+  --warning: #FFC107;
+  --warning-dim: #E6AC00;
+  
+  --border: #E0E0E0;
+  --border-strong: #CCCCCC;
+  --divider: #F0F0F0;
+  --border-muted: #F0F0F0;
+  
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --overlay-background: rgba(0, 0, 0, 0.5);
+  
+  /* iOS Component-specific colors */
+  --weapons-category: #DC3545;
+  --communications-category: #0066CC;
+  --optics-category: #28A745;
+  --vehicles-category: #FFC107;
+  --electronics-category: #6F42C1;
+
+  /* Tailwind-compatible color mappings */
+  --background: 0 0% 98%; /* #FAFAFA */
+  --foreground: 0 0% 0%; /* #000000 */
+  
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 0 0% 0%; /* #000000 */
+  
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 7%;
+  --popover-foreground: 0 0% 0%;
   
-  /* Primary colors - Updated Primary Blue */
-  --primary: 217 91% 75%; /* Even Lighter Blue */
+  --primary: 213 100% 40%; /* #0066CC */
   --primary-foreground: 0 0% 100%;
-  --primary-50: 264 100% 97%;
-  --primary-100: 264 100% 94%;
-  --primary-200: 264 95% 88%;
-  --primary-300: 264 90% 80%;
-  --primary-400: 264 85% 70%;
-  --primary-500: 264 64% 52%; /* Main purple */
-  --primary-600: 264 70% 48%;
-  --primary-700: 264 75% 42%;
-  --primary-800: 264 80% 35%;
-  --primary-900: 264 85% 30%;
   
-  /* Secondary colors */
-  --secondary: 264 46% 60%; /* Lighter purple #9E77ED */
+  --secondary: 0 0% 29%; /* #4A4A4A */
   --secondary-foreground: 0 0% 100%;
   
-  /* Muted colors */
-  --muted: 0 0% 94%; /* Light gray - Adjusted slightly darker */
-  --muted-foreground: 0 0% 40%; /* Medium gray #666666 */
+  --muted: 0 0% 96%; /* #F5F5F5 */
+  --muted-foreground: 0 0% 42%; /* #6B6B6B */
   
-  /* Accent colors */
-  --accent: 264 64% 52%; /* Same as primary */
+  --accent: 213 100% 40%; /* #0066CC */
   --accent-foreground: 0 0% 100%;
   
-  /* States */
-  --destructive: 0 70% 50%;
+  --destructive: 354 70% 54%;
   --destructive-foreground: 0 0% 100%;
   
-  --success: 142 76% 36%;
+  --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
   
-  --warning: 38 92% 50%;
+  --warning: 45 100% 51%;
   --warning-foreground: 0 0% 0%;
   
-  --info: 218 81% 59%;
+  --info: 213 100% 40%;
   --info-foreground: 0 0% 100%;
   
-  /* Border & input */
-  --border: 0 0% 30%; /* Updated: Darker gray for light mode border */
-  --input: 0 0% 94%; /* Adjusted to match muted */
-  --ring: 264 64% 52%;
+  --border: 0 0% 88%; /* #E0E0E0 */
+  --input: 0 0% 96%; /* #F5F5F5 */
+  --ring: 213 100% 40%; /* #0066CC */
   
   /* Chart colors */
-  --chart-1: 264 64% 52%;
-  --chart-2: 244 63% 50%;
-  --chart-3: 324 64% 55%;
-  --chart-4: 38 92% 50%;
-  --chart-5: 184 80% 45%;
+  --chart-1: 213 100% 40%;
+  --chart-2: 354 70% 54%;
+  --chart-3: 142 71% 45%;
+  --chart-4: 45 100% 51%;
+  --chart-5: 271 81% 56%;
   
-  /* Sidebar colors for light mode */
-  --sidebar-background: 0 0% 92%; /* Updated: Match adjusted card background (Slightly Darker Gray) */
-  --sidebar-foreground: 0 0% 7%; /* Dark gray */
-  --sidebar-primary: 264 64% 52%; /* 8VC Purple */
+  /* Sidebar colors matching iOS */
+  --sidebar-background: 0 0% 98%; /* #FAFAFA */
+  --sidebar-foreground: 0 0% 0%; /* #000000 */
+  --sidebar-primary: 213 100% 40%; /* #0066CC */
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 264 64% 52%;
+  --sidebar-accent: 213 100% 40%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 0 0% 30%; /* Updated: Match main border */
-  --sidebar-ring: 264 64% 52%;
+  --sidebar-border: 0 0% 88%; /* #E0E0E0 */
+  --sidebar-ring: 213 100% 40%;
+}
+
+/* iOS Typography Scale */
+.font-micro { font-size: 11px; line-height: 1rem; }
+.font-caption { font-size: 13px; line-height: 1.25rem; }
+.font-body { font-size: 16px; line-height: 1.5rem; }
+.font-subhead { font-size: 18px; line-height: 1.75rem; }
+.font-headline { font-size: 24px; line-height: 2rem; }
+.font-title { font-size: 32px; line-height: 2.5rem; }
+.font-hero { font-size: 48px; line-height: 1; }
+
+/* iOS Letter spacing (kerning) */
+.kerning-tight { letter-spacing: -0.5px; }
+.kerning-normal { letter-spacing: 0; }
+.kerning-wide { letter-spacing: 1px; }
+.kerning-ultra-wide { letter-spacing: 2px; }
+.kerning-military { letter-spacing: 2px; }
+
+/* iOS Component Styles */
+.ios-card {
+  background: var(--secondary-background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+/* iOS Form Styles - Underlined inputs matching iOS UnderlinedTextField */
+.ios-input {
+  border: 0;
+  border-bottom: 2px solid var(--border);
+  border-radius: 0;
+  padding: 8px 0;
+  font-size: 16px;
+  color: var(--primary-text);
+  background: transparent;
+  transition: border-color 0.2s ease;
+}
+
+.ios-input:focus {
+  outline: none;
+  border-bottom-color: var(--primary-text);
+  border-bottom-width: 2px;
+}
+
+.ios-input::placeholder {
+  color: var(--quaternary-text);
+}
+
+.ios-label {
+  color: var(--tertiary-text);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* iOS Button Styles */
+.ios-button-primary {
+  background: var(--primary-text);
+  color: white;
+  padding: 24px 32px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 16px;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.ios-button-primary:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.ios-button-secondary {
+  background: transparent;
+  color: var(--primary-text);
+  padding: 14px 32px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+/* iOS Link Styles */
+.ios-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 400;
+}
+
+.ios-link:hover {
+  text-decoration: underline;
+}
+
+/* iOS Status Badge Styles */
+.ios-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ios-badge.success {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.ios-badge.warning {
+  background: rgba(255, 193, 7, 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.ios-badge.error {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--destructive);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+/* Dark mode - iOS style (if needed) */
+.dark {
+  --app-background: #000000;
+  --secondary-background: #111111;
+  --tertiary-background: #1A1A1A;
+  --elevated-background: #111111;
+  
+  --primary-text: #FFFFFF;
+  --secondary-text: #CCCCCC;
+  --tertiary-text: #999999;
+  --quaternary-text: #666666;
+  
+  --border: #333333;
+  --border-strong: #444444;
+  --divider: #2A2A2A;
+  --border-muted: #2A2A2A;
+  
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  
+  /* Tailwind-compatible dark mode colors */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 100%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 60%;
+  --border: 0 0% 20%;
+  --input: 0 0% 10%;
 }
 
 /* Light mode is now the default theme */

@@ -1,0 +1,148 @@
+import React from 'react';
+import { cn } from '@/lib/utils';
+
+interface MinimalLoadingViewProps {
+  size?: 'sm' | 'md' | 'lg';
+  text?: string;
+  className?: string;
+  overlay?: boolean;
+  variant?: 'spinner' | 'dots' | 'pulse';
+}
+
+export const MinimalLoadingView: React.FC<MinimalLoadingViewProps> = ({
+  size = 'md',
+  text = 'Loading...',
+  className,
+  overlay = false,
+  variant = 'spinner'
+}) => {
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm':
+        return 'w-4 h-4';
+      case 'lg':
+        return 'w-12 h-12';
+      default:
+        return 'w-8 h-8';
+    }
+  };
+
+  const getTextSize = () => {
+    switch (size) {
+      case 'sm':
+        return 'text-xs';
+      case 'lg':
+        return 'text-base';
+      default:
+        return 'text-sm';
+    }
+  };
+
+  const LoadingSpinner = () => (
+    <div className="relative">
+      <div
+        className={cn(
+          'border-2 border-gray-200 rounded-full animate-geometric-spin',
+          getSizeStyles()
+        )}
+      />
+      <div
+        className={cn(
+          'absolute top-0 left-0 border-2 border-ios-accent border-t-transparent rounded-full animate-geometric-spin',
+          getSizeStyles()
+        )}
+      />
+    </div>
+  );
+
+  const LoadingDots = () => (
+    <div className="flex gap-1">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className={cn(
+            'bg-ios-accent rounded-full animate-geometric-pulse',
+            size === 'sm' ? 'w-1.5 h-1.5' : size === 'lg' ? 'w-3 h-3' : 'w-2 h-2'
+          )}
+          style={{ animationDelay: `${i * 0.2}s` }}
+        />
+      ))}
+    </div>
+  );
+
+  const LoadingPulse = () => (
+    <div
+      className={cn(
+        'bg-ios-accent/20 rounded-full animate-pulse',
+        getSizeStyles()
+      )}
+    >
+      <div
+        className={cn(
+          'bg-ios-accent rounded-full animate-geometric-pulse m-1',
+          size === 'sm' ? 'w-2 h-2' : size === 'lg' ? 'w-8 h-8' : 'w-4 h-4'
+        )}
+      />
+    </div>
+  );
+
+  const LoadingAnimation = () => {
+    switch (variant) {
+      case 'dots':
+        return <LoadingDots />;
+      case 'pulse':
+        return <LoadingPulse />;
+      default:
+        return <LoadingSpinner />;
+    }
+  };
+
+  const LoadingContent = () => (
+    <div className={cn('flex flex-col items-center gap-3', className)}>
+      <LoadingAnimation />
+      {text && (
+        <p className={cn('text-secondary-text font-medium', getTextSize())}>
+          {text}
+        </p>
+      )}
+    </div>
+  );
+
+  if (overlay) {
+    return (
+      <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+        <div className="bg-white rounded-none border border-ios-border p-6 shadow-ios">
+          <LoadingContent />
+        </div>
+      </div>
+    );
+  }
+
+  return <LoadingContent />;
+};
+
+// Geometric loading dots for inline loading states
+export const LoadingDots: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={cn('flex gap-1', className)}>
+    {[0, 1, 2].map((i) => (
+      <div
+        key={i}
+        className="w-2 h-2 bg-ios-accent rounded-full animate-geometric-pulse"
+        style={{ animationDelay: `${i * 0.2}s` }}
+      />
+    ))}
+  </div>
+);
+
+// Minimal progress bar for loading states
+export const MinimalProgressBar: React.FC<{ 
+  progress: number; 
+  className?: string 
+}> = ({ progress, className }) => (
+  <div className={cn('w-full bg-gray-200 h-1 rounded-full overflow-hidden', className)}>
+    <div
+      className="h-full bg-ios-accent transition-all duration-300 ease-out"
+      style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+    />
+  </div>
+); 

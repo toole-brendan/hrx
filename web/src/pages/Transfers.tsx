@@ -108,6 +108,15 @@ import {
   updateTransferStatus
 } from '@/services/transferService';
 
+// iOS Components
+import { 
+  CleanCard, 
+  ElegantSectionHeader, 
+  StatusBadge as IOSStatusBadge,
+  MinimalEmptyState,
+  MinimalLoadingView
+} from "@/components/ios";
+
 // --- State Management with useReducer (Modified) ---
 
 type SortField = 'date' | 'name' | 'from' | 'to';
@@ -242,8 +251,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     }
   });
 
-
-
   // Helper for Blockchain recording
   const handleBlockchainRecord = (transfer: Transfer) => {
     if (!user) {
@@ -318,8 +325,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     createTransferMutation.mutate(newTransferData as any); // Assert type or adjust Omit
     // Logic moved to onSuccess
   };
-
-
 
   // --- Filtering and Sorting Logic (Memoized) ---
   const filteredTransfers = useMemo(() => {
@@ -410,163 +415,177 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     }
   }, [activeView]);
 
-  const getPageTitle = () => "Transfers"; // Title is constant
+  const getPageTitle = () => "Transfer Management"; 
 
   // --- Render Logic ---
   return (
-    <PageWrapper withPadding={true}>
-      <div className="pt-16 pb-10">
-        {/* Page Header */}
-        <div className="text-xs uppercase tracking-wider font-medium mb-1 text-muted-foreground">
-          EQUIPMENT
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-light tracking-tight mb-1">{getPageTitle()}</h1>
-            <p className="text-sm text-muted-foreground max-w-xl">
-              {getPageDescription()}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="blue"
+    <div className="min-h-screen bg-app-background">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <ElegantSectionHeader 
+            title="TRANSFERS" 
+            className="mb-4"
+          />
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-3xl font-light tracking-tight text-primary-text">
+                {getPageTitle()}
+              </h1>
+              <p className="text-secondary-text mt-1">
+                {getPageDescription()}
+              </p>
+            </div>
+            <Button 
               onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-              className="h-9 px-3 flex items-center gap-1.5"
+              className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              <span className="text-xs uppercase tracking-wider">New Transfer</span>
+              New Transfer
             </Button>
           </div>
         </div>
+
+        {/* Tabs */}
+        <CleanCard padding="none" className="mb-6">
+          <Tabs
+            value={activeView}
+            onValueChange={(value) => dispatch({ type: 'SET_ACTIVE_VIEW', payload: value as TransferView })}
+            className="w-full"
+          >
+            <div className="border-b border-ios-border">
+              <TabsList className="grid grid-cols-3 w-full bg-transparent">
+                {(['incoming', 'outgoing', 'history'] as TransferView[]).map((view) => (
+                  <TabsTrigger
+                    key={view}
+                    value={view}
+                    className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none relative"
+                  >
+                    {view.charAt(0).toUpperCase() + view.slice(1)}
+                    {view === 'incoming' && incomingPendingCount > 0 && (
+                      <Badge
+                        className="ml-2 px-1.5 py-0.5 h-5 min-w-[1.25rem] bg-ios-destructive text-white rounded-full text-[10px] flex items-center justify-center"
+                      >
+                        {incomingPendingCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-6">
+              {/* Search and Filter Controls */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                {/* Search */}
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
+                  <Input
+                    placeholder={`Search ${activeView} transfers... (name, SN, user)`}
+                    value={searchTerm}
+                    onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
+                    className="pl-10 border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+
+                {/* Status Filter */}
+                <div className="sm:w-48">
+                  <Select
+                    value={filterStatus}
+                    onValueChange={(value) => dispatch({ type: 'SET_FILTER_STATUS', payload: value as TransferStatusFilter })}
+                  >
+                    <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Reset Button */}
+                <Button
+                  onClick={handleResetFilters}
+                  variant="outline"
+                  className="text-primary-text border-ios-border hover:bg-gray-50 rounded-none px-4 py-2"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset
+                </Button>
+              </div>
+
+              {/* Transfer List Content */}
+              <CleanCard>
+                {/* Loading State */}
+                {isLoadingTransfers && (
+                  <MinimalLoadingView 
+                    text="Loading transfers..." 
+                    size="lg"
+                    className="py-16"
+                  />
+                )}
+
+                {/* Error State */}
+                {!isLoadingTransfers && transfersError && (
+                  <div className="py-16 text-center text-ios-destructive">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                    <p>Error loading transfers: {transfersError.message}</p>
+                    <p className="text-sm mt-1 text-secondary-text">Please try again later.</p>
+                  </div>
+                )}
+                
+                {/* Transfer List */}
+                {!isLoadingTransfers && !transfersError && (
+                  sortedTransfers.length === 0 ? (
+                    <MinimalEmptyState
+                      title={searchTerm || filterStatus !== "all" ? "No transfers match your search" : `No ${activeView} transfers`}
+                      description={searchTerm || filterStatus !== "all" ? "Try adjusting your search criteria" : `${activeView === 'incoming' ? 'You have no pending transfer requests' : activeView === 'outgoing' ? 'You haven\'t initiated any transfers' : 'No transfer history found'}`}
+                      icon={<Send className="h-12 w-12" />}
+                      action={activeView !== 'incoming' ? (
+                        <Button
+                          onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
+                          className="bg-ios-accent hover:bg-accent-hover text-white px-6 py-2 rounded-none"
+                        >
+                          Create Transfer
+                        </Button>
+                      ) : undefined}
+                    />
+                  ) : (
+                    <>
+                      {/* Transfer List Header */}
+                      <TransferListHeader 
+                        sortConfig={sortConfig} 
+                        onSort={handleSort} 
+                      />
+                      <ScrollArea className="h-[calc(100vh-450px)]">
+                        {sortedTransfers.map((transfer) => (
+                          <TransferRow 
+                            key={transfer.id} 
+                            transfer={transfer} 
+                            currentUser={currentUser}
+                            activeView={activeView}
+                            isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
+                            isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
+                            onConfirmAction={(id, action) => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
+                            onShowDetails={(t) => dispatch({ type: 'SHOW_DETAILS', payload: t })}
+                          />
+                        ))}
+                      </ScrollArea>
+                    </>
+                  )
+                )}
+              </CleanCard>
+            </div>
+          </Tabs>
+        </CleanCard>
       </div>
 
-      {/* Tabs - Styling updated to match guide */}
-      <Tabs
-        value={activeView}
-        onValueChange={(value) => dispatch({ type: 'SET_ACTIVE_VIEW', payload: value as TransferView })}
-        className="w-full mb-6"
-      >
-        <TabsList className="grid grid-cols-3 h-10 border rounded-none">
-          {(['incoming', 'outgoing', 'history'] as TransferView[]).map((view) => (
-            <TabsTrigger
-              key={view}
-              value={view}
-              className="text-xs uppercase tracking-wider rounded-none"
-            >
-              {view.charAt(0).toUpperCase() + view.slice(1)}
-              {view === 'incoming' && incomingPendingCount > 0 && (
-                <Badge
-                  className="ml-2 px-1.5 py-0.5 h-5 min-w-[1.25rem] bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center"
-                >
-                  {incomingPendingCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      {/* Filter Bar Card - Styling updated */}
-      <Card className="mb-6 border-border shadow-none bg-card rounded-none">
-        <CardContent className="p-4 flex flex-col md:flex-row items-center gap-3">
-          <div className="flex-grow w-full md:w-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={`Search ${activeView} transfers... (name, SN, user)`}
-                value={searchTerm}
-                onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-8 w-full rounded-none h-9"
-              />
-            </div>
-          </div>
-          <div className="w-full md:w-[180px]">
-            <Select
-              value={filterStatus}
-              onValueChange={(value) => dispatch({ type: 'SET_FILTER_STATUS', payload: value as TransferStatusFilter })}
-            >
-              <SelectTrigger className="w-full rounded-none h-9 text-xs">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none">
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            onClick={handleResetFilters}
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground h-9 px-3 rounded-none hover:bg-muted"
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            <span className="text-xs uppercase tracking-wider">Reset</span>
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Main Content Card - Transfer List */}
-      <Card className="overflow-hidden border-border shadow-none bg-card rounded-none">
-        <CardContent className="p-0">
-          {/* Use Loading/Error states from useQuery */}
-          {isLoadingTransfers && (
-            <div className="py-16 text-center flex items-center justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Loading transfers...
-            </div>
-          )}
-          {!isLoadingTransfers && transfersError && (
-            <div className="py-16 text-center text-destructive">
-              <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-              <p>Error loading transfers: {transfersError.message}</p>
-              <p className="text-sm mt-1">Please try again later.</p>
-            </div>
-          )}
-          
-          {!isLoadingTransfers && !transfersError && (
-            sortedTransfers.length === 0 ? (
-              // Use imported EmptyState component
-              <EmptyState 
-                activeView={activeView}
-                searchTerm={searchTerm}
-                filterStatus={filterStatus}
-                onInitiateTransfer={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-              />
-            ) : (
-              <>
-                {/* Use imported TransferListHeader component */}
-                <TransferListHeader 
-                  sortConfig={sortConfig} 
-                  onSort={handleSort} 
-                />
-                <ScrollArea className="h-[calc(100vh-450px)]"> {/* Adjust height as needed */}
-                  {sortedTransfers.map((transfer) => (
-                    // Use imported TransferRow component
-                    <TransferRow 
-                      key={transfer.id} 
-                      transfer={transfer} 
-                      currentUser={currentUser}
-                      activeView={activeView}
-                      isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
-                      isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
-                      onConfirmAction={(id, action) => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
-                      onShowDetails={(t) => dispatch({ type: 'SHOW_DETAILS', payload: t })}
-                    />
-                  ))}
-                </ScrollArea>
-              </>
-            )
-          )}
-        </CardContent>
-      </Card>
-
-      {/* --- Modals and Dialogs --- */}
-
-      {/* Using extracted components */}
+      {/* Modals and Dialogs */}
       <NewTransferDialog
         isOpen={showNewTransfer}
         currentUser={currentUser}
@@ -575,29 +594,33 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         onSubmit={handleCreateTransfer}
       />
 
-      <TransferDetailsModal
-        transfer={showTransferDetails}
-        isOpen={!!showTransferDetails}
-        currentUser={currentUser}
-        isUpdating={updateStatusMutation.isPending && updateStatusMutation.variables?.id === showTransferDetails?.id}
-        onClose={() => dispatch({ type: 'SHOW_DETAILS', payload: null })}
-        onConfirmAction={(id, action) => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
-      />
+      {showTransferDetails && (
+        <TransferDetailsModal
+          transfer={showTransferDetails}
+          isOpen={!!showTransferDetails}
+          currentUser={currentUser}
+          isUpdating={updateStatusMutation.isPending && updateStatusMutation.variables?.id === showTransferDetails.id}
+          onClose={() => dispatch({ type: 'SHOW_DETAILS', payload: null })}
+          onConfirmAction={(id, action) => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
+        />
+      )}
 
-      <TransferConfirmationDialog
-        confirmation={transferToConfirm}
-        isPending={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transferToConfirm?.id}
-        transferName={transfers.find(t => t.id === transferToConfirm?.id)?.name}
-        onClose={() => dispatch({ type: 'CONFIRM_ACTION', payload: null })}
-        onConfirm={(id, action) => {
-          if (action === 'approve') {
-            handleApprove(id);
-          } else {
-            handleReject(id);
-          }
-        }}
-      />
-    </PageWrapper>
+             {transferToConfirm && (
+         <TransferConfirmationDialog
+           confirmation={transferToConfirm}
+           isPending={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transferToConfirm.id}
+           transferName={transfers.find(t => t.id === transferToConfirm.id)?.name}
+           onClose={() => dispatch({ type: 'CONFIRM_ACTION', payload: null })}
+           onConfirm={(id, action) => {
+             if (action === 'approve') {
+               handleApprove(id);
+             } else {
+               handleReject(id);
+             }
+           }}
+         />
+       )}
+    </div>
   );
 };
 

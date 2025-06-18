@@ -3,13 +3,6 @@ import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreatePr
 import { useTransfers } from "@/hooks/useTransfers";
 import { Property, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -19,16 +12,23 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/ui/page-header";
-import { PageWrapper } from "@/components/ui/page-wrapper";
+
+// iOS Components
+import { 
+  CleanCard, 
+  ElegantSectionHeader, 
+  StatusBadge, 
+  ModernPropertyCard,
+  FloatingActionButton,
+  MinimalEmptyState 
+} from "@/components/ios";
+
 import TransferRequestModal from "@/components/modals/TransferRequestModal";
 import ComponentList from "@/components/property/ComponentList";
-import PropertyBookTable, { DisplayItem } from "@/components/property/PropertyBookTable";
 import { 
   Search, 
   Filter, 
@@ -49,7 +49,9 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronRight,
-  Plus
+  Plus,
+  Download,
+  FileText
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkActionMenu from "@/components/shared/BulkActionMenu";
@@ -70,65 +72,6 @@ import { SendMaintenanceForm } from "@/components/property/SendMaintenanceForm";
 interface PropertyBookProps {
   id?: string;
 }
-
-// Status Badge Component - Styled consistently with design guide
-const StatusBadge = ({ status }: { status: string }) => {
-  // Style mapping for each status type - Updated to align with military terminology
-  const statusStyles: Record<string, { textColor: string; borderColor: string; bgColor: string; label: string }> = {
-    "Operational": { 
-      textColor: "text-green-700 dark:text-green-400",
-      borderColor: "border-green-600 dark:border-green-500",
-      bgColor: "bg-green-100/70 dark:bg-transparent",
-      label: "OPERATIONAL"
-    },
-    "Deadline - Maintenance": { 
-      textColor: "text-red-700 dark:text-red-400",
-      borderColor: "border-red-600 dark:border-red-500",
-      bgColor: "bg-red-100/70 dark:bg-transparent",
-      label: "DEADLINE - MAINT"
-    },
-    "Deadline - Supply": { 
-      textColor: "text-yellow-700 dark:text-yellow-400", 
-      borderColor: "border-yellow-600 dark:border-yellow-500",
-      bgColor: "bg-yellow-100/70 dark:bg-transparent",
-      label: "DEADLINE - SUPPLY"
-    },
-    "Lost": { 
-      textColor: "text-gray-700 dark:text-gray-400",
-      borderColor: "border-gray-600 dark:border-gray-500",
-      bgColor: "bg-gray-100/70 dark:bg-transparent",
-      label: "LOST"
-    },
-    // Legacy status mappings for backward compatibility
-    "Non-Operational": { 
-      textColor: "text-red-700 dark:text-red-400",
-      borderColor: "border-red-600 dark:border-red-500",
-      bgColor: "bg-red-100/70 dark:bg-transparent",
-      label: "DEADLINE - MAINT" // Map to new terminology
-    },
-    "Damaged": { 
-      textColor: "text-red-700 dark:text-red-400",
-      borderColor: "border-red-600 dark:border-red-500",
-      bgColor: "bg-red-100/70 dark:bg-transparent",
-      label: "DEADLINE - MAINT" // Map to new terminology
-    },
-    "In Repair": { 
-      textColor: "text-red-700 dark:text-red-400",
-      borderColor: "border-red-600 dark:border-red-500",
-      bgColor: "bg-red-100/70 dark:bg-transparent",
-      label: "DEADLINE - MAINT" // Map to new terminology
-    }
-  };
-
-  // Default to Operational if status doesn't exist in our mapping
-  const style = statusStyles[status] || statusStyles['Operational'];
-  
-  return (
-    <Badge className={`uppercase ${style.bgColor} ${style.textColor} border ${style.borderColor} text-[10px] tracking-wider font-medium px-2 py-0.5 rounded-none`}>
-      {style.label}
-    </Badge>
-  );
-};
 
 const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   // Use reducer for most state management
@@ -159,36 +102,34 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }, [isLoading, error]);
 
   // Create memoized data for assigned items
-  const assignedToMe: DisplayItem[] = useMemo(() => {
-    // Map existing properties to ensure categories are using the new system
+  const assignedToMe = useMemo(() => {
     return properties.map(item => ({
       ...item,
-      // Derive category from name if not already set or using old system
       category: getCategoryFromName(item.name)
     }));
   }, [properties]);
   
   // Create memoized data for signed-out items based on transfers
-  const signedOutItems: DisplayItem[] = useMemo(() => {
+  const signedOutItems = useMemo(() => {
     return transfers
-      .filter(transfer => transfer.status === "approved") // Assuming approved means signed out
+      .filter(transfer => transfer.status === "approved")
       .map(transfer => {
         const originalItem = properties.find(i => i.serialNumber === transfer.serialNumber);
         const derivedCategory = getCategoryFromName(transfer.name);
         
         return {
-          ...(originalItem || {}), // Spread original item data if found
-          id: originalItem?.id || transfer.id, // Use original ID if available
+          ...(originalItem || {}),
+          id: originalItem?.id || transfer.id,
           name: transfer.name,
           serialNumber: transfer.serialNumber,
-          status: originalItem?.status || "Operational", // Use original status or default
+          status: originalItem?.status || "Operational",
           description: originalItem?.description || "Transferred",
-          category: derivedCategory, // Use our new category system 
-          location: "Transferred", // Indicate location change
-          assignedTo: transfer.to, // Person/Unit it's signed to
-          transferDate: transfer.date, // Date of transfer
-          assignedDate: originalItem?.assignedDate || transfer.date, // Original assignment date or transfer date
-          components: originalItem?.components || [], // Keep components info
+          category: derivedCategory,
+          location: "Transferred",
+          assignedTo: transfer.to,
+          transferDate: transfer.date,
+          assignedDate: originalItem?.assignedDate || transfer.date,
+          components: originalItem?.components || [],
           isComponent: originalItem?.isComponent || false,
           parentItemId: originalItem?.parentItemId,
         }
@@ -196,7 +137,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }, [properties, transfers]);
 
   // Filter items based on search and category
-  const getFilteredItems = useCallback((items: DisplayItem[], tab: string): DisplayItem[] => {
+  const getFilteredItems = useCallback((items: any[], tab: string) => {
     return items.filter(item => {
       const name = item.name || '';
       const serialNumber = item.serialNumber || '';
@@ -208,7 +149,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         serialNumber.toLowerCase().includes(searchTermLower) ||
         (tab === "signedout" && assignedTo.includes(searchTermLower));
       
-      // Use either the item's category if it matches our system, or derive it from the name
       const category = item.category && categoryOptions.some(opt => opt.value === item.category) 
         ? item.category 
         : getCategoryFromName(item.name);
@@ -219,39 +159,11 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     });
   }, [state.searchTerm, state.filterCategory]);
 
-  // Sort filtered items if a sort config is active
-  const getSortedItems = useCallback((items: DisplayItem[]): DisplayItem[] => {
-    if (!state.sortConfig || !state.sortConfig.key) return items;
-    
-    const { key, direction } = state.sortConfig;
-    const sortedItems = [...items].sort((a, b) => {
-      const aValue = a[key as keyof DisplayItem];
-      const bValue = b[key as keyof DisplayItem];
-      
-      // Handle string and date comparisons
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const comparison = aValue.localeCompare(bValue);
-        return direction === 'ascending' ? comparison : -comparison;
-      }
-      
-      // Handle numeric comparisons
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return direction === 'ascending' ? aValue - bValue : bValue - aValue;
-      }
-      
-      // Default - return 0 if we can't compare
-      return 0;
-    });
-    
-    return sortedItems;
-  }, [state.sortConfig]);
-
   // Get items for the current tab, filtered and sorted
-  const getCurrentItems = useCallback((): DisplayItem[] => {
+  const getCurrentItems = useCallback(() => {
     const itemsForTab = state.activeTab === 'assigned' ? assignedToMe : signedOutItems;
-    const filteredItems = getFilteredItems(itemsForTab, state.activeTab);
-    return getSortedItems(filteredItems);
-  }, [assignedToMe, signedOutItems, state.activeTab, getFilteredItems, getSortedItems]);
+    return getFilteredItems(itemsForTab, state.activeTab);
+  }, [assignedToMe, signedOutItems, state.activeTab, getFilteredItems]);
 
   // Handler for item transfer requests
   const handleTransferRequest = useCallback((item: Property) => {
@@ -261,7 +173,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
   // Handler for viewing item details
   const handleViewDetails = useCallback((item: Property) => {
-    // Normalize status to new format when viewing details
     const normalizedItem: Property = {
       ...item,
       status: normalizeItemStatus(item.status) as Property['status']
@@ -357,91 +268,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     dispatch({ type: 'CLEAR_SELECTIONS' });
   }, [state.selectedItemIds, toast]);
 
-  // Handler for sorting
-  const handleRequestSort = useCallback((key: string) => {
-    // If already sorting by this key, toggle direction
-    if (state.sortConfig?.key === key) {
-      if (state.sortConfig.direction === 'ascending') {
-        dispatch({ type: 'SET_SORT', payload: { key, direction: 'descending' } });
-      } else {
-        dispatch({ type: 'CLEAR_SORT' });
-      }
-    } else {
-      // Start sorting by this key in ascending order
-      dispatch({ type: 'SET_SORT', payload: { key, direction: 'ascending' } });
-    }
-    
-    toast({ 
-      title: "Sorting", 
-      description: `Sorting by ${key}` 
-    });
-  }, [state.sortConfig, toast]);
-
-  // Handlers for table component
+  // Handler for item selection
   const handleItemSelect = useCallback((itemId: string) => {
     dispatch({ type: 'TOGGLE_ITEM_SELECTION', payload: itemId });
   }, []);
-
-  const handleToggleExpand = useCallback((itemId: string) => {
-    console.log('Toggle expand for item:', itemId);
-    console.log('Current expanded items before toggle:', Array.from(state.expandedItemIds));
-    
-    // Find the item to check it has components
-    const itemToExpand = [...assignedToMe, ...signedOutItems].find(item => item.id === itemId);
-    console.log('Item being toggled:', itemToExpand);
-    
-    dispatch({ type: 'TOGGLE_EXPAND_ITEM', payload: itemId });
-    
-    // Log state after toggle to confirm it changed (will show on next render)
-    setTimeout(() => {
-      console.log('Expanded items after toggle:', Array.from(state.expandedItemIds));
-    }, 0);
-  }, [state.expandedItemIds, assignedToMe, signedOutItems]);
-
-  const handleSelectAll = useCallback((checked: boolean) => {
-    const currentItems = getCurrentItems();
-    dispatch({ 
-      type: 'TOGGLE_SELECT_ALL', 
-      payload: { 
-        itemIds: currentItems.map(item => item.id), 
-        selected: checked 
-      } 
-    });
-  }, [getCurrentItems]);
-
-  const handleTabChange = useCallback((value: string) => {
-    dispatch({ type: 'SET_ACTIVE_TAB', payload: value as 'assigned' | 'signedout' });
-  }, []);
-
-  // Effect for handling direct navigation to an item via id prop
-  useEffect(() => {
-    if (!state.isLoading && id) {
-      const assignedItem = properties.find(item => item.id === id);
-      const signedOutItemDetails = signedOutItems.find(item => item.id === id); 
-      
-      let itemToSelect: DisplayItem | null = null;
-      if (assignedItem) { itemToSelect = assignedItem; } 
-      else if (signedOutItemDetails) { itemToSelect = signedOutItemDetails; }
-
-      if (itemToSelect) {
-        const finalSelectedItem: Property = {
-           id: itemToSelect.id,
-           name: itemToSelect.name,
-           serialNumber: itemToSelect.serialNumber,
-           assignedDate: itemToSelect.assignedDate || '',
-           status: itemToSelect.status,
-           description: itemToSelect.description || "",
-           category: itemToSelect.category || "other",
-           location: itemToSelect.location || "",
-           components: itemToSelect.components || [],
-           isComponent: itemToSelect.isComponent || false,
-           parentItemId: itemToSelect.parentItemId
-        };
-        setSelectedItem(finalSelectedItem);
-        setDetailsModalOpen(true);
-      }
-    }
-  }, [id, properties, signedOutItems, state.isLoading]);
 
   // Handler for creating a new item
   const handleCreateItem = useCallback(async (itemData: {
@@ -484,234 +314,320 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           variant: "destructive",
         });
       }
-      throw error; // Re-throw to let the dialog handle loading state
+      throw error;
     }
   }, [createProperty, toast]);
 
-  // UI components and layout
-  const actions = (
-    <div className="flex items-center gap-2">
-      <Button 
-        size="sm" 
-        variant="blue"
-        className="h-9 px-3 flex items-center gap-1.5"
-        onClick={() => setCreateItemModalOpen(true)}
-      >
-        <Plus className="h-4 w-4" />
-        <span className="text-xs uppercase tracking-wider">Create Item</span>
-      </Button>
-    </div>
-  );
-
   // Get current items for display
   const currentItems = getCurrentItems();
-  const allFilteredInTabSelected = currentItems.length > 0 && 
-                               currentItems.every(item => state.selectedItemIds.has(item.id));
-  const isIndeterminate = currentItems.some(item => state.selectedItemIds.has(item.id)) && 
-                      !allFilteredInTabSelected;
+  const hasSelectedItems = state.selectedItemIds.size > 0;
+
+  // Effect for handling direct navigation to an item via id prop
+  useEffect(() => {
+    if (!state.isLoading && id) {
+      const assignedItem = properties.find(item => item.id === id);
+      const signedOutItemDetails = signedOutItems.find(item => item.id === id); 
+      
+      let itemToSelect: any = null;
+      if (assignedItem) { itemToSelect = assignedItem; } 
+      else if (signedOutItemDetails) { itemToSelect = signedOutItemDetails; }
+
+      if (itemToSelect) {
+        const finalSelectedItem: Property = {
+           id: itemToSelect.id,
+           name: itemToSelect.name,
+           serialNumber: itemToSelect.serialNumber,
+           assignedDate: itemToSelect.assignedDate || '',
+           status: itemToSelect.status,
+           description: itemToSelect.description || "",
+           category: itemToSelect.category || "other",
+           location: itemToSelect.location || "",
+           components: itemToSelect.components || [],
+           isComponent: itemToSelect.isComponent || false,
+           parentItemId: itemToSelect.parentItemId
+        };
+        setSelectedItem(finalSelectedItem);
+        setDetailsModalOpen(true);
+      }
+    }
+  }, [id, properties, signedOutItems, state.isLoading]);
 
   return (
-    <PageWrapper withPadding={true}>
-      <div className="pt-16 pb-10">
-        <div className="text-xs uppercase tracking-wider font-medium mb-1 text-muted-foreground">
-          EQUIPMENT
-        </div>
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-light tracking-tight mb-1">Property Book</h1>
-            <p className="text-sm text-muted-foreground max-w-xl">
-              View your assigned equipment and items signed down to others
-            </p>
-          </div>
-          {actions}
-        </div>
-      </div>
-      
-      {state.selectedItemIds.size > 0 && (
-        <div className="mb-6">
-          <BulkActionMenu 
-            selectedItemCount={state.selectedItemIds.size} 
-            onActionTriggered={handleBulkAction} 
+    <div className="min-h-screen bg-app-background">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <ElegantSectionHeader 
+            title="PROPERTY BOOK" 
+            className="mb-4"
           />
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-3xl font-light tracking-tight text-primary-text">
+                Equipment Registry
+              </h1>
+              <p className="text-secondary-text mt-1">
+                Manage assigned and transferred property
+              </p>
+            </div>
+            <Button 
+              onClick={() => setCreateItemModalOpen(true)}
+              className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Property
+            </Button>
+          </div>
         </div>
-      )}
 
-      <Tabs 
-        defaultValue="assigned" 
-        value={state.activeTab} 
-        onValueChange={handleTabChange} 
-        className="w-full mb-6"
-      >
-        <TabsList className="grid grid-cols-2 h-10 border rounded-none">
-          <TabsTrigger value="assigned" className="text-xs uppercase tracking-wider rounded-none">
-            Assigned to Me
-          </TabsTrigger>
-          <TabsTrigger value="signedout" className="text-xs uppercase tracking-wider rounded-none">
-            Signed Down to Others
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <Card className="mb-8 border-border shadow-none bg-card">
-        <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
-          <div className="flex-grow w-full md:w-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Search and Filter Controls */}
+        <CleanCard className="mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
               <Input
-                placeholder={`Search ${state.activeTab === 'assigned' ? 'assigned items' : 'signed out items'}...`}
+                placeholder="Search by name, serial number, or assignee..."
                 value={state.searchTerm}
                 onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-8 w-full"
+                className="pl-10 border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
+
+            {/* Category Filter */}
+            <div className="sm:w-48">
+              <Select
+                value={state.filterCategory}
+                onValueChange={(value) => dispatch({ type: 'SET_FILTER_CATEGORY', payload: value })}
+              >
+                <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categoryOptions.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="w-full md:w-64">
-            <Select 
-              value={state.filterCategory} 
-              onValueChange={(value) => dispatch({ type: 'SET_FILTER_CATEGORY', payload: value })}
+        </CleanCard>
+
+        {/* Tabs */}
+        <CleanCard padding="none" className="mb-6">
+          <Tabs 
+            value={state.activeTab} 
+            onValueChange={(value) => dispatch({ type: 'SET_ACTIVE_TAB', payload: value as 'assigned' | 'signedout' })}
+            className="w-full"
+          >
+            <div className="border-b border-ios-border">
+              <TabsList className="grid grid-cols-2 w-full bg-transparent">
+                <TabsTrigger 
+                  value="assigned"
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
+                >
+                  ASSIGNED TO ME ({assignedToMe.length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signedout"
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
+                >
+                  SIGNED OUT ({signedOutItems.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="assigned" className="p-6">
+              {state.isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                  ))}
+                </div>
+              ) : currentItems.length === 0 ? (
+                <MinimalEmptyState
+                  title={state.searchTerm || state.filterCategory !== "all" ? "No items match your search" : "No property assigned"}
+                  description={state.searchTerm || state.filterCategory !== "all" ? "Try adjusting your search criteria" : "Start by adding property to your inventory"}
+                  icon={<Package className="h-12 w-12" />}
+                  action={
+                    <Button
+                      onClick={() => setCreateItemModalOpen(true)}
+                      className="bg-ios-accent hover:bg-accent-hover text-white px-6 py-2 rounded-none"
+                    >
+                      Add Property
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="space-y-4">
+                  {currentItems.map((item) => (
+                    <ModernPropertyCard
+                      key={item.id}
+                      property={{
+                        itemName: item.name,
+                        serialNumber: item.serialNumber,
+                        status: item.status as 'operational' | 'maintenance' | 'non-operational',
+                        isSensitive: item.category === 'weapons' || item.category === 'optics',
+                        category: item.category
+                      }}
+                      onClick={() => handleViewDetails(item)}
+                      selected={state.selectedItemIds.has(item.id)}
+                      onSelect={(selected: boolean) => handleItemSelect(item.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="signedout" className="p-6">
+              {state.isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                  ))}
+                </div>
+              ) : currentItems.length === 0 ? (
+                <MinimalEmptyState
+                  title="No signed out items"
+                  description="Items you've transferred to others will appear here"
+                  icon={<Send className="h-12 w-12" />}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {currentItems.map((item) => (
+                    <ModernPropertyCard
+                      key={item.id}
+                      property={{
+                        itemName: item.name,
+                        serialNumber: item.serialNumber,
+                        status: 'operational', // Most signed out items are operational
+                        isSensitive: item.category === 'weapons' || item.category === 'optics',
+                        category: item.category
+                      }}
+                      onClick={() => handleViewDetails(item)}
+                      selected={state.selectedItemIds.has(item.id)}
+                      onSelect={(selected: boolean) => handleItemSelect(item.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CleanCard>
+      </div>
+
+      {/* Floating Action Button for Bulk Actions */}
+      {hasSelectedItems && (
+        <FloatingActionButton
+          onClick={() => handleBulkAction('export')}
+          icon={<FileText className="h-5 w-5" />}
+          label={`Export ${state.selectedItemIds.size} items`}
+          position="bottom-right"
+        />
+      )}
+
+             {/* Modals */}
+       {selectedItem && (
+         <TransferRequestModal
+           isOpen={transferModalOpen}
+           onClose={() => setTransferModalOpen(false)}
+           item={selectedItem}
+         />
+       )}
+
+      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-primary-text">{selectedItem?.name}</DialogTitle>
+            <DialogDescription className="text-secondary-text">
+              Serial Number: {selectedItem?.serialNumber}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="text-tertiary-text text-xs uppercase tracking-wide font-medium">
+                  STATUS
+                </label>
+                <div className="mt-1">
+                  {selectedItem && (
+                    <StatusBadge 
+                      status={selectedItem.status === 'Operational' ? 'operational' : 
+                             selectedItem.status === 'Non-Operational' ? 'non-operational' : 'maintenance'} 
+                    />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-tertiary-text text-xs uppercase tracking-wide font-medium">
+                  CATEGORY
+                </label>
+                <div className="mt-1 text-primary-text font-mono">
+                  {selectedItem?.category || 'Other'}
+                </div>
+              </div>
+            </div>
+
+            {selectedItem?.components && selectedItem.components.length > 0 && (
+              <div>
+                <ElegantSectionHeader title="COMPONENTS" className="mb-4" />
+                                 <ComponentList
+                   itemId={selectedItem.id}
+                   components={selectedItem.components}
+                   onAddComponent={handleAddComponent}
+                   onUpdateComponent={handleUpdateComponent}
+                   onRemoveComponent={handleRemoveComponent}
+                 />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDetailsModalOpen(false)}
+              className="text-primary-text border-ios-border hover:bg-gray-50"
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setDetailsModalOpen(false);
+                if (selectedItem) handleTransferRequest(selectedItem);
+              }}
+              className="bg-ios-accent hover:bg-accent-hover text-white"
+            >
+              Transfer Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <Card className="overflow-hidden border-border shadow-none bg-card">
-        <CardContent className="p-0">
-          <PropertyBookTable
-            items={currentItems}
-            tab={state.activeTab}
-            state={state}
-            dispatch={dispatch}
-            onItemSelect={handleItemSelect}
-            onToggleExpand={handleToggleExpand}
-            onSelectAll={handleSelectAll}
-            onTransferRequest={handleTransferRequest}
-            onViewDetails={handleViewDetails}
-            onRecallItem={handleRecallItem}
-            onSendMaintenanceForm={handleSendMaintenanceForm}
-            onRequestSort={handleRequestSort}
-            isLoading={state.isLoading}
-            error={state.error}
-            StatusBadge={StatusBadge}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Create Item Dialog */}
       <CreatePropertyDialog
         isOpen={createItemModalOpen}
         onClose={() => setCreateItemModalOpen(false)}
         onSubmit={handleCreateItem}
       />
 
-      {/* Transfer Request Modal */}
-      {selectedItem && (
-        <TransferRequestModal
-          isOpen={transferModalOpen}
-          onClose={() => {
-            setTransferModalOpen(false);
-            setSelectedItem(null);
-          }}
-          item={selectedItem}
-          onTransferSuccess={() => {
-            setTransferModalOpen(false);
-            setSelectedItem(null);
-            toast({
-              title: "Transfer Initiated",
-              description: "The transfer request has been sent successfully."
-            });
-          }}
-        />
-      )}
-
-      {/* Item Details Modal */}
-      {selectedItem && (
-        <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
-          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl bg-card">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-medium">Equipment Details</DialogTitle>
-              <DialogDescription>
-                Detailed information for {selectedItem.name} (SN: {selectedItem.serialNumber})
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 max-h-[70vh] overflow-y-auto pr-2">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-6 border-b border-border pb-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-1">
-                    Category
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className={getCategoryColor(selectedItem.name)}>
-                      {getCategoryIcon(selectedItem.name)}
-                    </span>
-                    <span className="capitalize">
-                      {getCategoryFromName(selectedItem.name).replace(/-/g, ' ')}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-1">
-                    Status
-                  </p>
-                  <StatusBadge status={selectedItem.status} />
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-1">
-                    Assigned Date
-                  </p>
-                  <p className="text-xs text-muted-foreground">{selectedItem.assignedDate || "N/A"}</p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <h4 className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-2">
-                  Components
-                </h4>
-                <ComponentList 
-                  itemId={selectedItem.id}
-                  components={selectedItem.components || []} 
-                  onAddComponent={handleAddComponent}
-                  onUpdateComponent={handleUpdateComponent}
-                  onRemoveComponent={handleRemoveComponent}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDetailsModalOpen(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Maintenance Form Modal */}
-      {selectedItem && (
-        <SendMaintenanceForm
-          property={{
-            id: typeof selectedItem.id === 'string' ? parseInt(selectedItem.id) : selectedItem.id,
-            name: selectedItem.name,
-            serialNumber: selectedItem.serialNumber,
-            nsn: selectedItem.nsn,
-            location: selectedItem.location,
-          }}
-          open={maintenanceFormModalOpen}
-          onClose={() => {
-            setMaintenanceFormModalOpen(false);
-            setSelectedItem(null);
-          }}
-        />
-      )}
-    </PageWrapper>
+             {selectedItem && (
+         <SendMaintenanceForm
+           open={maintenanceFormModalOpen}
+           onClose={() => setMaintenanceFormModalOpen(false)}
+           property={{
+             id: typeof selectedItem.id === 'string' ? parseInt(selectedItem.id) : selectedItem.id,
+             name: selectedItem.name,
+             serialNumber: selectedItem.serialNumber,
+             nsn: selectedItem.nsn,
+             location: selectedItem.location,
+           }}
+         />
+       )}
+    </div>
   );
 };
 

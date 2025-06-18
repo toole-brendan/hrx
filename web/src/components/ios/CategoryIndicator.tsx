@@ -1,0 +1,54 @@
+import React from 'react';
+import { cn } from '@/lib/utils';
+
+interface CategoryIndicatorProps {
+  category: 'weapons' | 'communications' | 'optics' | 'vehicles' | 'electronics' | string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+export const CategoryIndicator: React.FC<CategoryIndicatorProps> = ({
+  category,
+  size = 'md',
+  className
+}) => {
+  const getCategoryColor = () => {
+    switch (category.toLowerCase()) {
+      case 'weapons':
+        return 'bg-weapons-category';
+      case 'communications':
+        return 'bg-communications-category';
+      case 'optics':
+        return 'bg-optics-category';
+      case 'vehicles':
+        return 'bg-vehicles-category';
+      case 'electronics':
+        return 'bg-electronics-category';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm':
+        return 'w-2 h-2';
+      case 'lg':
+        return 'w-4 h-4';
+      default:
+        return 'w-3 h-3';
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        'rounded-full flex-shrink-0',
+        getCategoryColor(),
+        getSizeStyles(),
+        className
+      )}
+      title={category}
+    />
+  );
+}; 

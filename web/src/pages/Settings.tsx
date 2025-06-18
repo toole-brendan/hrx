@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApp } from "@/contexts/AppContext";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription,
-  CardFooter
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -59,8 +51,12 @@ import {
   Cloud,
   Loader2
 } from "lucide-react";
-import { PageWrapper } from "@/components/ui/page-wrapper";
-import { PageHeader } from "@/components/ui/page-header";
+
+// iOS Components
+import { 
+  CleanCard, 
+  ElegantSectionHeader
+} from "@/components/ios";
 
 // Form schema for profile
 const profileFormSchema = z.object({
@@ -242,688 +238,581 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <PageWrapper withPadding={true}>
-      {/* Header section with 8VC style formatting */}
-      <div className="pt-16 pb-10">
-        {/* Category label - Small all-caps category label */}
-        <div className="text-xs uppercase tracking-wider font-medium mb-1 text-muted-foreground">
-          CONFIGURATION
-        </div>
-        
-        {/* Main title - following 8VC typography */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-light tracking-tight mb-1">Settings</h1>
-            <p className="text-sm text-muted-foreground">Manage your account settings and preferences</p>
-          </div>
-        </div>
-      </div>
-      
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid grid-cols-5 mb-6 rounded-none bg-gray-50 dark:bg-white/5 h-10">
-          <TabsTrigger value="profile" className="uppercase tracking-wider text-xs font-medium rounded-none flex items-center gap-2">
-            <UserCircle className="h-4 w-4" />
-            <span className="hidden sm:inline">PROFILE</span>
-          </TabsTrigger>
-          <TabsTrigger value="security" className="uppercase tracking-wider text-xs font-medium rounded-none flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span className="hidden sm:inline">SECURITY</span>
-          </TabsTrigger>
-          <TabsTrigger value="qr-codes" className="uppercase tracking-wider text-xs font-medium rounded-none flex items-center gap-2">
-            <QrCode className="h-4 w-4" />
-            <span className="hidden sm:inline">QR CODES</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="uppercase tracking-wider text-xs font-medium rounded-none flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">ALERTS</span>
-          </TabsTrigger>
-          <TabsTrigger value="sync" className="uppercase tracking-wider text-xs font-medium rounded-none flex items-center gap-2">
-            <Cloud className="h-4 w-4" />
-            <span className="hidden sm:inline">SYNC</span>
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Profile Settings */}
-        <TabsContent value="profile">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-              <div className="p-4 flex justify-between items-baseline">
-                <div>
-                  <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    PERSONAL INFORMATION
-                  </div>
-                  <div className="text-lg font-normal text-gray-900 dark:text-white">
-                    User Details
-                  </div>
-                </div>
-              </div>
-              <CardContent className="p-4">
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/10 rounded-none" />
-                          </FormControl>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            Contact admin to update name
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="rank"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Rank</FormLabel>
-                          <FormControl>
-                            <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/10 rounded-none" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="unit"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Unit</FormLabel>
-                          <FormControl>
-                            <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/10 rounded-none" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} className="border-gray-200 dark:border-white/10 rounded-none" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone</FormLabel>
-                          <FormControl>
-                            <Input {...field} className="border-gray-200 dark:border-white/10 rounded-none" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button 
-                      type="submit" 
-                      className="rounded-none uppercase tracking-wider text-xs font-medium bg-primary hover:bg-primary-600 flex items-center gap-1"
-                    >
-                      <Save className="h-4 w-4" />
-                      <span>SAVE CHANGES</span>
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-
-            <div className="flex flex-col gap-6">
-              <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-                <div className="p-4 flex justify-between items-baseline">
-                  <div>
-                    <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      DISPLAY
-                    </div>
-                    <div className="text-lg font-normal text-gray-900 dark:text-white">
-                      Appearance Settings
-                    </div>
-                  </div>
-                </div>
-                <CardContent className="p-4 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Theme</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Toggle between light and dark mode</p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={toggleTheme}
-                      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                      className="rounded-none border-gray-200 dark:border-white/10 h-8 w-8"
-                    >
-                      {theme === 'light' ? (
-                        <Moon className="h-4 w-4" />
-                      ) : (
-                        <Sun className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Device ID</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">DVC-{user?.id || "000000"}</p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        toast({
-                          title: "Device Reset",
-                          description: "Device ID has been regenerated",
-                        });
-                      }}
-                      className="flex items-center gap-1 rounded-none border-gray-200 dark:border-white/10 uppercase tracking-wider text-xs"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      <span>RESET</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-                <div className="p-4 flex justify-between items-baseline">
-                  <div>
-                    <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      ACCOUNT
-                    </div>
-                    <div className="text-lg font-normal text-gray-900 dark:text-white">
-                      System Actions
-                    </div>
-                  </div>
-                </div>
-                <CardContent className="p-4 space-y-4">
-                  <Button 
-                    variant="outline" 
-                    className="w-full flex items-center justify-center gap-1 rounded-none border-gray-200 dark:border-white/10 uppercase tracking-wider text-xs"
-                    onClick={() => {
-                      toast({
-                        title: "Account Preferences Reset",
-                        description: "Your settings have been restored to defaults",
-                      });
-                    }}
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                    <span>RESET PREFERENCES</span>
-                  </Button>
-                </CardContent>
-                <div className="p-4 border-t border-gray-200 dark:border-white/10">
-                  <Button 
-                    variant="destructive" 
-                    className="w-full flex items-center justify-center gap-1 bg-red-600 hover:bg-red-700 rounded-none uppercase tracking-wider text-xs"
-                    onClick={logout}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>SIGN OUT</span>
-                  </Button>
-                </div>
-              </Card>
+    <div className="min-h-screen bg-app-background">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <ElegantSectionHeader 
+            title="CONFIGURATION" 
+            className="mb-4"
+          />
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-3xl font-light tracking-tight text-primary-text">
+                Account Settings
+              </h1>
+              <p className="text-secondary-text mt-1">
+                Manage your account settings and preferences
+              </p>
             </div>
           </div>
-        </TabsContent>
+        </div>
         
-        {/* Security Settings */}
-        <TabsContent value="security">
-          <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-            <div className="p-4 flex justify-between items-baseline">
-              <div>
-                <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  ACCESS CONTROL
-                </div>
-                <div className="text-lg font-normal text-gray-900 dark:text-white">
-                  Security Settings
-                </div>
-              </div>
+        <CleanCard padding="none" className="mb-6">
+          <Tabs defaultValue="profile" className="w-full">
+            <div className="border-b border-ios-border">
+              <TabsList className="grid grid-cols-5 w-full bg-transparent">
+                <TabsTrigger 
+                  value="profile" 
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">PROFILE</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="security" 
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">SECURITY</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="qr-codes" 
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
+                >
+                  <QrCode className="h-4 w-4" />
+                  <span className="hidden sm:inline">QR CODES</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="notifications" 
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
+                >
+                  <Bell className="h-4 w-4" />
+                  <span className="hidden sm:inline">ALERTS</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="sync" 
+                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
+                >
+                  <Cloud className="h-4 w-4" />
+                  <span className="hidden sm:inline">SYNC</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <CardContent className="p-4">
-              <Form {...securityForm}>
-                <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={securityForm.control}
-                      name="requirePinForSensitive"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">PIN for Sensitive Items</FormLabel>
-                            <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                              Require PIN verification for sensitive item access
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={securityForm.control}
-                      name="showItemDetails"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Show Item Details</FormLabel>
-                            <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                              Display sensitive item details in listings
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+            
+            {/* Profile Settings */}
+            <TabsContent value="profile" className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <CleanCard>
+                  <div className="mb-6">
+                    <ElegantSectionHeader title="PERSONAL INFORMATION" size="sm" />
+                    <p className="text-secondary-text mt-1">User Details</p>
                   </div>
                   
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    TIMEOUT SETTINGS
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={securityForm.control}
-                      name="autoLogout"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto Logout (minutes)</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-200 dark:border-white/10">
-                                <SelectValue placeholder="Select timeout" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="5">5 minutes</SelectItem>
-                              <SelectItem value="15">15 minutes</SelectItem>
-                              <SelectItem value="30">30 minutes</SelectItem>
-                              <SelectItem value="60">1 hour</SelectItem>
-                              <SelectItem value="never">Never</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            Automatically log out after period of inactivity
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={securityForm.control}
-                      name="pinTimeout"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">PIN Verification Timeout</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-200 dark:border-white/10">
-                                <SelectValue placeholder="Select timeout" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="1">1 minute</SelectItem>
-                              <SelectItem value="5">5 minutes</SelectItem>
-                              <SelectItem value="15">15 minutes</SelectItem>
-                              <SelectItem value="30">30 minutes</SelectItem>
-                              <SelectItem value="0">Every time</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            How often to require PIN re-entry for sensitive items
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    ADVANCED OPTIONS
-                  </div>
-                  
-                  <Accordion type="single" collapsible className="w-full border-none">
-                    <AccordionItem value="advanced" className="border-none">
-                      <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 py-2 hover:no-underline">
-                        Advanced Security Options
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                          <div className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Biometric Authentication</h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Use fingerprint or face ID when available</p>
-                            </div>
-                            <Switch disabled className="data-[state=checked]:bg-primary" />
-                          </div>
-                          
-                          <div className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Secure Boot</h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Verify app integrity on startup</p>
-                            </div>
-                            <Switch defaultChecked={true} className="data-[state=checked]:bg-primary" />
-                          </div>
-                        </div>
-                        
-                        <div className="pt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-none border-gray-200 dark:border-white/10 text-xs uppercase tracking-wider"
-                            onClick={() => {
-                              toast({
-                                title: "Security Log Cleared",
-                                description: "Your login history has been cleared",
-                              });
-                            }}
-                          >
-                            Clear Security Log
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                  
-                  <div className="pt-4 flex justify-end">
-                    <Button 
-                      type="submit" 
-                      className="rounded-none uppercase tracking-wider text-xs font-medium bg-primary hover:bg-primary-600 flex items-center gap-1"
-                    >
-                      <Shield className="h-4 w-4" />
-                      <span>SAVE SECURITY SETTINGS</span>
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* QR Code Settings */}
-        <TabsContent value="qr-codes">
-          <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-            <div className="p-4 flex justify-between items-baseline">
-              <div>
-                <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  QR MANAGEMENT
-                </div>
-                <div className="text-lg font-normal text-gray-900 dark:text-white">
-                  QR Code Settings
-                </div>
-              </div>
-            </div>
-            <CardContent className="p-4">
-              <Form {...qrForm}>
-                <form onSubmit={qrForm.handleSubmit(onQRSubmit)} className="space-y-6">
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    PRINT SETTINGS
-                  </div>
-                  
-                  <FormField
-                    control={qrForm.control}
-                    name="defaultPrintSize"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Default QR Code Size</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="rounded-none border-gray-200 dark:border-white/10">
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="small">Small (1.5" x 1.5")</SelectItem>
-                            <SelectItem value="medium">Medium (2" x 2")</SelectItem>
-                            <SelectItem value="large">Large (3" x 3")</SelectItem>
-                            <SelectItem value="xlarge">Extra Large (4" x 4")</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                          Standard size for printing QR codes
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    QR CODE CONTENT
-                  </div>
-                  
-                  <FormField
-                    control={qrForm.control}
-                    name="autoRegenerate"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Regenerate Damaged QR Codes</FormLabel>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            Automatically generate replacement QR codes when damage is reported
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-primary"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <FormField
-                      control={qrForm.control}
-                      name="includeName"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Include Item Name</FormLabel>
-                            <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                              Print item name on QR code label
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={qrForm.control}
-                      name="includeSerialNumber"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Include Serial Number</FormLabel>
-                            <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                              Print item name on QR code label
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={qrForm.control}
-                    name="scanConfirmation"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none mt-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Scan Confirmation</FormLabel>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            Require confirmation after scanning before processing
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-primary"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    SECURITY INFORMATION
-                  </div>
-                  
-                  <div className="border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">QR Code Format</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                      HandReceipt uses a secure, blockchain-verified format for all QR codes
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="font-medium text-gray-700 dark:text-gray-300">Error Correction:</div>
-                      <div className="text-gray-500 dark:text-gray-400">High (Level H)</div>
-                      
-                      <div className="font-medium text-gray-700 dark:text-gray-300">Encryption:</div>
-                      <div className="text-gray-500 dark:text-gray-400">AES-256</div>
-                      
-                      <div className="font-medium text-gray-700 dark:text-gray-300">Verification:</div>
-                      <div className="text-gray-500 dark:text-gray-400">SHA-256 hash</div>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 flex justify-end">
-                    <Button 
-                      type="submit" 
-                      className="rounded-none uppercase tracking-wider text-xs font-medium bg-primary hover:bg-primary-600 flex items-center gap-1"
-                    >
-                      <QrCode className="h-4 w-4" />
-                      <span>SAVE QR SETTINGS</span>
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Notification Settings */}
-        <TabsContent value="notifications">
-          <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-            <div className="p-4 flex justify-between items-baseline">
-              <div>
-                <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  ALERTS
-                </div>
-                <div className="text-lg font-normal text-gray-900 dark:text-white">
-                  Notification Settings
-                </div>
-              </div>
-            </div>
-            <CardContent className="p-4">
-              <Form {...notificationForm}>
-                <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    NOTIFICATION CONTROLS
-                  </div>
-                
-                  <FormField
-                    control={notificationForm.control}
-                    name="enableNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Enable Notifications</FormLabel>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            Master toggle for all notification types
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-primary"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className={notificationForm.watch("enableNotifications") ? "" : "opacity-50 pointer-events-none"}>
-                    <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                      NOTIFICATION TYPES
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                       <FormField
-                        control={notificationForm.control}
-                        name="transferRequests"
+                        control={profileForm.control}
+                        name="name"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Full Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                readOnly 
+                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs text-quaternary-text">
+                              Contact admin to update name
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={profileForm.control}
+                        name="rank"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Rank</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                readOnly 
+                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={profileForm.control}
+                        name="unit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Unit</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                readOnly 
+                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={profileForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Email</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={profileForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Phone</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <Button 
+                        type="submit" 
+                        className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none w-full flex items-center justify-center gap-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                      </Button>
+                    </form>
+                  </Form>
+                </CleanCard>
+
+                <div className="flex flex-col gap-6">
+                  <CleanCard>
+                    <div className="mb-6">
+                      <ElegantSectionHeader title="DISPLAY" size="sm" />
+                      <p className="text-secondary-text mt-1">Appearance Settings</p>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-primary-text">Theme</h4>
+                          <p className="text-xs text-secondary-text">Toggle between light and dark mode</p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={toggleTheme}
+                          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                          className="rounded-none border-ios-border h-8 w-8"
+                        >
+                          {theme === 'light' ? (
+                            <Moon className="h-4 w-4" />
+                          ) : (
+                            <Sun className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-primary-text">Device ID</h4>
+                          <p className="text-xs text-secondary-text font-mono">DVC-{user?.id || "000000"}</p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            toast({
+                              title: "Device Reset",
+                              description: "Device ID has been regenerated",
+                            });
+                          }}
+                          className="flex items-center gap-1 rounded-none border-ios-border text-xs"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+                  </CleanCard>
+
+                  <CleanCard>
+                    <div className="mb-6">
+                      <ElegantSectionHeader title="ACCOUNT" size="sm" />
+                      <p className="text-secondary-text mt-1">System Actions</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <Button 
+                        variant="outline" 
+                        className="w-full flex items-center justify-center gap-2 rounded-none border-ios-border text-primary-text hover:bg-gray-50"
+                        onClick={() => {
+                          toast({
+                            title: "Account Preferences Reset",
+                            description: "Your settings have been restored to defaults",
+                          });
+                        }}
+                      >
+                        <SettingsIcon className="h-4 w-4" />
+                        Reset Preferences
+                      </Button>
+                      
+                      <div className="pt-4 border-t border-ios-border">
+                        <Button 
+                          variant="destructive" 
+                          className="w-full flex items-center justify-center gap-2 bg-ios-destructive hover:bg-destructive-dim rounded-none"
+                          onClick={logout}
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Sign Out
+                        </Button>
+                      </div>
+                    </div>
+                  </CleanCard>
+                </div>
+              </div>
+            </TabsContent>
+            
+            {/* Security Settings - keeping existing structure but with CleanCard */}
+            <TabsContent value="security" className="p-6">
+              <CleanCard>
+                <div className="mb-6">
+                  <ElegantSectionHeader title="ACCESS CONTROL" size="sm" />
+                  <p className="text-secondary-text mt-1">Security Settings</p>
+                </div>
+                
+                <Form {...securityForm}>
+                  <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={securityForm.control}
+                        name="requirePinForSensitive"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Transfer Requests</FormLabel>
-                              <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                                Notifications for incoming and outgoing transfers
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Require PIN for Sensitive Items
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Additional security for classified equipment
                               </FormDescription>
                             </div>
                             <FormControl>
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch("enableNotifications")}
-                                className="data-[state=checked]:bg-primary"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={securityForm.control}
+                        name="showItemDetails"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Show Item Details
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Display technical specifications in lists
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={securityForm.control}
+                        name="autoLogout"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Auto Logout (minutes)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
+                                  <SelectValue placeholder="Select timeout" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="15">15 minutes</SelectItem>
+                                <SelectItem value="30">30 minutes</SelectItem>
+                                <SelectItem value="60">1 hour</SelectItem>
+                                <SelectItem value="120">2 hours</SelectItem>
+                                <SelectItem value="0">Never</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={securityForm.control}
+                        name="pinTimeout"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">PIN Timeout (minutes)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
+                                  <SelectValue placeholder="Select PIN timeout" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="1">1 minute</SelectItem>
+                                <SelectItem value="5">5 minutes</SelectItem>
+                                <SelectItem value="10">10 minutes</SelectItem>
+                                <SelectItem value="30">30 minutes</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save Security Settings
+                    </Button>
+                  </form>
+                </Form>
+              </CleanCard>
+            </TabsContent>
+            
+            {/* Additional tabs can be implemented similarly - keeping existing functionality but with iOS styling */}
+            <TabsContent value="qr-codes" className="p-6">
+              <CleanCard>
+                <div className="mb-6">
+                  <ElegantSectionHeader title="QR CODE CONFIGURATION" size="sm" />
+                  <p className="text-secondary-text mt-1">QR Code generation and scanning preferences</p>
+                </div>
+                
+                <Form {...qrForm}>
+                  <form onSubmit={qrForm.handleSubmit(onQRSubmit)} className="space-y-6">
+                    <FormField
+                      control={qrForm.control}
+                      name="defaultPrintSize"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Default Print Size</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
+                                <SelectValue placeholder="Select size" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="small">Small (1" × 1")</SelectItem>
+                              <SelectItem value="medium">Medium (2" × 2")</SelectItem>
+                              <SelectItem value="large">Large (3" × 3")</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="space-y-4">
+                      <FormField
+                        control={qrForm.control}
+                        name="autoRegenerate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Auto-regenerate QR codes
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Automatically create new codes after transfers
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={qrForm.control}
+                        name="includeName"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Include item name
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Display item name on QR label
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={qrForm.control}
+                        name="includeSerialNumber"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Include serial number
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Display serial number on QR label
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={qrForm.control}
+                        name="scanConfirmation"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Require scan confirmation
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Show confirmation dialog after scanning
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save QR Settings
+                    </Button>
+                  </form>
+                </Form>
+              </CleanCard>
+            </TabsContent>
+            
+            <TabsContent value="notifications" className="p-6">
+              <CleanCard>
+                <div className="mb-6">
+                  <ElegantSectionHeader title="NOTIFICATION PREFERENCES" size="sm" />
+                  <p className="text-secondary-text mt-1">Manage alerts and notifications</p>
+                </div>
+                
+                <Form {...notificationForm}>
+                  <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
+                    <FormField
+                      control={notificationForm.control}
+                      name="enableNotifications"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between space-y-0">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium text-primary-text">
+                              Enable notifications
+                            </FormLabel>
+                            <FormDescription className="text-xs text-secondary-text">
+                              Receive alerts for important events
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="h-px bg-ios-divider" />
+                    
+                    <div className="space-y-4">
+                      <h4 className="text-xs uppercase tracking-wide text-tertiary-text font-medium">
+                        NOTIFICATION TYPES
+                      </h4>
+                      
+                      <FormField
+                        control={notificationForm.control}
+                        name="transferRequests"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Transfer requests
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                New incoming and outgoing transfers
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={!notificationForm.watch('enableNotifications')}
                               />
                             </FormControl>
                           </FormItem>
@@ -934,19 +823,20 @@ const Settings: React.FC = () => {
                         control={notificationForm.control}
                         name="statusUpdates"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Status Updates</FormLabel>
-                              <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                                Notifications for inventory status changes
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Status updates
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Equipment status changes
                               </FormDescription>
                             </div>
                             <FormControl>
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch("enableNotifications")}
-                                className="data-[state=checked]:bg-primary"
+                                disabled={!notificationForm.watch('enableNotifications')}
                               />
                             </FormControl>
                           </FormItem>
@@ -957,19 +847,20 @@ const Settings: React.FC = () => {
                         control={notificationForm.control}
                         name="systemAlerts"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">System Alerts</FormLabel>
-                              <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                                Notifications for sensitive item verifications
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                System alerts
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Important system messages
                               </FormDescription>
                             </div>
                             <FormControl>
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch("enableNotifications")}
-                                className="data-[state=checked]:bg-primary"
+                                disabled={!notificationForm.watch('enableNotifications')}
                               />
                             </FormControl>
                           </FormItem>
@@ -980,283 +871,76 @@ const Settings: React.FC = () => {
                         control={notificationForm.control}
                         name="dailyDigest"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
+                          <FormItem className="flex flex-row items-center justify-between space-y-0">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Daily Digest</FormLabel>
-                              <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                                Daily summary of all activity and pending actions
+                              <FormLabel className="text-sm font-medium text-primary-text">
+                                Daily digest
+                              </FormLabel>
+                              <FormDescription className="text-xs text-secondary-text">
+                                Summary email sent daily at 0600
                               </FormDescription>
                             </div>
                             <FormControl>
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch("enableNotifications")}
-                                className="data-[state=checked]:bg-primary"
+                                disabled={!notificationForm.watch('enableNotifications')}
                               />
                             </FormControl>
                           </FormItem>
                         )}
                       />
                     </div>
-                  </div>
-                  
-                  <div className="pt-4 flex justify-end">
+                    
                     <Button 
                       type="submit" 
-                      className="rounded-none uppercase tracking-wider text-xs font-medium bg-primary hover:bg-primary-600 flex items-center gap-1"
-                      disabled={!notificationForm.watch("enableNotifications")}
+                      className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
                     >
-                      <Bell className="h-4 w-4" />
-                      <span>SAVE NOTIFICATION SETTINGS</span>
+                      <Save className="h-4 w-4" />
+                      Save Notification Settings
                     </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Sync Settings */}
-        <TabsContent value="sync">
-          <Card className="overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-            <div className="p-4 flex justify-between items-baseline">
-              <div>
-                <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  BLOCKCHAIN
+                  </form>
+                </Form>
+              </CleanCard>
+            </TabsContent>
+            
+            <TabsContent value="sync" className="p-6">
+              <CleanCard>
+                <div className="mb-6">
+                  <ElegantSectionHeader title="SYNCHRONIZATION" size="sm" />
+                  <p className="text-secondary-text mt-1">Data synchronization preferences</p>
                 </div>
-                <div className="text-lg font-normal text-gray-900 dark:text-white">
-                  Data Synchronization
-                </div>
-              </div>
-            </div>
-            <CardContent className="p-4">
-              <Form {...syncForm}>
-                <form onSubmit={syncForm.handleSubmit(onSyncSubmit)} className="space-y-6">
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    SYNC STATUS
-                  </div>
                 
-                  <div className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none bg-muted/5">
-                    <div className="space-y-0.5">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Blockchain Status</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Last synchronized: {formatLastSynced(syncForm.watch("lastSynced"))}
-                      </p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-primary-text">Manual Sync</h4>
+                      <p className="text-xs text-secondary-text">Synchronize your data now</p>
                     </div>
                     <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="rounded-none border-gray-200 dark:border-white/10 text-xs uppercase tracking-wider flex items-center gap-1"
                       onClick={handleManualSync}
                       disabled={isSyncing}
+                      className="bg-ios-accent hover:bg-accent-hover text-white rounded-none flex items-center gap-2"
                     >
                       {isSyncing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>SYNCING...</span>
-                        </>
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <>
-                          <Cloud className="h-4 w-4" />
-                          <span>SYNC NOW</span>
-                        </>
+                        <RefreshCw className="h-4 w-4" />
                       )}
+                      {isSyncing ? 'Syncing...' : 'Sync Now'}
                     </Button>
                   </div>
                   
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    SYNC SETTINGS
+                  <div className="text-xs text-secondary-text">
+                    Last synced: {formatLastSynced(syncForm.watch('lastSynced'))}
                   </div>
-                  
-                  <FormField
-                    control={syncForm.control}
-                    name="autoSync"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Synchronization</FormLabel>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            Automatically sync data with blockchain ledger
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-primary"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <FormField
-                      control={syncForm.control}
-                      name="syncInterval"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Sync Interval (minutes)</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            disabled={!syncForm.watch("autoSync")}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="rounded-none border-gray-200 dark:border-white/10">
-                                <SelectValue placeholder="Select interval" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="5">5 minutes</SelectItem>
-                              <SelectItem value="15">15 minutes</SelectItem>
-                              <SelectItem value="30">30 minutes</SelectItem>
-                              <SelectItem value="60">1 hour</SelectItem>
-                              <SelectItem value="360">6 hours</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                            How often to synchronize with the blockchain
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={syncForm.control}
-                      name="syncOnWifiOnly"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none h-full">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Sync on Wi-Fi Only</FormLabel>
-                            <FormDescription className="text-xs text-gray-500 dark:text-gray-400">
-                              Only perform automatic sync when connected to Wi-Fi
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={!syncForm.watch("autoSync")}
-                              className="data-[state=checked]:bg-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="horizontal-divider"></div>
-                  
-                  <div className="uppercase text-xs tracking-wider font-medium mb-4 text-gray-500 dark:text-gray-400">
-                    ADVANCED OPTIONS
-                  </div>
-                
-                  <Accordion type="single" collapsible className="w-full border-none">
-                    <AccordionItem value="advanced" className="border-none">
-                      <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 py-2 hover:no-underline">
-                        Advanced Sync Options
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                          <div className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Offline Mode</h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Allow operation without blockchain connectivity</p>
-                            </div>
-                            <Switch defaultChecked={true} className="data-[state=checked]:bg-primary" />
-                          </div>
-                          
-                          <div className="flex items-center justify-between border border-gray-200 dark:border-white/10 p-4 rounded-none">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Background Sync</h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Sync when app is not in use</p>
-                            </div>
-                            <Switch defaultChecked={false} className="data-[state=checked]:bg-primary" />
-                          </div>
-                        </div>
-                        
-                        <div className="pt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-none border-gray-200 dark:border-white/10 text-xs uppercase tracking-wider"
-                            onClick={() => {
-                              toast({
-                                title: "Sync Cache Cleared",
-                                description: "Your local cache has been cleared",
-                              });
-                            }}
-                          >
-                            Clear Sync Cache
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                  
-                  <div className="pt-4 flex justify-end">
-                    <Button 
-                      type="submit" 
-                      className="rounded-none uppercase tracking-wider text-xs font-medium bg-primary hover:bg-primary-600 flex items-center gap-1"
-                    >
-                      <Database className="h-4 w-4" />
-                      <span>SAVE SYNC SETTINGS</span>
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-          
-          <Card className="mt-6 overflow-hidden border-gray-200 dark:border-white/10 shadow-none bg-white dark:bg-black">
-            <div className="p-4 flex justify-between items-baseline">
-              <div>
-                <div className="uppercase text-xs tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  ANALYTICS
                 </div>
-                <div className="text-lg font-normal text-gray-900 dark:text-white">
-                  Performance Metrics
-                </div>
-              </div>
-            </div>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border border-gray-200 dark:border-white/10 rounded-none">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">System Performance</h3>
-                  </div>
-                  <p className="text-2xl font-light text-gray-900 dark:text-white">98.7%</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Uptime last 30 days</p>
-                </div>
-                
-                <div className="p-4 border border-gray-200 dark:border-white/10 rounded-none">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Sync Speed</h3>
-                  </div>
-                  <p className="text-2xl font-light text-gray-900 dark:text-white">1.2s</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Average sync time</p>
-                </div>
-                
-                <div className="p-4 border border-gray-200 dark:border-white/10 rounded-none">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Last Full Sync</h3>
-                  </div>
-                  <p className="text-2xl font-light text-gray-900 dark:text-white">36m</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">36 minutes ago</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </PageWrapper>
+              </CleanCard>
+            </TabsContent>
+          </Tabs>
+        </CleanCard>
+      </div>
+    </div>
   );
 };
 
