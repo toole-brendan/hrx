@@ -220,7 +220,7 @@ const Login: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <span>Sign In</span>
+                      <span>Dev Login</span>
                       <i className="fas fa-arrow-right text-sm"></i>
                     </>
                   )}
@@ -228,18 +228,6 @@ const Login: React.FC = () => {
               </Button>
             </form>
           </Form>
-          
-          {/* Registration link */}
-          <div className="text-center mt-8">
-            <p className="text-[#6B6B6B] text-sm">
-              Don't have an account?
-            </p>
-            <Link href="/register">
-              <a className="text-[#0066CC] text-sm font-medium hover:underline">
-                Create one
-              </a>
-            </Link>
-          </div>
         </div>
       </div>
     </div>
