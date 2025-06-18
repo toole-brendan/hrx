@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Form,
@@ -115,40 +112,36 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4 pb-4 pt-2">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 pb-4 pt-2">
       <div className="w-full max-w-lg">
         <div className="text-center mb-0">
           <div className="flex justify-center mb-4">
             <img 
               src={logoImage} 
               alt="HandReceipt Logo" 
-              className="h-96 w-auto select-none"
+              className="h-48 w-auto select-none"
             />
           </div>
+          <p className="text-gray-700 font-normal mb-6">Property Management System</p>
         </div>
         
-        <Card className="bg-card border-gray-800" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
-          <CardHeader>
-            <CardTitle className="text-white font-light tracking-wide">Register</CardTitle>
-            <CardDescription className="text-gray-400 font-light">
-              Create a new account to access the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="bg-white shadow-md rounded-md" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+          <CardContent className="pt-6">
+            <h2 className="text-black text-lg font-normal mb-4">Create Account</h2>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="first_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">First Name</FormLabel>
+                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">First Name</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="" 
                             {...field} 
-                            className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                             style={{ boxShadow: 'none' }}
                           />
                         </FormControl>
@@ -162,12 +155,12 @@ const Register: React.FC = () => {
                     name="last_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Last Name</FormLabel>
+                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Last Name</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="" 
                             {...field} 
-                            className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                             style={{ boxShadow: 'none' }}
                           />
                         </FormControl>
@@ -182,13 +175,13 @@ const Register: React.FC = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Email</FormLabel>
+                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Email</FormLabel>
                       <FormControl>
                         <Input 
                           type="email" 
                           placeholder="" 
                           {...field} 
-                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                           style={{ boxShadow: 'none' }}
                         />
                       </FormControl>
@@ -203,10 +196,10 @@ const Register: React.FC = () => {
                     name="rank"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Rank</FormLabel>
+                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Rank</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger className="bg-gray-100 border-gray-400 text-gray-900 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500">
+                            <SelectTrigger className="border-0 border-b-2 border-gray-300 text-gray-900 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent">
                               <SelectValue placeholder="Select rank" />
                             </SelectTrigger>
                           </FormControl>
@@ -228,12 +221,12 @@ const Register: React.FC = () => {
                     name="unit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Unit</FormLabel>
+                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Unit</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="" 
                             {...field} 
-                            className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                             style={{ boxShadow: 'none' }}
                           />
                         </FormControl>
@@ -248,13 +241,13 @@ const Register: React.FC = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Password</FormLabel>
+                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Password</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
                           placeholder="" 
                           {...field} 
-                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                           style={{ boxShadow: 'none' }}
                         />
                       </FormControl>
@@ -268,13 +261,13 @@ const Register: React.FC = () => {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Confirm Password</FormLabel>
+                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Confirm Password</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
                           placeholder="" 
                           {...field} 
-                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                           style={{ boxShadow: 'none' }}
                         />
                       </FormControl>
@@ -285,7 +278,7 @@ const Register: React.FC = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light border-0"
+                  className="w-full bg-black hover:opacity-90 text-white font-normal"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -298,13 +291,13 @@ const Register: React.FC = () => {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <p className="text-sm text-center text-gray-400">
-              Already have an account?{" "}
-              <Link to="/login" className="text-blue-500/70 hover:text-blue-500/90 hover:underline">
+          <CardFooter>
+            <div className="w-full text-center text-sm">
+              <span className="text-gray-600">Already have an account?</span>{' '}
+              <Link to="/login" className="text-blue-600 font-medium underline">
                 Sign in
               </Link>
-            </p>
+            </div>
           </CardFooter>
         </Card>
       </div>

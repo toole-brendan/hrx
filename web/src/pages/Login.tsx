@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Form,
@@ -127,7 +124,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4 pb-4 pt-2">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 pb-4 pt-2">
       <div className="w-full max-w-md">
         <div className="text-center mb-0">
           <div className="flex justify-center mb-4">
@@ -138,7 +135,7 @@ const Login: React.FC = () => {
               <img 
                 src={logoImage} 
                 alt="HandReceipt Logo" 
-                className="h-96 w-auto select-none"
+                className="h-48 w-auto select-none"
               />
               {/* Dev login progress indicator - circle around logo like iOS */}
               {logoTapCount > 0 && logoTapCount < 5 && (
@@ -157,30 +154,25 @@ const Login: React.FC = () => {
               )}
             </div>
           </div>
-          <p className="text-gray-400 font-light italic mb-6">Military Supply Chain Management</p>
+          <p className="text-gray-700 font-normal mb-6">Property Management System</p>
         </div>
         
-        <Card className="bg-card border-gray-800" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
-          <CardHeader>
-            <CardTitle className="text-white font-light tracking-wide">Sign In</CardTitle>
-            <CardDescription className="text-gray-400 font-light">
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="bg-white shadow-md rounded-md" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+          <CardContent className="pt-6">
+            <p className="text-gray-500 mb-4">Sign in to continue</p>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Email</FormLabel>
+                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Email</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="" 
                           {...field} 
-                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                           style={{ boxShadow: 'none' }}
                         />
                       </FormControl>
@@ -194,13 +186,13 @@ const Login: React.FC = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-200 text-xs uppercase tracking-wider font-light">Password</FormLabel>
+                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Password</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
                           placeholder="" 
                           {...field} 
-                          className="bg-gray-100 border-gray-400 text-gray-900 placeholder:text-gray-500 font-light focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                           style={{ boxShadow: 'none' }}
                         />
                       </FormControl>
@@ -211,20 +203,24 @@ const Login: React.FC = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-blue-500/70 hover:bg-blue-500/90 text-white text-xs uppercase tracking-wider font-light border-0"
+                  className="w-full bg-black hover:opacity-90 text-white font-normal"
                   disabled={isLoading}
                 >
                   {isLoading ? (
                     <i className="fas fa-spinner fa-spin mr-2"></i>
                   ) : (
-                    <i className="fas fa-sign-in-alt mr-2"></i>
+                    <i className="fas fa-arrow-right mr-2"></i>
                   )}
                   Sign In
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
+          <CardFooter>
+            <div className="w-full text-center text-sm">
+              <span className="text-gray-600">Don't have an account?</span>{' '}
+              <Link href="/register"><a className="text-blue-600 font-medium underline">Create one</a></Link>
+            </div>
           </CardFooter>
         </Card>
       </div>
