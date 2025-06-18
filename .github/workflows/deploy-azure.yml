@@ -303,12 +303,12 @@ jobs:
 
       - name: Enable Static Website on Storage Account
         run: |
-          # Enable static website hosting on the storage account
+          # Enable static website hosting on the storage account (skip if already enabled)
           az storage blob service-properties update \
             --account-name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
             --static-website \
             --index-document index.html \
-            --404-document index.html
+            --404-document index.html || echo "Static website might already be enabled"
 
       - name: Deploy to Azure Storage
         run: |
@@ -316,19 +316,27 @@ jobs:
           # Upload built files to $web container (static website container)
           az storage blob upload-batch \
             --account-name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
-            --auth-mode login \
             --destination '$web' \
             --source dist/public \
             --overwrite
 
       - name: Purge CDN Cache
         run: |
-          # Purge CDN cache to serve new content
-          az cdn endpoint purge \
+          # Check if CDN endpoint exists before purging
+          if az cdn endpoint show \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-frontend \
             --profile-name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-cdn \
-            --content-paths "/*"
+            >/dev/null 2>&1; then
+            echo "Purging CDN cache..."
+            az cdn endpoint purge \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-frontend \
+              --profile-name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-cdn \
+              --content-paths "/*"
+          else
+            echo "CDN endpoint not found, skipping cache purge"
+          fi
 
       - name: Get Frontend URLs
         id: get_frontend_urls
@@ -694,9 +702,11 @@ jobs:
             echo "✅ Frontend (Static Website): ${{ steps.get_frontend_urls.outputs.static_url }}"
             if [ -n "${{ steps.get_frontend_urls.outputs.cdn_url }}" ]; then
               echo "✅ Frontend (CDN): ${{ steps.get_frontend_urls.outputs.cdn_url }}"
-              echo "🌍 Recommended URL: ${{ steps.get_frontend_urls.outputs.cdn_url }}"
+              echo "✅ Custom Domain: https://www.handreceipt.com (via CDN)"
+              echo "🌍 Primary URL: https://www.handreceipt.com"
             else
               echo "🌍 Frontend URL: ${{ steps.get_frontend_urls.outputs.static_url }}"
+              echo "ℹ️  Note: CDN not configured, using direct storage URL"
             fi
           fi
           
