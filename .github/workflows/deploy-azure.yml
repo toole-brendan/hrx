@@ -446,7 +446,12 @@ jobs:
                 HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
                 HANDRECEIPT_CONFIG_NAME=config.azure \
                 AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
-                AZURE_OCR_KEY=secretref:azure-ocr-key
+                AZURE_OCR_KEY=secretref:azure-ocr-key \
+                CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
+                CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
+                CORS_ALLOWED_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS" \
+                CORS_ALLOWED_HEADERS="*" \
+                CORS_CREDENTIALS="true"
           else
             echo "🚀 Creating new Backend API..."
             az containerapp create \
@@ -484,7 +489,12 @@ jobs:
                 HANDRECEIPT_JWT_SECRET_KEY=secretref:jwt-secret-key \
                 HANDRECEIPT_CONFIG_NAME=config.azure \
                 AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
-                AZURE_OCR_KEY=secretref:azure-ocr-key
+                AZURE_OCR_KEY=secretref:azure-ocr-key \
+                CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
+                CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
+                CORS_ALLOWED_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS" \
+                CORS_ALLOWED_HEADERS="*" \
+                CORS_CREDENTIALS="true"
           fi
 
       - name: Deploy Worker

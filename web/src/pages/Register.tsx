@@ -78,7 +78,6 @@ const Register: React.FC = () => {
           last_name: data.last_name,
           rank: data.rank,
           unit: data.unit,
-          role: "user"
         }),
         credentials: 'include',
       });
