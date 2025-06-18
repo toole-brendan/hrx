@@ -607,22 +607,22 @@
   
   /* Military-style button variations */
   .btn-military {
-    @apply bg-venture-purple text-white font-medium py-2 px-4 rounded-sm shadow-military 
-    hover:bg-venture-purple/90 transition-all duration-200;
+    @apply bg-ios-accent text-white font-medium py-2 px-4 rounded-sm shadow-sm 
+    hover:bg-ios-accent/90 transition-all duration-200;
   }
   
   .btn-military-outline {
-    @apply border border-venture-purple text-venture-purple bg-transparent font-medium py-2 px-4 rounded-sm 
-    hover:bg-venture-purple/10 transition-all duration-200;
+    @apply border border-ios-accent text-ios-accent bg-transparent font-medium py-2 px-4 rounded-sm 
+    hover:bg-ios-accent/10 transition-all duration-200;
   }
   
   .btn-military-success {
-    @apply bg-success text-success-foreground font-medium py-2 px-4 rounded-sm shadow-military 
+    @apply bg-success text-success-foreground font-medium py-2 px-4 rounded-sm shadow-sm 
     hover:bg-success/90 transition-all duration-200;
   }
   
   .btn-military-alert {
-    @apply bg-destructive text-destructive-foreground font-medium py-2 px-4 rounded-sm shadow-military 
+    @apply bg-destructive text-destructive-foreground font-medium py-2 px-4 rounded-sm shadow-sm 
     hover:bg-destructive/90 transition-all duration-200;
   }
   
@@ -632,12 +632,12 @@
   }
   
   .light .btn-military-outline {
-    @apply border-venture-purple text-venture-purple hover:bg-venture-purple/10 hover:border-venture-purple;
+    @apply border-ios-accent text-ios-accent hover:bg-ios-accent/10 hover:border-ios-accent;
   }
   
   /* Card styles with military aesthetic */
   .card-military {
-    @apply bg-card border border-border rounded-sm shadow-military p-4 text-card-foreground;
+    @apply bg-card border border-border rounded-sm shadow-ios p-4 text-card-foreground;
   }
   
   .card-military-elevated {
@@ -647,7 +647,7 @@
   /* Light mode card adjustments */
   .light .card-military,
   .light .card-military-elevated {
-    @apply border-border shadow-military;
+    @apply border-border shadow-ios;
   }
   
   /* 8VC Dashboard Cards */
@@ -933,7 +933,7 @@
   /* Badge styling for different themes */
   /* Light mode is default */
   .badge-military.primary {
-    @apply bg-venture-purple/20 text-venture-purple;
+    @apply bg-ios-accent/20 text-ios-accent;
   }
   
   .badge-military.success {
@@ -967,12 +967,12 @@
   
   /* Header and section styles */
   .section-header {
-    @apply text-lg font-medium mb-3 pb-2 border-b border-border text-venture-purple;
+    @apply text-lg font-medium mb-3 pb-2 border-b border-border text-ios-accent;
     letter-spacing: -0.01em;
   }
   
   .section-subheader {
-    @apply text-sm uppercase font-medium mb-2 text-venture-purple/80 tracking-wider;
+    @apply text-sm uppercase font-medium mb-2 text-ios-accent/80 tracking-wider;
   }
   
   /* Dark mode section headers */

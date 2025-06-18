@@ -196,7 +196,7 @@ const Sidebar = ({
                 {item.icon}
                 <span>{item.label}</span>
                 {item.notificationCount && (
-                  <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-venture-purple rounded-full">
+                  <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
                     {item.notificationCount}
                   </span>
                 )}
@@ -210,7 +210,7 @@ const Sidebar = ({
                   {item.icon}
                   <span>{item.label}</span>
                   {item.notificationCount && (
-                    <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-venture-purple rounded-full">
+                    <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
                       {item.notificationCount}
                     </span>
                   )}
@@ -268,7 +268,7 @@ const Sidebar = ({
           <div className="flex items-center justify-between px-2">
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-venture-purple/20 transition-colors"
+              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors"
               title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
               {theme === 'light' ? 
@@ -348,7 +348,7 @@ const Sidebar = ({
                 {item.icon}
                 {!sidebarCollapsed && <span className="text-nav-item">{item.label}</span>}
                 {item.notificationCount && !sidebarCollapsed && (
-                  <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-venture-purple rounded-full">
+                  <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
                     {item.notificationCount}
                   </span>
                 )}
@@ -362,7 +362,7 @@ const Sidebar = ({
                   {item.icon}
                   {!sidebarCollapsed && <span className="text-nav-item">{item.label}</span>}
                   {item.notificationCount && !sidebarCollapsed && (
-                    <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-venture-purple rounded-full">
+                    <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
                       {item.notificationCount}
                     </span>
                   )}
@@ -430,7 +430,7 @@ const Sidebar = ({
             <div className="flex items-center justify-between px-2">
               <button 
                 onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-venture-purple/20 transition-colors"
+                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors"
                 title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
               >
                 {theme === 'light' ? 
@@ -441,7 +441,7 @@ const Sidebar = ({
               
               <button 
                 onClick={toggleSidebar}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-venture-purple/20 transition-colors"
+                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors"
                 title="Collapse sidebar"
               >
                 <ChevronLeft className="h-5 w-5 text-gray-900 dark:text-white" />
@@ -451,7 +451,7 @@ const Sidebar = ({
             <>
               <button 
                 onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-venture-purple/20 transition-colors mx-auto block mb-2"
+                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors mx-auto block mb-2"
                 title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
               >
                 {theme === 'light' ? 
@@ -463,7 +463,7 @@ const Sidebar = ({
               {/* Expand button when collapsed */}
               <button 
                 onClick={toggleSidebar}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-venture-purple/20 transition-colors mx-auto block"
+                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors mx-auto block"
                 title="Expand sidebar"
               >
                 <ChevronRight className="h-5 w-5 text-gray-900 dark:text-white" />
