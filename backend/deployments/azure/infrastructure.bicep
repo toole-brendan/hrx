@@ -79,10 +79,16 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: false
+    allowBlobPublicAccess: true  // Enable for static website
     allowSharedKeyAccess: true
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    // Enable static website hosting
+    staticWebsite: {
+      enabled: true
+      indexDocument: 'index.html'
+      errorDocument404Path: 'index.html'  // For SPA routing
+    }
   }
 }
 
@@ -231,6 +237,69 @@ resource immudbPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+// Azure CDN Profile for frontend
+resource cdnProfile 'Microsoft.Cdn/profiles@2023-05-01' = {
+  name: '${resourcePrefix}-cdn'
+  location: 'Global'
+  sku: {
+    name: 'Standard_Microsoft'
+  }
+  properties: {}
+}
+
+// CDN Endpoint for frontend
+resource cdnEndpoint 'Microsoft.Cdn/profiles/endpoints@2023-05-01' = {
+  parent: cdnProfile
+  name: '${resourcePrefix}-frontend'
+  location: 'Global'
+  properties: {
+    origins: [
+      {
+        name: 'storage-origin'
+        properties: {
+          hostName: replace(replace(storageAccount.properties.primaryEndpoints.web, 'https://', ''), '/', '')
+          httpsPort: 443
+          originHostHeader: replace(replace(storageAccount.properties.primaryEndpoints.web, 'https://', ''), '/', '')
+        }
+      }
+    ]
+    isHttpAllowed: false
+    isHttpsAllowed: true
+    queryStringCachingBehavior: 'IgnoreQueryString'
+    optimizationType: 'GeneralWebDelivery'
+    deliveryPolicy: {
+      rules: [
+        {
+          name: 'SpaRouting'
+          order: 1
+          conditions: [
+            {
+              name: 'UrlFileExtension'
+              parameters: {
+                operator: 'LessThan'
+                matchValues: ['1']
+                transforms: []
+                typeName: 'DeliveryRuleUrlFileExtensionMatchConditionParameters'
+              }
+            }
+          ]
+          actions: [
+            {
+              name: 'UrlRewrite'
+              parameters: {
+                sourcePattern: '/'
+                destination: '/index.html'
+                preserveUnmatchedPath: false
+                typeName: 'DeliveryRuleUrlRewriteActionParameters'
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
 // Outputs
 output containerRegistryLoginServer string = containerRegistry.properties.loginServer
 output containerRegistryName string = containerRegistry.name
@@ -240,4 +309,8 @@ output storageAccountName string = storageAccount.name
 output keyVaultName string = keyVault.name
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output appInsightsInstrumentationKey string = appInsights.properties.InstrumentationKey
-output appInsightsConnectionString string = appInsights.properties.ConnectionString 
+output appInsightsConnectionString string = appInsights.properties.ConnectionString
+// Frontend hosting outputs
+output staticWebsiteUrl string = storageAccount.properties.primaryEndpoints.web
+output cdnEndpointUrl string = 'https://${cdnEndpoint.properties.hostName}'
+output cdnEndpointName string = cdnEndpoint.name 

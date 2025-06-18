@@ -1,12 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
-import path, { dirname } from "path";
+import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Use process.cwd() instead of import.meta for compatibility
+const __dirname = process.cwd();
 
 export default defineConfig({
   plugins: [
@@ -34,6 +33,11 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'esnext',
   },
+  define: {
+    // Define environment variables for build
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || 'http://localhost:8080'),
+    __APP_ENVIRONMENT__: JSON.stringify(process.env.VITE_APP_ENVIRONMENT || 'development'),
+  },
   server: {
     fs: {
       strict: false,
@@ -55,7 +59,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to backend
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_URL || 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       }

@@ -12,9 +12,9 @@ on:
         type: boolean
         default: true
       deploy_frontend:
-        description: 'Deploy frontend (if applicable)'
+        description: 'Deploy frontend to Azure Storage'
         type: boolean
-        default: false
+        default: true
       environment:
         description: 'Deployment environment'
         type: choice
@@ -261,6 +261,95 @@ jobs:
             -t $REGISTRY_URL/handreceipt-worker:${{ github.sha }} \
             -f Dockerfile.worker .
 
+  build-and-deploy-frontend:
+    name: Build and Deploy Frontend
+    if: ${{ github.event.inputs.deploy_frontend == 'true' }}
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Install Dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Build Frontend
+        run: |
+          cd web
+          # Set environment variables for build
+          export VITE_API_URL="https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io"
+          export VITE_APP_ENVIRONMENT="${{ env.AZURE_ENVIRONMENT }}"
+          npm run build
+
+      - name: Enable Static Website on Storage Account
+        run: |
+          # Enable static website hosting on the storage account
+          az storage blob service-properties update \
+            --account-name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+            --static-website \
+            --index-document index.html \
+            --404-document index.html
+
+      - name: Deploy to Azure Storage
+        run: |
+          cd web
+          # Upload built files to $web container (static website container)
+          az storage blob upload-batch \
+            --account-name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+            --auth-mode login \
+            --destination '$web' \
+            --source dist/public \
+            --overwrite
+
+      - name: Purge CDN Cache
+        run: |
+          # Purge CDN cache to serve new content
+          az cdn endpoint purge \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-frontend \
+            --profile-name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-cdn \
+            --content-paths "/*"
+
+      - name: Get Frontend URLs
+        id: get_frontend_urls
+        run: |
+          # Get static website URL
+          STATIC_URL=$(az storage account show \
+            --name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "primaryEndpoints.web" \
+            --output tsv)
+          echo "static_url=$STATIC_URL" >> $GITHUB_OUTPUT
+          
+          # Get CDN URL
+          CDN_URL=$(az cdn endpoint show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-frontend \
+            --profile-name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-cdn \
+            --query "hostName" \
+            --output tsv)
+          echo "cdn_url=https://$CDN_URL" >> $GITHUB_OUTPUT
+
   deploy-backend:
     name: Deploy Backend to Container Apps
     if: ${{ github.event.inputs.deploy_backend == 'true' }}
@@ -462,7 +551,7 @@ jobs:
 
   health-check:
     name: Post-Deployment Health Check
-    needs: [deploy-backend]
+    needs: [deploy-backend, build-and-deploy-frontend]
     if: always() && needs.deploy-backend.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -540,7 +629,7 @@ jobs:
 
   notify:
     name: Deployment Notification
-    needs: [health-check]
+    needs: [health-check, build-and-deploy-frontend]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -562,6 +651,31 @@ jobs:
             --output tsv)
           echo "backend_url=https://$BACKEND_URL" >> $GITHUB_OUTPUT
 
+      - name: Get Frontend URLs
+        id: get_frontend_urls
+        if: needs.build-and-deploy-frontend.result == 'success'
+        run: |
+          # Get static website URL
+          STATIC_URL=$(az storage account show \
+            --name ${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "primaryEndpoints.web" \
+            --output tsv)
+          echo "static_url=$STATIC_URL" >> $GITHUB_OUTPUT
+          
+          # Get CDN URL
+          CDN_URL=$(az cdn endpoint show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-frontend \
+            --profile-name ${{ env.AZURE_BASE_NAME }}-${{ env.AZURE_ENVIRONMENT }}-cdn \
+            --query "hostName" \
+            --output tsv 2>/dev/null || echo "")
+          if [ -n "$CDN_URL" ]; then
+            echo "cdn_url=https://$CDN_URL" >> $GITHUB_OUTPUT
+          else
+            echo "cdn_url=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deployment Success
         if: ${{ needs.health-check.result == 'success' }}
         run: |
@@ -574,11 +688,24 @@ jobs:
           echo "✅ Backend API: ${{ steps.get_url.outputs.backend_url }}"
           echo "✅ Worker: Background processing active"
           echo "✅ PostgreSQL Ledger: Immutable audit trail enabled"
+          
+          # Add frontend URLs if deployment was successful
+          if [ "${{ needs.build-and-deploy-frontend.result }}" == "success" ]; then
+            echo "✅ Frontend (Static Website): ${{ steps.get_frontend_urls.outputs.static_url }}"
+            if [ -n "${{ steps.get_frontend_urls.outputs.cdn_url }}" ]; then
+              echo "✅ Frontend (CDN): ${{ steps.get_frontend_urls.outputs.cdn_url }}"
+              echo "🌍 Recommended URL: ${{ steps.get_frontend_urls.outputs.cdn_url }}"
+            else
+              echo "🌍 Frontend URL: ${{ steps.get_frontend_urls.outputs.static_url }}"
+            fi
+          fi
+          
           echo ""
           echo "🔗 Next Steps:"
-          echo "1. Test the API endpoints"
+          echo "1. Test the application endpoints"
           echo "2. Configure custom domain if needed"
           echo "3. Monitor logs and metrics"
+          echo "4. Set up CI/CD for automatic deployments"
           echo ""
           echo "📝 Note: Using PostgreSQL-based ledger service for immutable audit trail"
 

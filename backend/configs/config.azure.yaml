@@ -46,5 +46,7 @@ security:
     - "https://handreceipt.com"
     - "https://www.handreceipt.com"
     - "https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io"
-    - "capacitor://localhost"
-    - "http://localhost:8100" 
+    - "https://handreceiptprodstorage.z20.web.core.windows.net"  # Azure Storage static website
+    - "https://handreceipt-prod-frontend.azureedge.net"  # Azure CDN endpoint
+    - "capacitor://localhost"  # iOS app
+    - "http://localhost:8100"  # Development 
