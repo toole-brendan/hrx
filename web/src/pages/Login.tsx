@@ -6,21 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import logoImage from "@/assets/hr_logo5.png";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
@@ -124,105 +117,130 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 pb-4 pt-2">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-0">
-          <div className="flex justify-center mb-4">
-            <div 
-              className="relative cursor-pointer transition-all duration-200"
-              onClick={handleLogoTap}
-            >
-              <img 
-                src={logoImage} 
-                alt="HandReceipt Logo" 
-                className="h-48 w-auto select-none"
-              />
-              {/* Dev login progress indicator - circle around logo like iOS */}
-              {logoTapCount > 0 && logoTapCount < 5 && (
-                <>
-                  <div 
-                    className="absolute inset-0 border-2 border-gray-100/20 rounded-full animate-pulse"
-                    style={{
-                      transform: `scale(${1 + (logoTapCount * 0.05)})`,
-                      transition: 'transform 0.2s ease-out'
-                    }}
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4">
+      <div className="w-full max-w-[375px]">
+        {/* Logo section */}
+        <div className="text-center mb-10">
+          <div 
+            className="relative inline-block cursor-pointer"
+            onClick={handleLogoTap}
+          >
+            <img 
+              src="/hr_logo4.png" 
+              alt="HandReceipt Logo" 
+              className="h-[200px] w-auto mx-auto"
+            />
+            {/* Dev login progress indicator */}
+            {logoTapCount > 0 && logoTapCount < 5 && (
+              <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex gap-1">
+                {[...Array(5)].map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      index < logoTapCount ? 'bg-black' : 'bg-[#E0E0E0]'
+                    }`}
                   />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-gray-100/50 text-sm font-bold">
-                    {logoTapCount}
-                  </div>
-                </>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-          <p className="text-gray-700 font-normal mb-6">Property Management System</p>
+          <p className="text-[#4A4A4A] text-base font-normal -mt-6">
+            Property Management System
+          </p>
         </div>
         
-        <Card className="bg-white shadow-md rounded-md" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
-          <CardContent className="pt-6">
-            <p className="text-gray-500 mb-4">Sign in to continue</p>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Email</FormLabel>
-                      <FormControl>
+        {/* Main content */}
+        <div className="px-12">
+          <p className="text-[#6B6B6B] text-base mb-5">Sign in to continue</p>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                      EMAIL
+                    </label>
+                    <FormControl>
+                      <div>
                         <Input 
-                          placeholder="" 
+                          placeholder="Enter your email" 
                           {...field} 
-                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                           style={{ boxShadow: 'none' }}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Password</FormLabel>
-                      <FormControl>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                      PASSWORD
+                    </label>
+                    <FormControl>
+                      <div>
                         <Input 
                           type="password" 
-                          placeholder="" 
+                          placeholder="Enter your password" 
                           {...field} 
-                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                           style={{ boxShadow: 'none' }}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-black hover:opacity-90 text-white font-normal"
-                  disabled={isLoading}
-                >
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-black hover:bg-black/90 text-white font-medium py-6 rounded-md mt-6"
+                disabled={isLoading}
+              >
+                <span className="flex items-center justify-center gap-3">
                   {isLoading ? (
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <div className="flex gap-1">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"
+                          style={{ animationDelay: `${i * 0.2}s` }}
+                        />
+                      ))}
+                    </div>
                   ) : (
-                    <i className="fas fa-arrow-right mr-2"></i>
+                    <>
+                      <span>Sign In</span>
+                      <i className="fas fa-arrow-right text-sm"></i>
+                    </>
                   )}
-                  Sign In
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter>
-            <div className="w-full text-center text-sm">
-              <span className="text-gray-600">Don't have an account?</span>{' '}
-              <Link href="/register"><a className="text-blue-600 font-medium underline">Create one</a></Link>
-            </div>
-          </CardFooter>
-        </Card>
+                </span>
+              </Button>
+            </form>
+          </Form>
+          
+          {/* Registration link */}
+          <div className="text-center mt-8">
+            <p className="text-[#6B6B6B] text-sm">
+              Don't have an account?
+            </p>
+            <Link href="/register">
+              <a className="text-[#0066CC] text-sm font-medium hover:underline">
+                Create one
+              </a>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

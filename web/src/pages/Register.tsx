@@ -5,16 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -26,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import logoImage from "@/assets/hr_logo5.png";
 
 // Import API_BASE_URL from a shared location or define it here
 const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
@@ -112,194 +105,237 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 pb-4 pt-2">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-0">
-          <div className="flex justify-center mb-4">
-            <img 
-              src={logoImage} 
-              alt="HandReceipt Logo" 
-              className="h-48 w-auto select-none"
-            />
-          </div>
-          <p className="text-gray-700 font-normal mb-6">Property Management System</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4">
+      <div className="w-full max-w-[375px]">
+        {/* Logo section */}
+        <div className="text-center mb-10">
+          <img 
+            src="/hr_logo4.png" 
+            alt="HandReceipt Logo" 
+            className="h-[200px] w-auto mx-auto"
+          />
+          <p className="text-[#4A4A4A] text-base font-normal -mt-6">
+            Property Management System
+          </p>
         </div>
         
-        <Card className="bg-white shadow-md rounded-md" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif" }}>
-          <CardContent className="pt-6">
-            <h2 className="text-black text-lg font-normal mb-4">Create Account</h2>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="first_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">First Name</FormLabel>
-                        <FormControl>
+        {/* Main content */}
+        <div className="px-12">
+          <h2 className="text-black text-lg font-normal mb-5">Create Account</h2>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="first_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                        FIRST NAME
+                      </label>
+                      <FormControl>
+                        <div>
                           <Input 
                             placeholder="" 
                             {...field} 
-                            className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
+                            className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                             style={{ boxShadow: 'none' }}
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="last_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Last Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="" 
-                            {...field} 
-                            className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
-                            style={{ boxShadow: 'none' }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Email</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="email" 
-                          placeholder="" 
-                          {...field} 
-                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
-                          style={{ boxShadow: 'none' }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="rank"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Rank</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="border-0 border-b-2 border-gray-300 text-gray-900 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent">
-                              <SelectValue placeholder="Select rank" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {MILITARY_RANKS.map((rank) => (
-                              <SelectItem key={rank} value={rank}>
-                                {rank}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Unit</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="" 
-                            {...field} 
-                            className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
-                            style={{ boxShadow: 'none' }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="" 
-                          {...field} 
-                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
-                          style={{ boxShadow: 'none' }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-600 text-xs uppercase tracking-wider font-medium">Confirm Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="" 
-                          {...field} 
-                          className="border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-black focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
-                          style={{ boxShadow: 'none' }}
-                        />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-black hover:opacity-90 text-white font-normal"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                  ) : (
-                    <i className="fas fa-user-plus mr-2"></i>
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                        LAST NAME
+                      </label>
+                      <FormControl>
+                        <div>
+                          <Input 
+                            placeholder="" 
+                            {...field} 
+                            className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                            style={{ boxShadow: 'none' }}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  Create Account
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter>
-            <div className="w-full text-center text-sm">
-              <span className="text-gray-600">Already have an account?</span>{' '}
-              <Link to="/login" className="text-blue-600 font-medium underline">
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                      EMAIL
+                    </label>
+                    <FormControl>
+                      <div>
+                        <Input 
+                          type="email" 
+                          placeholder="" 
+                          {...field} 
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="rank"
+                  render={({ field }) => (
+                    <FormItem>
+                      <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                        RANK
+                      </label>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
+                            <SelectValue placeholder="Select rank" className="placeholder:text-[#9B9B9B]" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {MILITARY_RANKS.map((rank) => (
+                            <SelectItem key={rank} value={rank}>
+                              {rank}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                        UNIT
+                      </label>
+                      <FormControl>
+                        <div>
+                          <Input 
+                            placeholder="" 
+                            {...field} 
+                            className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                            style={{ boxShadow: 'none' }}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                      PASSWORD
+                    </label>
+                    <FormControl>
+                      <div>
+                        <Input 
+                          type="password" 
+                          placeholder="" 
+                          {...field} 
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="text-[#6B6B6B] text-xs uppercase tracking-[0.1em] font-normal block mb-2">
+                      CONFIRM PASSWORD
+                    </label>
+                    <FormControl>
+                      <div>
+                        <Input 
+                          type="password" 
+                          placeholder="" 
+                          {...field} 
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-black hover:bg-black/90 text-white font-medium py-6 rounded-md mt-6"
+                disabled={isLoading}
+              >
+                <span className="flex items-center justify-center gap-3">
+                  {isLoading ? (
+                    <div className="flex gap-1">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"
+                          style={{ animationDelay: `${i * 0.2}s` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <span>Create Account</span>
+                      <i className="fas fa-user-plus text-sm"></i>
+                    </>
+                  )}
+                </span>
+              </Button>
+            </form>
+          </Form>
+          
+          {/* Sign in link */}
+          <div className="text-center mt-8">
+            <p className="text-[#6B6B6B] text-sm">
+              Already have an account?
+            </p>
+            <Link to="/login">
+              <a className="text-[#0066CC] text-sm font-medium hover:underline">
                 Sign in
-              </Link>
-            </div>
-          </CardFooter>
-        </Card>
+              </a>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
