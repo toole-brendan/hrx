@@ -51,9 +51,10 @@ const Login: React.FC = () => {
       // Navigate to dashboard after successful login
       navigate("/dashboard");
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Invalid email or password";
       toast({
         title: "Login Failed",
-        description: "Invalid email or password",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

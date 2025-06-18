@@ -1,0 +1,43 @@
+#!/bin/bash
+
+echo "🔍 Diagnosing Registration Failure"
+echo "================================="
+
+# SSH command prefix - update with your key path
+SSH_KEY="~/.ssh/handreceipt-key-us-east-1"
+SSH_USER="ubuntu"
+SSH_HOST="44.193.254.155"
+
+echo -e "\n📋 Instructions to run on your Lightsail instance:"
+echo "   SSH to your server and run these commands:"
+echo ""
+echo "   ssh -i $SSH_KEY $SSH_USER@$SSH_HOST"
+echo ""
+echo "   # Once connected, run:"
+echo ""
+echo "   # 1. Check backend logs for errors"
+echo "   cd /opt/handreceipt/deployments/lightsail"
+echo "   sudo docker-compose logs app --tail=50 | grep -i 'error\\|fail\\|panic'"
+echo ""
+echo "   # 2. Check database connection"
+echo "   sudo docker-compose exec postgres pg_isready -U handreceipt -d handreceipt"
+echo ""
+echo "   # 3. Check if users table exists and has correct schema"
+echo "   sudo docker-compose exec postgres psql -U handreceipt -d handreceipt -c '\\d users'"
+echo ""
+echo "   # 4. Check backend environment variables"
+echo "   sudo docker-compose exec app env | grep -E '(DATABASE|JWT|HANDRECEIPT)' | grep -v PASSWORD"
+echo ""
+echo "   # 5. Test database write permissions"
+echo "   sudo docker-compose exec postgres psql -U handreceipt -d handreceipt -c \"INSERT INTO users (email, password_hash, first_name, last_name, rank, unit, status, created_at, updated_at) VALUES ('test.write@example.com', 'dummy', 'Test', 'Write', 'PVT', 'Test', 'active', NOW(), NOW());\""
+echo ""
+echo "   # 6. If write test succeeds, clean it up"
+echo "   sudo docker-compose exec postgres psql -U handreceipt -d handreceipt -c \"DELETE FROM users WHERE email = 'test.write@example.com';\""
+echo ""
+echo "   # 7. Check full backend logs (last 100 lines)"
+echo "   sudo docker-compose logs app --tail=100"
+echo ""
+
+# Also provide a one-liner to copy
+echo -e "\n🚀 Quick one-liner to check logs:"
+echo "ssh -i $SSH_KEY $SSH_USER@$SSH_HOST 'cd /opt/handreceipt/deployments/lightsail && sudo docker-compose logs app --tail=50 | grep -A5 -B5 \"register\\|Register\"'" 

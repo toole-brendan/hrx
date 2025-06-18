@@ -22,7 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 // Import API_BASE_URL from a shared location or define it here
-const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
+const API_BASE_URL = 'https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io'; // Azure Production API URL
 
 const registerSchema = z.object({
   // username: z.string().min(3, "Username must be at least 3 characters"), // REMOVED: Username field

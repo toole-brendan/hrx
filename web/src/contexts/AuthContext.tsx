@@ -16,8 +16,8 @@ interface AuthContextType {
 // Development mode flag - set this to true for local development
 const IS_DEVELOPMENT = false; // Change to false for production
 
-// API Base URL - Replace with your actual Lightsail instance URL
-const API_BASE_URL = 'https://api.handreceipt.com'; // Production API URL
+// API Base URL - Azure Container Apps backend
+const API_BASE_URL = 'https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io'; // Azure Production API URL
 
 // Mock user for development
 const DEV_USER: User = {
@@ -135,7 +135,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('API Error Payload:', errorPayload);
       }
       
-      throw new Error(errorPayload.message || `Request failed with status ${response.status}`);
+      // Check for both 'error' and 'message' fields from backend
+      const errorMessage = errorPayload.error || errorPayload.message || `Request failed with status ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     const text = await response.text();
@@ -214,7 +216,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
           errorData = await response.json();
         } catch (e) {}
-        throw new Error(errorData.message || 'Login failed');
+        // Check for both 'error' and 'message' fields from backend
+        const errorMessage = errorData.error || errorData.message || 'Login failed';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Login error:", error);
