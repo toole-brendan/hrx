@@ -13,10 +13,8 @@ interface AuthContextType {
   authedFetch: AuthedFetch;
 }
 
-// API Base URL - Use relative path in development
-const API_BASE_URL = import.meta.env.DEV 
-  ? ''  // Empty string for relative paths in development
-  : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
+// API Base URL - Use environment variable or default
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 // Development mode - bypass auth when running locally
 const isDevelopment = window.location.hostname === 'localhost' && !import.meta.env.PROD;
@@ -156,7 +154,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(data.user);
         setIsAuthenticated(true);
       } catch (error: any) {
-        if (!error.message?.includes('401')) {
+        // 401 is expected when not authenticated - don't log as error
+        if (!error.message?.includes('401') && !error.message?.includes('User not authenticated')) {
           console.warn("Check auth status failed:", error);
         }
         setUser(null);
@@ -202,7 +201,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         try {
           errorData = await response.json();
-        } catch (e) {}
+        } catch (e) {
+          // If we can't parse JSON, use the status text
+          errorData.message = response.statusText || 'Login failed';
+        }
         
         // Check for both 'error' and 'message' fields from backend
         const errorMessage = errorData.error || errorData.message || 'Login failed';

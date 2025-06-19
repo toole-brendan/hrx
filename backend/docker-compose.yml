@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: handreceipt
       POSTGRES_USER: handreceipt
-      POSTGRES_PASSWORD: handreceipt_password
+      POSTGRES_PASSWORD: cvOrf7fVpmyxvnkqeKOo5g==
     ports:
       - "5432:5432"
     volumes:
@@ -72,7 +72,7 @@ services:
       HANDRECEIPT_DATABASE_HOST: postgres
       HANDRECEIPT_DATABASE_PORT: 5432
       HANDRECEIPT_DATABASE_USER: handreceipt
-      HANDRECEIPT_DATABASE_PASSWORD: handreceipt_password
+      HANDRECEIPT_DATABASE_PASSWORD: cvOrf7fVpmyxvnkqeKOo5g==
       HANDRECEIPT_DATABASE_NAME: handreceipt
       
       # Server Configuration
@@ -122,7 +122,7 @@ services:
       HANDRECEIPT_DATABASE_HOST: postgres
       HANDRECEIPT_DATABASE_PORT: 5432
       HANDRECEIPT_DATABASE_USER: handreceipt
-      HANDRECEIPT_DATABASE_PASSWORD: handreceipt_password
+      HANDRECEIPT_DATABASE_PASSWORD: cvOrf7fVpmyxvnkqeKOo5g==
       HANDRECEIPT_DATABASE_NAME: handreceipt
       
       # ImmuDB Configuration

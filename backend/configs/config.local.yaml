@@ -1,0 +1,83 @@
+# HandReceipt Backend Local Development Configuration
+
+# Server configuration
+server:
+  port: "8080"
+  host: "0.0.0.0"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  shutdown_timeout: "10s"
+  environment: "development"
+  tls_enabled: false
+
+# Database configuration
+database:
+  host: "localhost"  # For local development
+  port: 5432
+  user: "handreceipt"
+  password: "cvOrf7fVpmyxvnkqeKOo5g=="
+  db_name: "handreceipt"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+  migration_path: "./migrations"
+
+# Auth configuration
+jwt:
+  secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+  access_expiry: "24h"
+  refresh_expiry: "168h"
+  issuer: "handreceipt-go"
+  audience: "handreceipt-users"
+  algorithm: "HS256"
+  refresh_enabled: true
+
+# Auth session configuration
+auth:
+  session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+
+# ImmuDB configuration - Disabled for local development
+immudb:
+  enabled: false
+
+# MinIO configuration - Disabled for local development
+minio:
+  enabled: false
+
+# Storage Configuration - Disabled for local development
+storage:
+  type: "minio"
+  enabled: false
+
+nsn:
+  api_endpoint: ""
+  api_key: ""
+  cache_enabled: false
+  cache_ttl: "24h"
+  rate_limit_rps: 10
+  timeout_seconds: 30
+  retry_attempts: 3
+  bulk_batch_size: 50
+  publog_data_dir: "internal/publog"
+
+redis:
+  enabled: false
+
+logging:
+  level: "debug"
+  format: "text"
+  output: "stdout"
+
+security:
+  password_min_length: 8
+  password_require_upper: true
+  password_require_lower: true
+  password_require_digit: true
+  password_require_symbol: false
+  session_timeout: "24h"
+  max_login_attempts: 5
+  lockout_duration: "15m"
+  cors_allowed_origins:
+    - "*"  # Allow all origins for local development
+  rate_limit_enabled: false 
