@@ -1,4 +1,8 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'; export interface UserConnection { id: number; userId: number; connectedUserId: number; connectionStatus: 'pending' | 'accepted' | 'blocked'; connectedUser?: { id: number; name: string; rank: string; unit: string; phone?: string; }; createdAt: string;
+const API_BASE_URL = import.meta.env.DEV 
+  ? '/api'  // Use relative path in development to go through Vite proxy
+  : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
+
+export interface UserConnection { id: number; userId: number; connectedUserId: number; connectionStatus: 'pending' | 'accepted' | 'blocked'; connectedUser?: { id: number; name: string; rank: string; unit: string; phone?: string; }; createdAt: string;
 } export async function getConnections(): Promise<UserConnection[]> { const response = await fetch(`${API_BASE_URL}/users/connections`, { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include', }); if (!response.ok) throw new Error('Failed to fetch connections'); const data = await response.json(); return data.connections || [];
 } export async function searchUsers(query: string): Promise<any[]> { const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include', }); if (!response.ok) throw new Error('Failed to search users'); const data = await response.json(); return data.users || [];
 } export async function sendConnectionRequest(targetUserId: number): Promise<UserConnection> { const response = await fetch(`${API_BASE_URL}/users/connections`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ targetUserId }), }); if (!response.ok) throw new Error('Failed to send connection request'); return response.json();

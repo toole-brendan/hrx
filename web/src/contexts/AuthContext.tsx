@@ -13,12 +13,14 @@ interface AuthContextType {
   authedFetch: AuthedFetch;
 }
 
-// API Base URL - Azure Container Apps backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// API Base URL - Use relative path in development
+const API_BASE_URL = import.meta.env.DEV 
+  ? ''  // Empty string for relative paths in development
+  : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
 
 // Development mode - bypass auth when running locally
 const isDevelopment = window.location.hostname === 'localhost' && !import.meta.env.PROD;
-const BYPASS_AUTH = isDevelopment && import.meta.env.VITE_BYPASS_AUTH === 'true';
+const BYPASS_AUTH = false; // Disabled to use real authentication
 
 // Mock user for development
 const mockUser: User = {

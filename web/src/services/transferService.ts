@@ -1,6 +1,9 @@
 import { Transfer } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Transfer Service API
+const API_BASE_URL = import.meta.env.DEV 
+  ? '/api'  // Use relative path in development to go through Vite proxy
+  : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
 
 /**
  * Get authentication headers

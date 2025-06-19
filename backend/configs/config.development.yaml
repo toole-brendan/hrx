@@ -1,0 +1,101 @@
+# HandReceipt Backend Development Configuration
+# This configuration is for local development with production database
+
+# Server configuration
+server:
+  port: "8080"
+  host: "0.0.0.0"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  shutdown_timeout: "10s"
+  environment: "development"
+  tls_enabled: false
+
+# Database configuration - Azure PostgreSQL
+database:
+  host: "handreceipt-prod-postgres.postgres.database.azure.com"
+  port: 5432
+  user: "hradmin"
+  password: "${HANDRECEIPT_DATABASE_PASSWORD}"  # Set via environment variable
+  db_name: "handreceipt"
+  ssl_mode: "require"  # Azure PostgreSQL requires SSL
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+  migration_path: "./migrations"
+
+# Auth configuration
+jwt:
+  secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+  access_expiry: "24h"
+  refresh_expiry: "168h"
+  issuer: "handreceipt-go"
+  audience: "handreceipt-users"
+  algorithm: "HS256"
+  refresh_enabled: true
+
+# Auth session configuration
+auth:
+  session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+
+# Ledger configuration - Disable for local development
+ledger:
+  enabled: false
+
+# ImmuDB configuration - Disabled for local development
+immudb:
+  enabled: false
+
+# MinIO configuration - Local development
+minio:
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  use_ssl: false
+  bucket: "handreceipt-photos"
+  enabled: false
+
+# Storage Configuration - Use Azure Blob for consistency with production
+storage:
+  type: "azure_blob"
+  connection_string: "${HANDRECEIPT_STORAGE_CONNECTION_STRING}"  # Set via environment variable
+  container_name: "documents"
+  account_name: "handreceiptprodstorage"
+
+# NSN configuration
+nsn:
+  api_endpoint: ""
+  api_key: ""
+  cache_enabled: true
+  cache_ttl: "24h"
+  rate_limit_rps: 10
+  timeout_seconds: 30
+  retry_attempts: 3
+  bulk_batch_size: 50
+  publog_data_dir: "internal/publog"
+
+# Logging
+logging:
+  level: "debug"
+  format: "text"
+  output: "stdout"
+
+# Security
+security:
+  password_min_length: 8
+  password_require_upper: true
+  password_require_lower: true
+  password_require_digit: true
+  password_require_symbol: false
+  session_timeout: "24h"
+  max_login_attempts: 5
+  lockout_duration: "15m"
+  cors_allowed_origins:
+    - "*"  # Allow all origins for development
+  rate_limit_enabled: false  # Disable rate limiting for development
+  rate_limit_rps: 100
+
+# Azure OCR configuration
+azure:
+  ocr_endpoint: "https://handreceipt-prod-vision.cognitiveservices.azure.com/"
+  ocr_key: "${AZURE_OCR_KEY}"  # Set via environment variable 
