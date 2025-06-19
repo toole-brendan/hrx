@@ -470,7 +470,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
           {/* Title section */}
           <div className="mb-8">
             <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-              Transfer Management
+              Transfers
             </h1>
           </div>
         </div>
