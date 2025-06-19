@@ -147,14 +147,14 @@ const Sidebar = ({
             <img 
               src="/hr_logo.png" 
               alt="HandReceipt"
-              className="h-12 w-auto"
+              className="h-8 w-auto"
             />
           </div>
         </div>
         
         {/* Divider with same styling as Quick Action dividers */}
         <div className="px-4">
-          <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
         </div>
         
         {/* User Profile section with proper vertical centering */}
@@ -165,10 +165,10 @@ const Sidebar = ({
                 M
               </div>
               <div>
-                <p className="text-sm font-medium tracking-wider profile-name">
+                <p className="text-sm font-medium tracking-wider text-gray-900 dark:text-gray-100">
                   {user?.rank} {user?.lastName}
                 </p>
-                <p className="text-xs tracking-wide text-gray-400">Company Commander</p>
+                <p className="text-xs tracking-wide text-gray-600 dark:text-gray-400">Company Commander</p>
               </div>
             </div>
           ) : (
@@ -182,7 +182,7 @@ const Sidebar = ({
         
         {/* Divider with same styling as Quick Action dividers */}
         <div className="px-4">
-          <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
         </div>
         
         {/* Main navigation section */}
@@ -225,7 +225,7 @@ const Sidebar = ({
         {/* Footer section */}
         <div className="mt-auto p-4 space-y-3">
           {/* Footer divider */}
-          <div className="border-t border-gray-700/50 dark:border-white/10 my-3"></div>
+          <div className="border-t border-gray-200 dark:border-white/10 my-3"></div>
           
           {/* Mobile version - Notification Item */}
           <div 
@@ -264,7 +264,7 @@ const Sidebar = ({
           </Link>
           
           {/* Footer controls divider */}
-          <div className="border-t border-gray-700/50 dark:border-white/10 my-3"></div>
+          <div className="border-t border-gray-200 dark:border-white/10 my-3"></div>
           
           {/* Theme toggle button */}
           <div className="flex items-center justify-between px-2">
@@ -296,7 +296,7 @@ const Sidebar = ({
             <img 
               src="/hr_logo.png" 
               alt="HandReceipt"
-              className="h-12 w-auto"
+              className="h-8 w-auto"
             />
           </div>
         ) : (
@@ -308,7 +308,7 @@ const Sidebar = ({
       
       {/* Divider with same styling as Quick Action dividers */}
       <div className="px-2">
-        <div className="border-t border-gray-700/50 dark:border-white/10"></div>
+        <div className="border-t border-gray-200 dark:border-white/10"></div>
       </div>
       
       {/* User Profile section with proper vertical centering */}
@@ -319,10 +319,10 @@ const Sidebar = ({
               M
             </div>
             <div>
-              <p className="text-sm font-medium tracking-wider profile-name">
+              <p className="text-sm font-medium tracking-wider text-gray-900 dark:text-gray-100">
                 {user?.rank} {user?.lastName}
               </p>
-              <p className="text-xs tracking-wide text-gray-400">Company Commander</p>
+              <p className="text-xs tracking-wide text-gray-600 dark:text-gray-400">Company Commander</p>
             </div>
           </div>
         ) : (
@@ -336,7 +336,7 @@ const Sidebar = ({
       
       {/* Divider with same styling as Quick Action dividers */}
       <div className="px-2">
-        <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
+        <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
       </div>
       
       <div className="flex flex-col flex-1">
@@ -379,7 +379,7 @@ const Sidebar = ({
         {/* Bottom action links section */}
         <div className={`mt-auto px-2 pt-2 pb-4 ${sidebarCollapsed ? 'text-center' : ''}`}>
           {/* First divider */}
-          <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
           
           {/* Navigation items group - styled as regular sidebar items */}
           <div className="mb-2">
@@ -427,7 +427,7 @@ const Sidebar = ({
           </div>
           
           {/* Second divider */}
-          <div className="border-t border-gray-700/50 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
           
           {/* Theme toggle and sidebar collapse buttons */}
           {!sidebarCollapsed ? (

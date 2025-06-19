@@ -2,39 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* iOS-Matching Font System */
-@font-face {
-  font-family: 'D-Din';
-  src: url('/fonts/d-din.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+/* iOS System Font Stack - matching iOS */
+:root {
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  --font-mono: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
 }
 
-@font-face {
-  font-family: 'D-Din';
-  src: url('/fonts/d-din-bold.woff2') format('woff2');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* PT Serif Font - Elegant Serif for Branding Elements */
-@font-face {
-  font-family: 'PT Serif';
-  src: url('https://fonts.gstatic.com/s/ptserif/v17/EJRVQgYoZZY2vCFuvAFbzr-tdg.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'PT Serif';
-  src: url('https://fonts.gstatic.com/s/ptserif/v17/EJRSQgYoZZY2vCFuvAFb_r-dYadYaA.woff2') format('woff2');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
+/* Remove custom font definitions since we'll use system fonts */
 
 :root {
   /* Layout dimensions */
@@ -165,8 +139,8 @@
   --chart-4: 45 100% 51%;
   --chart-5: 271 81% 56%;
   
-  /* Sidebar colors matching iOS */
-  --sidebar-background: 0 0% 98%; /* #FAFAFA */
+  /* Sidebar colors matching iOS - LIGHT MODE */
+  --sidebar-background: 0 0% 98%; /* #FAFAFA - Light gray */
   --sidebar-foreground: 0 0% 0%; /* #000000 */
   --sidebar-primary: 213 100% 40%; /* #0066CC */
   --sidebar-primary-foreground: 0 0% 100%;
@@ -397,7 +371,8 @@
   }
 
   body {
-    @apply font-sans antialiased tracking-tight text-foreground bg-background;
+    font-family: var(--font-system);
+    @apply antialiased tracking-tight text-foreground bg-background;
     font-feature-settings: "kern", "liga", "ss01", "ss02";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -415,7 +390,8 @@
 
   /* 8VC Typography scale enhancements */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight text-foreground;
+    font-family: var(--font-system);
+    @apply tracking-tight text-foreground;
   }
 
   h1 {
@@ -450,7 +426,8 @@
   
   /* 8VC specific typography styles */
   .text-logo {
-    @apply font-serif font-light tracking-widest;
+    font-family: Georgia, serif;
+    @apply font-light tracking-widest;
   }
   
   .text-section-header {
@@ -476,7 +453,7 @@
 
   /* Code & monospace */
   code, pre {
-    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.875rem;
   }
 
@@ -524,9 +501,18 @@
   
   /* Sidebar Styles - 8VC theme */
   .sidebar {
-    @apply h-screen bg-sidebar border-r border-sidebar-border flex-shrink-0 flex-col transition-all duration-300 fixed left-0 top-0;
+    @apply h-screen flex-shrink-0 flex-col transition-all duration-300 fixed left-0 top-0;
+    /* Explicit background colors for light/dark mode */
+    background-color: #FAFAFA; /* Light gray background */
+    border-right: 1px solid #E0E0E0;
     width: var(--sidebar-width);
     z-index: var(--z-index-sidebar);
+  }
+  
+  /* Dark mode sidebar background */
+  .dark .sidebar {
+    background-color: #111111; /* Dark gray */
+    border-right-color: #333333;
   }
 
   .sidebar.collapsed {
@@ -534,9 +520,9 @@
   }
 
   .sidebar-item {
-    @apply flex items-center px-4 py-2.5 text-gray-900 hover:bg-primary-50 rounded-none cursor-pointer my-0.5 transition-colors;
+    @apply flex items-center px-4 py-2.5 text-gray-900 hover:bg-gray-100 rounded-none cursor-pointer my-0.5 transition-colors;
     letter-spacing: 0.075em;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-family: var(--font-system);
   }
   
   /* Dark mode sidebar text */
@@ -545,7 +531,7 @@
   }
 
   .sidebar-item.active {
-    @apply bg-primary-100 text-primary-700 font-medium border-l-2 border-primary;
+    @apply bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-600;
   }
   
   /* Dark mode active sidebar item */
