@@ -21,7 +21,10 @@ import {
   Filter,
   Plus,
   Activity as ActivityIcon,
-  Package
+  Package,
+  FileText,
+  ScanLine,
+  User
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +32,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useQuery } from '@tanstack/react-query';
+import { getConnections } from '@/services/connectionService';
 
 // iOS Components
 import { CleanCard, ElegantSectionHeader, StatusBadge } from '@/components/ios';
@@ -62,6 +67,12 @@ export default function Dashboard() {
   const { addNotification } = useNotifications();
   const [maintenanceCheckDone, setMaintenanceCheckDone] = useState(false);
 
+  // Fetch connections data
+  const { data: connections = [] } = useQuery({
+    queryKey: ['connections'],
+    queryFn: getConnections,
+  });
+
   // Alert counts
   const pendingTransfersCount = transfers.filter(t => t.status === 'pending').length;
   const pendingMaintenanceCount = maintenanceStats.scheduled;
@@ -71,6 +82,10 @@ export default function Dashboard() {
   const verificationPercentage = sensitiveItemsStats.totalItems > 0 
     ? Math.round((sensitiveItemsStats.verifiedToday / sensitiveItemsStats.totalItems) * 100)
     : 0;
+
+  // Calculate network stats
+  const connectedUsersCount = connections.filter(c => c.connectionStatus === 'accepted').length;
+  const pendingConnectionsCount = connections.filter(c => c.connectionStatus === 'pending').length;
 
   // Calculate dynamic readiness stats from inventory
   const readinessStats = useMemo(() => {
@@ -125,16 +140,18 @@ export default function Dashboard() {
     };
   }, [inventory]);
 
-  // Helper function to format welcome message
+  // Helper function to format welcome message - iOS style
   const getWelcomeMessage = () => {
     if (!user) return "Welcome";
     
-    const parts = ["Welcome"];
+    const parts = ["Welcome,"];
     
     // Convert common full ranks to abbreviations
     const rankAbbreviations: Record<string, string> = {
       "Captain": "CPT",
       "Lieutenant": "LT", 
+      "First Lieutenant": "1LT",
+      "Second Lieutenant": "2LT",
       "Major": "MAJ",
       "Colonel": "COL",
       "Sergeant": "SGT",
@@ -205,322 +222,241 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-app-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header section with iOS styling */}
         <div className="mb-10">
-          <ElegantSectionHeader 
-            title="DASHBOARD" 
-            className="mb-4"
-          />
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-            <div>
-              <h1 className="text-3xl font-light tracking-tight text-primary-text">
-                {getWelcomeMessage()}
-              </h1>
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-base font-mono text-secondary-text">
+              HandReceipt
+            </h1>
+            
+            <div className="flex items-center space-x-5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/search')}
+                className="p-2 hover:bg-transparent"
+              >
+                <Search className="h-5 w-5 text-primary-text" />
+              </Button>
+              
+              <Button
+                variant="ghost"  
+                size="sm"
+                onClick={() => navigate('/profile')}
+                className="p-2 hover:bg-transparent"
+              >
+                <User className="h-6 w-6 text-primary-text" />
+              </Button>
             </div>
-            <Button 
-              onClick={() => navigate('/transfers')}
-              className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
-            >
-              <Send className="h-4 w-4" />
-              New Transfer
-            </Button>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-b border-ios-divider mb-6" />
+          
+          {/* Welcome message */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-serif font-light text-primary-text leading-tight">
+              {getWelcomeMessage()}
+            </h1>
           </div>
         </div>
         
-        {/* Summary Stats - iOS style cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <CleanCard className="text-center p-6">
-            <div className="flex items-center justify-center mb-3">
-              <Package className="h-6 w-6 text-ios-accent" />
-            </div>
-            <div className="text-2xl font-light text-primary-text mb-1">
-              {inventory.length}
-            </div>
-            <div className="text-xs uppercase tracking-wide text-tertiary-text">
-              TOTAL INVENTORY
-            </div>
-          </CleanCard>
-
-          <CleanCard className="text-center p-6">
-            <div className="flex items-center justify-center mb-3">
-              <ArrowRightLeft className="h-6 w-6 text-ios-accent" />
-            </div>
-            <div className="text-2xl font-light text-primary-text mb-1">
-              {pendingTransfersCount}
-            </div>
-            <div className="text-xs uppercase tracking-wide text-tertiary-text">
-              PENDING TRANSFERS
-            </div>
-          </CleanCard>
-
-          <CleanCard className="text-center p-6">
-            <div className="flex items-center justify-center mb-3">
-              <Shield className="h-6 w-6 text-ios-success" />
-            </div>
-            <div className="text-2xl font-light text-primary-text mb-1">
-              {sensitiveItemsStats.verifiedToday}/{sensitiveItemsStats.totalItems}
-            </div>
-            <div className="text-xs uppercase tracking-wide text-tertiary-text">
-              SENSITIVE ITEMS VERIFIED
-            </div>
-          </CleanCard>
-
-          <CleanCard className="text-center p-6">
-            <div className="flex items-center justify-center mb-3">
-              <AlertTriangle className="h-6 w-6 text-ios-warning" />
-            </div>
-            <div className="text-2xl font-light text-primary-text mb-1">
-              {maintenanceStats.scheduled + maintenanceStats.inProgress}
-            </div>
-            <div className="text-xs uppercase tracking-wide text-tertiary-text">
-              ITEMS NEEDING MAINTENANCE
-            </div>
-          </CleanCard>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-8">
+        {/* Overview Section - iOS style */}
+        <div className="mb-10">
           <ElegantSectionHeader 
-            title="QUICK ACTIONS" 
-            className="mb-4"
+            title="Overview"
+            className="mb-6"
+            size="lg"
           />
-          <QuickActions />
+          
+          <div className="space-y-4">
+            {/* First row: Total Properties and Import DA-2062 */}
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/property')}
+                className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+              >
+                <CleanCard className="w-full h-full">
+                  <div className="flex flex-col items-center justify-center h-full space-y-3">
+                    <div className="text-2xl font-mono font-light text-primary-text">
+                      {String(inventory.length).padStart(4, '0')}
+                    </div>
+                    <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
+                      Total Properties
+                    </div>
+                  </div>
+                </CleanCard>
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/da2062')}
+                className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+              >
+                <CleanCard className="w-full h-full">
+                  <div className="flex flex-col items-center justify-center h-full space-y-3">
+                    <ScanLine className="h-6 w-6 text-primary-text" />
+                    <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
+                      Import DA-2062
+                    </div>
+                  </div>
+                </CleanCard>
+              </Button>
+            </div>
+
+            {/* Second row: Documents and empty space */}
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/documents')}
+                className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+              >
+                <CleanCard className="w-full h-full">
+                  <div className="flex flex-col items-center justify-center h-full space-y-3">
+                    <FileText className="h-6 w-6 text-primary-text" />
+                    <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
+                      Documents
+                    </div>
+                  </div>
+                </CleanCard>
+              </Button>
+              
+              {/* Empty space to maintain layout */}
+              <div></div>
+            </div>
+          </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Pending Transfers */}
-            <PendingTransfers />
-            
-            {/* Inventory Items */}
-            <MyProperties />
-            
-            {/* Equipment Status Tabs */}
-            <CleanCard padding="none">
-              <div className="p-6 border-b border-ios-border">
-                <ElegantSectionHeader 
-                  title="EQUIPMENT STATUS"
-                  subtitle="Readiness and verification overview"
-                />
-              </div>
-              
-              <div className="p-6">
-                <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid grid-cols-3 w-full mb-6 bg-gray-50">
-                    <TabsTrigger 
-                      value="overview" 
-                      className="text-xs uppercase tracking-wide font-medium data-[state=active]:bg-white data-[state=active]:text-primary-text"
-                    >
-                      OVERVIEW
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="readiness" 
-                      className="text-xs uppercase tracking-wide font-medium data-[state=active]:bg-white data-[state=active]:text-primary-text"
-                    >
-                      READINESS
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="verification" 
-                      className="text-xs uppercase tracking-wide font-medium data-[state=active]:bg-white data-[state=active]:text-primary-text"
-                    >
-                      VERIFICATION
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="overview" className="mt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <CleanCard padding="md" className="text-center">
-                        <div className="text-xs uppercase tracking-wide text-tertiary-text mb-2">
-                          PENDING ACTIONS
-                        </div>
-                        <div className="text-2xl font-light text-primary-text">
-                          {pendingTransfersCount + (maintenanceStats.scheduled + maintenanceStats.inProgress) + sensitiveItemsStats.pendingVerification}
-                        </div>
-                        <div className="text-xs text-secondary-text mt-1">
-                          Across all categories
-                        </div>
-                      </CleanCard>
-                      
-                      <CleanCard padding="md" className="text-center">
-                        <div className="text-xs uppercase tracking-wide text-tertiary-text mb-2">
-                          TRANSFER RATE
-                        </div>
-                        <div className="text-2xl font-light text-primary-text">
-                          8.5/day
-                        </div>
-                        <div className="text-xs text-secondary-text mt-1">
-                          Last 7 days average
-                        </div>
-                      </CleanCard>
-                      
-                      <CleanCard padding="md" className="text-center">
-                        <div className="text-xs uppercase tracking-wide text-tertiary-text mb-2">
-                          MAINTENANCE
-                        </div>
-                        <div className="text-2xl font-light text-primary-text">
-                          {maintenanceStats.scheduled + maintenanceStats.inProgress}
-                        </div>
-                        <div className="text-xs text-secondary-text mt-1">
-                          Items requiring attention
-                        </div>
-                      </CleanCard>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="readiness" className="mt-0">
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-green-50 flex items-center justify-center">
-                            <CheckCircle className="h-4 w-4 text-ios-success" />
-                          </div>
-                          <span className="text-sm text-primary-text">Operational / Ready</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium mr-3 min-w-[3rem] text-right text-primary-text">
-                            {readinessStats.operational.percentage}%
-                          </span>
-                          <Progress 
-                            value={readinessStats.operational.percentage} 
-                            className="w-40 h-2 bg-gray-200 [&>div]:bg-ios-success" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-amber-50 flex items-center justify-center">
-                            <Clock8 className="h-4 w-4 text-ios-warning" />
-                          </div>
-                          <span className="text-sm text-primary-text">In Maintenance / Reset</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium mr-3 min-w-[3rem] text-right text-primary-text">
-                            {readinessStats.maintenance.percentage}%
-                          </span>
-                          <Progress 
-                            value={readinessStats.maintenance.percentage} 
-                            className="w-40 h-2 bg-gray-200 [&>div]:bg-ios-warning" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-red-50 flex items-center justify-center">
-                            <AlertTriangle className="h-4 w-4 text-ios-destructive" />
-                          </div>
-                          <span className="text-sm text-primary-text">Non-operational</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium mr-3 min-w-[3rem] text-right text-primary-text">
-                            {readinessStats.nonOperational.percentage}%
-                          </span>
-                          <Progress 
-                            value={readinessStats.nonOperational.percentage} 
-                            className="w-40 h-2 bg-gray-200 [&>div]:bg-ios-destructive" 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="verification" className="mt-0">
-                    <div className="space-y-4">
-                      <CleanCard padding="md">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 bg-gray-50 flex items-center justify-center mr-3">
-                              <Calendar className="h-4 w-4 text-ios-accent" />
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-primary-text block">Today - Morning Check</span>
-                              <span className="text-xs text-secondary-text">Daily accountability check</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-2 text-secondary-text" />
-                              <span className="font-medium text-sm text-primary-text">0600</span>
-                            </div>
-                            <StatusBadge status="operational" size="sm" />
-                          </div>
-                        </div>
-                      </CleanCard>
-                      
-                      <CleanCard padding="md">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 bg-gray-50 flex items-center justify-center mr-3">
-                              <Calendar className="h-4 w-4 text-ios-accent" />
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-primary-text block">Today - Evening Check</span>
-                              <span className="text-xs text-secondary-text">Daily accountability check</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-2 text-secondary-text" />
-                              <span className="font-medium text-sm text-primary-text">1800</span>
-                            </div>
-                            <StatusBadge status="pending" size="sm" />
-                          </div>
-                        </div>
-                      </CleanCard>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </CleanCard>
-          </div>
+        {/* Network Section - iOS style */}
+        <div className="mb-10">
+          <ElegantSectionHeader 
+            title="Network"
+            subtitle="Connected users"
+            className="mb-6"
+            size="lg"
+          />
           
-          {/* Right Column - Recent Activity */}
-          <div className="space-y-6">
-            <RecentActivity />
-            
-            {/* Equipment Status Summary */}
-            <CleanCard padding="none">
-              <div className="p-6 border-b border-ios-border">
-                <div className="flex justify-between items-center">
-                  <ElegantSectionHeader 
-                    title="EQUIPMENT STATUS"
-                    subtitle="Current overview"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    className="text-xs uppercase tracking-wide text-ios-accent hover:text-accent-hover hover:bg-transparent"
-                    onClick={() => navigate('/property-book')}
-                  >
-                    VIEW ALL
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-secondary-text">Total Items</span>
-                    <span className="font-medium text-primary-text">{inventory.length}</span>
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/connections')}
+              className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+            >
+              <CleanCard className="w-full h-full">
+                <div className="flex flex-col items-center justify-center h-full space-y-3">
+                  <div className="text-2xl font-mono font-light text-primary-text">
+                    {connectedUsersCount}
                   </div>
-                  <div className="h-px bg-ios-divider" />
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-secondary-text">Operational</span>
-                    <StatusBadge status="operational" size="sm" />
-                  </div>
-                  <div className="h-px bg-ios-divider" />
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-secondary-text">Need Maintenance</span>
-                    <StatusBadge status="maintenance" size="sm" />
+                  <div className="text-xs uppercase tracking-wide text-secondary-text">
+                    Connected
                   </div>
                 </div>
-              </div>
-            </CleanCard>
+              </CleanCard>
+            </Button>
+
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/connections')}
+              className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+            >
+              <CleanCard className="w-full h-full">
+                <div className="flex flex-col items-center justify-center h-full space-y-3">
+                  <div className="text-2xl font-mono font-light text-primary-text">
+                    {pendingConnectionsCount}
+                  </div>
+                  <div className="text-xs uppercase tracking-wide text-secondary-text">
+                    Pending
+                  </div>
+                </div>
+              </CleanCard>
+            </Button>
           </div>
         </div>
+
+        {/* Recent Activity Section */}
+        <div className="mb-10">
+          <ElegantSectionHeader 
+            title="Recent Activity"
+            className="mb-6"
+            size="lg"
+          />
+          
+          <RecentActivity />
+        </div>
+
+        {/* Property Status Section */}
+        <div className="mb-10">
+          <ElegantSectionHeader 
+            title="Property Status"
+            subtitle="Operational readiness"
+            className="mb-6"
+            size="lg"
+          />
+          
+          <CleanCard className="p-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-50 flex items-center justify-center">
+                    <CheckCircle className="h-4 w-4 text-ios-success" />
+                  </div>
+                  <span className="text-sm text-primary-text">Operational</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-sm font-medium mr-3 min-w-[3rem] text-right text-primary-text">
+                    {readinessStats.operational.percentage}%
+                  </span>
+                  <Progress 
+                    value={readinessStats.operational.percentage} 
+                    className="w-40 h-2 bg-gray-200 [&>div]:bg-ios-success" 
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-amber-50 flex items-center justify-center">
+                    <Clock8 className="h-4 w-4 text-ios-warning" />
+                  </div>
+                  <span className="text-sm text-primary-text">In Maintenance</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-sm font-medium mr-3 min-w-[3rem] text-right text-primary-text">
+                    {readinessStats.maintenance.percentage}%
+                  </span>
+                  <Progress 
+                    value={readinessStats.maintenance.percentage} 
+                    className="w-40 h-2 bg-gray-200 [&>div]:bg-ios-warning" 
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-red-50 flex items-center justify-center">
+                    <AlertTriangle className="h-4 w-4 text-ios-destructive" />
+                  </div>
+                  <span className="text-sm text-primary-text">Non-operational</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-sm font-medium mr-3 min-w-[3rem] text-right text-primary-text">
+                    {readinessStats.nonOperational.percentage}%
+                  </span>
+                  <Progress 
+                    value={readinessStats.nonOperational.percentage} 
+                    className="w-40 h-2 bg-gray-200 [&>div]:bg-ios-destructive" 
+                  />
+                </div>
+              </div>
+            </div>
+          </CleanCard>
+        </div>
+        
+        {/* Bottom padding for mobile navigation */}
+        <div className="h-24"></div>
       </div>
     </div>
   );

@@ -144,9 +144,11 @@ const Sidebar = ({
             className="flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
             onClick={handleLogoClick}
           >
-            <div className="border border-gray-800/70 dark:border-gray-100/70 px-4 py-1.5">
-              <h1 className="text-lg font-light tracking-widest text-gray-800 dark:text-gray-100 m-0 font-['Georgia']">HandReceipt</h1>
-            </div>
+            <img 
+              src="/hr_logo.png" 
+              alt="HandReceipt"
+              className="h-12 w-auto"
+            />
           </div>
         </div>
         
@@ -291,9 +293,11 @@ const Sidebar = ({
             className="flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
             onClick={handleLogoClick}
           >
-            <div className="border border-gray-800/70 dark:border-gray-100/70 px-4 py-1.5">
-              <h1 className="text-lg font-light tracking-widest text-gray-800 dark:text-gray-100 m-0 font-['Georgia']">HandReceipt</h1>
-            </div>
+            <img 
+              src="/hr_logo.png" 
+              alt="HandReceipt"
+              className="h-12 w-auto"
+            />
           </div>
         ) : (
           <div className="flex items-center justify-center h-5">

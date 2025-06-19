@@ -301,38 +301,6 @@
   border: 1px solid rgba(220, 53, 69, 0.2);
 }
 
-/* Dark mode - iOS style (if needed) */
-.dark {
-  --app-background: #000000;
-  --secondary-background: #111111;
-  --tertiary-background: #1A1A1A;
-  --elevated-background: #111111;
-  
-  --primary-text: #FFFFFF;
-  --secondary-text: #CCCCCC;
-  --tertiary-text: #999999;
-  --quaternary-text: #666666;
-  
-  --border: #333333;
-  --border-strong: #444444;
-  --divider: #2A2A2A;
-  --border-muted: #2A2A2A;
-  
-  --shadow-color: rgba(0, 0, 0, 0.3);
-  
-  /* Tailwind-compatible dark mode colors */
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
-  --card: 0 0% 7%;
-  --card-foreground: 0 0% 100%;
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 100%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 60%;
-  --border: 0 0% 20%;
-  --input: 0 0% 10%;
-}
-
 /* Light mode is now the default theme */
 
 /* Dark mode - 8VC Dark Theme */
@@ -390,7 +358,7 @@
   --chart-4: 38 92% 50%;
   --chart-5: 184 80% 45%;
   
-  /* Sidebar colors - 8VC style darker */
+  /* Sidebar colors - 8VC style darker (DARK MODE ONLY) */
   --sidebar-background: 0 0% 7%; /* Updated: Match card background (Dark Gray) */
   --sidebar-foreground: 0 0% 100%; /* White text for contrast */
   --sidebar-primary: 264 64% 52%; /* 8VC Purple */
