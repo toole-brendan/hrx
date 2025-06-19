@@ -4,20 +4,20 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormMessage 
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,7 +25,6 @@ import { useToast } from "@/hooks/use-toast";
 const API_BASE_URL = 'https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io'; // Azure Production API URL
 
 const registerSchema = z.object({
-  // username: z.string().min(3, "Username must be at least 3 characters"), // REMOVED: Username field
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
@@ -53,7 +52,6 @@ const Register: React.FC = () => {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      // username: "", // REMOVED: Username field
       email: "",
       password: "",
       confirmPassword: "",
@@ -69,9 +67,10 @@ const Register: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          // username: data.username, // REMOVED: Username field
           email: data.email,
           password: data.password,
           first_name: data.first_name,
@@ -108,20 +107,20 @@ const Register: React.FC = () => {
       <div className="w-full max-w-[375px]">
         {/* Logo section */}
         <div className="text-center mb-10">
-          <img 
-            src="/hr_logo4.png" 
-            alt="HandReceipt Logo" 
+          <img
+            src="/hr_logo4.png"
+            alt="HandReceipt Logo"
             className="h-[200px] w-auto mx-auto"
           />
           <p className="text-[#4A4A4A] text-base font-normal -mt-6">
             Property Management System
           </p>
         </div>
-        
+
         {/* Main content */}
         <div className="px-12">
           <h2 className="text-black text-lg font-normal mb-5">Create Account</h2>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -134,20 +133,18 @@ const Register: React.FC = () => {
                         FIRST NAME
                       </label>
                       <FormControl>
-                        <div>
-                          <Input 
-                            placeholder="" 
-                            {...field} 
-                            className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                            style={{ boxShadow: 'none' }}
-                          />
-                        </div>
+                        <Input
+                          placeholder=""
+                          {...field}
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="last_name"
@@ -157,14 +154,12 @@ const Register: React.FC = () => {
                         LAST NAME
                       </label>
                       <FormControl>
-                        <div>
-                          <Input 
-                            placeholder="" 
-                            {...field} 
-                            className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                            style={{ boxShadow: 'none' }}
-                          />
-                        </div>
+                        <Input
+                          placeholder=""
+                          {...field}
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -181,15 +176,13 @@ const Register: React.FC = () => {
                       EMAIL
                     </label>
                     <FormControl>
-                      <div>
-                        <Input 
-                          type="email" 
-                          placeholder="" 
-                          {...field} 
-                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                          style={{ boxShadow: 'none' }}
-                        />
-                      </div>
+                      <Input
+                        type="email"
+                        placeholder=""
+                        {...field}
+                        className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                        style={{ boxShadow: 'none' }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -208,7 +201,10 @@ const Register: React.FC = () => {
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
-                            <SelectValue placeholder="Select rank" className="placeholder:text-[#9B9B9B]" />
+                            <SelectValue
+                              placeholder="Select rank"
+                              className="placeholder:text-[#9B9B9B]"
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -233,14 +229,12 @@ const Register: React.FC = () => {
                         UNIT
                       </label>
                       <FormControl>
-                        <div>
-                          <Input 
-                            placeholder="" 
-                            {...field} 
-                            className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                            style={{ boxShadow: 'none' }}
-                          />
-                        </div>
+                        <Input
+                          placeholder=""
+                          {...field}
+                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                          style={{ boxShadow: 'none' }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -257,15 +251,13 @@ const Register: React.FC = () => {
                       PASSWORD
                     </label>
                     <FormControl>
-                      <div>
-                        <Input 
-                          type="password" 
-                          placeholder="" 
-                          {...field} 
-                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                          style={{ boxShadow: 'none' }}
-                        />
-                      </div>
+                      <Input
+                        type="password"
+                        placeholder=""
+                        {...field}
+                        className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                        style={{ boxShadow: 'none' }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -281,23 +273,21 @@ const Register: React.FC = () => {
                       CONFIRM PASSWORD
                     </label>
                     <FormControl>
-                      <div>
-                        <Input 
-                          type="password" 
-                          placeholder="" 
-                          {...field} 
-                          className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                          style={{ boxShadow: 'none' }}
-                        />
-                      </div>
+                      <Input
+                        type="password"
+                        placeholder=""
+                        {...field}
+                        className="border-0 border-b border-[#E0E0E0] rounded-none px-0 py-2 text-base text-black placeholder:text-[#9B9B9B] focus:border-black focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                        style={{ boxShadow: 'none' }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <Button 
-                type="submit" 
+
+              <Button
+                type="submit"
                 className="w-full bg-black hover:bg-black/90 text-white font-medium py-6 rounded-md mt-6"
                 disabled={isLoading}
               >
@@ -322,7 +312,7 @@ const Register: React.FC = () => {
               </Button>
             </form>
           </Form>
-          
+
           {/* Sign in link */}
           <div className="text-center mt-8">
             <p className="text-[#6B6B6B] text-sm">

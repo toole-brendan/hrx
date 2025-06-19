@@ -35,8 +35,7 @@ export interface SensitiveItemCategory {
   icon: string;
 }
 
-// --- AUTHENTICATED MOCK DATA for CPT Rodriguez --- 
-
+// --- AUTHENTICATED MOCK DATA for CPT Rodriguez ---
 const today = new Date();
 const CPT_NAME = "CPT Rodriguez, Michael";
 const LT_1_NAME = "LT Jenkins, Sarah";
@@ -143,147 +142,6 @@ export const sensitiveItems: SensitiveItem[] = [
     assignedTo: CPT_NAME,
     notes: "CCI - Handle with two persons."
   },
-
-  // --- Items Signed Down to Others ---
-  // Weapon signed to PL
-  {
-    id: "si-m4-002",
-    name: "M4A1 Carbine",
-    category: 'weapon',
-    serialNumber: generateSerial("WPN", 8),
-    assignedDate: formatDate(subDays(today, 45)),
-    status: "verified",
-    lastVerified: formatMilitaryDate(subDays(today, 2)),
-    nextVerification: formatMilitaryDate(addDays(today, 5)),
-    securityLevel: "controlled",
-    location: "Issued to 1st PL",
-    assignedTo: LT_1_NAME,
-  },
-  // NVG signed to PL - OVERDUE Verification
-  {
-    id: "si-pvs14-pl1-001",
-    name: "AN/PVS-14 NVG",
-    category: 'optics',
-    serialNumber: generateSerial("NVG", 7),
-    assignedDate: formatDate(subDays(today, 45)),
-    status: "overdue", 
-    lastVerified: formatMilitaryDate(subDays(today, 16)), // Last verified over 2 weeks ago
-    nextVerification: formatMilitaryDate(subDays(today, 2)), // Was due 2 days ago
-    securityLevel: "controlled",
-    location: "Issued to 1st PL",
-    assignedTo: LT_1_NAME,
-  },
-  // Radio signed to another PL
-  {
-    id: "si-prc152-pl2-001",
-    name: "AN/PRC-152 Radio",
-    category: 'communication',
-    serialNumber: generateSerial("COM", 8),
-    assignedDate: formatDate(subDays(today, 40)),
-    status: "verified",
-    lastVerified: formatMilitaryDate(subDays(today, 3)),
-    nextVerification: formatMilitaryDate(addDays(today, 4)),
-    securityLevel: "classified",
-    location: "Issued to 2nd PL",
-    assignedTo: LT_2_NAME,
-  },
-  // Crew Served Weapon (Arms Room NCO)
-  {
-    id: "si-m240b-arms-001",
-    name: "M240B Machine Gun",
-    category: 'weapon',
-    serialNumber: generateSerial("WPN", 8),
-    assignedDate: formatDate(subDays(today, 120)),
-    status: "verified",
-    lastVerified: formatMilitaryDate(subDays(today, 1)),
-    nextVerification: formatMilitaryDate(addDays(today, 6)),
-    securityLevel: "controlled",
-    location: "Arms Room",
-    assignedTo: SGT_ARMS_ROOM_NAME,
-  },
-   // Crypto fill device (Supply NCO)
-  {
-    id: "si-cyz10-supply-001",
-    name: "AN/CYZ-10 DTD", // Data Transfer Device
-    category: 'crypto',
-    serialNumber: generateSerial("CRY", 7),
-    assignedDate: formatDate(subDays(today, 30)),
-    status: "pending", // Verification pending
-    lastVerified: formatMilitaryDate(subDays(today, 2)),
-    nextVerification: formatMilitaryDate(today), // Due today
-    securityLevel: "secret",
-    location: "Supply Cage (Secure Section)",
-    assignedTo: SFC_SUPPLY_NAME,
-    notes: "Requires monthly key update."
-  },
-
-  // --- Unassigned Items ---
-  {
-    id: "si-m4-003",
-    name: "M4A1 Carbine",
-    category: 'weapon',
-    serialNumber: generateSerial("WPN", 8),
-    assignedDate: "",
-    status: "not-verified",
-    lastVerified: formatMilitaryDate(subDays(today, 30)), // Not recently verified
-    nextVerification: "N/A",
-    securityLevel: "controlled",
-    location: "Arms Room (Spare)",
-    assignedTo: "", // Unassigned
-  },
-  {
-    id: "si-pvs14-spare-001",
-    name: "AN/PVS-14 NVG",
-    category: 'optics',
-    serialNumber: generateSerial("NVG", 7),
-    assignedDate: "",
-    status: "maintenance", // In maintenance
-    lastVerified: formatMilitaryDate(subDays(today, 20)),
-    nextVerification: "N/A",
-    securityLevel: "controlled",
-    location: "Maintenance Turn-in",
-    assignedTo: "",
-    notes: "Submitted for repair - cracked housing."
-  },
-  {
-    id: "si-prc152-spare-001",
-    name: "AN/PRC-152 Radio",
-    category: 'communication',
-    serialNumber: generateSerial("COM", 8),
-    assignedDate: "",
-    status: "not-verified",
-    lastVerified: formatMilitaryDate(subDays(today, 40)),
-    nextVerification: "N/A",
-    securityLevel: "classified",
-    location: "Comms Cage (Spare)",
-    assignedTo: "",
-  },
-   {
-    id: "si-kiv7m-001",
-    name: "KIV-7M COMSEC Module",
-    category: 'crypto',
-    serialNumber: generateSerial("CRY", 7),
-    assignedDate: "",
-    status: "not-verified",
-    lastVerified: formatMilitaryDate(subDays(today, 50)),
-    nextVerification: "N/A",
-    securityLevel: "secret",
-    location: "Secure Comms Facility (Spare)",
-    assignedTo: "",
-  },
-  {
-    id: "si-m2a1-arms-001",
-    name: "M2A1 .50 Cal Machine Gun",
-    category: 'weapon',
-    serialNumber: generateSerial("WPN", 8),
-    assignedDate: "",
-    status: "verified",
-    lastVerified: formatMilitaryDate(subDays(today, 1)),
-    nextVerification: formatMilitaryDate(addDays(today, 6)),
-    securityLevel: "controlled",
-    location: "Arms Room (Weapons Plt)",
-    assignedTo: SGT_ARMS_ROOM_NAME, // Still arms room NCO responsibility
-  },
 ];
 
 // --- Verification Logs ---
@@ -304,75 +162,6 @@ export const verificationLogs: VerificationLog[] = [
     time: "06:07",
     verifiedBy: SGT_ARMS_ROOM_NAME,
     status: "verified",
-  },
-   {
-    id: "log-si-prc152-001-1",
-    itemId: "si-prc152-cdr-001",
-    date: format(subDays(today, 8), 'yyyy-MM-dd'),
-    time: "14:30",
-    verifiedBy: "Commo SGT",
-    status: "verified",
-    notes: "TPC with XO complete."
-  },
-   {
-    id: "log-si-kg175d-001-1",
-    itemId: "si-kg175d-cdr-001",
-    date: format(today, 'yyyy-MM-dd'),
-    time: "09:00",
-    verifiedBy: CPT_NAME,
-    status: "verified",
-    notes: "TPC with XO complete."
-  },
-   {
-    id: "log-si-m4-pl1-001-1",
-    itemId: "si-m4-002",
-    date: format(subDays(today, 2), 'yyyy-MM-dd'),
-    time: "10:15",
-    verifiedBy: SGT_ARMS_ROOM_NAME,
-    status: "verified",
-    notes: "Signed out for range."
-  },
-   {
-    id: "log-si-pvs14-pl1-001",
-    itemId: "si-pvs14-pl1-001",
-    date: format(subDays(today, 16), 'yyyy-MM-dd'),
-    time: "08:00",
-    verifiedBy: LT_1_NAME,
-    status: "verified", 
-  },
-  {
-    id: "log-si-m240b-arms-001",
-    itemId: "si-m240b-arms-001",
-    date: format(subDays(today, 1), 'yyyy-MM-dd'),
-    time: "06:10",
-    verifiedBy: SGT_ARMS_ROOM_NAME,
-    status: "verified",
-  },
-  {
-    id: "log-si-cyz10-supply-001",
-    itemId: "si-cyz10-supply-001",
-    date: format(subDays(today, 2), 'yyyy-MM-dd'),
-    time: "15:00",
-    verifiedBy: SFC_SUPPLY_NAME,
-    status: "verified",
-  },
-  {
-    id: "log-si-m4-spare-001-1",
-    itemId: "si-m4-003",
-    date: format(subDays(today, 30), 'yyyy-MM-dd'),
-    time: "13:00",
-    verifiedBy: SGT_ARMS_ROOM_NAME,
-    status: "verified",
-    notes: "Last inventory check before deployment."
-  },
-  {
-    id: "log-si-m2a1-arms-001-1",
-    itemId: "si-m2a1-arms-001",
-    date: format(subDays(today, 1), 'yyyy-MM-dd'),
-    time: "06:15",
-    verifiedBy: SGT_ARMS_ROOM_NAME,
-    status: "verified",
-    notes: "Verified during morning arms room check."
   },
 ];
 
@@ -418,9 +207,9 @@ export const sensitiveItemCategories: SensitiveItemCategory[] = [
     count: itemCounts['crypto'] || 0,
     verificationFrequency: 'Daily/Weekly',
     riskLevel: 'critical',
-    icon: 'crypto' 
+    icon: 'crypto'
   },
-   {
+  {
     id: 'other',
     name: 'Other',
     count: itemCounts['other'] || 0,
@@ -450,13 +239,12 @@ export const verificationSchedule = [
 const calculateStats = (items: SensitiveItem[]) => {
   const now = new Date();
   const todayStr = formatDate(now);
-  
   const verifiedToday = verificationLogs.filter(log => log.date === todayStr && log.status === 'verified').length;
   const pendingVerification = items.filter(item => item.status === 'pending' || item.status === 'overdue').length;
   const overdueVerification = items.filter(item => item.status === 'overdue').length;
   const inMaintenance = items.filter(item => item.status === 'maintenance').length;
   const highRiskItems = items.filter(item => item.securityLevel === 'secret' || item.securityLevel === 'top-secret').length;
-  
+
   // Find the latest verification date among all items actually verified
   const verifiedDates = items
     .filter(item => item.lastVerified && item.lastVerified !== "N/A")
@@ -475,17 +263,19 @@ const calculateStats = (items: SensitiveItem[]) => {
     })
     .filter(date => date !== null) as Date[];
 
-  const lastFullVerificationDate = verifiedDates.length > 0 
-    ? new Date(Math.max(...verifiedDates.map(d => d.getTime()))) 
+  const lastFullVerificationDate = verifiedDates.length > 0
+    ? new Date(Math.max(...verifiedDates.map(d => d.getTime())))
     : null;
-    
-  const lastFullVerification = lastFullVerificationDate ? formatMilitaryDate(lastFullVerificationDate) : 'Pending Initial';
+
+  const lastFullVerification = lastFullVerificationDate
+    ? formatMilitaryDate(lastFullVerificationDate)
+    : 'Pending Initial';
 
   // Example compliance calculation
   const totalAccountable = items.length - items.filter(item => item.status === 'maintenance').length; // Exclude maintenance items
   const verifiedOrPending = items.filter(item => item.status === 'verified' || item.status === 'pending').length;
   const compliancePercentage = totalAccountable > 0 ? Math.round((verifiedOrPending / totalAccountable) * 100) : 100;
-  
+
   return {
     totalItems: items.length,
     verifiedToday: verifiedToday,
@@ -497,6 +287,6 @@ const calculateStats = (items: SensitiveItem[]) => {
     verificationCompliance: `${compliancePercentage}%`,
     itemsOverdue: overdueVerification,
   };
-}
+};
 
-export const sensitiveItemsStats = calculateStats(sensitiveItems);
+export const sensitiveItemsStats = calculateStats(sensitiveItems); 

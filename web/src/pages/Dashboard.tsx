@@ -2,29 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  Calendar,
-  Clock,
-  AlertTriangle,
-  Shield,
-  RefreshCw,
-  ChevronRight,
-  ArrowRight,
-  ArrowRightLeft,
-  BarChart3,
-  Users,
-  CheckCircle,
-  Clock8,
-  Database,
-  Send,
-  Fingerprint,
-  Search,
-  Filter,
-  Plus,
-  Activity as ActivityIcon,
-  Package,
-  FileText,
-  ScanLine,
-  User
+  Calendar, Clock, AlertTriangle, Shield, RefreshCw, ChevronRight, 
+  ArrowRight, ArrowRightLeft, BarChart3, Users, CheckCircle, Clock8, 
+  Database, Send, Fingerprint, Search, Filter, Plus, Activity as ActivityIcon, 
+  Package, FileText, ScanLine, User
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +22,6 @@ import { CleanCard, ElegantSectionHeader, StatusBadge } from '@/components/ios';
 // Dashboard components
 import MyProperties from '@/components/dashboard/MyProperties';
 import PendingTransfers from '@/components/dashboard/PendingTransfers';
-import QuickActions from '@/components/dashboard/QuickActions';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TransferItem } from '@/components/dashboard/TransferItem';
@@ -51,28 +31,22 @@ import { ActivityLogItem } from '@/components/dashboard/ActivityLogItem';
 import { sensitiveItems, sensitiveItemsStats } from '@/lib/sensitiveItemsData';
 import { activities, notifications, transfers, inventory } from '@/lib/mockData';
 import { maintenanceStats, maintenanceItems } from '@/lib/maintenanceData';
-import { useNotifications } from "@/contexts/NotificationContext";
+import { useNotifications } from '@/contexts/NotificationContext';
 import { parseISO, isBefore, isAfter, addDays, startOfDay } from 'date-fns';
-import { 
-  Property as PropertyType, 
-  Transfer, 
-  Activity, 
-  Notification 
-} from "@/types"; // Import Property from @/types
+import { Property as PropertyType, Transfer, Activity, Notification } from '@/types';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-
   const { addNotification } = useNotifications();
   const [maintenanceCheckDone, setMaintenanceCheckDone] = useState(false);
-
+  
   // Fetch connections data
   const { data: connections = [] } = useQuery({
     queryKey: ['connections'],
     queryFn: getConnections,
   });
-
+  
   // Alert counts
   const pendingTransfersCount = transfers.filter(t => t.status === 'pending').length;
   const pendingMaintenanceCount = maintenanceStats.scheduled;
@@ -80,13 +54,13 @@ export default function Dashboard() {
   
   // Calculate verification percentage - Check if totalItems > 0
   const verificationPercentage = sensitiveItemsStats.totalItems > 0 
-    ? Math.round((sensitiveItemsStats.verifiedToday / sensitiveItemsStats.totalItems) * 100)
+    ? Math.round((sensitiveItemsStats.verifiedToday / sensitiveItemsStats.totalItems) * 100) 
     : 0;
-
+  
   // Calculate network stats
   const connectedUsersCount = connections.filter(c => c.connectionStatus === 'accepted').length;
   const pendingConnectionsCount = connections.filter(c => c.connectionStatus === 'pending').length;
-
+  
   // Calculate dynamic readiness stats from inventory
   const readinessStats = useMemo(() => {
     const total = inventory.length;
@@ -98,15 +72,15 @@ export default function Dashboard() {
         other: { count: 0, percentage: 0 },
       };
     }
-
+    
     let operationalCount = 0;
     let maintenanceCount = 0;
     let nonOperationalCount = 0;
     let otherCount = 0;
-
+    
     inventory.forEach((item: PropertyType) => {
       // Match the actual Property status type definition
-      switch (item.status) { 
+      switch (item.status) {
         case 'Operational':
           operationalCount++;
           break;
@@ -121,17 +95,17 @@ export default function Dashboard() {
         case 'Deadline - Supply':
         case 'Lost':
         default:
-          otherCount++; 
+          otherCount++;
           break;
       }
     });
-
+    
     // Calculate percentages
     const operationalPercentage = Math.round((operationalCount / total) * 100);
     const maintenancePercentage = Math.round((maintenanceCount / total) * 100);
     const nonOperationalPercentage = Math.round((nonOperationalCount / total) * 100);
     const otherPercentage = 100 - operationalPercentage - maintenancePercentage - nonOperationalPercentage;
-
+    
     return {
       operational: { count: operationalCount, percentage: operationalPercentage },
       maintenance: { count: maintenanceCount, percentage: maintenancePercentage },
@@ -139,7 +113,7 @@ export default function Dashboard() {
       other: { count: otherCount, percentage: otherPercentage >= 0 ? otherPercentage : 0 },
     };
   }, [inventory]);
-
+  
   // Helper function to format welcome message - iOS style
   const getWelcomeMessage = () => {
     if (!user) return "Welcome";
@@ -149,7 +123,7 @@ export default function Dashboard() {
     // Convert common full ranks to abbreviations
     const rankAbbreviations: Record<string, string> = {
       "Captain": "CPT",
-      "Lieutenant": "LT", 
+      "Lieutenant": "LT",
       "First Lieutenant": "1LT",
       "Second Lieutenant": "2LT",
       "Major": "MAJ",
@@ -178,14 +152,14 @@ export default function Dashboard() {
     
     return parts.join(" ");
   };
-
+  
   // Effect to check for upcoming maintenance and trigger notifications
   useEffect(() => {
     if (!maintenanceCheckDone) {
       const today = startOfDay(new Date());
       const sevenDaysFromNow = addDays(today, 7);
       let notificationsAdded = 0;
-
+      
       maintenanceItems.forEach(item => {
         if (item.scheduledDate && (item.status === 'scheduled' || item.status === 'in-progress')) {
           try {
@@ -197,8 +171,6 @@ export default function Dashboard() {
                 type: 'warning',
                 title: `Upcoming Maintenance Due: ${item.itemName}`,
                 message: `Maintenance scheduled for ${item.scheduledDate}. Serial: ${item.serialNumber}`,
-                relatedEntityType: 'MaintenanceItem',
-                relatedEntityId: item.id,
                 action: {
                   label: 'View Maintenance',
                   path: `/maintenance/${item.id}`
@@ -213,13 +185,13 @@ export default function Dashboard() {
       });
       
       if (notificationsAdded > 0) {
-         console.log(`Added ${notificationsAdded} upcoming maintenance notifications.`);
+        console.log(`Added ${notificationsAdded} upcoming maintenance notifications.`);
       }
-
+      
       setMaintenanceCheckDone(true);
     }
   }, [addNotification, maintenanceCheckDone]);
-
+  
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -230,7 +202,6 @@ export default function Dashboard() {
             <h1 className="text-base text-secondary-text" style={{ fontFamily: '"SF Mono", Monaco, monospace' }}>
               HandReceipt
             </h1>
-            
             <div className="flex items-center space-x-5">
               <Button
                 variant="ghost"
@@ -240,9 +211,8 @@ export default function Dashboard() {
               >
                 <Search className="h-5 w-5 text-primary-text" />
               </Button>
-              
               <Button
-                variant="ghost"  
+                variant="ghost"
                 size="sm"
                 onClick={() => navigate('/profile')}
                 className="p-2 hover:bg-transparent"
@@ -265,11 +235,7 @@ export default function Dashboard() {
         
         {/* Overview Section - iOS style */}
         <div className="mb-10">
-          <ElegantSectionHeader 
-            title="Overview"
-            className="mb-6"
-            size="lg"
-          />
+          <ElegantSectionHeader title="Overview" className="mb-6" size="lg" />
           
           <div className="space-y-4">
             {/* First row: Total Properties and Import DA-2062 */}
@@ -290,7 +256,7 @@ export default function Dashboard() {
                   </div>
                 </CleanCard>
               </Button>
-
+              
               <Button
                 variant="ghost"
                 onClick={() => navigate('/da2062')}
@@ -306,7 +272,7 @@ export default function Dashboard() {
                 </CleanCard>
               </Button>
             </div>
-
+            
             {/* Second row: Documents and empty space */}
             <div className="grid grid-cols-2 gap-4">
               <Button
@@ -329,14 +295,14 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
+        
         {/* Network Section - iOS style */}
         <div className="mb-10">
           <ElegantSectionHeader 
-            title="Network"
-            subtitle="Connected users"
-            className="mb-6"
-            size="lg"
+            title="Network" 
+            subtitle="Connected users" 
+            className="mb-6" 
+            size="lg" 
           />
           
           <div className="grid grid-cols-2 gap-4">
@@ -356,7 +322,7 @@ export default function Dashboard() {
                 </div>
               </CleanCard>
             </Button>
-
+            
             <Button
               variant="ghost"
               onClick={() => navigate('/connections')}
@@ -375,25 +341,20 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-
+        
         {/* Recent Activity Section */}
         <div className="mb-10">
-          <ElegantSectionHeader 
-            title="Recent Activity"
-            className="mb-6"
-            size="lg"
-          />
-          
+          <ElegantSectionHeader title="Recent Activity" className="mb-6" size="lg" />
           <RecentActivity />
         </div>
-
+        
         {/* Property Status Section */}
         <div className="mb-10">
           <ElegantSectionHeader 
-            title="Property Status"
-            subtitle="Operational readiness"
-            className="mb-6"
-            size="lg"
+            title="Property Status" 
+            subtitle="Operational readiness" 
+            className="mb-6" 
+            size="lg" 
           />
           
           <CleanCard className="p-6" style={{ backgroundColor: 'white' }}>

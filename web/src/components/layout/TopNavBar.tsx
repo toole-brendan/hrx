@@ -15,15 +15,14 @@ interface TopNavBarProps {
   openNotifications: () => void;
 }
 
-const TopNavBar: React.FC<TopNavBarProps> = ({
-  toggleMobileMenu,
+const TopNavBar: React.FC<TopNavBarProps> = ({ 
+  toggleMobileMenu, 
   openNotifications
 }) => {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useApp();
   const isMobile = useIsMobile();
-
-  const userInitials = user?.name
+  
+  const userInitials = user?.name 
     ? user.name
         .split(' ')
         .map(n => n[0])
@@ -40,30 +39,28 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
       {/* Left section: Mobile menu toggle + search */}
       <div className="flex items-center space-x-4">
         {/* Mobile menu button - only visible on mobile */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="md:hidden"
           onClick={toggleMobileMenu}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        
+
         {/* Search bar - hidden on smallest screens */}
         <div className="hidden sm:flex items-center relative w-64 lg:w-80">
           <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            type="search" 
-            placeholder="Search..." 
+          <Input
+            type="search"
+            placeholder="Search..."
             className="pl-8 bg-background border-input"
           />
         </div>
       </div>
-      
+
       {/* Right section: Actions */}
       <div className="flex items-center space-x-2">
-
-        
         {/* Notifications button */}
         <Button
           variant="ghost"
@@ -74,7 +71,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
           <Bell className="h-5 w-5" />
           <span className="absolute h-2 w-2 rounded-full bg-red-500 top-1.5 right-1.5"></span>
         </Button>
-        
+
         {/* User avatar - hidden on mobile as it's in the bottom nav */}
         <Button
           variant="ghost"

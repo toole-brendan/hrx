@@ -5,16 +5,8 @@ import { Button } from '@/components/ui/button';
 import { FileText, User, Calendar, Paperclip, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { getDocuments, markAsRead, Document } from '@/services/documentService';
-import { DocumentViewer } from './DocumentViewer';
-
-// iOS Components
-import { 
-  CleanCard, 
-  ElegantSectionHeader, 
-  StatusBadge,
-  MinimalEmptyState,
-  MinimalLoadingView
-} from '@/components/ios';
+import { DocumentViewer } from './DocumentViewer'; // iOS Components
+import { CleanCard, ElegantSectionHeader, StatusBadge, MinimalEmptyState, MinimalLoadingView } from '@/components/ios';
 
 export const DocumentsInbox: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('inbox');
@@ -45,11 +37,7 @@ export const DocumentsInbox: React.FC = () => {
 
   if (isLoading) {
     return (
-      <MinimalLoadingView 
-        text="Loading documents..." 
-        size="lg"
-        className="py-16"
-      />
+      <MinimalLoadingView text="Loading documents..." size="lg" className="py-16" />
     );
   }
 
@@ -66,11 +54,7 @@ export const DocumentsInbox: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <ElegantSectionHeader 
-          title="DOCUMENTS" 
-          className="mb-4"
-        />
-        
+        <ElegantSectionHeader title="DOCUMENTS" className="mb-4" />
         <div>
           <h1 className="text-3xl font-light tracking-tight text-primary-text">
             Document Management
@@ -86,8 +70,8 @@ export const DocumentsInbox: React.FC = () => {
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <div className="border-b border-ios-border">
             <TabsList className="grid grid-cols-3 w-full bg-transparent">
-              <TabsTrigger 
-                value="inbox" 
+              <TabsTrigger
+                value="inbox"
                 className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none relative"
               >
                 INBOX
@@ -97,13 +81,13 @@ export const DocumentsInbox: React.FC = () => {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="sent"
                 className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
               >
                 SENT
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="all"
                 className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
               >
@@ -115,11 +99,20 @@ export const DocumentsInbox: React.FC = () => {
           <TabsContent value={selectedTab} className="p-6">
             {(data?.documents.length ?? 0) === 0 ? (
               <MinimalEmptyState
-                title={selectedTab === 'inbox' ? 'No documents received' : 
-                       selectedTab === 'sent' ? 'No documents sent' : 'No documents'}
-                description={selectedTab === 'inbox' ? 'New documents will appear here' : 
-                            selectedTab === 'sent' ? 'Documents you send will appear here' : 
-                            'Your document history will appear here'}
+                title={
+                  selectedTab === 'inbox'
+                    ? 'No documents received'
+                    : selectedTab === 'sent'
+                    ? 'No documents sent'
+                    : 'No documents'
+                }
+                description={
+                  selectedTab === 'inbox'
+                    ? 'New documents will appear here'
+                    : selectedTab === 'sent'
+                    ? 'Documents you send will appear here'
+                    : 'Your document history will appear here'
+                }
                 icon={<FileText className="h-12 w-12" />}
               />
             ) : (
@@ -213,9 +206,9 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, selectedTab, onVi
           )}
         </div>
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="ml-4 hover:bg-gray-100 rounded-none"
           onClick={(e) => {
             e.stopPropagation();

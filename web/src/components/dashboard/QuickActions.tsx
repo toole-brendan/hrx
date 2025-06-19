@@ -11,28 +11,28 @@ const QuickActions: React.FC<QuickActionsProps> = () => {
   const [, navigate] = useLocation();
 
   const actions = [
-    { 
-      icon: <ArrowRightLeft className="h-4 w-4" />, 
-      label: "Request Transfer", 
-      onClick: () => navigate("/transfers") 
+    {
+      icon: <ArrowRightLeft className="h-4 w-4" />,
+      label: "Request Transfer",
+      onClick: () => navigate("/transfers")
     },
-    { 
-      icon: <Search className="h-4 w-4" />, 
-      label: "Find Item", 
-      onClick: () => navigate("/property-book") 
+    {
+      icon: <Search className="h-4 w-4" />,
+      label: "Find Item",
+      onClick: () => navigate("/property-book")
     },
-    { 
-      icon: <QrCode className="h-4 w-4" />, 
-      label: "Scan QR Code", 
+    {
+      icon: <QrCode className="h-4 w-4" />,
+      label: "Scan QR Code",
       onClick: () => {
         // TODO: Implement QR scanner
         console.log("QR Scanner not yet implemented");
       }
     },
-    { 
-      icon: <Package className="h-4 w-4" />, 
-      label: "Add Property", 
-      onClick: () => navigate("/property-book") 
+    {
+      icon: <Package className="h-4 w-4" />,
+      label: "Add Property",
+      onClick: () => navigate("/property-book")
     },
   ];
 

@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
+  
   // --- New authedFetch function ---
   const authedFetch = useCallback(async <T = any>(
     input: RequestInfo | URL,
@@ -73,20 +73,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // In bypass mode, return mock responses
     if (BYPASS_AUTH) {
       console.log('[DEV MODE] Bypassing API call:', input);
+      
       // Create a mock response
       const mockResponse = new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
-      return { data: { success: true } as T, response: mockResponse };
+      
+      return {
+        data: { success: true } as T,
+        response: mockResponse
+      };
     }
-
+    
     // Production mode - use real fetch
     // Convert relative URLs to absolute URLs using API_BASE_URL
-    const url = input.toString().startsWith('/') 
-      ? `${API_BASE_URL}${input}` 
+    const url = input.toString().startsWith('/')
+      ? `${API_BASE_URL}${input}`
       : input.toString();
-      
+    
     const response = await fetch(url, {
       ...init,
       headers: {
@@ -95,15 +100,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       },
       credentials: 'include',
     });
-
+    
     if (!response.ok) {
       let errorPayload: any = { message: `HTTP error! status: ${response.status}` };
+      
       try {
-          errorPayload = await response.json();
+        errorPayload = await response.json();
       } catch (e) {
-          try {
-            errorPayload.message = await response.text();
-          } catch (textErr) {}
+        try {
+          errorPayload.message = await response.text();
+        } catch (textErr) {}
       }
       
       if (response.status !== 401) {
@@ -114,19 +120,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const errorMessage = errorPayload.error || errorPayload.message || `Request failed with status ${response.status}`;
       throw new Error(errorMessage);
     }
-
+    
     const text = await response.text();
     let data: T;
+    
     try {
       data = text ? JSON.parse(text) : null as T;
     } catch (e) {
-       console.error("Failed to parse JSON response:", text);
-       throw new Error("Invalid JSON response from server.");
+      console.error("Failed to parse JSON response:", text);
+      throw new Error("Invalid JSON response from server.");
     }
-
+    
     return { data, response };
   }, []);
-
+  
   // --- Check auth status on mount ---
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -140,7 +147,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsLoading(false);
         return;
       }
-
+      
       // Check real auth status
       try {
         const { data } = await authedFetch<{ user: User }>('/api/auth/me');
@@ -156,10 +163,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsLoading(false);
       }
     };
-
+    
     checkAuthStatus();
   }, [authedFetch]);
-
+  
   // --- Login function ---
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -172,25 +179,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
       return;
     }
-
+    
     // Real login
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
         setIsAuthenticated(true);
       } else {
         let errorData: any = { message: 'Login failed' };
+        
         try {
           errorData = await response.json();
         } catch (e) {}
+        
         // Check for both 'error' and 'message' fields from backend
         const errorMessage = errorData.error || errorData.message || 'Login failed';
         throw new Error(errorMessage);
@@ -204,7 +215,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   };
-
+  
   // --- Logout function ---
   const logout = async () => {
     setIsLoading(true);
@@ -221,9 +232,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsAuthenticated(false);
     setIsLoading(false);
   };
-
+  
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, authedFetch }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        isAuthenticated, 
+        isLoading, 
+        login, 
+        logout, 
+        authedFetch 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -14,8 +14,6 @@ import {
   Settings,
   BarChart3,
   Menu,
-  Moon,
-  Sun,
   ChevronLeft,
   ChevronRight,
   BookOpen,
@@ -31,7 +29,6 @@ interface SidebarProps {
   isMobile?: boolean;
   closeMobileMenu?: () => void;
   // QR Scanner functionality removed
-  toggleTheme?: () => void;
   toggleSidebar?: () => void;
   openNotificationPanel?: () => void;
 }
@@ -39,25 +36,16 @@ interface SidebarProps {
 const Sidebar = ({
   isMobile = false,
   closeMobileMenu,
-  toggleTheme: toggleThemeProp,
   toggleSidebar: toggleSidebarProp,
   openNotificationPanel,
 }: SidebarProps) => {
   const [location] = useLocation();
   const { user } = useAuth();
-  const { theme, toggleTheme: contextToggleTheme, sidebarCollapsed, toggleSidebar: contextToggleSidebar } = useApp();
+  const { sidebarCollapsed, toggleSidebar: contextToggleSidebar } = useApp();
   const { unreadCount } = useNotifications();
   const { data: unreadDocumentCount = 0 } = useUnreadDocumentCount();
 
   // Use the functions from context directly if they're not passed as props
-  const toggleTheme = () => {
-    if (toggleThemeProp) {
-      toggleThemeProp();
-    } else {
-      contextToggleTheme();
-    }
-  };
-  
   const toggleSidebar = () => {
     if (toggleSidebarProp) {
       toggleSidebarProp();
@@ -138,9 +126,9 @@ const Sidebar = ({
   if (isMobile) {
     return (
       <nav 
-        className="flex-1 flex flex-col dark:bg-gray-900" 
+        className="flex-1 flex flex-col" 
         style={{ 
-          backgroundColor: theme === 'dark' ? '#111111' : '#FAFAFA' 
+          backgroundColor: '#FAFAFA' 
         }}
       >
         {/* Header - Logo */}
@@ -159,26 +147,26 @@ const Sidebar = ({
         
         {/* Divider with same styling as Quick Action dividers */}
         <div className="px-4">
-          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 mb-2"></div>
         </div>
         
         {/* User Profile section with proper vertical centering */}
         <div className="flex items-center min-h-[80px]"> {/* Fixed height container with flexbox centering */}
           {!sidebarCollapsed ? (
             <div className="flex items-center cursor-pointer px-4 w-full">
-              <div className="w-8 h-8 rounded-full bg-blue-300 dark:bg-blue-500/70 flex items-center justify-center text-blue-800 dark:text-white text-sm font-medium mr-3 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium mr-3 shadow-sm">
                 M
               </div>
               <div>
-                <p className="text-sm font-medium tracking-wider text-gray-900 dark:text-gray-100">
+                <p className="text-sm font-medium tracking-wider text-gray-900">
                   {user?.rank} {user?.lastName}
                 </p>
-                <p className="text-xs tracking-wide text-gray-600 dark:text-gray-400">Company Commander</p>
+                <p className="text-xs tracking-wide text-gray-600">Company Commander</p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center w-full">
-              <div className="w-8 h-8 rounded-full bg-blue-300 dark:bg-blue-500/70 flex items-center justify-center text-blue-800 dark:text-white text-sm font-medium cursor-pointer shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium cursor-pointer shadow-sm">
                 M
               </div>
             </div>
@@ -187,7 +175,7 @@ const Sidebar = ({
         
         {/* Divider with same styling as Quick Action dividers */}
         <div className="px-4">
-          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 mb-2"></div>
         </div>
         
         {/* Main navigation section */}
@@ -230,7 +218,7 @@ const Sidebar = ({
         {/* Footer section */}
         <div className="mt-auto p-4 space-y-3">
           {/* Footer divider */}
-          <div className="border-t border-gray-200 dark:border-white/10 my-3"></div>
+          <div className="border-t border-gray-200 my-3"></div>
           
           {/* Mobile version - Notification Item */}
           <div 
@@ -267,23 +255,6 @@ const Sidebar = ({
               <span>Profile</span>
             </div>
           </Link>
-          
-          {/* Footer controls divider */}
-          <div className="border-t border-gray-200 dark:border-white/10 my-3"></div>
-          
-          {/* Theme toggle button */}
-          <div className="flex items-center justify-between px-2">
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors"
-              title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            >
-              {theme === 'light' ? 
-                <Moon className="h-5 w-5 text-gray-900 dark:text-gray-200" /> : 
-                <Sun className="h-5 w-5 text-gray-200 dark:text-gray-200" />
-              }
-            </button>
-          </div>
         </div>
       </nav>
     );
@@ -293,8 +264,8 @@ const Sidebar = ({
     <aside 
       className={`sidebar hidden md:flex flex-col ${sidebarCollapsed ? 'collapsed' : ''}`}
       style={{ 
-        backgroundColor: theme === 'dark' ? '#111111' : '#FAFAFA',
-        borderRight: `1px solid ${theme === 'dark' ? '#333333' : '#E0E0E0'}` 
+        backgroundColor: '#FAFAFA',
+        borderRight: `1px solid #E0E0E0` 
       }}
     >
       {/* Header - Logo */}
@@ -319,26 +290,26 @@ const Sidebar = ({
       
       {/* Divider with same styling as Quick Action dividers */}
       <div className="px-2">
-        <div className="border-t border-gray-200 dark:border-white/10"></div>
+        <div className="border-t border-gray-200"></div>
       </div>
       
       {/* User Profile section with proper vertical centering */}
       <div className="flex items-center min-h-[80px]"> {/* Fixed height container with flexbox centering */}
         {!sidebarCollapsed ? (
           <div className="flex items-center cursor-pointer px-4 w-full">
-            <div className="w-8 h-8 rounded-full bg-blue-300 dark:bg-blue-500/70 flex items-center justify-center text-blue-800 dark:text-white text-sm font-medium mr-3 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium mr-3 shadow-sm">
               M
             </div>
             <div>
-              <p className="text-sm font-medium tracking-wider text-gray-900 dark:text-gray-100">
+              <p className="text-sm font-medium tracking-wider text-gray-900">
                 {user?.rank} {user?.lastName}
               </p>
-              <p className="text-xs tracking-wide text-gray-600 dark:text-gray-400">Company Commander</p>
+              <p className="text-xs tracking-wide text-gray-600">Company Commander</p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center w-full">
-            <div className="w-8 h-8 rounded-full bg-blue-300 dark:bg-blue-500/70 flex items-center justify-center text-blue-800 dark:text-white text-sm font-medium cursor-pointer shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium cursor-pointer shadow-sm">
               M
             </div>
           </div>
@@ -347,7 +318,7 @@ const Sidebar = ({
       
       {/* Divider with same styling as Quick Action dividers */}
       <div className="px-2">
-        <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
+        <div className="border-t border-gray-200 mb-2"></div>
       </div>
       
       <div className="flex flex-col flex-1">
@@ -390,7 +361,7 @@ const Sidebar = ({
         {/* Bottom action links section */}
         <div className={`mt-auto px-2 pt-2 pb-4 ${sidebarCollapsed ? 'text-center' : ''}`}>
           {/* First divider */}
-          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 mb-2"></div>
           
           {/* Navigation items group - styled as regular sidebar items */}
           <div className="mb-2">
@@ -438,52 +409,27 @@ const Sidebar = ({
           </div>
           
           {/* Second divider */}
-          <div className="border-t border-gray-200 dark:border-white/10 mb-2"></div>
+          <div className="border-t border-gray-200 mb-2"></div>
           
-          {/* Theme toggle and sidebar collapse buttons */}
+          {/* Sidebar collapse button only */}
           {!sidebarCollapsed ? (
-            <div className="flex items-center justify-between px-2">
-              <button 
-                onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors"
-                title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-              >
-                {theme === 'light' ? 
-                  <Moon className="h-5 w-5 text-gray-900 dark:text-gray-200" /> : 
-                  <Sun className="h-5 w-5 text-gray-200 dark:text-gray-200" />
-                }
-              </button>
-              
+            <div className="flex items-center justify-end px-2">
               <button 
                 onClick={toggleSidebar}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors"
+                className="p-2 rounded-md hover:bg-gray-200 transition-colors"
                 title="Collapse sidebar"
               >
-                <ChevronLeft className="h-5 w-5 text-gray-900 dark:text-white" />
+                <ChevronLeft className="h-5 w-5 text-gray-900" />
               </button>
             </div>
           ) : (
-            <>
-              <button 
-                onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors mx-auto block mb-2"
-                title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-              >
-                {theme === 'light' ? 
-                  <Moon className="h-5 w-5 text-gray-900 dark:text-gray-200" /> : 
-                  <Sun className="h-5 w-5 text-gray-200 dark:text-gray-200" />
-                }
-              </button>
-              
-              {/* Expand button when collapsed */}
-              <button 
-                onClick={toggleSidebar}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-ios-accent/20 transition-colors mx-auto block"
-                title="Expand sidebar"
-              >
-                <ChevronRight className="h-5 w-5 text-gray-900 dark:text-white" />
-              </button>
-            </>
+            <button 
+              onClick={toggleSidebar}
+              className="p-2 rounded-md hover:bg-gray-200 transition-colors mx-auto block"
+              title="Expand sidebar"
+            >
+              <ChevronRight className="h-5 w-5 text-gray-900" />
+            </button>
           )}
         </div>
       </div>

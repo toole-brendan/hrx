@@ -15,7 +15,10 @@ export interface User {
   commandTime?: string;
   responsibility?: string;
   valueManaged?: string;
-  upcomingEvents?: Array<{title: string; date: string;}>;
+  upcomingEvents?: Array<{
+    title: string;
+    date: string;
+  }>;
   equipmentSummary?: {
     vehicles?: number;
     weapons?: number;

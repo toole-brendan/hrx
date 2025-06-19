@@ -14,11 +14,7 @@ interface DocumentViewerProps {
   onClose: () => void;
 }
 
-export const DocumentViewer: React.FC<DocumentViewerProps> = ({
-  document,
-  open,
-  onClose,
-}) => {
+export const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, onClose }) => {
   const formData = JSON.parse(document.formData);
   const attachments = document.attachments ? JSON.parse(document.attachments) : [];
 
@@ -52,7 +48,10 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 </p>
               </div>
             </div>
-            <Badge variant={document.status === 'unread' ? 'default' : 'secondary'} className="text-xs">
+            <Badge
+              variant={document.status === 'unread' ? 'default' : 'secondary'}
+              className="text-xs"
+            >
               {document.status.toUpperCase()}
             </Badge>
           </div>
@@ -135,7 +134,6 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <p className="text-sm leading-relaxed">{formData.description}</p>
                 </div>
               </div>
-              
               {formData.faultDescription && (
                 <div>
                   <span className="text-muted-foreground text-sm block mb-2">Fault Description</span>
@@ -144,7 +142,6 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </div>
                 </div>
               )}
-
               <div>
                 <span className="text-muted-foreground text-sm block mb-2">Request Date</span>
                 <span className="text-sm">

@@ -18,15 +18,15 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
-
+  
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-
+    
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-
+    
     if ('touches' in e) {
       // Touch event
       const touch = e.touches[0] || e.changedTouches[0];
@@ -42,82 +42,82 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
       };
     }
   };
-
+  
   const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
+    
     setIsDrawing(true);
     setHasSignature(true);
-
+    
     const { x, y } = getCoordinates(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
   }, []);
-
+  
   const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     if (!isDrawing) return;
-
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
+    
     const { x, y } = getCoordinates(e);
     ctx.lineTo(x, y);
     ctx.stroke();
   }, [isDrawing]);
-
+  
   const stopDrawing = useCallback(() => {
     setIsDrawing(false);
   }, []);
-
+  
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasSignature(false);
   }, []);
-
+  
   const saveSignature = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !hasSignature) return;
-
+    
     const dataURL = canvas.toDataURL('image/png');
     onSave(dataURL);
   }, [hasSignature, onSave]);
-
+  
   // Initialize canvas
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
+    
     // Set up drawing context
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
+    
     // Set canvas size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * window.devicePixelRatio;
     canvas.height = rect.height * window.devicePixelRatio;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
   }, []);
-
+  
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className={cn(

@@ -1,48 +1,5 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
-
-interface FloatingActionButtonProps {
-  onClick: () => void;
-  icon: React.ReactNode;
-  label?: string;
-  position?: 'bottom-right' | 'bottom-left' | 'bottom-center';
-  className?: string;
-}
-
-export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
-  onClick,
-  icon,
-  label,
-  position = 'bottom-right',
-  className
-}) => {
-  const getPositionStyles = () => {
-    switch (position) {
-      case 'bottom-left':
-        return 'bottom-6 left-6';
-      case 'bottom-center':
-        return 'bottom-6 left-1/2 -translate-x-1/2';
-      default:
-        return 'bottom-6 right-6';
-    }
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'fixed z-50 bg-ios-accent hover:bg-accent-hover text-white rounded-full shadow-lg transition-all duration-200',
-        'flex items-center gap-2 px-4 py-3',
-        getPositionStyles(),
-        className
-      )}
-    >
-      {icon}
-      {label && (
-        <span className="text-sm font-medium">
-          {label}
-        </span>
-      )}
-    </button>
-  );
+import { cn } from '@/lib/utils'; interface FloatingActionButtonProps { onClick: () => void; icon: React.ReactNode; label?: string; position?: 'bottom-right' | 'bottom-left' | 'bottom-center'; className?: string;
+} export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onClick, icon, label, position = 'bottom-right', className
+}) => { const getPositionStyles = () => { switch (position) { case 'bottom-left': return 'bottom-6 left-6'; case 'bottom-center': return 'bottom-6 left-1/2 -translate-x-1/2'; default: return 'bottom-6 right-6'; } }; return ( <button onClick={onClick} className={cn( 'fixed z-50 bg-ios-accent hover:bg-accent-hover text-white rounded-full shadow-lg transition-all duration-200', 'flex items-center gap-2 px-4 py-3', getPositionStyles(), className )} > {icon} {label && ( <span className="text-sm font-medium"> {label} </span> )} </button> );
 }; 

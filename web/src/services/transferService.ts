@@ -24,9 +24,15 @@ function mapBackendTransferToFrontend(backendTransfer: any): Transfer {
     to: backendTransfer.to_user?.name || backendTransfer.to || 'Unknown',
     date: backendTransfer.request_date || new Date().toISOString(),
     status: backendTransfer.status?.toLowerCase() || 'pending',
-    approvedDate: backendTransfer.resolved_date && backendTransfer.status === 'Approved' ? backendTransfer.resolved_date : undefined,
-    rejectedDate: backendTransfer.resolved_date && backendTransfer.status === 'Rejected' ? backendTransfer.resolved_date : undefined,
-    rejectionReason: backendTransfer.status === 'Rejected' && backendTransfer.notes ? backendTransfer.notes : undefined,
+    approvedDate: backendTransfer.resolved_date && backendTransfer.status === 'Approved' 
+      ? backendTransfer.resolved_date 
+      : undefined,
+    rejectedDate: backendTransfer.resolved_date && backendTransfer.status === 'Rejected' 
+      ? backendTransfer.resolved_date 
+      : undefined,
+    rejectionReason: backendTransfer.status === 'Rejected' && backendTransfer.notes 
+      ? backendTransfer.notes 
+      : undefined,
   };
 }
 
@@ -82,9 +88,9 @@ export async function createTransfer(transferData: {
 /**
  * Update the status of a transfer (approve/reject)
  */
-export async function updateTransferStatus(params: { 
-  id: string; 
-  status: 'approved' | 'rejected'; 
+export async function updateTransferStatus(params: {
+  id: string;
+  status: 'approved' | 'rejected';
   notes?: string;
 }): Promise<Transfer> {
   const { id, status, notes } = params;
@@ -96,10 +102,7 @@ export async function updateTransferStatus(params: {
     method: 'PATCH',
     headers: getAuthHeaders(),
     credentials: 'include',
-    body: JSON.stringify({ 
-      status: backendStatus, 
-      notes: notes 
-    }),
+    body: JSON.stringify({ status: backendStatus, notes: notes }),
   });
   
   if (!response.ok) {
@@ -129,8 +132,6 @@ export async function getTransferById(id: string): Promise<Transfer> {
   const backendTransfer = data.transfer || data;
   return mapBackendTransferToFrontend(backendTransfer);
 }
-
-
 
 /**
  * Delete a transfer (if permitted)

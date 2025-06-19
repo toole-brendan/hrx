@@ -54,7 +54,11 @@ export interface DocumentsResponse {
   unread_count: number;
 }
 
-export async function getDocuments(box?: 'inbox' | 'sent' | 'all', status?: string, type?: string): Promise<DocumentsResponse> {
+export async function getDocuments(
+  box?: 'inbox' | 'sent' | 'all',
+  status?: string,
+  type?: string
+): Promise<DocumentsResponse> {
   const params = new URLSearchParams();
   if (box) params.append('box', box);
   if (status) params.append('status', status);
@@ -62,7 +66,9 @@ export async function getDocuments(box?: 'inbox' | 'sent' | 'all', status?: stri
 
   const response = await fetch(`${API_BASE_URL}/documents?${params}`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     credentials: 'include',
   });
 
@@ -73,7 +79,9 @@ export async function getDocuments(box?: 'inbox' | 'sent' | 'all', status?: stri
 export async function getDocument(id: number): Promise<{ document: Document }> {
   const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     credentials: 'include',
   });
 
@@ -81,10 +89,14 @@ export async function getDocument(id: number): Promise<{ document: Document }> {
   return response.json();
 }
 
-export async function sendMaintenanceForm(data: CreateMaintenanceFormRequest): Promise<{ document: Document; message: string }> {
+export async function sendMaintenanceForm(
+  data: CreateMaintenanceFormRequest
+): Promise<{ document: Document; message: string }> {
   const response = await fetch(`${API_BASE_URL}/documents/maintenance-form`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -96,7 +108,9 @@ export async function sendMaintenanceForm(data: CreateMaintenanceFormRequest): P
 export async function markAsRead(id: number): Promise<{ message: string }> {
   const response = await fetch(`${API_BASE_URL}/documents/${id}/read`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     credentials: 'include',
   });
 

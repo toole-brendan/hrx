@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { History, Inbox, ExternalLink, Plus } from 'lucide-react';
+import { Plus, History, Inbox, ExternalLink } from 'lucide-react';
 
 interface EmptyStateProps {
   activeView: 'incoming' | 'outgoing' | 'history';
   searchTerm: string;
-  filterStatus: 'all' | 'pending' | 'approved' | 'rejected';
+  filterStatus: string;
   onInitiateTransfer: () => void;
 }
 
@@ -33,7 +33,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     description = `You have no ${filterStatus !== 'all' ? filterStatus + ' ' : ''}outgoing transfers${searchTerm ? ' matching your search' : ''}. ${baseDesc}`.trim();
     icon = <ExternalLink className="h-8 w-8 text-muted-foreground" />;
     showInitiateButton = !searchTerm && filterStatus === 'all'; // Show button only if no filters active
-  } else { // history
+  } else {
+    // history
     title = 'No Transfer History';
     description = `No transfer history found${searchTerm ? ' matching your search' : ''}${filterStatus !== 'all' ? ' with status ' + filterStatus : ''}. ${baseDesc}`.trim();
   }

@@ -277,72 +277,6 @@
 
 /* Light mode is now the default theme */
 
-/* Dark mode - 8VC Dark Theme */
-.dark {
-  /* Base colors - 8VC Dark Theme */
-  --background: 0 0% 0%; /* Black */
-  --foreground: 0 0% 100%; /* White */
-  
-  /* Card and container colors */
-  --card: 0 0% 7%; /* Dark gray #111111 */
-  --card-foreground: 0 0% 100%; /* White */
-  
-  /* Popover colors */
-  --popover: 0 0% 7%; /* Dark gray #111111 */
-  --popover-foreground: 0 0% 100%; /* White */
-  
-  /* Primary colors - same as light for consistency */
-  --primary: 217 50% 55% / 0.85; /* Grayer, translucent Blue */
-  --primary-foreground: 0 0% 100%;
-  
-  /* Secondary colors - same as light */
-  --secondary: 264 46% 60%; /* Lighter purple #9E77ED */
-  --secondary-foreground: 0 0% 100%;
-  
-  /* Muted colors - darker */
-  --muted: 0 0% 7%; /* Dark gray #111111 */
-  --muted-foreground: 0 0% 67%; /* Gray #AAAAAA */
-  
-  /* Accent colors - same as primary */
-  --accent: 264 64% 52%; /* Same as primary */
-  --accent-foreground: 0 0% 100%;
-  
-  /* States - same as light */
-  --destructive: 0 70% 50%;
-  --destructive-foreground: 0 0% 100%;
-  
-  --success: 142 76% 36%;
-  --success-foreground: 0 0% 100%;
-  
-  --warning: 38 92% 50%;
-  --warning-foreground: 0 0% 0%;
-  
-  --info: 218 81% 59%;
-  --info-foreground: 0 0% 100%;
-  
-  /* Border & input - darker */
-  --border: 0 0% 25%; /* Updated: Lighter gray for dark mode border */
-  --input: 0 0% 7%;
-  --ring: 264 64% 52%;
-  
-  /* Chart colors - same as light */
-  --chart-1: 264 64% 52%;
-  --chart-2: 244 63% 50%;
-  --chart-3: 324 64% 55%;
-  --chart-4: 38 92% 50%;
-  --chart-5: 184 80% 45%;
-  
-  /* Sidebar colors - 8VC style darker (DARK MODE ONLY) */
-  --sidebar-background: 0 0% 7%; /* Updated: Match card background (Dark Gray) */
-  --sidebar-foreground: 0 0% 100%; /* White text for contrast */
-  --sidebar-primary: 264 64% 52%; /* 8VC Purple */
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 264 64% 52%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 0 0% 25%; /* Updated: Match main border */
-  --sidebar-ring: 264 64% 52%;
-}
-
 /* Responsive adjustments for tablet and larger devices */
 @media (min-width: 640px) {
   :root {
@@ -478,11 +412,6 @@
     margin-top: -6px; /* Smaller negative margin to avoid cutting off content */
     max-width: calc(100% - var(--sidebar-width));
   }
-  
-  /* Dark mode main content background */
-  .dark .main-content {
-    background-color: #000000;
-  }
 
   .main-content.sidebar-collapsed {
     margin-left: var(--sidebar-collapsed-width);
@@ -509,17 +438,11 @@
   /* Sidebar Styles - 8VC theme */
   .sidebar {
     @apply h-screen flex-shrink-0 flex-col transition-all duration-300 fixed left-0 top-0;
-    /* Explicit background colors for light/dark mode */
+    /* Explicit background colors for light mode */
     background-color: #FAFAFA; /* Light gray background */
     border-right: 1px solid #E0E0E0;
     width: var(--sidebar-width);
     z-index: var(--z-index-sidebar);
-  }
-  
-  /* Dark mode sidebar background */
-  .dark .sidebar {
-    background-color: #111111; /* Dark gray */
-    border-right-color: #333333;
   }
 
   .sidebar.collapsed {
@@ -531,19 +454,9 @@
     letter-spacing: 0.075em;
     font-family: var(--font-system);
   }
-  
-  /* Dark mode sidebar text */
-  .dark .sidebar-item {
-    @apply text-gray-100 hover:bg-white/5;
-  }
 
   .sidebar-item.active {
     @apply bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-600;
-  }
-  
-  /* Dark mode active sidebar item */
-  .dark .sidebar-item.active {
-    @apply bg-white/5 text-white font-medium border-l-2 border-primary;
   }
 
   .sidebar-item-icon {
@@ -644,27 +557,6 @@
     @apply p-6;
   }
   
-  /* Dark mode dashboard cards */
-  .dark .dashboard-card {
-    @apply bg-black border border-white/10;
-  }
-  
-  .dark .dashboard-card .card-header {
-    @apply border-b border-white/10;
-  }
-  
-  .dark .dashboard-card .card-title {
-    @apply text-gray-400;
-  }
-  
-  .dark .dashboard-card .card-value {
-    @apply text-white;
-  }
-  
-  .dark .dashboard-card .card-metric {
-    @apply text-gray-400;
-  }
-  
   /* 8VC Style Typography */
   .display-heading {
     @apply font-sans text-4xl md:text-5xl font-light leading-tight tracking-tight;
@@ -684,12 +576,12 @@
   }
   /* 8VC Category Tag */
   .category-tag {
-    @apply uppercase text-xs tracking-widest text-gray-500 dark:text-gray-400 font-medium;
+    @apply uppercase text-xs tracking-widest text-gray-500 font-medium;
     letter-spacing: 0.15em;
   }
   /* 8VC Horizontal Divider */
   .horizontal-divider {
-    @apply w-full h-px bg-gray-200 dark:bg-gray-800 my-8;
+    @apply w-full h-px bg-gray-200 my-8;
   }
   
   /* Performance indicators */
@@ -909,23 +801,6 @@
     @apply bg-destructive/15 text-destructive;
   }
   
-  /* Dark mode badges */
-  .dark .badge-military.primary {
-    @apply bg-primary/20 text-primary-foreground;
-  }
-  
-  .dark .badge-military.success {
-    @apply bg-success/20 text-success-foreground;
-  }
-  
-  .dark .badge-military.warning {
-    @apply bg-warning/20 text-warning-foreground;
-  }
-  
-  .dark .badge-military.danger {
-    @apply bg-destructive/20 text-destructive-foreground;
-  }
-  
   /* Header and section styles */
   .section-header {
     @apply text-lg font-medium mb-3 pb-2 border-b border-border text-ios-accent;
@@ -934,15 +809,6 @@
   
   .section-subheader {
     @apply text-sm uppercase font-medium mb-2 text-ios-accent/80 tracking-wider;
-  }
-  
-  /* Dark mode section headers */
-  .dark .section-header {
-    @apply border-border/50 text-white;
-  }
-  
-  .dark .section-subheader {
-    @apply text-gray-300;
   }
   
   /* Dashboard specific - Sharp corners */
@@ -958,9 +824,4 @@
   .btn-sharp * {
     @apply rounded-none;
   }
-}
-
-/* Dark mode body background */
-.dark body {
-  background-color: #000000;
 }

@@ -1,22 +1,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Property, ConsumableItem } from '@/types'; // Importing ConsumableItem type
-// Import other types as needed, e.g., Notification, SyncAction
-import { Notification } from '@/contexts/NotificationContext';
+import { Property, Notification, ConsumableItem } from '@/types';
 
-// Define the SyncAction type (as per implementation plan)
-export interface SyncAction {
-  id: string; // uuid
-  type: 'apiCall' | string; // Allow specific action types like 'createItem', 'updateTransfer'
-  payload: {
-    method: 'POST' | 'PUT' | 'DELETE';
-    url: string; // The intended API endpoint
-    data: any; // The request body
-  };
-  timestamp: number;
-  status: 'pending' | 'syncing' | 'failed';
-}
-
-// Define consumption history entry type
+// Consumption history entry type
 export interface ConsumptionHistoryEntry {
   id: string;
   itemId: string; // Reference to a consumable
@@ -27,7 +12,16 @@ export interface ConsumptionHistoryEntry {
   notes?: string;
 }
 
-// 1. Define Database Schema
+// Sync action interface for offline operations
+interface SyncAction {
+  id: string;
+  type: 'create' | 'update' | 'delete';
+  entity: 'property' | 'transfer' | 'notification';
+  data: any;
+  timestamp: number;
+}
+
+// Database schema definition
 interface HandReceiptDB extends DBSchema {
   inventory: {
     key: string; // Using item.id as the key
@@ -37,7 +31,7 @@ interface HandReceiptDB extends DBSchema {
   consumables: {
     key: string; // Using item.id as key
     value: ConsumableItem;
-    indexes: { 
+    indexes: {
       'by-name': string;
       'by-category': string;
       'by-quantity': number;
@@ -46,7 +40,7 @@ interface HandReceiptDB extends DBSchema {
   consumptionHistory: {
     key: string;
     value: ConsumptionHistoryEntry;
-    indexes: { 
+    indexes: {
       'by-date': string;
       'by-itemId': string;
     }
@@ -76,10 +70,11 @@ function getDb(): Promise<IDBPDatabase<HandReceiptDB>> {
     dbPromise = openDB<HandReceiptDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion, newVersion, transaction) {
         console.log(`Upgrading DB from version ${oldVersion} to ${newVersion}`);
+        
         // Create stores based on version changes
         if (oldVersion < 1) {
           // Create inventory store
-          const inventoryStore = db.createObjectStore('property', { keyPath: 'id' });
+          const inventoryStore = db.createObjectStore('inventory', { keyPath: 'id' });
           inventoryStore.createIndex('by-name', 'name');
           console.log('Created inventory object store');
           
@@ -87,7 +82,7 @@ function getDb(): Promise<IDBPDatabase<HandReceiptDB>> {
           const notificationStore = db.createObjectStore('notifications', { keyPath: 'id' });
           notificationStore.createIndex('by-timestamp', 'timestamp');
           console.log('Created notifications object store');
-
+          
           // Create syncQueue store
           const syncQueueStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
           syncQueueStore.createIndex('by-timestamp', 'timestamp');
@@ -102,7 +97,7 @@ function getDb(): Promise<IDBPDatabase<HandReceiptDB>> {
           consumablesStore.createIndex('by-category', 'category');
           consumablesStore.createIndex('by-quantity', 'currentQuantity');
           console.log('Created consumables object store');
-
+          
           // Create consumption history store
           const historyStore = db.createObjectStore('consumptionHistory', { keyPath: 'id' });
           historyStore.createIndex('by-date', 'date');
@@ -129,182 +124,141 @@ function getDb(): Promise<IDBPDatabase<HandReceiptDB>> {
   return dbPromise;
 }
 
-// 4. Basic CRUD operation helpers (Examples)
-
-// --- Inventory Store Helpers ---
-export async function getPropertysFromDB(): Promise<Property[]> {
+// 4. CRUD Operations for Properties
+export async function addProperty(property: Property): Promise<void> {
   const db = await getDb();
-  return db.getAll('property');
+  await db.add('inventory', property);
+  console.log('Property added to IndexedDB:', property.id);
 }
 
-export async function getPropertyFromDB(id: string): Promise<Property | undefined> {
-    const db = await getDb();
-    return db.get('property', id);
-}
-
-export async function savePropertysToDB(items: Property[]) {
+export async function getProperty(id: string): Promise<Property | undefined> {
   const db = await getDb();
-  const tx = db.transaction('property', 'readwrite');
-  await Promise.all(items.map(item => tx.store.put(item)));
-  await tx.done;
-  console.log(`${items.length} inventory items saved to DB.`);
+  return await db.get('inventory', id);
 }
 
-export async function clearInventoryDB() {
-    const db = await getDb();
-    await db.clear('property');
-    console.log('Inventory DB cleared.');
-}
-
-// --- Consumables Store Helpers ---
-export async function getConsumablesFromDB(): Promise<ConsumableItem[]> {
+export async function getAllProperties(): Promise<Property[]> {
   const db = await getDb();
-  return db.getAll('consumables');
+  return await db.getAll('inventory');
 }
 
-export async function getConsumableFromDB(id: string): Promise<ConsumableItem | undefined> {
+export async function updateProperty(property: Property): Promise<void> {
   const db = await getDb();
-  return db.get('consumables', id);
+  await db.put('inventory', property);
+  console.log('Property updated in IndexedDB:', property.id);
 }
 
-export async function saveConsumablesToDB(items: ConsumableItem[]) {
+export async function deleteProperty(id: string): Promise<void> {
   const db = await getDb();
-  const tx = db.transaction('consumables', 'readwrite');
-  await Promise.all(items.map(item => tx.store.put(item)));
-  await tx.done;
-  console.log(`${items.length} consumable items saved to DB.`);
+  await db.delete('inventory', id);
+  console.log('Property deleted from IndexedDB:', id);
 }
 
-export async function deleteConsumableFromDB(id: string) {
+// 5. CRUD Operations for Notifications
+export async function addNotification(notification: Notification): Promise<void> {
+  const db = await getDb();
+  await db.add('notifications', notification);
+  console.log('Notification added to IndexedDB:', notification.id);
+}
+
+export async function getAllNotifications(): Promise<Notification[]> {
+  const db = await getDb();
+  return await db.getAll('notifications');
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('notifications', id);
+  console.log('Notification deleted from IndexedDB:', id);
+}
+
+// 6. CRUD Operations for Consumables
+export async function addConsumable(consumable: ConsumableItem): Promise<void> {
+  const db = await getDb();
+  await db.add('consumables', consumable);
+  console.log('Consumable added to IndexedDB:', consumable.id);
+}
+
+export async function getAllConsumables(): Promise<ConsumableItem[]> {
+  const db = await getDb();
+  return await db.getAll('consumables');
+}
+
+export async function updateConsumable(consumable: ConsumableItem): Promise<void> {
+  const db = await getDb();
+  await db.put('consumables', consumable);
+  console.log('Consumable updated in IndexedDB:', consumable.id);
+}
+
+export async function deleteConsumable(id: string): Promise<void> {
   const db = await getDb();
   await db.delete('consumables', id);
-  console.log(`Consumable item ${id} deleted from DB.`);
+  console.log('Consumable deleted from IndexedDB:', id);
 }
 
-export async function updateConsumableQuantity(id: string, newQuantity: number) {
-  const db = await getDb();
-  const tx = db.transaction('consumables', 'readwrite');
-  const item = await tx.store.get(id);
-  
-  if (item) {
-    item.currentQuantity = newQuantity;
-    await tx.store.put(item);
-    console.log(`Consumable ${id} quantity updated to ${newQuantity}`);
-  }
-  
-  await tx.done;
-  return item;
-}
-
-// --- Consumption History Helpers ---
-export async function getConsumptionHistoryFromDB(): Promise<ConsumptionHistoryEntry[]> {
-  const db = await getDb();
-  return db.getAll('consumptionHistory');
-}
-
-export async function getConsumptionHistoryByItemFromDB(itemId: string): Promise<ConsumptionHistoryEntry[]> {
-  const db = await getDb();
-  const index = db.transaction('consumptionHistory').store.index('by-itemId');
-  return index.getAll(itemId);
-}
-
-export async function addConsumptionHistoryEntryToDB(entry: ConsumptionHistoryEntry) {
+// 7. CRUD Operations for Consumption History
+export async function addConsumptionHistory(entry: ConsumptionHistoryEntry): Promise<void> {
   const db = await getDb();
   await db.add('consumptionHistory', entry);
-  console.log(`Consumption history entry ${entry.id} added to DB.`);
+  console.log('Consumption history added to IndexedDB:', entry.id);
 }
 
-// --- Sync Queue Helpers ---
-export async function addActionToSyncQueue(action: SyncAction) {
+export async function getAllConsumptionHistory(): Promise<ConsumptionHistoryEntry[]> {
   const db = await getDb();
-  await db.put('syncQueue', action);
-  console.log(`Action ${action.type} (${action.id}) added to sync queue.`);
+  return await db.getAll('consumptionHistory');
 }
 
-export async function getPendingSyncActions(): Promise<SyncAction[]> {
+export async function getConsumptionHistoryByItem(itemId: string): Promise<ConsumptionHistoryEntry[]> {
   const db = await getDb();
-  // Get all actions and filter for pending (could also use an index if status indexed)
-  const allActions = await db.getAllFromIndex('syncQueue', 'by-timestamp');
-  return allActions.filter(action => action.status === 'pending').sort((a, b) => a.timestamp - b.timestamp);
+  return await db.getAllFromIndex('consumptionHistory', 'by-itemId', itemId);
 }
 
-export async function updateSyncActionStatus(id: string, status: 'syncing' | 'failed' | 'pending') {
+// 8. Sync Queue Operations
+export async function addToSyncQueue(action: SyncAction): Promise<void> {
   const db = await getDb();
-  const action = await db.get('syncQueue', id);
-  if (action) {
-    await db.put('syncQueue', { ...action, status });
-  }
+  await db.add('syncQueue', action);
+  console.log('Action added to sync queue:', action.id);
 }
 
-export async function removeSyncAction(id: string) {
-    const db = await getDb();
-    await db.delete('syncQueue', id);
-    console.log(`Sync action ${id} removed from queue.`);
-}
-
-// Add helpers for Notifications store if needed later (potentially replacing localStorage)
-
-// --- Optimized Inventory Store Helpers ---
-
-// Add a single item to the inventory
-export async function addPropertyToDB(item: Property): Promise<void> {
+export async function getAllSyncActions(): Promise<SyncAction[]> {
   const db = await getDb();
-  await db.add('property', item);
-  console.log(`Inventory item ${item.id} added to DB.`);
+  return await db.getAll('syncQueue');
 }
 
-// Update a single item in the inventory
-export async function updatePropertyInDB(item: Property): Promise<void> {
+export async function clearSyncQueue(): Promise<void> {
   const db = await getDb();
-  await db.put('property', item);
-  console.log(`Inventory item ${item.id} updated in DB.`);
+  await db.clear('syncQueue');
+  console.log('Sync queue cleared');
 }
 
-// Delete a single item from the inventory
-export async function deletePropertyFromDB(id: string): Promise<void> {
+// 9. Utility Functions
+export async function clearAllData(): Promise<void> {
   const db = await getDb();
-  await db.delete('property', id);
-  console.log(`Inventory item ${id} deleted from DB.`);
-}
-
-// Get items by a specific category
-export async function getPropertysByCategoryFromDB(category: string): Promise<Property[]> {
-  const db = await getDb();
-  const allItems = await db.getAll('property');
-  return allItems.filter(item => item.category === category);
-}
-
-// Search inventory items by name or serial number
-export async function searchPropertysFromDB(searchTerm: string): Promise<Property[]> {
-  const db = await getDb();
-  const allItems = await db.getAll('property');
-  const lowerSearchTerm = searchTerm.toLowerCase();
+  const tx = db.transaction(['inventory', 'notifications', 'syncQueue', 'consumables', 'consumptionHistory'], 'readwrite');
   
-  return allItems.filter(item => 
-    (item.name && item.name.toLowerCase().includes(lowerSearchTerm)) || 
-    (item.serialNumber && item.serialNumber.toLowerCase().includes(lowerSearchTerm))
-  );
-}
-
-// Update component data for an item
-export async function updatePropertyComponentsInDB(
-  itemId: string, 
-  components: any[]
-): Promise<Property | undefined> {
-  const db = await getDb();
-  const tx = db.transaction('property', 'readwrite');
-  const item = await tx.store.get(itemId);
-  
-  if (item) {
-    item.components = components;
-    await tx.store.put(item);
-    await tx.done;
-    console.log(`Components updated for item ${itemId}`);
-    return item;
-  }
+  await Promise.all([
+    tx.objectStore('inventory').clear(),
+    tx.objectStore('notifications').clear(),
+    tx.objectStore('syncQueue').clear(),
+    tx.objectStore('consumables').clear(),
+    tx.objectStore('consumptionHistory').clear(),
+  ]);
   
   await tx.done;
-  return undefined;
+  console.log('All IndexedDB data cleared');
+}
+
+export async function getDbStats(): Promise<{ [storeName: string]: number }> {
+  const db = await getDb();
+  const stats: { [storeName: string]: number } = {};
+  
+  const storeNames: (keyof HandReceiptDB)[] = ['inventory', 'notifications', 'syncQueue', 'consumables', 'consumptionHistory'];
+  
+  for (const storeName of storeNames) {
+    const count = await db.count(storeName);
+    stats[storeName] = count;
+  }
+  
+  return stats;
 }
 
 console.log('IndexedDB helper module loaded.'); 

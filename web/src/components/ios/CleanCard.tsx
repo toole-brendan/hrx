@@ -1,49 +1,5 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
-
-interface CleanCardProps {
-  children: React.ReactNode;
-  className?: string;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
-  hoverable?: boolean;
-  onClick?: () => void;
-  selected?: boolean;
-}
-
-export const CleanCard: React.FC<CleanCardProps> = ({
-  children,
-  className,
-  padding = 'md',
-  hoverable = false,
-  onClick,
-  selected = false
-}) => {
-  const getPaddingStyles = () => {
-    switch (padding) {
-      case 'none':
-        return '';
-      case 'sm':
-        return 'p-3';
-      case 'lg':
-        return 'p-6';
-      default:
-        return 'p-4';
-    }
-  };
-
-  return (
-    <div
-      className={cn(
-        'bg-white border border-ios-border rounded-none shadow-ios transition-all duration-200',
-        getPaddingStyles(),
-        hoverable && 'hover:bg-gray-50 cursor-pointer active:bg-gray-100',
-        selected && 'border-ios-accent bg-ios-accent/5',
-        onClick && 'cursor-pointer',
-        className
-      )}
-      onClick={onClick}
-    >
-      {children}
-    </div>
-  );
+import { cn } from '@/lib/utils'; interface CleanCardProps { children: React.ReactNode; className?: string; padding?: 'none' | 'sm' | 'md' | 'lg'; hoverable?: boolean; onClick?: () => void; selected?: boolean;
+} export const CleanCard: React.FC<CleanCardProps> = ({ children, className, padding = 'md', hoverable = false, onClick, selected = false
+}) => { const getPaddingStyles = () => { switch (padding) { case 'none': return ''; case 'sm': return 'p-3'; case 'lg': return 'p-6'; default: return 'p-4'; } }; return ( <div className={cn( 'bg-white border border-ios-border rounded-none shadow-ios transition-all duration-200', getPaddingStyles(), hoverable && 'hover:bg-gray-50 cursor-pointer active:bg-gray-100', selected && 'border-ios-accent bg-ios-accent/5', onClick && 'cursor-pointer', className )} onClick={onClick} > {children} </div> );
 }; 

@@ -46,21 +46,9 @@ function Router() {
         <Route path="/" component={() => <Login />} />
         <Route path="/dashboard" component={() => <Dashboard />} />
         <Route path="/transfers" component={() => <Transfers />} />
-        <Route path="/transfers/:id">
-          {(params) => <Transfers id={params.id} />}
-        </Route>
         <Route path="/property-book" component={() => <PropertyBook />} />
-        <Route path="/property-book/:id">
-          {(params) => <PropertyBook id={params.id} />}
-        </Route>
         <Route path="/sensitive-items" component={() => <SensitiveItems />} />
-        <Route path="/sensitive-items/:id">
-          {(params) => <SensitiveItems id={params.id} />}
-        </Route>
         <Route path="/maintenance" component={() => <Maintenance />} />
-        <Route path="/maintenance/:id">
-          {(params) => <Maintenance id={params.id} />}
-        </Route>
         <Route path="/documents" component={() => <Documents />} />
         <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/audit-log" component={() => <AuditLog />} />
@@ -81,7 +69,7 @@ const App: React.FC = () => {
     // Start periodic sync and set up connectivity listeners
     startPeriodicSync();
     const cleanupConnectivity = setupConnectivityListeners();
-    
+
     // Cleanup on unmount
     return () => {
       stopPeriodicSync();
@@ -103,6 +91,6 @@ const App: React.FC = () => {
       </AuthProvider>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;

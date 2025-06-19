@@ -90,34 +90,35 @@ import {
   BookOpen // For Property Book link
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 // Import the extracted components
-import { 
-  TransferListHeader, 
-  TransferRow, 
-  EmptyState, 
-  TransferDetailsModal, 
-  NewTransferDialog, 
-  TransferConfirmationDialog 
-} from '@/components/transfers'; 
+import {
+  TransferListHeader,
+  TransferRow,
+  EmptyState,
+  TransferDetailsModal,
+  NewTransferDialog,
+  TransferConfirmationDialog
+} from '@/components/transfers';
+
 // Import the transfer service
-import { 
-  fetchTransfers, 
-  createTransfer, 
+import {
+  fetchTransfers,
+  createTransfer,
   updateTransferStatus
 } from '@/services/transferService';
 
 // iOS Components
-import { 
-  CleanCard, 
-  ElegantSectionHeader, 
+import {
+  CleanCard,
+  ElegantSectionHeader,
   StatusBadge as IOSStatusBadge,
   MinimalEmptyState,
   MinimalLoadingView
 } from "@/components/ios";
 
 // --- State Management with useReducer (Modified) ---
-
 type SortField = 'date' | 'name' | 'from' | 'to';
 type SortOrder = 'asc' | 'desc';
 type TransferView = 'incoming' | 'outgoing' | 'history';
@@ -188,63 +189,65 @@ function transfersReducer(state: TransfersState, action: TransfersAction): Trans
 }
 
 // --- Component Definition ---
-
 interface TransfersProps {
-  id?: string;  // Add this for route params like /transfers/:id
+  id?: string; // Add this for route params like /transfers/:id
 }
 
 const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient(); // Get query client
-
   const [state, dispatch] = useReducer(transfersReducer, initialState);
   const { searchTerm, filterStatus, activeView, sortConfig, showNewTransfer, showTransferDetails, transferToConfirm } = state;
 
   // Fetch transfers using useQuery
-  const { 
+  const {
     data: transfers = [], // Default to empty array
     isLoading: isLoadingTransfers, // Rename to avoid conflict
-    error: transfersError 
+    error: transfersError
   } = useQuery<Transfer[], Error>({
     queryKey: ['transfers'],
     queryFn: fetchTransfers,
   });
 
   // --- Mutations ---
-  const createTransferMutation = useMutation({ 
-    mutationFn: createTransfer, 
+  const createTransferMutation = useMutation({
+    mutationFn: createTransfer,
     onSuccess: (newTransfer) => {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: false });
-      toast({ 
-        title: "Transfer Created", 
-        description: `Transfer request for ${newTransfer.name} sent to ${newTransfer.to}.` 
+      toast({
+        title: "Transfer Created",
+        description: `Transfer request for ${newTransfer.name} sent to ${newTransfer.to}.`
       });
     },
     onError: (error) => {
-      toast({ title: "Error", description: `Failed to create transfer: ${error.message}`, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: `Failed to create transfer: ${error.message}`,
+        variant: "destructive"
+      });
     }
   });
 
-  const updateStatusMutation = useMutation({ 
+  const updateStatusMutation = useMutation({
     mutationFn: updateTransferStatus,
     onSuccess: (updatedTransfer) => {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       dispatch({ type: 'CONFIRM_ACTION', payload: null }); // Close confirmation dialog
-      toast({ 
+      toast({
         title: `Transfer ${updatedTransfer.status === 'approved' ? 'Approved' : 'Rejected'}`,
         description: `Transfer of ${updatedTransfer.name} ${updatedTransfer.status}.`,
         variant: updatedTransfer.status === 'rejected' ? "destructive" : "default"
       });
       // Blockchain logic (can be moved here or called after success)
-      handleBlockchainRecord(updatedTransfer); 
+      handleBlockchainRecord(updatedTransfer);
     },
     onError: (error, variables) => {
-      toast({ 
-        title: "Error", 
-        description: `Failed to ${variables.status} transfer: ${error.message}`, 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: `Failed to ${variables.status} transfer: ${error.message}`,
+        variant: "destructive"
       });
       dispatch({ type: 'CONFIRM_ACTION', payload: null }); // Close confirmation dialog on error too
     }
@@ -256,8 +259,9 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       console.error("User not found for blockchain recording.");
       return; // Cannot record without user info
     }
+
     const sensitiveItem = sensitiveItems.find(item => item.serialNumber === transfer.serialNumber);
-    if (sensitiveItem && transfer.status === 'approved') { 
+    if (sensitiveItem && transfer.status === 'approved') {
       try {
         if (isBlockchainEnabled(sensitiveItem)) {
           const blockchainRecord = recordToBlockchain(
@@ -282,9 +286,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   };
 
   // Use the actual authenticated user instead of mock data
-  const currentUser = user?.name || 
-    (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || 
-    'Unknown User';
+  const currentUser = user?.name || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || 'Unknown User';
 
   // Update useEffect to use query data
   useEffect(() => {
@@ -301,16 +303,16 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     // No longer need START_LOADING/STOP_LOADING dispatch
     // Dispatch action only shows confirmation dialog
     if (transferToConfirm?.id === id && transferToConfirm?.action === 'approve') {
-        updateStatusMutation.mutate({ id, status: 'approved' });
-        // Logic moved to onSuccess/handleBlockchainRecord
+      updateStatusMutation.mutate({ id, status: 'approved' });
+      // Logic moved to onSuccess/handleBlockchainRecord
     }
   };
 
   const handleReject = (id: string, reason: string = "Rejected by recipient") => {
     // No longer need START_LOADING/STOP_LOADING dispatch
     if (transferToConfirm?.id === id && transferToConfirm?.action === 'reject') {
-        updateStatusMutation.mutate({ id, status: 'rejected', notes: reason });
-        // Logic moved to onSuccess
+      updateStatusMutation.mutate({ id, status: 'rejected', notes: reason });
+      // Logic moved to onSuccess
     }
   };
 
@@ -335,16 +337,13 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         (activeView === 'outgoing' && transfer.from === currentUser) ||
         (activeView === 'history' && (transfer.to === currentUser || transfer.from === currentUser));
 
-      const matchesSearch =
-        !searchTerm || // Return true if searchTerm is empty
+      const matchesSearch = !searchTerm || // Return true if searchTerm is empty
         transfer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transfer.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transfer.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transfer.to.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus =
-        filterStatus === "all" ||
-        transfer.status === filterStatus;
+      const matchesStatus = filterStatus === "all" || transfer.status === filterStatus;
 
       return matchesView && matchesSearch && matchesStatus;
     });
@@ -386,9 +385,15 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
 
   const handleExportTransfer = (id: string) => {
     const transfer = transfers.find(t => t.id === id);
-    toast({ title: "Exporting Transfer", description: `Preparing PDF for ${transfer?.name || 'item'}...` });
+    toast({
+      title: "Exporting Transfer",
+      description: `Preparing PDF for ${transfer?.name || 'item'}...`
+    });
     setTimeout(() => {
-      toast({ title: "Export Complete (Demo)", description: `Transfer document for ${transfer?.name || 'item'} exported.` });
+      toast({
+        title: "Export Complete (Demo)",
+        description: `Transfer document for ${transfer?.name || 'item'} exported.`
+      });
     }, 1500);
   };
 
@@ -409,14 +414,18 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   // --- UI Helper Functions ---
   const getPageDescription = useCallback(() => {
     switch (activeView) {
-      case 'incoming': return "Review and manage transfer requests sent to you";
-      case 'outgoing': return "Track transfer requests you've initiated";
-      case 'history': return "View your complete transfer history (incoming and outgoing)";
-      default: return "Manage equipment transfer requests and assignments";
+      case 'incoming':
+        return "Review and manage transfer requests sent to you";
+      case 'outgoing':
+        return "Track transfer requests you've initiated";
+      case 'history':
+        return "View your complete transfer history (incoming and outgoing)";
+      default:
+        return "Manage equipment transfer requests and assignments";
     }
   }, [activeView]);
 
-  const getPageTitle = () => "Transfer Management"; 
+  const getPageTitle = () => "Transfer Management";
 
   // --- Render Logic ---
   return (
@@ -424,11 +433,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <ElegantSectionHeader 
-            title="TRANSFERS" 
-            className="mb-4"
-          />
-          
+          <ElegantSectionHeader title="TRANSFERS" className="mb-4" />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
             <div>
               <h1 className="text-3xl font-light tracking-tight text-primary-text">
@@ -438,7 +443,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 {getPageDescription()}
               </p>
             </div>
-            <Button 
+            <Button
               onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
               className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
             >
@@ -465,9 +470,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                   >
                     {view.charAt(0).toUpperCase() + view.slice(1)}
                     {view === 'incoming' && incomingPendingCount > 0 && (
-                      <Badge
-                        className="ml-2 px-1.5 py-0.5 h-5 min-w-[1.25rem] bg-ios-destructive text-white rounded-full text-[10px] flex items-center justify-center"
-                      >
+                      <Badge className="ml-2 px-1.5 py-0.5 h-5 min-w-[1.25rem] bg-ios-destructive text-white rounded-full text-[10px] flex items-center justify-center">
                         {incomingPendingCount}
                       </Badge>
                     )}
@@ -524,11 +527,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
               <CleanCard>
                 {/* Loading State */}
                 {isLoadingTransfers && (
-                  <MinimalLoadingView 
-                    text="Loading transfers..." 
-                    size="lg"
-                    className="py-16"
-                  />
+                  <MinimalLoadingView text="Loading transfers..." size="lg" className="py-16" />
                 )}
 
                 {/* Error State */}
@@ -539,7 +538,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                     <p className="text-sm mt-1 text-secondary-text">Please try again later.</p>
                   </div>
                 )}
-                
+
                 {/* Transfer List */}
                 {!isLoadingTransfers && !transfersError && (
                   sortedTransfers.length === 0 ? (
@@ -559,21 +558,20 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                   ) : (
                     <>
                       {/* Transfer List Header */}
-                      <TransferListHeader 
-                        sortConfig={sortConfig} 
-                        onSort={handleSort} 
+                      <TransferListHeader
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
                       />
                       <ScrollArea className="h-[calc(100vh-450px)]">
                         {sortedTransfers.map((transfer) => (
-                          <TransferRow 
-                            key={transfer.id} 
-                            transfer={transfer} 
+                          <TransferRow
+                            key={transfer.id}
+                            transfer={transfer}
                             currentUser={currentUser}
-                            activeView={activeView}
                             isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
                             isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
-                            onConfirmAction={(id, action) => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
-                            onShowDetails={(t) => dispatch({ type: 'SHOW_DETAILS', payload: t })}
+                            onConfirmAction={(id: string, action: 'approve' | 'reject') => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
+                            onShowDetails={(t: Transfer) => dispatch({ type: 'SHOW_DETAILS', payload: t })}
                           />
                         ))}
                       </ScrollArea>
@@ -606,21 +604,21 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         />
       )}
 
-             {transferToConfirm && (
-         <TransferConfirmationDialog
-           confirmation={transferToConfirm}
-           isPending={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transferToConfirm.id}
-           transferName={transfers.find(t => t.id === transferToConfirm.id)?.name}
-           onClose={() => dispatch({ type: 'CONFIRM_ACTION', payload: null })}
-           onConfirm={(id, action) => {
-             if (action === 'approve') {
-               handleApprove(id);
-             } else {
-               handleReject(id);
-             }
-           }}
-         />
-       )}
+      {transferToConfirm && (
+        <TransferConfirmationDialog
+          confirmation={transferToConfirm}
+          isPending={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transferToConfirm.id}
+          transferName={transfers.find(t => t.id === transferToConfirm.id)?.name}
+          onClose={() => dispatch({ type: 'CONFIRM_ACTION', payload: null })}
+          onConfirm={(id: string, action: 'approve' | 'reject') => {
+            if (action === 'approve') {
+              handleApprove(id);
+            } else {
+              handleReject(id);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

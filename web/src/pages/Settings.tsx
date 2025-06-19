@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,29 +32,29 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Save, 
-  LogOut, 
-  Moon, 
-  Sun, 
-  RefreshCw, 
-  Shield, 
-  Bell, 
-  QrCode, 
-  Database, 
-  Smartphone, 
-  UserCircle, 
-  Settings as SettingsIcon,
-  Zap,
-  Activity,
-  Clock,
+import {
+  UserCircle,
+  Shield,
+  QrCode,
+  Bell,
   Cloud,
-  Loader2
+  Save,
+  LogOut,
+  RefreshCw,
+  Settings as SettingsIcon,
+  Smartphone,
+  Key,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Loader2,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 
 // iOS Components
-import { 
-  CleanCard, 
+import {
+  CleanCard,
   ElegantSectionHeader
 } from "@/components/ios";
 
@@ -110,7 +110,6 @@ type SyncFormValues = z.infer<typeof syncFormSchema>;
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useApp();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
@@ -125,7 +124,7 @@ const Settings: React.FC = () => {
       unit: "",
     },
   });
-
+  
   // Security form
   const securityForm = useForm<SecurityFormValues>({
     resolver: zodResolver(securityFormSchema),
@@ -136,7 +135,7 @@ const Settings: React.FC = () => {
       pinTimeout: "5",
     },
   });
-
+  
   // QR settings form
   const qrForm = useForm<QRFormValues>({
     resolver: zodResolver(qrFormSchema),
@@ -148,7 +147,7 @@ const Settings: React.FC = () => {
       scanConfirmation: true,
     },
   });
-
+  
   // Notification settings form
   const notificationForm = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
@@ -160,7 +159,7 @@ const Settings: React.FC = () => {
       dailyDigest: false,
     },
   });
-
+  
   // Sync settings form
   const syncForm = useForm<SyncFormValues>({
     resolver: zodResolver(syncFormSchema),
@@ -171,7 +170,7 @@ const Settings: React.FC = () => {
       lastSynced: new Date().toISOString(),
     },
   });
-
+  
   // Form submission handlers
   const onProfileSubmit = (data: ProfileFormValues) => {
     toast({
@@ -179,39 +178,38 @@ const Settings: React.FC = () => {
       description: "Your profile information has been updated",
     });
   };
-
+  
   const onSecuritySubmit = (data: SecurityFormValues) => {
     toast({
       title: "Security Settings Updated",
       description: "Your security preferences have been saved",
     });
   };
-
+  
   const onQRSubmit = (data: QRFormValues) => {
     toast({
       title: "QR Code Settings Updated",
       description: "Your QR code preferences have been saved",
     });
   };
-
+  
   const onNotificationSubmit = (data: NotificationFormValues) => {
     toast({
       title: "Notification Settings Updated",
       description: "Your notification preferences have been saved",
     });
   };
-
+  
   const onSyncSubmit = (data: SyncFormValues) => {
     toast({
       title: "Sync Settings Updated",
       description: "Your synchronization preferences have been saved",
     });
   };
-
+  
   // Handle manual sync
   const handleManualSync = () => {
     setIsSyncing(true);
-    
     // Simulate sync process
     setTimeout(() => {
       setIsSyncing(false);
@@ -219,16 +217,14 @@ const Settings: React.FC = () => {
         title: "Sync Complete",
         description: "Your data has been successfully synchronized",
       });
-      
       // Update last synced time
       syncForm.setValue('lastSynced', new Date().toISOString());
     }, 2000);
   };
-
+  
   // Format the last synced date
   const formatLastSynced = (dateString?: string) => {
     if (!dateString) return "Never";
-    
     try {
       const date = new Date(dateString);
       return date.toLocaleString();
@@ -236,17 +232,13 @@ const Settings: React.FC = () => {
       return "Unknown";
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-app-background">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <ElegantSectionHeader 
-            title="CONFIGURATION" 
-            className="mb-4"
-          />
-          
+          <ElegantSectionHeader title="CONFIGURATION" className="mb-4" />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
             <div>
               <h1 className="text-3xl font-light tracking-tight text-primary-text">
@@ -264,35 +256,35 @@ const Settings: React.FC = () => {
             <div className="border-b border-ios-border">
               <TabsList className="grid grid-cols-5 w-full bg-transparent">
                 <TabsTrigger 
-                  value="profile" 
+                  value="profile"
                   className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
                 >
                   <UserCircle className="h-4 w-4" />
                   <span className="hidden sm:inline">PROFILE</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="security" 
+                  value="security"
                   className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
                 >
                   <Shield className="h-4 w-4" />
                   <span className="hidden sm:inline">SECURITY</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="qr-codes" 
+                  value="qr-codes"
                   className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
                 >
                   <QrCode className="h-4 w-4" />
                   <span className="hidden sm:inline">QR CODES</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="notifications" 
+                  value="notifications"
                   className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
                 >
                   <Bell className="h-4 w-4" />
                   <span className="hidden sm:inline">ALERTS</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="sync" 
+                  value="sync"
                   className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
                 >
                   <Cloud className="h-4 w-4" />
@@ -321,7 +313,7 @@ const Settings: React.FC = () => {
                             <FormControl>
                               <Input 
                                 {...field} 
-                                readOnly 
+                                readOnly
                                 className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
                               />
                             </FormControl>
@@ -341,7 +333,7 @@ const Settings: React.FC = () => {
                             <FormControl>
                               <Input 
                                 {...field} 
-                                readOnly 
+                                readOnly
                                 className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
                               />
                             </FormControl>
@@ -358,7 +350,7 @@ const Settings: React.FC = () => {
                             <FormControl>
                               <Input 
                                 {...field} 
-                                readOnly 
+                                readOnly
                                 className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
                               />
                             </FormControl>
@@ -401,7 +393,7 @@ const Settings: React.FC = () => {
                       />
                       
                       <Button 
-                        type="submit" 
+                        type="submit"
                         className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none w-full flex items-center justify-center gap-2"
                       >
                         <Save className="h-4 w-4" />
@@ -410,43 +402,23 @@ const Settings: React.FC = () => {
                     </form>
                   </Form>
                 </CleanCard>
-
+                
                 <div className="flex flex-col gap-6">
                   <CleanCard>
                     <div className="mb-6">
-                      <ElegantSectionHeader title="DISPLAY" size="sm" />
-                      <p className="text-secondary-text mt-1">Appearance Settings</p>
+                      <ElegantSectionHeader title="DEVICE" size="sm" />
+                      <p className="text-secondary-text mt-1">Device Settings</p>
                     </div>
                     
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="text-sm font-medium text-primary-text">Theme</h4>
-                          <p className="text-xs text-secondary-text">Toggle between light and dark mode</p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={toggleTheme}
-                          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                          className="rounded-none border-ios-border h-8 w-8"
-                        >
-                          {theme === 'light' ? (
-                            <Moon className="h-4 w-4" />
-                          ) : (
-                            <Sun className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
                           <h4 className="text-sm font-medium text-primary-text">Device ID</h4>
                           <p className="text-xs text-secondary-text font-mono">DVC-{user?.id || "000000"}</p>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => {
                             toast({
                               title: "Device Reset",
@@ -461,7 +433,7 @@ const Settings: React.FC = () => {
                       </div>
                     </div>
                   </CleanCard>
-
+                  
                   <CleanCard>
                     <div className="mb-6">
                       <ElegantSectionHeader title="ACCOUNT" size="sm" />
@@ -469,8 +441,8 @@ const Settings: React.FC = () => {
                     </div>
                     
                     <div className="space-y-4">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full flex items-center justify-center gap-2 rounded-none border-ios-border text-primary-text hover:bg-gray-50"
                         onClick={() => {
                           toast({
@@ -484,8 +456,8 @@ const Settings: React.FC = () => {
                       </Button>
                       
                       <div className="pt-4 border-t border-ios-border">
-                        <Button 
-                          variant="destructive" 
+                        <Button
+                          variant="destructive"
                           className="w-full flex items-center justify-center gap-2 bg-ios-destructive hover:bg-destructive-dim rounded-none"
                           onClick={logout}
                         >
@@ -607,7 +579,7 @@ const Settings: React.FC = () => {
                     </div>
                     
                     <Button 
-                      type="submit" 
+                      type="submit"
                       className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
                     >
                       <Save className="h-4 w-4" />
@@ -745,7 +717,7 @@ const Settings: React.FC = () => {
                     </div>
                     
                     <Button 
-                      type="submit" 
+                      type="submit"
                       className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
                     >
                       <Save className="h-4 w-4" />
@@ -893,7 +865,7 @@ const Settings: React.FC = () => {
                     </div>
                     
                     <Button 
-                      type="submit" 
+                      type="submit"
                       className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
                     >
                       <Save className="h-4 w-4" />
@@ -917,7 +889,7 @@ const Settings: React.FC = () => {
                       <h4 className="text-sm font-medium text-primary-text">Manual Sync</h4>
                       <p className="text-xs text-secondary-text">Synchronize your data now</p>
                     </div>
-                    <Button 
+                    <Button
                       onClick={handleManualSync}
                       disabled={isSyncing}
                       className="bg-ios-accent hover:bg-accent-hover text-white rounded-none flex items-center gap-2"

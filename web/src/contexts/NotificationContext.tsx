@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // 1. Define the Notification Type (Based on plan)
 export interface Notification {
-  id: string; 
+  id: string;
   type: 'info' | 'warning' | 'critical' | 'success' | string; // Allow custom types too
   title: string;
   message: string;
@@ -58,8 +58,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notifications));
     } catch (error) {
-       console.error("Failed to save notifications to localStorage:", error);
-       // Consider implications: might lose notifications if storage is full
+      console.error("Failed to save notifications to localStorage:", error);
+      // Consider implications: might lose notifications if storage is full
     }
   }, [notifications]);
 
@@ -70,6 +70,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       timestamp: Date.now(),
       read: false,
     };
+
     // Add to the beginning of the list
     setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
   }, []);

@@ -16,7 +16,7 @@ interface AppShellProps {
 
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  const { sidebarCollapsed, toggleSidebar, toggleTheme, theme } = useApp();
+  const { sidebarCollapsed, toggleSidebar } = useApp();
   const isMobile = useIsMobile();
   const [location, navigate] = useLocation();
   
@@ -51,8 +51,8 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="border border-gray-800/70 dark:border-gray-100/70 px-4 py-1.5 mb-4">
-            <h1 className="text-lg font-light tracking-widest text-gray-800 dark:text-gray-100 m-0 font-['Georgia']">HandReceipt</h1>
+          <div className="border border-gray-800/70 px-4 py-1.5 mb-4">
+            <h1 className="text-lg font-light tracking-widest text-gray-800 m-0 font-['Georgia']">HandReceipt</h1>
           </div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
@@ -63,7 +63,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   if (!isAuthenticated) {
     // Render a simpler layout for unauthenticated pages (login)
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-50">
         <main className="flex-1">
           {children}
         </main>
@@ -72,11 +72,10 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: theme === 'dark' ? '#000000' : '#FAFAFA' }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#FAFAFA' }}>
       {/* Sidebar - hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar 
-          toggleTheme={toggleTheme}
           toggleSidebar={toggleSidebar}
           openNotificationPanel={openNotifications}
         />
@@ -90,7 +89,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
       />
       
       {/* Mobile header - visible only on mobile */}
-      <div className="md:hidden bg-white dark:bg-black p-4 border-b border-gray-200 dark:border-white/10 fixed top-0 left-0 right-0 z-10">
+      <div className="md:hidden bg-white p-4 border-b border-gray-200 fixed top-0 left-0 right-0 z-10">
         <div className="flex items-center justify-between">
           <div 
             className="flex items-center cursor-pointer hover:opacity-90 transition-opacity"
@@ -103,7 +102,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
             />
           </div>
           <button 
-            className="text-gray-800 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 p-2 transition-colors focus:outline-none"
+            className="text-gray-800 hover:text-purple-600 p-2 transition-colors focus:outline-none"
             onClick={toggleMobileMenu}
             aria-label="Open menu"
           >

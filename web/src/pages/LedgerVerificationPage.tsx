@@ -5,39 +5,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
-import {
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw,
-  TableIcon as TableIconLucide, // Alias to avoid naming conflict
+import { Loader2, AlertCircle, CheckCircle, RefreshCw, TableIcon as TableIconLucide, // Alias to avoid naming conflict
 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  SortingState,
-  getSortedRowModel,
-  ColumnFiltersState,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  PaginationState,
+import { ColumnDef, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, useReactTable, SortingState, getSortedRowModel, ColumnFiltersState, getFacetedRowModel, getFacetedUniqueValues, PaginationState,
 } from "@tanstack/react-table";
 import { format } from 'date-fns'; // For formatting timestamps
 
-// --- Ledger Status Indicator --- //
+// Type for verification status
 type VerificationStatus = 'idle' | 'loading' | 'verified' | 'failed' | 'error';
+
+// Interface for database verification result
 interface DbVerificationResult {
   is_verified: boolean;
   // Add other potential fields from the backend response if needed
@@ -51,8 +30,10 @@ const LedgerStatusIndicator: React.FC = () => {
   const fetchVerificationStatus = async () => {
     setStatus('loading');
     setError(null);
+    
     try {
       const { data } = await authedFetch<DbVerificationResult>('/api/verification/database');
+      
       if (data && typeof data.is_verified === 'boolean') {
         setStatus(data.is_verified ? 'verified' : 'failed');
       } else {
@@ -69,7 +50,7 @@ const LedgerStatusIndicator: React.FC = () => {
 
   useEffect(() => {
     fetchVerificationStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderStatus = () => {
@@ -83,9 +64,9 @@ const LedgerStatusIndicator: React.FC = () => {
         );
       case 'verified':
         return (
-          <Alert variant="default" className="flex items-center border-green-500 dark:border-green-700">
-            <CheckCircle className="h-5 w-5 mr-2 text-green-600 dark:text-green-500" />
-            <AlertDescription className="text-green-700 dark:text-green-400">Ledger database integrity verified successfully.</AlertDescription>
+          <Alert variant="default" className="flex items-center border-green-500">
+            <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+            <AlertDescription className="text-green-700">Ledger database integrity verified successfully.</AlertDescription>
           </Alert>
         );
       case 'failed':
@@ -125,7 +106,7 @@ const LedgerStatusIndicator: React.FC = () => {
   );
 };
 
-// --- Ledger History Explorer --- //
+// --- Ledger History Explorer ---
 
 // Define the expected structure for general ledger events
 // NOTE: This is a hypothetical structure. The backend endpoint /api/ledger/history needs to be implemented to return this.
@@ -143,44 +124,23 @@ interface GeneralLedgerEvent {
 
 // Define columns for the GeneralLedgerEvent table
 const columns: ColumnDef<GeneralLedgerEvent>[] = [
-  {
-    accessorKey: "timestamp",
-    header: "Timestamp",
-    cell: ({ row }) => {
-      try {
-        const date = new Date(row.getValue("timestamp"));
-        return format(date, "yyyy-MM-dd HH:mm:ss");
-      } catch (e) {
-        return "Invalid Date";
-      }
-    },
-  },
-  {
-    accessorKey: "eventType",
-    header: "Event Type",
-  },
-  {
-    accessorKey: "eventId",
-    header: "Event ID",
-    cell: ({ row }) => <span className="font-mono text-xs">{row.getValue("eventId")}</span>,
-  },
-  {
-    accessorKey: "userId",
-    header: "User ID",
-  },
-  {
-    accessorKey: "itemId",
-    header: "Item ID",
-  },
-  {
-    accessorKey: "details",
-    header: "Details",
-    cell: ({ row }) => (
-      <pre className="text-xs bg-muted p-1 rounded overflow-x-auto">
-        {JSON.stringify(row.getValue("details"), null, 2)}
-      </pre>
-    ),
-  },
+  { accessorKey: "timestamp", header: "Timestamp", cell: ({ row }) => {
+    try {
+      const date = new Date(row.getValue("timestamp"));
+      return format(date, "yyyy-MM-dd HH:mm:ss");
+    } catch (e) {
+      return "Invalid Date";
+    }
+  }, },
+  { accessorKey: "eventType", header: "Event Type", },
+  { accessorKey: "eventId", header: "Event ID", cell: ({ row }) => <span className="font-mono text-xs">{row.getValue("eventId")}</span>, },
+  { accessorKey: "userId", header: "User ID", },
+  { accessorKey: "itemId", header: "Item ID", },
+  { accessorKey: "details", header: "Details", cell: ({ row }) => (
+    <pre className="text-xs bg-muted p-1 rounded overflow-x-auto">
+      {JSON.stringify(row.getValue("details"), null, 2)}
+    </pre>
+  ), },
 ];
 
 const LedgerHistoryExplorer: React.FC = () => {
@@ -188,12 +148,9 @@ const LedgerHistoryExplorer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { authedFetch } = useAuth();
-
   // State for table features
   const [globalFilter, setGlobalFilter] = useState('');
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10, // Default page size
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10, // Default page size
   });
 
   useEffect(() => {
@@ -201,11 +158,7 @@ const LedgerHistoryExplorer: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // ***** IMPORTANT *****
-        // This endpoint `/api/ledger/history` needs to be implemented on the backend
-        // to return data matching the `GeneralLedgerEvent` interface.
-        // Currently, this will likely fail or return unexpected data.
-        // *********************
+        // ***** IMPORTANT ***** // This endpoint `/api/ledger/history` needs to be implemented on the backend // to return data matching the `GeneralLedgerEvent` interface. // Currently, this will likely fail or return unexpected data. // *********************
         const { data: fetchedData } = await authedFetch<GeneralLedgerEvent[]>('/api/ledger/history');
         setData(fetchedData || []);
       } catch (err: any) {
@@ -217,7 +170,7 @@ const LedgerHistoryExplorer: React.FC = () => {
       }
     };
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const table = useReactTable({
@@ -238,8 +191,7 @@ const LedgerHistoryExplorer: React.FC = () => {
     // getFacetedRowModel: getFacetedRowModel(), // Add if implementing faceted filters
     // getFacetedUniqueValues: getFacetedUniqueValues(), // Add if implementing faceted filters
     // debugTable: true, // Uncomment for debugging
-    // debugHeaders: true,
-    // debugColumns: true,
+    // debugHeaders: true, // debugColumns: true,
   });
 
   if (isLoading) {
@@ -250,22 +202,14 @@ const LedgerHistoryExplorer: React.FC = () => {
       </div>
     );
   }
-
   // Keep error display even if table is technically usable with empty data
   // if (error) { ... }
-
   return (
     <div className="space-y-4">
       {/* Filtering Input */}
       <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter all columns..."
-          value={globalFilter ?? ''}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm"
-        />
+        <Input placeholder="Filter all columns..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)} className="max-w-sm" />
       </div>
-
       {/* Error Display (if any) */}
       {error && (
         <Alert variant="destructive">
@@ -274,7 +218,6 @@ const LedgerHistoryExplorer: React.FC = () => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
       {/* Table */}
       <div className="border rounded-md">
         <Table>
@@ -283,12 +226,10 @@ const LedgerHistoryExplorer: React.FC = () => {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                    {header.isPlaceholder ? null : flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -297,10 +238,7 @@ const LedgerHistoryExplorer: React.FC = () => {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -318,64 +256,51 @@ const LedgerHistoryExplorer: React.FC = () => {
           </TableBody>
         </Table>
       </div>
-
       {/* Pagination Controls */}
       <div className="flex items-center justify-end space-x-2 py-4">
-         <span className="text-sm text-muted-foreground">
-            Page{" "}
-            {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
+        <span className="text-sm text-muted-foreground">
+          Page{""} {table.getState().pagination.pageIndex + 1} of{""} {table.getPageCount()}
+        </span>
+        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
           Previous
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
+        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
           Next
         </Button>
-         {/* Optional: Page size selector */}
-         {/* <Select onValueChange={(value) => table.setPageSize(Number(value))} defaultValue={table.getState().pagination.pageSize.toString()}> ... </Select> */}
+        {/* Optional: Page size selector */}
+        {/* <Select onValueChange={(value) => table.setPageSize(Number(value))} defaultValue={table.getState().pagination.pageSize.toString()}> ... </Select> */}
       </div>
     </div>
   );
 };
 
-// --- Main Page Component --- //
 const LedgerVerificationPage: React.FC = () => {
   return (
-    <StandardPageLayout title="Ledger Verification">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Overall Ledger Status</CardTitle>
-          </CardHeader>
-          <CardContent>
+    <div className="container mx-auto p-6">
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Ledger Verification</h1>
+          <p className="text-muted-foreground">
+            Verify the integrity of the blockchain ledger and view audit history.
+          </p>
+        </div>
+
+        <div className="grid gap-6">
+          <div className="bg-card rounded-lg border p-6">
+            <h2 className="text-xl font-semibold mb-4">Database Integrity Status</h2>
             <LedgerStatusIndicator />
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Ledger History</CardTitle>
-            {/* TODO: Add controls for selecting history type (general vs correction) */}
-          </CardHeader>
-          <CardContent>
-            <LedgerHistoryExplorer />
-          </CardContent>
-        </Card>
-
-        {/* TODO: Add section for initiating database-wide verification? */}
+          <div className="bg-card rounded-lg border p-6">
+            <h2 className="text-xl font-semibold mb-4">Ledger History</h2>
+            <p className="text-muted-foreground">
+              Ledger history functionality is currently under development.
+              This will display a comprehensive audit trail of all blockchain transactions.
+            </p>
+          </div>
+        </div>
       </div>
-    </StandardPageLayout>
+    </div>
   );
 };
 

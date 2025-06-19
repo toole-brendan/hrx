@@ -1,34 +1,14 @@
-import { useState, useMemo } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PageWrapper } from "@/components/ui/page-wrapper";
-import { PageHeader } from "@/components/ui/page-header";
-import { MoreHorizontal, PlusCircle, Search, UserCog } from "lucide-react";
+import React, { useState, useMemo } from 'react';
+import { Search, PlusCircle, MoreHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+// Layout components not available, using div wrapper
 
-// Mock User Data Interface
 interface User {
   id: string;
   name: string;
@@ -38,7 +18,6 @@ interface User {
   lastLogin: string;
 }
 
-// Mock user data
 const mockUsers: User[] = [
   { id: 'usr_1', name: 'Smith, John', rank: 'SFC', role: 'Supply Sergeant', status: 'Active', lastLogin: '2024-07-22 08:15' },
   { id: 'usr_2', name: 'Doe, Jane', rank: 'CPT', role: 'Commander', status: 'Active', lastLogin: '2024-07-23 10:00' },
@@ -58,7 +37,7 @@ const UserManagement: React.FC = () => {
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            user.rank.toLowerCase().includes(searchTerm.toLowerCase());
+                           user.rank.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
       const matchesStatus = statusFilter === "all" || user.status === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
@@ -67,39 +46,40 @@ const UserManagement: React.FC = () => {
 
   const getStatusBadgeVariant = (status: User['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'Active': return 'default'; // Using 'default' for green-like active status
-      case 'Inactive': return 'secondary'; // Using 'secondary' for gray-like inactive status
-      case 'Pending': return 'outline'; // Using 'outline' for yellow-like pending status
+      case 'Active': return 'default';
+      case 'Inactive': return 'secondary';
+      case 'Pending': return 'outline';
       default: return 'secondary';
     }
   };
-  
-   const getRoleBadgeVariant = (role: User['role']): "default" | "secondary" | "destructive" | "outline" => {
+
+  const getRoleBadgeVariant = (role: User['role']): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
-      case 'Admin': return 'destructive'; // Example: Admin gets a distinct variant
-      case 'Commander': return 'default'; // Example: Commander gets default
-      case 'Supply Sergeant': return 'secondary'; // Example: Supply Sergeant gets secondary
-      default: return 'outline'; // Other roles get outline
+      case 'Admin': return 'destructive';
+      case 'Commander': return 'default';
+      case 'Supply Sergeant': return 'secondary';
+      default: return 'outline';
     }
   };
 
-
-  // Action buttons for the page header
   const actions = (
     <Button>
-      <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+      <PlusCircle className="mr-2 h-4 w-4" />
+      Add New User
     </Button>
   );
 
   return (
-    <PageWrapper withPadding={true}>
-      <PageHeader
-        title="User Management"
-        description="Administer user accounts, roles, and permissions"
-        actions={actions}
-        className="mb-4 sm:mb-5 md:mb-6"
-      />
-
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h1 className="text-3xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">Administer user accounts, roles, and permissions</p>
+          </div>
+          {actions}
+        </div>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>User Directory</CardTitle>
@@ -195,7 +175,7 @@ const UserManagement: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
-    </PageWrapper>
+    </div>
   );
 };
 

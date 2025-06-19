@@ -1,10 +1,4 @@
-import { 
-  savePropertysToDB, 
-  saveConsumablesToDB, 
-  addConsumptionHistoryEntryToDB, 
-  getConsumablesFromDB,
-  getPropertysFromDB
-} from "./idb";
+import { getAllProperties, addProperty, getAllConsumables, addConsumable, addConsumptionHistory } from "./idb";
 import { inventory } from "./mockData";
 import { consumables, consumptionHistory } from "./consumablesData";
 
@@ -14,24 +8,28 @@ import { consumables, consumptionHistory } from "./consumablesData";
 export async function seedDatabase() {
   try {
     // Check if inventory data already exists
-    const existingItems = await getPropertysFromDB();
+    const existingItems = await getAllProperties();
     if (existingItems.length === 0) {
       console.log("Seeding inventory data...");
-      await savePropertysToDB(inventory);
+      for (const item of inventory) {
+        await addProperty(item);
+      }
     } else {
       console.log("Inventory data already exists, skipping seeding.");
     }
 
     // Check if consumables data already exists
-    const existingConsumables = await getConsumablesFromDB();
+    const existingConsumables = await getAllConsumables();
     if (existingConsumables.length === 0) {
       console.log("Seeding consumables data...");
-      await saveConsumablesToDB(consumables);
+      for (const item of consumables) {
+        await addConsumable(item);
+      }
       
       // Seed consumption history entries
       console.log("Seeding consumption history data...");
       for (const entry of consumptionHistory) {
-        await addConsumptionHistoryEntryToDB(entry);
+        await addConsumptionHistory(entry);
       }
     } else {
       console.log("Consumables data already exists, skipping seeding.");

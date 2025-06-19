@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext'; // Updated interface to match Go backend domain.CorrectionEvent model
 
-// Updated interface to match Go backend domain.CorrectionEvent model
 interface CorrectionEvent {
-  eventId: string;            // Mapped from EventID
-  originalEventId: string;    // Mapped from OriginalEventID
-  originalEventType: string;  // Mapped from OriginalEventType
+  eventId: string; // Mapped from EventID
+  originalEventId: string; // Mapped from OriginalEventID
+  originalEventType: string; // Mapped from OriginalEventType
   reason: string;
-  correctingUserId: number;   // Mapped from CorrectingUserID (uint64 -> number)
+  correctingUserId: number; // Mapped from CorrectingUserID (uint64 -> number)
   correctionTimestamp: string; // Mapped from CorrectionTimestamp (time.Time -> string)
   // Optional ledger metadata - adjust based on actual API response inclusion
   ledgerTransactionId?: number;
@@ -23,12 +22,14 @@ const CorrectionLogPage: React.FC = () => {
   useEffect(() => {
     const fetchCorrectionEvents = async () => {
       if (isAuthLoading) return;
-
       setIsLoading(true);
       setError(null);
+      
       try {
         // Use the confirmed endpoint /api/corrections
-        const { data } = await authedFetch<CorrectionEvent[]>('/api/corrections', { method: 'GET' });
+        const { data } = await authedFetch<CorrectionEvent[]>('/api/corrections', {
+          method: 'GET'
+        });
         setCorrectionEvents(data || []);
       } catch (err: any) {
         console.error("Error fetching correction events:", err);
@@ -53,25 +54,25 @@ const CorrectionLogPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Correction Log</h1>
-
+      
       {isLoading && (
         <div className="text-center">
           <p>Loading correction events...</p>
           {/* TODO: Add a spinner component */}
         </div>
       )}
-
+      
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
           <strong className="font-bold">Error:</strong>
           <span className="block sm:inline"> {error}</span>
         </div>
       )}
-
+      
       {!isLoading && !error && correctionEvents.length === 0 && (
         <p>No correction events found.</p>
       )}
-
+      
       {!isLoading && !error && correctionEvents.length > 0 && (
         <div className="overflow-x-auto shadow-md sm:rounded-lg">
           <table className="min-w-full bg-white border border-gray-200 text-sm">

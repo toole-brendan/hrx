@@ -1,9 +1,6 @@
 import { queryClient } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/queryClient';
 
-// Sync interval in milliseconds (5 minutes)
-const SYNC_INTERVAL = 5 * 60 * 1000;
-
+const SYNC_INTERVAL = 30000; // 30 seconds
 let syncIntervalId: NodeJS.Timeout | null = null;
 
 /**
@@ -29,10 +26,17 @@ export async function syncProperties(): Promise<void> {
  */
 export async function checkSerialExists(serialNumber: string): Promise<boolean> {
   try {
-    const response = await apiRequest(
-      'GET',
-      `/api/property/check-serial?serial=${encodeURIComponent(serialNumber)}`
+    const response = await fetch(
+      `/api/property/check-serial?serial=${encodeURIComponent(serialNumber)}`,
+      {
+        method: 'GET',
+        credentials: 'include'
+      }
     );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
     const data = await response.json();
     return data.exists || false;
@@ -57,7 +61,6 @@ export function startPeriodicSync(): void {
   
   // Set up periodic sync
   syncIntervalId = setInterval(syncProperties, SYNC_INTERVAL);
-  
   console.log(`Periodic sync started with ${SYNC_INTERVAL / 1000}s interval`);
 }
 
@@ -80,7 +83,6 @@ export function setupConnectivityListeners(): () => void {
     console.log('Network reconnected, triggering sync...');
     syncProperties();
   };
-  
   const handleOffline = () => {
     console.log('Network disconnected');
   };
