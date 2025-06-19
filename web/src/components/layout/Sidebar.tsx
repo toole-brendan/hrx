@@ -9,19 +9,19 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import {
   Home,
   Package,
-  Send,
+  ArrowLeftRight,
   ClipboardList,
   Settings,
   BarChart3,
   Menu,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
+  Globe,
   Shield,
-  Wrench,
-  User,
+  Wifi,
+  UserCircle,
   Bell,
-  FileText,
+  Inbox,
 } from "lucide-react";
 import { useUnreadDocumentCount } from "@/hooks/useDocuments";
 
@@ -83,6 +83,16 @@ const Sidebar = ({
     }
   };
 
+  // Helper function to get user initials
+  const getUserInitials = () => {
+    if (!user) return "?";
+    
+    const firstInitial = user.firstName?.charAt(0).toUpperCase() || "";
+    const lastInitial = user.lastName?.charAt(0).toUpperCase() || "";
+    
+    return firstInitial + lastInitial || "U";
+  };
+
   interface NavItem {
     path: string;
     icon: React.ReactNode;
@@ -94,17 +104,17 @@ const Sidebar = ({
   // Updated nav items without QR Management
   const navItems: NavItem[] = [
     { path: "/dashboard", icon: <Home className="sidebar-item-icon" />, label: "Dashboard" },
-    { path: "/property-book", icon: <BookOpen className="sidebar-item-icon" />, label: "Property Book" },
+    { path: "/property-book", icon: <Package className="sidebar-item-icon" />, label: "Property Book" },
     { path: "/sensitive-items", icon: <Shield className="sidebar-item-icon" />, label: "Sensitive Items" },
     { 
       path: "/transfers", 
-      icon: <Send className="sidebar-item-icon" />, 
+      icon: <ArrowLeftRight className="sidebar-item-icon" />, 
       label: "Transfers"
     },
-    { path: "/maintenance", icon: <Wrench className="sidebar-item-icon" />, label: "Maintenance" },
+    { path: "/network", icon: <Globe className="sidebar-item-icon" />, label: "Network" },
     { 
       path: "/documents", 
-      icon: <FileText className="sidebar-item-icon" />, 
+      icon: <Inbox className="sidebar-item-icon" />, 
       label: "Documents",
       notificationCount: unreadDocumentCount > 0 ? unreadDocumentCount : undefined
     }
@@ -119,7 +129,7 @@ const Sidebar = ({
   
   const profileAction = {
     path: "/profile", 
-    icon: <User className="sidebar-item-icon" />,
+    icon: <UserCircle className="sidebar-item-icon" />,
     label: "Profile"
   };
 
@@ -151,23 +161,22 @@ const Sidebar = ({
         </div>
         
         {/* User Profile section with proper vertical centering */}
-        <div className="flex items-center min-h-[80px]"> {/* Fixed height container with flexbox centering */}
+        <div className="flex items-center min-h-[60px]"> {/* Fixed height container with flexbox centering */}
           {!sidebarCollapsed ? (
             <div className="flex items-center cursor-pointer px-4 w-full">
               <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium mr-3 shadow-sm">
-                M
+                {getUserInitials()}
               </div>
               <div>
                 <p className="text-sm font-medium tracking-wider text-gray-900">
                   {user?.rank} {user?.lastName}
                 </p>
-                <p className="text-xs tracking-wide text-gray-600">Company Commander</p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center w-full">
               <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium cursor-pointer shadow-sm">
-                M
+                {getUserInitials()}
               </div>
             </div>
           )}
@@ -251,7 +260,7 @@ const Sidebar = ({
               className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
               onClick={() => handleLinkClick()}
             >
-              <User className="sidebar-item-icon" />
+              <UserCircle className="sidebar-item-icon" />
               <span>Profile</span>
             </div>
           </Link>
@@ -294,23 +303,22 @@ const Sidebar = ({
       </div>
       
       {/* User Profile section with proper vertical centering */}
-      <div className="flex items-center min-h-[80px]"> {/* Fixed height container with flexbox centering */}
+      <div className="flex items-center min-h-[60px]"> {/* Fixed height container with flexbox centering */}
         {!sidebarCollapsed ? (
           <div className="flex items-center cursor-pointer px-4 w-full">
             <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium mr-3 shadow-sm">
-              M
+              {getUserInitials()}
             </div>
             <div>
               <p className="text-sm font-medium tracking-wider text-gray-900">
                 {user?.rank} {user?.lastName}
               </p>
-              <p className="text-xs tracking-wide text-gray-600">Company Commander</p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center w-full">
             <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium cursor-pointer shadow-sm">
-              M
+              {getUserInitials()}
             </div>
           </div>
         )}
@@ -402,7 +410,7 @@ const Sidebar = ({
                 className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
                 onClick={() => handleLinkClick()}
               >
-                <User className="sidebar-item-icon" />
+                <UserCircle className="sidebar-item-icon" />
                 {!sidebarCollapsed && <span className="text-nav-item">Profile</span>}
               </div>
             </Link>

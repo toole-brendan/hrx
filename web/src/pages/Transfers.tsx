@@ -1,106 +1,28 @@
 import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
-// import { useParams } from 'react-router-dom'; // Removed import as it's not installed/used
 import { Transfer } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { recordToBlockchain, isBlockchainEnabled } from "@/lib/blockchain";
 import { sensitiveItems } from "@/lib/sensitiveItemsData";
-import BlockchainLedger from "@/components/blockchain/BlockchainLedger";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import StatusBadge from "@/components/common/StatusBadge"; // Ensure this path is correct
 import { useToast } from "@/hooks/use-toast";
-import { PageWrapper } from "@/components/ui/page-wrapper";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Filter,
-  CheckCircle,
-  XCircle,
-  ScanLine,
-  Clock,
-  FileText,
-  Send,
   Search,
   Plus,
-  ChevronDown,
-  RefreshCw,
-  Calendar,
-  ArrowUpDown,
-  ArrowUp, // Added for sort indicator
-  ArrowDown, // Added for sort indicator
-  AlignLeft,
-  Fingerprint,
-  Share2,
-  MoreVertical,
-  History,
-  Inbox,
-  ExternalLink,
-  AlertCircle,
-  CornerDownLeft,
-  Award,
-  Printer,
-  Loader2, // For loading state
-  BookOpen // For Property Book link
+  ArrowRight,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Import the extracted components
 import {
-  TransferListHeader,
-  TransferRow,
-  EmptyState,
   TransferDetailsModal,
-  NewTransferDialog,
-  TransferConfirmationDialog
+  NewTransferDialog
 } from '@/components/transfers';
+import TransferConfirmationDialog from '@/components/transfers/TransferConfirmationDialog';
 
 // Import the transfer service
 import {
@@ -113,27 +35,18 @@ import {
 import {
   CleanCard,
   ElegantSectionHeader,
-  StatusBadge as IOSStatusBadge,
   MinimalEmptyState,
   MinimalLoadingView
 } from "@/components/ios";
 
-// --- State Management with useReducer (Modified) ---
-type SortField = 'date' | 'name' | 'from' | 'to';
-type SortOrder = 'asc' | 'desc';
+// --- State Management with useReducer ---
 type TransferView = 'incoming' | 'outgoing' | 'history';
 type TransferStatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
-
-interface SortConfig {
-  field: SortField;
-  order: SortOrder;
-}
 
 interface TransfersState {
   searchTerm: string;
   filterStatus: TransferStatusFilter;
   activeView: TransferView;
-  sortConfig: SortConfig;
   showNewTransfer: boolean;
   showTransferDetails: Transfer | null;
   transferToConfirm: { id: string; action: 'approve' | 'reject' } | null;
@@ -143,7 +56,6 @@ type TransfersAction =
   | { type: 'SET_SEARCH_TERM'; payload: string }
   | { type: 'SET_FILTER_STATUS'; payload: TransferStatusFilter }
   | { type: 'SET_ACTIVE_VIEW'; payload: TransferView }
-  | { type: 'SET_SORT_CONFIG'; payload: SortField }
   | { type: 'TOGGLE_NEW_TRANSFER'; payload: boolean }
   | { type: 'SHOW_DETAILS'; payload: Transfer | null }
   | { type: 'CONFIRM_ACTION'; payload: { id: string; action: 'approve' | 'reject' } | null }
@@ -153,7 +65,6 @@ const initialState: TransfersState = {
   searchTerm: "",
   filterStatus: "all",
   activeView: 'incoming',
-  sortConfig: { field: 'date', order: 'desc' },
   showNewTransfer: false,
   showTransferDetails: null,
   transferToConfirm: null,
@@ -167,9 +78,6 @@ function transfersReducer(state: TransfersState, action: TransfersAction): Trans
       return { ...state, filterStatus: action.payload };
     case 'SET_ACTIVE_VIEW':
       return { ...state, activeView: action.payload, searchTerm: '', filterStatus: 'all' };
-    case 'SET_SORT_CONFIG':
-      const newOrder = state.sortConfig.field === action.payload && state.sortConfig.order === 'asc' ? 'desc' : 'asc';
-      return { ...state, sortConfig: { field: action.payload, order: newOrder } };
     case 'TOGGLE_NEW_TRANSFER':
       return { ...state, showNewTransfer: action.payload };
     case 'SHOW_DETAILS':
@@ -181,29 +89,198 @@ function transfersReducer(state: TransfersState, action: TransfersAction): Trans
         ...state,
         searchTerm: "",
         filterStatus: "all",
-        sortConfig: { field: 'date', order: 'desc' },
       };
     default:
       return state;
   }
 }
 
+// Tab Button Component (iOS style)
+interface TabButtonProps {
+  title: string;
+  isSelected: boolean;
+  onClick: () => void;
+  badge?: number;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({ title, isSelected, onClick, badge }) => (
+  <button
+    onClick={onClick}
+    className="relative pb-4 transition-all duration-200"
+  >
+    <div className="flex items-center space-x-2">
+      <span 
+        className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
+          isSelected ? 'text-ios-accent' : 'text-tertiary-text'
+        }`}
+      >
+        {title}
+      </span>
+      {badge !== undefined && badge > 0 && (
+        <span className="bg-ios-destructive text-white text-[11px] font-medium px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+          {badge}
+        </span>
+      )}
+    </div>
+    <div 
+      className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200 ${
+        isSelected ? 'bg-ios-accent' : 'bg-transparent'
+      }`}
+    />
+  </button>
+);
+
+// Elegant Transfer Card Component (iOS style)
+interface ElegantTransferCardProps {
+  transfer: Transfer;
+  isIncoming: boolean;
+  onTap: () => void;
+  onQuickApprove: () => void;
+  onQuickReject: () => void;
+  isLoadingApprove?: boolean;
+  isLoadingReject?: boolean;
+}
+
+const ElegantTransferCard: React.FC<ElegantTransferCardProps> = ({
+  transfer,
+  isIncoming,
+  onTap,
+  onQuickApprove,
+  onQuickReject,
+  isLoadingApprove = false,
+  isLoadingReject = false
+}) => {
+  const [isPressed, setIsPressed] = useState(false);
+
+  const statusColor = {
+    pending: 'text-ios-warning',
+    approved: 'text-ios-success',
+    rejected: 'text-ios-destructive'
+  }[transfer.status] || 'text-secondary-text';
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = parseISO(dateString);
+      return format(date, 'dd MMM HH:mm').toUpperCase();
+    } catch {
+      return 'UNKNOWN DATE';
+    }
+  };
+
+  return (
+    <div
+      className={`transition-transform duration-150 ${isPressed ? 'scale-[0.98]' : 'scale-100'}`}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onMouseLeave={() => setIsPressed(false)}
+    >
+      <CleanCard 
+        className="cursor-pointer hover:shadow-md transition-shadow duration-200 overflow-hidden"
+        onClick={onTap}
+        padding="none"
+      >
+        <div className="p-6">
+          <div className="space-y-5">
+            {/* Property header with serif font */}
+            <div>
+              <h3 className="text-lg font-medium text-primary-text" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+                {transfer.name || 'Unknown Item'}
+              </h3>
+              <p className="text-sm text-secondary-text mt-1 font-mono">
+                SN: {transfer.serialNumber || 'Unknown'}
+              </p>
+            </div>
+
+            {/* Transfer participants */}
+            <div className="flex items-center space-x-8">
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide text-tertiary-text mb-1">FROM</p>
+                <p className="text-sm font-medium text-primary-text">{transfer.from}</p>
+              </div>
+              
+              <ArrowRight className="h-4 w-4 text-tertiary-text flex-shrink-0" />
+              
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide text-tertiary-text mb-1">TO</p>
+                <p className="text-sm font-medium text-primary-text">{transfer.to}</p>
+              </div>
+            </div>
+
+            {/* Status and timestamp */}
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-medium uppercase tracking-wider ${statusColor}`}>
+                {transfer.status}
+              </span>
+              <span className="text-xs text-tertiary-text font-mono">
+                {formatDate(transfer.date)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick actions for pending incoming transfers */}
+        {isIncoming && transfer.status === 'pending' && (
+          <div className="border-t border-ios-border bg-gray-50/50">
+            <div className="flex divide-x divide-ios-border">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickReject();
+                }}
+                disabled={isLoadingReject}
+                className="flex-1 flex items-center justify-center space-x-2 py-3 text-ios-destructive hover:bg-gray-100 transition-colors duration-150 disabled:opacity-50"
+              >
+                {isLoadingReject ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Reject</span>
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickApprove();
+                }}
+                disabled={isLoadingApprove}
+                className="flex-1 flex items-center justify-center space-x-2 py-3 text-ios-success hover:bg-gray-100 transition-colors duration-150 disabled:opacity-50"
+              >
+                {isLoadingApprove ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Approve</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </CleanCard>
+    </div>
+  );
+};
+
 // --- Component Definition ---
 interface TransfersProps {
-  id?: string; // Add this for route params like /transfers/:id
+  id?: string;
 }
 
 const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient(); // Get query client
+  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(transfersReducer, initialState);
-  const { searchTerm, filterStatus, activeView, sortConfig, showNewTransfer, showTransferDetails, transferToConfirm } = state;
+  const { searchTerm, filterStatus, activeView, showNewTransfer, showTransferDetails, transferToConfirm } = state;
 
   // Fetch transfers using useQuery
   const {
-    data: transfers = [], // Default to empty array
-    isLoading: isLoadingTransfers, // Rename to avoid conflict
+    data: transfers = [],
+    isLoading: isLoadingTransfers,
     error: transfersError
   } = useQuery<Transfer[], Error>({
     queryKey: ['transfers'],
@@ -234,13 +311,12 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     mutationFn: updateTransferStatus,
     onSuccess: (updatedTransfer) => {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
-      dispatch({ type: 'CONFIRM_ACTION', payload: null }); // Close confirmation dialog
+      dispatch({ type: 'CONFIRM_ACTION', payload: null });
       toast({
         title: `Transfer ${updatedTransfer.status === 'approved' ? 'Approved' : 'Rejected'}`,
         description: `Transfer of ${updatedTransfer.name} ${updatedTransfer.status}.`,
         variant: updatedTransfer.status === 'rejected' ? "destructive" : "default"
       });
-      // Blockchain logic (can be moved here or called after success)
       handleBlockchainRecord(updatedTransfer);
     },
     onError: (error, variables) => {
@@ -249,7 +325,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         description: `Failed to ${variables.status} transfer: ${error.message}`,
         variant: "destructive"
       });
-      dispatch({ type: 'CONFIRM_ACTION', payload: null }); // Close confirmation dialog on error too
+      dispatch({ type: 'CONFIRM_ACTION', payload: null });
     }
   });
 
@@ -257,7 +333,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const handleBlockchainRecord = (transfer: Transfer) => {
     if (!user) {
       console.error("User not found for blockchain recording.");
-      return; // Cannot record without user info
+      return;
     }
 
     const sensitiveItem = sensitiveItems.find(item => item.serialNumber === transfer.serialNumber);
@@ -276,23 +352,21 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
             user.name || currentUser || 'Unknown User'
           );
           console.log(`Blockchain record created: ${blockchainRecord.txId}`);
-          // Optional: Add blockchain TX to toast?
         }
       } catch (error) {
         console.error("Failed to record transfer to blockchain:", error);
-        // Don't block UI, maybe log error to monitoring service
       }
     }
   };
 
-  // Use the actual authenticated user instead of mock data
+  // Use the actual authenticated user
   const currentUser = user?.name || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || 'Unknown User';
 
   // Update useEffect to use query data
   useEffect(() => {
-    if (id && !isLoadingTransfers && transfers.length > 0) { // Check query loading state and data
+    if (id && !isLoadingTransfers && transfers.length > 0) {
       const transfer = transfers.find(t => t.id === id);
-      if (transfer && !showTransferDetails) { // Avoid dispatching if already showing
+      if (transfer && !showTransferDetails) {
         dispatch({ type: 'SHOW_DETAILS', payload: transfer });
       }
     }
@@ -300,33 +374,25 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
 
   // --- Update Transfer Actions to use Mutations ---
   const handleApprove = (id: string) => {
-    // No longer need START_LOADING/STOP_LOADING dispatch
-    // Dispatch action only shows confirmation dialog
     if (transferToConfirm?.id === id && transferToConfirm?.action === 'approve') {
       updateStatusMutation.mutate({ id, status: 'approved' });
-      // Logic moved to onSuccess/handleBlockchainRecord
     }
   };
 
   const handleReject = (id: string, reason: string = "Rejected by recipient") => {
-    // No longer need START_LOADING/STOP_LOADING dispatch
     if (transferToConfirm?.id === id && transferToConfirm?.action === 'reject') {
       updateStatusMutation.mutate({ id, status: 'rejected', notes: reason });
-      // Logic moved to onSuccess
     }
   };
 
   const handleCreateTransfer = (data: { itemName: string; serialNumber: string; to: string }) => {
-    // No longer need START_LOADING/STOP_LOADING dispatch
     const newTransferData = {
       name: data.itemName,
       serialNumber: data.serialNumber,
-      from: currentUser, // Assuming currentUser is correct
+      from: currentUser,
       to: data.to,
-      // id, date, status will be set by backend/DB
     };
-    createTransferMutation.mutate(newTransferData as any); // Assert type or adjust Omit
-    // Logic moved to onSuccess
+    createTransferMutation.mutate(newTransferData as any);
   };
 
   // --- Filtering and Sorting Logic (Memoized) ---
@@ -337,7 +403,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         (activeView === 'outgoing' && transfer.from === currentUser) ||
         (activeView === 'history' && (transfer.to === currentUser || transfer.from === currentUser));
 
-      const matchesSearch = !searchTerm || // Return true if searchTerm is empty
+      const matchesSearch = !searchTerm ||
         transfer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transfer.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transfer.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -349,23 +415,14 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     });
   }, [transfers, activeView, currentUser, searchTerm, filterStatus]);
 
+  // Sort transfers by date (newest first)
   const sortedTransfers = useMemo(() => {
     return [...filteredTransfers].sort((a, b) => {
-      let comparison = 0;
-      const fieldA = a[sortConfig.field];
-      const fieldB = b[sortConfig.field];
-
-      if (sortConfig.field === 'date') {
-        // Compare ISO date strings directly
-        comparison = (fieldA && fieldB) ? fieldA.localeCompare(fieldB) : 0;
-      } else if (typeof fieldA === 'string' && typeof fieldB === 'string') {
-        comparison = fieldA.localeCompare(fieldB);
-      }
-      // Add more specific comparisons if needed (e.g., numbers)
-
-      return sortConfig.order === 'asc' ? comparison : -comparison;
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
     });
-  }, [filteredTransfers, sortConfig]);
+  }, [filteredTransfers]);
 
   // --- Derived State ---
   const incomingPendingCount = useMemo(() => {
@@ -373,43 +430,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       transfer => transfer.to === currentUser && transfer.status === "pending"
     ).length;
   }, [transfers, currentUser]);
-
-  // --- Event Handlers ---
-  const handleSort = (field: SortField) => {
-    dispatch({ type: 'SET_SORT_CONFIG', payload: field });
-  };
-
-  const handleResetFilters = () => {
-    dispatch({ type: 'RESET_FILTERS' });
-  };
-
-  const handleExportTransfer = (id: string) => {
-    const transfer = transfers.find(t => t.id === id);
-    toast({
-      title: "Exporting Transfer",
-      description: `Preparing PDF for ${transfer?.name || 'item'}...`
-    });
-    setTimeout(() => {
-      toast({
-        title: "Export Complete (Demo)",
-        description: `Transfer document for ${transfer?.name || 'item'} exported.`
-      });
-    }, 1500);
-  };
-
-  // --- Initial Notification Effect ---
-  useEffect(() => {
-    if (incomingPendingCount > 0) {
-      const timer = setTimeout(() => {
-        toast({
-          title: `${incomingPendingCount} Pending Incoming Transfer${incomingPendingCount > 1 ? 's' : ''}`,
-          description: `You have ${incomingPendingCount} transfer request${incomingPendingCount > 1 ? 's' : ''} waiting for review.`,
-          variant: "default",
-        });
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [incomingPendingCount, toast]); // Dependency on toast ensures it's stable
 
   // --- UI Helper Functions ---
   const getPageDescription = useCallback(() => {
@@ -419,169 +439,146 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       case 'outgoing':
         return "Track transfer requests you've initiated";
       case 'history':
-        return "View your complete transfer history (incoming and outgoing)";
+        return "View your complete transfer history";
       default:
         return "Manage equipment transfer requests and assignments";
     }
   }, [activeView]);
 
-  const getPageTitle = () => "Transfer Management";
-
   // --- Render Logic ---
   return (
-    <div className="min-h-screen bg-app-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <ElegantSectionHeader title="TRANSFERS" className="mb-4" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-            <div>
-              <h1 className="text-3xl font-light tracking-tight text-primary-text">
-                {getPageTitle()}
-              </h1>
-              <p className="text-secondary-text mt-1">
-                {getPageDescription()}
-              </p>
-            </div>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Header - iOS style */}
+        <div className="mb-10">
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-6">
+            <div></div>
             <Button
               onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-              className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
+              variant="ghost"
+              size="sm"
+              className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
             >
-              <Plus className="h-4 w-4" />
-              New Transfer
+              New
             </Button>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-b border-ios-divider mb-6" />
+          
+          {/* Title section */}
+          <div className="mb-8">
+            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              Transfer Management
+            </h1>
           </div>
         </div>
 
-        {/* Tabs */}
-        <CleanCard padding="none" className="mb-6">
-          <Tabs
-            value={activeView}
-            onValueChange={(value) => dispatch({ type: 'SET_ACTIVE_VIEW', payload: value as TransferView })}
-            className="w-full"
-          >
-            <div className="border-b border-ios-border">
-              <TabsList className="grid grid-cols-3 w-full bg-transparent">
-                {(['incoming', 'outgoing', 'history'] as TransferView[]).map((view) => (
-                  <TabsTrigger
-                    key={view}
-                    value={view}
-                    className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none relative"
-                  >
-                    {view.charAt(0).toUpperCase() + view.slice(1)}
-                    {view === 'incoming' && incomingPendingCount > 0 && (
-                      <Badge className="ml-2 px-1.5 py-0.5 h-5 min-w-[1.25rem] bg-ios-destructive text-white rounded-full text-[10px] flex items-center justify-center">
-                        {incomingPendingCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+        {/* Tab selector - iOS style */}
+        <div className="mb-6">
+          <div className="border-b border-ios-border">
+            <div className="flex justify-between items-center">
+              <TabButton
+                title="incoming"
+                isSelected={activeView === 'incoming'}
+                onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'incoming' })}
+                badge={incomingPendingCount}
+              />
+              <TabButton
+                title="outgoing"
+                isSelected={activeView === 'outgoing'}
+                onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'outgoing' })}
+              />
+              <TabButton
+                title="history"
+                isSelected={activeView === 'history'}
+                onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'history' })}
+              />
             </div>
+          </div>
+        </div>
 
-            {/* Tab Content */}
-            <div className="p-6">
-              {/* Search and Filter Controls */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                {/* Search */}
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
-                  <Input
-                    placeholder={`Search ${activeView} transfers... (name, SN, user)`}
-                    value={searchTerm}
-                    onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                    className="pl-10 border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
-
-                {/* Status Filter */}
-                <div className="sm:w-48">
-                  <Select
-                    value={filterStatus}
-                    onValueChange={(value) => dispatch({ type: 'SET_FILTER_STATUS', payload: value as TransferStatusFilter })}
-                  >
-                    <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Reset Button */}
-                <Button
-                  onClick={handleResetFilters}
-                  variant="outline"
-                  className="text-primary-text border-ios-border hover:bg-gray-50 rounded-none px-4 py-2"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-              </div>
-
-              {/* Transfer List Content */}
-              <CleanCard>
-                {/* Loading State */}
-                {isLoadingTransfers && (
-                  <MinimalLoadingView text="Loading transfers..." size="lg" className="py-16" />
-                )}
-
-                {/* Error State */}
-                {!isLoadingTransfers && transfersError && (
-                  <div className="py-16 text-center text-ios-destructive">
-                    <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                    <p>Error loading transfers: {transfersError.message}</p>
-                    <p className="text-sm mt-1 text-secondary-text">Please try again later.</p>
-                  </div>
-                )}
-
-                {/* Transfer List */}
-                {!isLoadingTransfers && !transfersError && (
-                  sortedTransfers.length === 0 ? (
-                    <MinimalEmptyState
-                      title={searchTerm || filterStatus !== "all" ? "No transfers match your search" : `No ${activeView} transfers`}
-                      description={searchTerm || filterStatus !== "all" ? "Try adjusting your search criteria" : `${activeView === 'incoming' ? 'You have no pending transfer requests' : activeView === 'outgoing' ? 'You haven\'t initiated any transfers' : 'No transfer history found'}`}
-                      icon={<Send className="h-12 w-12" />}
-                      action={activeView !== 'incoming' ? (
-                        <Button
-                          onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-                          className="bg-ios-accent hover:bg-accent-hover text-white px-6 py-2 rounded-none"
-                        >
-                          Create Transfer
-                        </Button>
-                      ) : undefined}
-                    />
-                  ) : (
-                    <>
-                      {/* Transfer List Header */}
-                      <TransferListHeader
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                      <ScrollArea className="h-[calc(100vh-450px)]">
-                        {sortedTransfers.map((transfer) => (
-                          <TransferRow
-                            key={transfer.id}
-                            transfer={transfer}
-                            currentUser={currentUser}
-                            isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
-                            isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
-                            onConfirmAction={(id: string, action: 'approve' | 'reject') => dispatch({ type: 'CONFIRM_ACTION', payload: { id, action } })}
-                            onShowDetails={(t: Transfer) => dispatch({ type: 'SHOW_DETAILS', payload: t })}
-                          />
-                        ))}
-                      </ScrollArea>
-                    </>
-                  )
-                )}
-              </CleanCard>
+        {/* Search and Filter - iOS style */}
+        {sortedTransfers.length > 0 && (
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
+              <Input
+                placeholder={`Search ${activeView} transfers...`}
+                value={searchTerm}
+                onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
+                className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent shadow-sm"
+              />
             </div>
-          </Tabs>
-        </CleanCard>
+          </div>
+        )}
+
+        {/* Main content */}
+        <div className="space-y-3">
+          {/* Loading State */}
+          {isLoadingTransfers && (
+            <CleanCard className="py-16">
+              <MinimalLoadingView text="Loading transfers..." />
+            </CleanCard>
+          )}
+
+          {/* Error State */}
+          {!isLoadingTransfers && transfersError && (
+            <CleanCard className="py-16 text-center">
+              <p className="text-ios-destructive mb-2">Error loading transfers</p>
+              <p className="text-sm text-secondary-text">{transfersError.message}</p>
+            </CleanCard>
+          )}
+
+          {/* Empty State */}
+          {!isLoadingTransfers && !transfersError && sortedTransfers.length === 0 && (
+            <CleanCard className="py-16">
+              <MinimalEmptyState
+                icon={activeView === 'incoming' ? 'arrow.down.circle' : 'arrow.up.circle'}
+                title={`No ${activeView} transfers`}
+                description={
+                  activeView === 'incoming' 
+                    ? "Transfer requests from your connections will appear here."
+                    : activeView === 'outgoing'
+                    ? "Your outgoing transfer requests will appear here."
+                    : "Your complete transfer history will appear here."
+                }
+                action={activeView !== 'incoming' ? (
+                  <Button
+                    onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
+                    className="bg-ios-accent hover:bg-accent-hover text-white px-6 py-2 rounded-none"
+                  >
+                    Create Transfer
+                  </Button>
+                ) : undefined}
+              />
+            </CleanCard>
+          )}
+
+          {/* Transfer List */}
+          {!isLoadingTransfers && !transfersError && sortedTransfers.map((transfer) => (
+            <ElegantTransferCard
+              key={transfer.id}
+              transfer={transfer}
+              isIncoming={activeView === 'incoming'}
+              onTap={() => dispatch({ type: 'SHOW_DETAILS', payload: transfer })}
+              onQuickApprove={() => {
+                dispatch({ type: 'CONFIRM_ACTION', payload: { id: transfer.id, action: 'approve' } });
+                handleApprove(transfer.id);
+              }}
+              onQuickReject={() => {
+                dispatch({ type: 'CONFIRM_ACTION', payload: { id: transfer.id, action: 'reject' } });
+                handleReject(transfer.id);
+              }}
+              isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
+              isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
+            />
+          ))}
+        </div>
+
+        {/* Bottom padding for mobile navigation */}
+        <div className="h-24"></div>
       </div>
 
       {/* Modals and Dialogs */}
@@ -623,4 +620,4 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   );
 };
 
-export default Transfers;
+export default Transfers; 

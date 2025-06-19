@@ -137,7 +137,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-4">
               <Button
                 variant="ghost"
-                onClick={() => navigate('/property')}
+                onClick={() => navigate('/property-book')}
                 className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
               >
                 <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
@@ -204,7 +204,7 @@ export default function Dashboard() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/connections')}
+              onClick={() => navigate('/network')}
               className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
             >
               View All
@@ -215,7 +215,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-4">
             <Button
               variant="ghost"
-              onClick={() => navigate('/connections')}
+              onClick={() => navigate('/network')}
               className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
             >
               <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
@@ -232,7 +232,7 @@ export default function Dashboard() {
             
             <Button
               variant="ghost"
-              onClick={() => navigate('/connections')}
+              onClick={() => navigate('/network')}
               className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
             >
               <CleanCard className="w-full h-full hover:shadow-md transition-shadow">

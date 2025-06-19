@@ -18,6 +18,7 @@ import Maintenance from "./pages/Maintenance";
 import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import { Connections } from "./pages/Connections";
 import UserManagement from "./pages/UserManagement";
 import CorrectionLogPage from './pages/CorrectionLogPage';
 import LedgerVerificationPage from './pages/LedgerVerificationPage';
@@ -49,6 +50,7 @@ function Router() {
         <Route path="/property-book" component={() => <PropertyBook />} />
         <Route path="/sensitive-items" component={() => <SensitiveItems />} />
         <Route path="/maintenance" component={() => <Maintenance />} />
+        <Route path="/network" component={() => <Connections />} />
         <Route path="/documents" component={() => <Documents />} />
         <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/audit-log" component={() => <AuditLog />} />
