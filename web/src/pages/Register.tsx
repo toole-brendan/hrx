@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-// Import API_BASE_URL from a shared location or define it here
-const API_BASE_URL = 'https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io'; // Azure Production API URL
+// API Configuration
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
