@@ -16,6 +16,34 @@ interface AuthContextType {
 // API Base URL - Azure Container Apps backend
 const API_BASE_URL = 'https://handreceipt-backend.bravestone-851f654c.eastus2.azurecontainerapps.io'; // Azure Production API URL
 
+// Development mode - bypass auth when running locally
+const isDevelopment = window.location.hostname === 'localhost' && !import.meta.env.PROD;
+const BYPASS_AUTH = isDevelopment && import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+// Mock user for development
+const mockUser: User = {
+  id: 'dev-user-123',
+  email: 'dev@handreceipt.com',
+  name: 'Development User',
+  firstName: 'Development',
+  lastName: 'User',
+  rank: 'CPT',
+  position: 'Developer',
+  unit: 'Dev Unit',
+  yearsOfService: 5,
+  commandTime: '2 years',
+  responsibility: 'Development',
+  valueManaged: '$1,000,000',
+  upcomingEvents: [],
+  equipmentSummary: {
+    vehicles: 10,
+    weapons: 20,
+    communications: 15,
+    opticalSystems: 5,
+    sensitiveItems: 25
+  }
+};
+
 // Provide a default stub that throws an error if used before initialization
 const defaultAuthedFetch: AuthedFetch = async () => {
   throw new Error('AuthContext not initialized - authedFetch called too early.');
@@ -42,6 +70,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<{ data: T, response: Response }> => {
+    // In bypass mode, return mock responses
+    if (BYPASS_AUTH) {
+      console.log('[DEV MODE] Bypassing API call:', input);
+      // Create a mock response
+      const mockResponse = new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return { data: { success: true } as T, response: mockResponse };
+    }
+
     // Production mode - use real fetch
     // Convert relative URLs to absolute URLs using API_BASE_URL
     const url = input.toString().startsWith('/') 
@@ -93,6 +132,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkAuthStatus = async () => {
       setIsLoading(true);
       
+      // In bypass mode, automatically authenticate with mock user
+      if (BYPASS_AUTH) {
+        console.log('[DEV MODE] Auth bypassed - using mock user');
+        setUser(mockUser);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      }
+
       // Check real auth status
       try {
         const { data } = await authedFetch<{ user: User }>('/api/auth/me');
@@ -116,6 +164,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     
+    // In bypass mode, simulate successful login
+    if (BYPASS_AUTH) {
+      console.log('[DEV MODE] Login bypassed');
+      setUser(mockUser);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+      return;
+    }
+
     // Real login
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -152,10 +209,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     setIsLoading(true);
     
-    try {
-      await authedFetch('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error("Logout error:", error);
+    if (!BYPASS_AUTH) {
+      try {
+        await authedFetch('/api/auth/logout', { method: 'POST' });
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
     }
     
     setUser(null);
