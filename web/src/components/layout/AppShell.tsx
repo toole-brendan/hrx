@@ -72,7 +72,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: theme === 'dark' ? '#000000' : '#FAFAFA' }}>
       {/* Sidebar - hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar 

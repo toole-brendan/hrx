@@ -372,7 +372,8 @@
 
   body {
     font-family: var(--font-system);
-    @apply antialiased tracking-tight text-foreground bg-background;
+    @apply antialiased tracking-tight text-foreground;
+    background-color: #FAFAFA; /* Explicit light background */
     font-feature-settings: "kern", "liga", "ss01", "ss02";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -471,10 +472,16 @@
 @layer components {
   /* Main content layout with sidebar awareness */
   .main-content {
-    @apply transition-all duration-300 min-h-screen bg-background flex-1;
+    @apply transition-all duration-300 min-h-screen flex-1;
+    background-color: #FAFAFA; /* Explicit light background */
     margin-left: var(--sidebar-width);
     margin-top: -6px; /* Smaller negative margin to avoid cutting off content */
     max-width: calc(100% - var(--sidebar-width));
+  }
+  
+  /* Dark mode main content background */
+  .dark .main-content {
+    background-color: #000000;
   }
 
   .main-content.sidebar-collapsed {
@@ -951,4 +958,9 @@
   .btn-sharp * {
     @apply rounded-none;
   }
+}
+
+/* Dark mode body background */
+.dark body {
+  background-color: #000000;
 }

@@ -137,7 +137,12 @@ const Sidebar = ({
 
   if (isMobile) {
     return (
-      <nav className="flex-1 flex flex-col">
+      <nav 
+        className="flex-1 flex flex-col dark:bg-gray-900" 
+        style={{ 
+          backgroundColor: theme === 'dark' ? '#111111' : '#FAFAFA' 
+        }}
+      >
         {/* Header - Logo */}
         <div className="p-6">
           <div 
@@ -285,7 +290,13 @@ const Sidebar = ({
   }
 
   return (
-    <aside className={`sidebar hidden md:flex flex-col ${sidebarCollapsed ? 'collapsed' : ''}`}>
+    <aside 
+      className={`sidebar hidden md:flex flex-col ${sidebarCollapsed ? 'collapsed' : ''}`}
+      style={{ 
+        backgroundColor: theme === 'dark' ? '#111111' : '#FAFAFA',
+        borderRight: `1px solid ${theme === 'dark' ? '#333333' : '#E0E0E0'}` 
+      }}
+    >
       {/* Header - Logo */}
       <div className="p-6">
         {!sidebarCollapsed ? (

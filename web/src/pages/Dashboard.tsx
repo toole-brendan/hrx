@@ -221,13 +221,13 @@ export default function Dashboard() {
   }, [addNotification, maintenanceCheckDone]);
 
   return (
-    <div className="min-h-screen bg-app-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header section with iOS styling */}
         <div className="mb-10">
           {/* Top navigation bar */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-base font-mono text-secondary-text">
+            <h1 className="text-base text-secondary-text" style={{ fontFamily: '"SF Mono", Monaco, monospace' }}>
               HandReceipt
             </h1>
             
@@ -257,7 +257,7 @@ export default function Dashboard() {
           
           {/* Welcome message */}
           <div className="mb-8">
-            <h1 className="text-4xl font-serif font-light text-primary-text leading-tight">
+            <h1 className="text-4xl font-light text-primary-text leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
               {getWelcomeMessage()}
             </h1>
           </div>
@@ -277,9 +277,9 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/property')}
-                className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+                className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
               >
-                <CleanCard className="w-full h-full">
+                <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full space-y-3">
                     <div className="text-2xl font-mono font-light text-primary-text">
                       {String(inventory.length).padStart(4, '0')}
@@ -294,9 +294,9 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/da2062')}
-                className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+                className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
               >
-                <CleanCard className="w-full h-full">
+                <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full space-y-3">
                     <ScanLine className="h-6 w-6 text-primary-text" />
                     <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
@@ -312,9 +312,9 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/documents')}
-                className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+                className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
               >
-                <CleanCard className="w-full h-full">
+                <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full space-y-3">
                     <FileText className="h-6 w-6 text-primary-text" />
                     <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
@@ -343,9 +343,9 @@ export default function Dashboard() {
             <Button
               variant="ghost"
               onClick={() => navigate('/connections')}
-              className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+              className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
             >
-              <CleanCard className="w-full h-full">
+              <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                 <div className="flex flex-col items-center justify-center h-full space-y-3">
                   <div className="text-2xl font-mono font-light text-primary-text">
                     {connectedUsersCount}
@@ -360,9 +360,9 @@ export default function Dashboard() {
             <Button
               variant="ghost"
               onClick={() => navigate('/connections')}
-              className="h-20 p-0 hover:bg-gray-50 active:bg-gray-100"
+              className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
             >
-              <CleanCard className="w-full h-full">
+              <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                 <div className="flex flex-col items-center justify-center h-full space-y-3">
                   <div className="text-2xl font-mono font-light text-primary-text">
                     {pendingConnectionsCount}
@@ -396,11 +396,11 @@ export default function Dashboard() {
             size="lg"
           />
           
-          <CleanCard className="p-6">
+          <CleanCard className="p-6" style={{ backgroundColor: 'white' }}>
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-50 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-green-50 flex items-center justify-center rounded">
                     <CheckCircle className="h-4 w-4 text-ios-success" />
                   </div>
                   <span className="text-sm text-primary-text">Operational</span>
@@ -418,7 +418,7 @@ export default function Dashboard() {
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-amber-50 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-amber-50 flex items-center justify-center rounded">
                     <Clock8 className="h-4 w-4 text-ios-warning" />
                   </div>
                   <span className="text-sm text-primary-text">In Maintenance</span>
@@ -436,7 +436,7 @@ export default function Dashboard() {
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-red-50 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-red-50 flex items-center justify-center rounded">
                     <AlertTriangle className="h-4 w-4 text-ios-destructive" />
                   </div>
                   <span className="text-sm text-primary-text">Non-operational</span>

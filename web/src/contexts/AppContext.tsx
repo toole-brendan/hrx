@@ -44,12 +44,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const root = window.document.documentElement;
     
+    // Remove both classes first
+    root.classList.remove('dark', 'light');
+    
     if (theme === 'dark') {
       root.classList.add('dark');
-      root.classList.remove('light');
     } else {
       root.classList.add('light');
-      root.classList.remove('dark');
     }
     
     // Save to localStorage
