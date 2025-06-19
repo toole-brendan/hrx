@@ -139,6 +139,24 @@ export interface QRCodeWithItem extends QRCode {
 }
 
 // -----------
+// Sensitive Items
+// -----------
+export interface SensitiveItem {
+  id: string;
+  name: string;
+  category: 'weapon' | 'communication' | 'optics' | 'crypto' | 'other';
+  serialNumber: string;
+  assignedDate: string;
+  status: 'verified' | 'pending' | 'overdue' | 'not-verified' | 'maintenance';
+  lastVerified: string;
+  nextVerification: string;
+  securityLevel: 'routine' | 'controlled' | 'classified' | 'secret' | 'top-secret';
+  location: string;
+  assignedTo: string;
+  notes?: string;
+}
+
+// -----------
 // Consumables
 // -----------
 export interface ConsumableItem {

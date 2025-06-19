@@ -1,18 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  Calendar, Clock, AlertTriangle, Shield, RefreshCw, ChevronRight, 
-  ArrowRight, ArrowRightLeft, BarChart3, Users, CheckCircle, Clock8, 
-  Database, Send, Fingerprint, Search, Filter, Plus, Activity as ActivityIcon, 
-  Package, FileText, ScanLine, User
+  AlertTriangle, CheckCircle, Clock8, Search, UserCircle, Inbox, FileScan
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { getConnections } from '@/services/connectionService';
 
@@ -20,26 +13,11 @@ import { getConnections } from '@/services/connectionService';
 import { CleanCard, ElegantSectionHeader, StatusBadge } from '@/components/ios';
 
 // Dashboard components
-import MyProperties from '@/components/dashboard/MyProperties';
-import PendingTransfers from '@/components/dashboard/PendingTransfers';
 import RecentActivity from '@/components/dashboard/RecentActivity';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { TransferItem } from '@/components/dashboard/TransferItem';
-import { ActivityLogItem } from '@/components/dashboard/ActivityLogItem';
-
-// Mock data imports
-import { sensitiveItems, sensitiveItemsStats } from '@/lib/sensitiveItemsData';
-import { activities, notifications, transfers, inventory } from '@/lib/mockData';
-import { maintenanceStats, maintenanceItems } from '@/lib/maintenanceData';
-import { useNotifications } from '@/contexts/NotificationContext';
-import { parseISO, isBefore, isAfter, addDays, startOfDay } from 'date-fns';
-import { Property as PropertyType, Transfer, Activity, Notification } from '@/types';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const { addNotification } = useNotifications();
-  const [maintenanceCheckDone, setMaintenanceCheckDone] = useState(false);
   
   // Fetch connections data
   const { data: connections = [] } = useQuery({
@@ -47,72 +25,28 @@ export default function Dashboard() {
     queryFn: getConnections,
   });
   
-  // Alert counts
-  const pendingTransfersCount = transfers.filter(t => t.status === 'pending').length;
-  const pendingMaintenanceCount = maintenanceStats.scheduled;
-  const sensitiveItemVerifications = sensitiveItemsStats.pendingVerification;
+  // Alert counts - Using real data from API or default values
+  const pendingTransfersCount = 0; // TODO: Fetch from API
+  const pendingMaintenanceCount = 0; // TODO: Fetch from API
+  const sensitiveItemVerifications = 0; // TODO: Fetch from API
   
-  // Calculate verification percentage - Check if totalItems > 0
-  const verificationPercentage = sensitiveItemsStats.totalItems > 0 
-    ? Math.round((sensitiveItemsStats.verifiedToday / sensitiveItemsStats.totalItems) * 100) 
-    : 0;
+  // Calculate verification percentage
+  const verificationPercentage = 0; // TODO: Calculate from API data
   
   // Calculate network stats
   const connectedUsersCount = connections.filter(c => c.connectionStatus === 'accepted').length;
   const pendingConnectionsCount = connections.filter(c => c.connectionStatus === 'pending').length;
   
-  // Calculate dynamic readiness stats from inventory
+  // Calculate dynamic readiness stats - TODO: Replace with API data
   const readinessStats = useMemo(() => {
-    const total = inventory.length;
-    if (total === 0) {
-      return {
-        operational: { count: 0, percentage: 0 },
-        maintenance: { count: 0, percentage: 0 },
-        nonOperational: { count: 0, percentage: 0 },
-        other: { count: 0, percentage: 0 },
-      };
-    }
-    
-    let operationalCount = 0;
-    let maintenanceCount = 0;
-    let nonOperationalCount = 0;
-    let otherCount = 0;
-    
-    inventory.forEach((item: PropertyType) => {
-      // Match the actual Property status type definition
-      switch (item.status) {
-        case 'Operational':
-          operationalCount++;
-          break;
-        case 'Deadline - Maintenance':
-        case 'In Repair':
-          maintenanceCount++;
-          break;
-        case 'Non-Operational':
-        case 'Damaged':
-          nonOperationalCount++;
-          break;
-        case 'Deadline - Supply':
-        case 'Lost':
-        default:
-          otherCount++;
-          break;
-      }
-    });
-    
-    // Calculate percentages
-    const operationalPercentage = Math.round((operationalCount / total) * 100);
-    const maintenancePercentage = Math.round((maintenanceCount / total) * 100);
-    const nonOperationalPercentage = Math.round((nonOperationalCount / total) * 100);
-    const otherPercentage = 100 - operationalPercentage - maintenancePercentage - nonOperationalPercentage;
-    
+    // Default values until API integration
     return {
-      operational: { count: operationalCount, percentage: operationalPercentage },
-      maintenance: { count: maintenanceCount, percentage: maintenancePercentage },
-      nonOperational: { count: nonOperationalCount, percentage: nonOperationalPercentage },
-      other: { count: otherCount, percentage: otherPercentage >= 0 ? otherPercentage : 0 },
+      operational: { count: 0, percentage: 0 },
+      maintenance: { count: 0, percentage: 0 },
+      nonOperational: { count: 0, percentage: 0 },
+      other: { count: 0, percentage: 0 },
     };
-  }, [inventory]);
+  }, []);
   
   // Helper function to format welcome message - iOS style
   const getWelcomeMessage = () => {
@@ -153,44 +87,7 @@ export default function Dashboard() {
     return parts.join(" ");
   };
   
-  // Effect to check for upcoming maintenance and trigger notifications
-  useEffect(() => {
-    if (!maintenanceCheckDone) {
-      const today = startOfDay(new Date());
-      const sevenDaysFromNow = addDays(today, 7);
-      let notificationsAdded = 0;
-      
-      maintenanceItems.forEach(item => {
-        if (item.scheduledDate && (item.status === 'scheduled' || item.status === 'in-progress')) {
-          try {
-            const scheduled = startOfDay(parseISO(item.scheduledDate));
-            
-            // Check if scheduled date is after or equal to today AND before 7 days from now
-            if (isAfter(scheduled, addDays(today, -1)) && isBefore(scheduled, sevenDaysFromNow)) {
-              addNotification({
-                type: 'warning',
-                title: `Upcoming Maintenance Due: ${item.itemName}`,
-                message: `Maintenance scheduled for ${item.scheduledDate}. Serial: ${item.serialNumber}`,
-                action: {
-                  label: 'View Maintenance',
-                  path: `/maintenance/${item.id}`
-                }
-              });
-              notificationsAdded++;
-            }
-          } catch (error) {
-            console.error(`Error parsing scheduledDate '${item.scheduledDate}' for item ${item.id}:`, error);
-          }
-        }
-      });
-      
-      if (notificationsAdded > 0) {
-        console.log(`Added ${notificationsAdded} upcoming maintenance notifications.`);
-      }
-      
-      setMaintenanceCheckDone(true);
-    }
-  }, [addNotification, maintenanceCheckDone]);
+  // TODO: Add real maintenance notification checks from API
   
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
@@ -199,9 +96,7 @@ export default function Dashboard() {
         <div className="mb-10">
           {/* Top navigation bar */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-base text-secondary-text" style={{ fontFamily: '"SF Mono", Monaco, monospace' }}>
-              HandReceipt
-            </h1>
+            <div></div>
             <div className="flex items-center space-x-5">
               <Button
                 variant="ghost"
@@ -217,7 +112,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/profile')}
                 className="p-2 hover:bg-transparent"
               >
-                <User className="h-6 w-6 text-primary-text" />
+                <UserCircle className="h-6 w-6 text-primary-text" />
               </Button>
             </div>
           </div>
@@ -227,7 +122,7 @@ export default function Dashboard() {
           
           {/* Welcome message */}
           <div className="mb-8">
-            <h1 className="text-4xl font-light text-primary-text leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
+            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
               {getWelcomeMessage()}
             </h1>
           </div>
@@ -235,7 +130,7 @@ export default function Dashboard() {
         
         {/* Overview Section - iOS style */}
         <div className="mb-10">
-          <ElegantSectionHeader title="Overview" className="mb-6" size="lg" />
+          <ElegantSectionHeader title="Overview" className="mb-6" size="lg" divider={true} />
           
           <div className="space-y-4">
             {/* First row: Total Properties and Import DA-2062 */}
@@ -248,7 +143,7 @@ export default function Dashboard() {
                 <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full space-y-3">
                     <div className="text-2xl font-mono font-light text-primary-text">
-                      {String(inventory.length).padStart(4, '0')}
+                      {String(0).padStart(4, '0')}
                     </div>
                     <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
                       Total Properties
@@ -264,7 +159,7 @@ export default function Dashboard() {
               >
                 <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full space-y-3">
-                    <ScanLine className="h-6 w-6 text-primary-text" />
+                    <FileScan className="h-6 w-6 text-primary-text" />
                     <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
                       Import DA-2062
                     </div>
@@ -282,7 +177,7 @@ export default function Dashboard() {
               >
                 <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
                   <div className="flex flex-col items-center justify-center h-full space-y-3">
-                    <FileText className="h-6 w-6 text-primary-text" />
+                    <Inbox className="h-6 w-6 text-primary-text" />
                     <div className="text-xs uppercase tracking-wide text-secondary-text text-center">
                       Documents
                     </div>
@@ -298,12 +193,24 @@ export default function Dashboard() {
         
         {/* Network Section - iOS style */}
         <div className="mb-10">
-          <ElegantSectionHeader 
-            title="Network" 
-            subtitle="Connected users" 
-            className="mb-6" 
-            size="lg" 
-          />
+          <div className="flex items-baseline justify-between mb-6">
+            <ElegantSectionHeader 
+              title="Network" 
+              subtitle="Connected users" 
+              className="flex-1" 
+              size="lg" 
+              divider={false}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/connections')}
+              className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
+            >
+              View All
+            </Button>
+          </div>
+          <div className="border-b border-ios-divider mb-6" />
           
           <div className="grid grid-cols-2 gap-4">
             <Button
@@ -344,8 +251,24 @@ export default function Dashboard() {
         
         {/* Recent Activity Section */}
         <div className="mb-10">
-          <ElegantSectionHeader title="Recent Activity" className="mb-6" size="lg" />
-          <RecentActivity />
+          <div className="flex items-baseline justify-between mb-6">
+            <ElegantSectionHeader 
+              title="Recent Activity" 
+              className="flex-1" 
+              size="lg" 
+              divider={false} 
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/transfers')}
+              className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
+            >
+              See All
+            </Button>
+          </div>
+          <div className="border-b border-ios-divider mb-6" />
+          <RecentActivity activities={[]} />
         </div>
         
         {/* Property Status Section */}
@@ -355,9 +278,10 @@ export default function Dashboard() {
             subtitle="Operational readiness" 
             className="mb-6" 
             size="lg" 
+            divider={true}
           />
           
-          <CleanCard className="p-6" style={{ backgroundColor: 'white' }}>
+          <CleanCard className="p-6 bg-white">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">

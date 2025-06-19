@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ios';
 import BlockchainLedger from '@/components/blockchain/BlockchainLedger';
 import { isBlockchainEnabled } from '@/lib/blockchain';
-import { sensitiveItems } from '@/lib/sensitiveItemsData';
 import { Transfer } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -29,10 +28,8 @@ const TransferDetailsModal: React.FC<TransferDetailsModalProps> = ({
 }) => {
   if (!transfer) return null;
 
-  // Find related sensitive item if it exists
-  const relatedSensitiveItem = sensitiveItems.find(item => 
-    item.serialNumber === transfer.serialNumber
-  );
+  // TODO: Fetch related sensitive item from API if needed
+  const relatedSensitiveItem = null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

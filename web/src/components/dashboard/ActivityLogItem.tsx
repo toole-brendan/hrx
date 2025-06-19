@@ -1,4 +1,41 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge'; interface ActivityLogItemProps { id: string; title: string; description?: string; timestamp: string; verified?: boolean;
-} export function ActivityLogItem({ id, title, description, timestamp, verified = true }: ActivityLogItemProps) { return ( <div className="py-3"> <div className="flex items-start"> <div className="h-3 w-3 rounded-none bg-blue-600 mt-1.5 mr-3 flex-shrink-0"></div> <div className="flex-1"> <div className="flex justify-between mb-1"> <div className="font-medium text-sm">{title}</div> <div className="text-xs text-muted-foreground">{timestamp}</div> </div> {description && ( <div className="text-xs text-muted-foreground mb-1">{description}</div> )} {verified && ( <Badge className="uppercase bg-green-100/70 text-green-700 border border-green-600 text-[10px] tracking-wider px-2 mt-1 rounded-none"> Verified on blockchain </Badge> )} </div> </div> </div> );
+import { ArrowLeftRight } from 'lucide-react';
+
+interface ActivityLogItemProps {
+  id: string;
+  title: string;
+  description?: string;
+  timestamp: string;
+  verified?: boolean;
+}
+
+export function ActivityLogItem({ 
+  id, 
+  title, 
+  description, 
+  timestamp, 
+  verified = true 
+}: ActivityLogItemProps) {
+  return (
+    <div className="p-4">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 bg-tertiary-background rounded-full flex items-center justify-center flex-shrink-0">
+          <ArrowLeftRight className="h-4 w-4 text-secondary-text stroke-[1.5]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-primary-text text-sm">
+            {title}
+          </div>
+          {description && (
+            <div className="text-xs text-secondary-text mt-1">
+              {description}
+            </div>
+          )}
+        </div>
+        <div className="text-xs text-tertiary-text whitespace-nowrap">
+          {timestamp}
+        </div>
+      </div>
+    </div>
+  );
 }
