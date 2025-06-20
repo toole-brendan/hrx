@@ -24,7 +24,8 @@ import { propertyBookReducer, initialState } from"@/lib/propertyBookReducer";
 import { categoryOptions, getCategoryFromName, getCategoryColor, getCategoryIcon, normalizeItemStatus } from"@/lib/propertyUtils";
 import CreatePropertyDialog from"@/components/property/CreatePropertyDialog";
 import { SendMaintenanceForm } from"@/components/property/SendMaintenanceForm";
-import { DA2062ExportDialog } from"@/components/da2062/DA2062ExportDialog"; interface PropertyBookProps { 
+import { DA2062ExportDialog } from"@/components/da2062/DA2062ExportDialog";
+import { DA2062ImportDialog } from"@/components/da2062/DA2062ImportDialog"; interface PropertyBookProps { 
   id?: string;
 }
 
@@ -45,6 +46,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
   const [maintenanceFormModalOpen, setMaintenanceFormModalOpen] = useState(false);
   const [showingDA2062Export, setShowingDA2062Export] = useState(false);
+  const [showingDA2062Import, setShowingDA2062Import] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedPropertiesForExport, setSelectedPropertiesForExport] = useState<Set<number>>(new Set());
   const [showingSortOptions, setShowingSortOptions] = useState(false);
@@ -700,6 +702,20 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         ).filter(Boolean) as Property[]}
       />
       
+      {/* DA 2062 Import Dialog */}
+      <DA2062ImportDialog
+        isOpen={showingDA2062Import}
+        onClose={() => setShowingDA2062Import(false)}
+        onImportComplete={(count) => {
+          toast({
+            title: 'Import successful',
+            description: `${count} items imported successfully`,
+          });
+          // Refetch properties to show newly imported items
+          window.location.reload(); // Simple refresh for now
+        }}
+      />
+      
       {/* Sort Options Action Sheet */}
       <Dialog open={showingSortOptions} onOpenChange={setShowingSortOptions}>
         <DialogContent className="max-w-sm">
@@ -763,11 +779,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               className="w-full justify-start"
               onClick={() => {
                 setShowingAddMenu(false);
-                // Import from DA-2062 logic
-                toast({
-                  title: "Import from DA-2062",
-                  description: "This feature is coming soon.",
-                });
+                setShowingDA2062Import(true);
               }}
             >
               Import from DA-2062

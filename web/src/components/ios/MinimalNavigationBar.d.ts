@@ -4,6 +4,7 @@ interface MinimalNavigationBarProps {
     leftAction?: React.ReactNode;
     rightAction?: React.ReactNode;
     className?: string;
+    titleStyle?: 'default' | 'mono';
 }
 export declare const MinimalNavigationBar: React.FC<MinimalNavigationBarProps>;
 export {};

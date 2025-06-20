@@ -34,8 +34,10 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-ios-background">
-        <MinimalLoadingView text="LOADING PROFILE" />
+      <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <MinimalLoadingView text="LOADING PROFILE" />
+        </div>
       </div>
     );
   }
@@ -61,20 +63,32 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-ios-background">
-      <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="max-w-4xl mx-auto px-6 py-8">
         
-        {/* Header */}
+        {/* Header - iOS style */}
         <div className="mb-10">
-          <h1 className="text-3xl font-light text-primary-text tracking-tight mb-2">
-            PROFILE
-          </h1>
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-6">
+            <div></div>
+            <div></div>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-b border-ios-divider mb-6" />
+          
+          {/* Title section */}
+          <div className="mb-8">
+            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              Profile
+            </h1>
+          </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-10">
           
           {/* Profile Information Section */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <ElegantSectionHeader 
               title="USER INFORMATION" 
               className="mb-4"
@@ -111,7 +125,7 @@ export default function Profile() {
           </div>
 
           {/* Quick Actions Section */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <ElegantSectionHeader 
               title="QUICK ACTIONS" 
               className="mb-4"
@@ -152,7 +166,7 @@ export default function Profile() {
           </div>
 
           {/* Support Section */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <ElegantSectionHeader 
               title="SUPPORT" 
               className="mb-4"
@@ -192,7 +206,7 @@ export default function Profile() {
           </div>
 
           {/* Account Section */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <ElegantSectionHeader 
               title="ACCOUNT" 
               className="mb-4"
@@ -226,7 +240,7 @@ export default function Profile() {
           </div>
 
           {/* Bottom padding */}
-          <div className="h-10" />
+          <div className="h-24" />
         </div>
       </div>
     </div>

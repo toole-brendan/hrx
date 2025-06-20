@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import AppShell from "./components/layout/AppShell";
 import Dashboard from "./pages/Dashboard";
 import Transfers from "./pages/Transfers";
+import Search from "./pages/Search";
 import AuditLog from "./pages/AuditLog";
 import Settings from "./pages/Settings";
 import PropertyBook from "./pages/PropertyBook";
@@ -48,6 +49,7 @@ function Router() {
       <Switch>
         <Route path="/" component={() => <Login />} />
         <Route path="/dashboard" component={() => <Dashboard />} />
+        <Route path="/search" component={() => <Search />} />
         <Route path="/transfers" component={() => <Transfers />} />
         <Route path="/property-book" component={() => <PropertyBook />} />
         <Route path="/sensitive-items" component={() => <SensitiveItems />} />
