@@ -17,7 +17,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
-  Shield,
   Wifi,
   UserCircle,
   Bell,
@@ -105,7 +104,6 @@ const Sidebar = ({
   const navItems: NavItem[] = [
     { path: "/dashboard", icon: <Home className="sidebar-item-icon" />, label: "Dashboard" },
     { path: "/property-book", icon: <Package className="sidebar-item-icon" />, label: "Property Book" },
-    { path: "/sensitive-items", icon: <Shield className="sidebar-item-icon" />, label: "Sensitive Items" },
     { 
       path: "/transfers", 
       icon: <ArrowLeftRight className="sidebar-item-icon" />, 
