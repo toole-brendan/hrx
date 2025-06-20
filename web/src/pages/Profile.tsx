@@ -86,6 +86,7 @@ export default function Profile() {
                   label="NAME"
                   value={formatUserName()}
                   icon={<User className="h-4 w-4" />}
+                  isMonospace
                 />
                 
                 <ProfileDivider />
@@ -256,7 +257,16 @@ const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({
       {label}
     </div>
     
-    <div className={`text-primary-text ${isMonospace ? 'font-mono' : ''} flex-1`}>
+    <div 
+      className="text-primary-text flex-1"
+      style={isMonospace ? {
+        fontFamily: '"Courier New", "Consolas", "Monaco", monospace',
+        fontSize: '15px',
+        fontWeight: '500',
+        letterSpacing: '1px',
+        lineHeight: '1.4'
+      } : {}}
+    >
       {value}
     </div>
   </div>
