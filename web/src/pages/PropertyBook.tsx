@@ -9,10 +9,11 @@ import { Button } from"@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from"@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from"@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from"@/components/ui/table";
-import { useToast } from"@/hooks/use-toast"; // iOS Components
-import { CleanCard, ElegantSectionHeader, StatusBadge, ModernPropertyCard, FloatingActionButton, MinimalEmptyState } from"@/components/ios"; import TransferRequestModal from"@/components/modals/TransferRequestModal";
+import { useToast } from"@/hooks/use-toast";
+import { CleanCard, ElegantSectionHeader, StatusBadge, ModernPropertyCard, FloatingActionButton, MinimalEmptyState, MinimalLoadingView } from"@/components/ios";
+import TransferRequestModal from"@/components/modals/TransferRequestModal";
 import ComponentList from"@/components/property/ComponentList";
-import { Search, Filter, ArrowDownUp, ArrowLeftRight, Info, ClipboardCheck, Calendar, ShieldCheck, Send, CheckCircle, Package, Shield, Radio, Eye, Wrench, SearchX, ArrowUpDown, ChevronDown, ChevronRight, Plus, Download, FileText
+import { Search, Filter, ArrowDownUp, ArrowLeftRight, Info, ClipboardCheck, Calendar, ShieldCheck, Send, CheckCircle, Package, Shield, Radio, Eye, Wrench, SearchX, ArrowUpDown, ChevronDown, ChevronRight, Plus, Download, FileText, WifiOff, X
 } from"lucide-react";
 import { Checkbox } from"@/components/ui/checkbox";
 import BulkActionMenu from"@/components/shared/BulkActionMenu";
@@ -22,15 +23,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from"@/compo
 import { propertyBookReducer, initialState } from"@/lib/propertyBookReducer";
 import { categoryOptions, getCategoryFromName, getCategoryColor, getCategoryIcon, normalizeItemStatus } from"@/lib/propertyUtils";
 import CreatePropertyDialog from"@/components/property/CreatePropertyDialog";
-import { SendMaintenanceForm } from"@/components/property/SendMaintenanceForm"; interface PropertyBookProps { id?: string;
-} const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => { console.log("PropertyBook component rendering...", { id });
+import { SendMaintenanceForm } from"@/components/property/SendMaintenanceForm";
+import { DA2062ExportDialog } from"@/components/da2062/DA2062ExportDialog"; interface PropertyBookProps { 
+  id?: string;
+}
 
-// Add error boundary state
-const [hasError, setHasError] = useState(false);
-const [errorMessage, setErrorMessage] = useState<string>("");
+const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
+  console.log("PropertyBook component rendering...", { id });
 
-// Use reducer for most state management
-const [state, dispatch] = useReducer(propertyBookReducer, initialState);
+  // Add error boundary state
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  // Use reducer for most state management
+  const [state, dispatch] = useReducer(propertyBookReducer, initialState);
   
   // State that remains outside the reducer
   const [selectedItem, setSelectedItem] = useState<Property | null>(null);
@@ -38,6 +44,12 @@ const [state, dispatch] = useReducer(propertyBookReducer, initialState);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
   const [maintenanceFormModalOpen, setMaintenanceFormModalOpen] = useState(false);
+  const [showingDA2062Export, setShowingDA2062Export] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedPropertiesForExport, setSelectedPropertiesForExport] = useState<Set<number>>(new Set());
+  const [showingSortOptions, setShowingSortOptions] = useState(false);
+  const [showingAddMenu, setShowingAddMenu] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
   const { toast } = useToast();
   
@@ -57,6 +69,20 @@ const [state, dispatch] = useReducer(propertyBookReducer, initialState);
 
   // Setup offline sync
   useOfflineSync();
+
+  // Setup offline listener
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Update loading and error states
   useEffect(() => {
@@ -108,11 +134,13 @@ const [state, dispatch] = useReducer(propertyBookReducer, initialState);
     return items.filter(item => {
       const name = item.name || '';
       const serialNumber = item.serialNumber || '';
+      const nsn = item.nsn || '';
       const assignedTo = (tab === "signedout" && item.assignedTo) ? item.assignedTo.toLowerCase() : '';
       const searchTermLower = state.searchTerm.toLowerCase();
       
       const matchesSearch = name.toLowerCase().includes(searchTermLower) ||
                            serialNumber.toLowerCase().includes(searchTermLower) ||
+                           nsn.toLowerCase().includes(searchTermLower) ||
                            (tab === "signedout" && assignedTo.includes(searchTermLower));
       
       const category = item.category && categoryOptions.some(opt => opt.value === item.category) 
@@ -356,181 +384,211 @@ const [state, dispatch] = useReducer(propertyBookReducer, initialState);
   }
 
   return (
-    <div className="min-h-screen bg-app-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <ElegantSectionHeader title="PROPERTY BOOK" className="mb-4" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-            <div>
-              <h1 className="text-3xl font-light tracking-tight text-primary-text">
-                Equipment Registry
-              </h1>
-              <p className="text-secondary-text mt-1">
-                Manage assigned and transferred property
-              </p>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Header - iOS style */}
+        <div className="mb-10">
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-6">
+            <div></div>
+            {!isSelectMode && properties.length > 0 && (
+              <Button
+                onClick={() => setIsSelectMode(true)}
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
+              >
+                Select
+              </Button>
+            )}
+            {isSelectMode && (
+              <Button
+                onClick={() => {
+                  setIsSelectMode(false);
+                  setSelectedPropertiesForExport(new Set());
+                }}
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+          
+          {/* Divider */}
+          <div className="border-b border-ios-divider mb-6" />
+          
+          {/* Title section */}
+          <div className="mb-8">
+            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              Property Book
+            </h1>
+            <p className="text-secondary-text mt-2">
+              {properties.length} items tracked
+            </p>
+          </div>
+        </div>
+        
+        {/* Offline banner */}
+        {isOffline && (
+          <div className="mb-6 bg-ios-warning/10 rounded-lg p-4 border border-ios-warning/20">
+            <div className="flex items-center gap-3">
+              <WifiOff className="h-4 w-4 text-ios-warning" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-primary-text">Offline Mode</p>
+                <p className="text-xs text-secondary-text">Changes will sync when connected</p>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Search and Filter Controls */}
+        <div className="mb-6 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
+            <Input
+              placeholder="Search properties..."
+              value={state.searchTerm}
+              onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
+              className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent shadow-sm"
+            />
+            {state.searchTerm && (
+              <button
+                onClick={() => dispatch({ type: 'SET_SEARCH_TERM', payload: '' })}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+              >
+                <X className="h-4 w-4 text-tertiary-text" />
+              </button>
+            )}
+          </div>
+          
+          {/* Action buttons row */}
+          <div className="flex gap-3">
+            {/* Filter/Sort button */}
             <Button
-              onClick={() => setCreateItemModalOpen(true)}
-              className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowingSortOptions(true)}
+              className="border-ios-border text-secondary-text hover:text-primary-text"
             >
-              <Plus className="h-4 w-4" />
-              Add Property
+              <Filter className="h-4 w-4 mr-2" />
+              Sort
             </Button>
+            
+            {/* Add button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowingAddMenu(true)}
+              className="border-ios-border text-secondary-text hover:text-primary-text"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add
+            </Button>
+          </div>
+          
+          {/* Filter chips */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <FilterChip
+              label="All"
+              active={state.filterCategory === 'all'}
+              onClick={() => dispatch({ type: 'SET_FILTER_CATEGORY', payload: 'all' })}
+            />
+            {categoryOptions.map((category) => (
+              <FilterChip
+                key={category.value}
+                label={category.label}
+                active={state.filterCategory === category.value}
+                onClick={() => dispatch({ type: 'SET_FILTER_CATEGORY', payload: category.value })}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Search and Filter Controls */}
-        <CleanCard className="mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
-              <Input
-                placeholder="Search by name, serial number, or assignee..."
-                value={state.searchTerm}
-                onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-10 border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-            </div>
-            
-            {/* Category Filter */}
-            <div className="sm:w-48">
-              <Select
-                value={state.filterCategory}
-                onValueChange={(value) => dispatch({ type: 'SET_FILTER_CATEGORY', payload: value })}
+        {/* Main content */}
+        <div className="space-y-3">
+
+          {state.isLoading && assignedToMe.length === 0 && !isOffline ? (
+            <CleanCard className="py-16">
+              <MinimalLoadingView text="Loading properties..." />
+            </CleanCard>
+          ) : error && assignedToMe.length === 0 ? (
+            <CleanCard className="py-16 text-center">
+              <p className="text-ios-destructive mb-2">Error loading properties</p>
+              <p className="text-secondary-text text-sm">{error?.message || "Please try again later"}</p>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                size="sm"
+                className="mt-4"
               >
-                <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-3 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categoryOptions.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CleanCard>
-
-        {/* Tabs */}
-        <CleanCard padding="none" className="mb-6">
-          <Tabs
-            value={state.activeTab}
-            onValueChange={(value) => dispatch({ type: 'SET_ACTIVE_TAB', payload: value as 'assigned' | 'signedout' })}
-            className="w-full"
-          >
-            <div className="border-b border-ios-border">
-              <TabsList className="grid grid-cols-2 w-full bg-transparent">
-                <TabsTrigger
-                  value="assigned"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
-                >
-                  ASSIGNED TO ME ({assignedToMe.length})
-                </TabsTrigger>
-                <TabsTrigger
-                  value="signedout"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none"
-                >
-                  SIGNED OUT ({signedOutItems.length})
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="assigned" className="p-6">
-              {state.isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
-                </div>
-              ) : currentItems.length === 0 ? (
-                <MinimalEmptyState
-                  title={state.searchTerm || state.filterCategory !== "all" 
-                    ? "No items match your search" 
-                    : "No property assigned"}
-                  description={state.searchTerm || state.filterCategory !== "all" 
-                    ? "Try adjusting your search criteria" 
-                    : "Start by adding property to your inventory"}
-                  icon={<Package className="h-12 w-12" />}
-                  action={
-                    <Button
-                      onClick={() => setCreateItemModalOpen(true)}
-                      className="bg-ios-accent hover:bg-accent-hover text-white px-6 py-2 rounded-none"
-                    >
-                      Add Property
-                    </Button>
-                  }
+                Retry
+              </Button>
+            </CleanCard>
+          ) : currentItems.length === 0 ? (
+            <MinimalEmptyState
+              title={state.searchTerm || state.filterCategory !== "all" 
+                ? "No Results Found" 
+                : "No Properties Found"}
+              description={state.searchTerm || state.filterCategory !== "all" 
+                ? "Try adjusting your search terms or filters." 
+                : "Properties assigned to you will appear here."}
+              icon={state.searchTerm ? <SearchX className="h-12 w-12" /> : <Package className="h-12 w-12" />}
+              action={
+                state.searchTerm || state.filterCategory !== "all" ? null : (
+                  <Button
+                    onClick={() => setShowingAddMenu(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Add Property
+                  </Button>
+                )
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {currentItems.map((item) => (
+                <PropertyCard
+                  key={item.id}
+                  property={item}
+                  isSelected={isSelectMode && selectedPropertiesForExport.has(item.id)}
+                  isSelectMode={isSelectMode}
+                  onTap={() => {
+                    if (isSelectMode) {
+                      if (selectedPropertiesForExport.has(item.id)) {
+                        const newSet = new Set(selectedPropertiesForExport);
+                        newSet.delete(item.id);
+                        setSelectedPropertiesForExport(newSet);
+                      } else {
+                        setSelectedPropertiesForExport(new Set([...selectedPropertiesForExport, item.id]));
+                      }
+                    } else {
+                      handleViewDetails(item);
+                    }
+                  }}
+                  onTransfer={() => {
+                    setSelectedItem(item);
+                    setTransferModalOpen(true);
+                  }}
                 />
-              ) : (
-                <div className="space-y-4">
-                  {currentItems.map((item) => (
-                    <ModernPropertyCard
-                      key={item.id}
-                      property={{
-                        itemName: item.name,
-                        serialNumber: item.serialNumber,
-                        status: item.status as 'operational' | 'maintenance' | 'non-operational',
-                        isSensitive: item.category === 'weapons' || item.category === 'optics',
-                        category: item.category
-                      }}
-                      onClick={() => handleViewDetails(item)}
-                      selected={state.selectedItemIds.has(item.id)}
-                      onSelect={(selected: boolean) => handleItemSelect(item.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="signedout" className="p-6">
-              {state.isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
-                </div>
-              ) : currentItems.length === 0 ? (
-                <MinimalEmptyState
-                  title="No signed out items"
-                  description="Items you've transferred to others will appear here"
-                  icon={<Send className="h-12 w-12" />}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {currentItems.map((item) => (
-                    <ModernPropertyCard
-                      key={item.id}
-                      property={{
-                        itemName: item.name,
-                        serialNumber: item.serialNumber,
-                        status: 'operational', // Most signed out items are operational
-                        isSensitive: item.category === 'weapons' || item.category === 'optics',
-                        category: item.category
-                      }}
-                      onClick={() => handleViewDetails(item)}
-                      selected={state.selectedItemIds.has(item.id)}
-                      onSelect={(selected: boolean) => handleItemSelect(item.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CleanCard>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Floating Action Button for Bulk Actions */}
-      {hasSelectedItems && (
-        <FloatingActionButton
-          onClick={() => handleBulkAction('export')}
-          icon={<FileText className="h-5 w-5" />}
-          label={`Export ${state.selectedItemIds.size} items`}
-          position="bottom-right"
-        />
+      {/* Floating export button when items are selected */}
+      {isSelectMode && selectedPropertiesForExport.size > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={() => setShowingDA2062Export(true)}
+            className="bg-ios-accent hover:bg-ios-accent/90 text-white shadow-lg rounded-lg px-6 py-3"
+          >
+            <FileText className="h-5 w-5 mr-2" />
+            Export DA 2062 ({selectedPropertiesForExport.size})
+          </Button>
+        </div>
       )}
 
       {/* Modals */}
@@ -628,6 +686,261 @@ const [state, dispatch] = useReducer(propertyBookReducer, initialState);
           }}
         />
       )}
+      
+      {/* DA 2062 Export Dialog */}
+      <DA2062ExportDialog
+        isOpen={showingDA2062Export}
+        onClose={() => {
+          setShowingDA2062Export(false);
+          setIsSelectMode(false);
+          setSelectedPropertiesForExport(new Set());
+        }}
+        selectedProperties={Array.from(selectedPropertiesForExport).map(id => 
+          properties.find(p => p.id === id)
+        ).filter(Boolean) as Property[]}
+      />
+      
+      {/* Sort Options Action Sheet */}
+      <Dialog open={showingSortOptions} onOpenChange={setShowingSortOptions}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sort Properties</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                // Sort by name logic
+                setShowingSortOptions(false);
+              }}
+            >
+              By Name
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                // Sort by serial number logic
+                setShowingSortOptions(false);
+              }}
+            >
+              By Serial Number
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                // Sort by status logic
+                setShowingSortOptions(false);
+              }}
+            >
+              By Status
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Menu Action Sheet */}
+      <Dialog open={showingAddMenu} onOpenChange={setShowingAddMenu}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Property</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setShowingAddMenu(false);
+                setCreateItemModalOpen(true);
+              }}
+            >
+              Create New Property
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setShowingAddMenu(false);
+                // Import from DA-2062 logic
+                toast({
+                  title: "Import from DA-2062",
+                  description: "This feature is coming soon.",
+                });
+              }}
+            >
+              Import from DA-2062
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// Filter Chip Component
+interface FilterChipProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors uppercase tracking-wider",
+        active
+          ? "bg-ios-accent text-white"
+          : "bg-ios-background text-tertiary-text hover:bg-ios-border/20"
+      )}
+    >
+      {label}
+    </button>
+  );
+};
+
+// Property Card Component
+interface PropertyCardProps {
+  property: Property;
+  isSelected: boolean;
+  isSelectMode: boolean;
+  onTap: () => void;
+  onTransfer: () => void;
+}
+
+const PropertyCard: React.FC<PropertyCardProps> = ({ 
+  property, 
+  isSelected, 
+  isSelectMode, 
+  onTap,
+  onTransfer 
+}) => {
+  const [isPressed, setIsPressed] = useState(false);
+  const category = getCategoryFromName(property.name);
+  const categoryIcon = getCategoryIcon(property.name);
+  const needsVerification = !property.verified;
+  const lastInventoryDate = property.lastInventoryDate;
+  
+  const getStatusColor = (status: string) => {
+    const normalizedStatus = normalizeItemStatus(status);
+    switch (normalizedStatus) {
+      case 'Operational': return 'text-ios-success';
+      case 'Maintenance': 
+      case 'Non-Operational': return 'text-ios-warning';
+      case 'Missing': return 'text-ios-destructive';
+      default: return 'text-secondary-text';
+    }
+  };
+  
+  const getVerificationDateColor = (date: string | null) => {
+    if (!date) return 'text-tertiary-text';
+    const daysSince = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSince > 90) return 'text-ios-destructive';
+    if (daysSince > 30) return 'text-ios-warning';
+    return 'text-secondary-text';
+  };
+  
+  return (
+    <div
+      className={`transition-transform duration-150 ${isPressed ? 'scale-[0.98]' : 'scale-100'}`}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onMouseLeave={() => setIsPressed(false)}
+    >
+      <CleanCard 
+        className={cn(
+          "cursor-pointer hover:shadow-md transition-shadow duration-200 overflow-hidden",
+          isSelected && "ring-2 ring-ios-accent"
+        )}
+        onClick={onTap}
+        padding="none"
+      >
+        <div className="p-6">
+          <div className="space-y-5">
+            {/* Property header with serif font */}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  {isSelectMode && (
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0",
+                      isSelected ? "bg-ios-accent border-ios-accent" : "border-ios-border"
+                    )}>
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                  <h3 className="text-lg font-medium text-primary-text" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+                    {property.name}
+                  </h3>
+                  {property.isSensitive && (
+                    <Shield className="h-4 w-4 text-ios-warning" />
+                  )}
+                  {needsVerification && (
+                    <Info className="h-4 w-4 text-ios-destructive" />
+                  )}
+                </div>
+                <p className="text-sm text-secondary-text font-mono">
+                  SN: {property.serialNumber}
+                </p>
+                {property.nsn && (
+                  <p className="text-xs text-tertiary-text font-mono mt-1">
+                    NSN: {property.nsn}
+                  </p>
+                )}
+              </div>
+              
+              {/* Category icon */}
+              {category !== 'other' && (
+                <span className={cn("text-2xl", getCategoryColor(property.name))}>
+                  {categoryIcon}
+                </span>
+              )}
+            </div>
+            
+            {/* Status and verification info */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className={cn("text-xs uppercase tracking-wide font-medium", getStatusColor(property.status || 'Unknown'))}>
+                  {property.status || 'Unknown'}
+                </span>
+              </div>
+              
+              {lastInventoryDate && (
+                <div className="text-right">
+                  <p className="text-xs text-tertiary-text">Last verified</p>
+                  <p className={cn("text-xs font-medium", getVerificationDateColor(lastInventoryDate))}>
+                    {new Date(lastInventoryDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Action buttons for non-select mode */}
+            {!isSelectMode && (
+              <div className="pt-3 border-t border-ios-divider flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTransfer();
+                  }}
+                  className="text-ios-accent hover:bg-transparent px-0 text-sm font-medium"
+                >
+                  Transfer
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </CleanCard>
     </div>
   );
 };

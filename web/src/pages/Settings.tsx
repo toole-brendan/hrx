@@ -26,7 +26,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +34,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   UserCircle,
   Shield,
-  QrCode,
   Bell,
   Cloud,
   Save,
@@ -75,14 +73,6 @@ const securityFormSchema = z.object({
   pinTimeout: z.string().default("5"),
 });
 
-// Form schema for QR settings
-const qrFormSchema = z.object({
-  defaultPrintSize: z.string().default("medium"),
-  autoRegenerate: z.boolean().default(false),
-  includeName: z.boolean().default(true),
-  includeSerialNumber: z.boolean().default(true),
-  scanConfirmation: z.boolean().default(true),
-});
 
 // Form schema for notification settings
 const notificationFormSchema = z.object({
@@ -104,14 +94,49 @@ const syncFormSchema = z.object({
 // Define types from schemas
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type SecurityFormValues = z.infer<typeof securityFormSchema>;
-type QRFormValues = z.infer<typeof qrFormSchema>;
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 type SyncFormValues = z.infer<typeof syncFormSchema>;
+
+// Tab Button Component (iOS style)
+interface TabButtonProps {
+  title: string;
+  icon?: React.ReactNode;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick }) => (
+  <button
+    onClick={onClick}
+    className="relative pb-4 transition-all duration-200 flex items-center gap-2"
+  >
+    {icon && (
+      <span className={`transition-colors duration-200 ${
+        isSelected ? 'text-ios-accent' : 'text-tertiary-text'
+      }`}>
+        {icon}
+      </span>
+    )}
+    <span 
+      className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
+        isSelected ? 'text-ios-accent' : 'text-tertiary-text'
+      }`}
+    >
+      {title}
+    </span>
+    <div 
+      className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200 ${
+        isSelected ? 'bg-ios-accent' : 'bg-transparent'
+      }`}
+    />
+  </button>
+);
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [selectedTab, setSelectedTab] = useState<string>('profile');
   
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -136,17 +161,6 @@ const Settings: React.FC = () => {
     },
   });
   
-  // QR settings form
-  const qrForm = useForm<QRFormValues>({
-    resolver: zodResolver(qrFormSchema),
-    defaultValues: {
-      defaultPrintSize: "medium",
-      autoRegenerate: false,
-      includeName: true,
-      includeSerialNumber: true,
-      scanConfirmation: true,
-    },
-  });
   
   // Notification settings form
   const notificationForm = useForm<NotificationFormValues>({
@@ -186,12 +200,6 @@ const Settings: React.FC = () => {
     });
   };
   
-  const onQRSubmit = (data: QRFormValues) => {
-    toast({
-      title: "QR Code Settings Updated",
-      description: "Your QR code preferences have been saved",
-    });
-  };
   
   const onNotificationSubmit = (data: NotificationFormValues) => {
     toast({
@@ -234,68 +242,67 @@ const Settings: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-app-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <ElegantSectionHeader title="CONFIGURATION" className="mb-4" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-            <div>
-              <h1 className="text-3xl font-light tracking-tight text-primary-text">
-                Account Settings
-              </h1>
-              <p className="text-secondary-text mt-1">
-                Manage your account settings and preferences
-              </p>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Header - iOS style */}
+        <div className="mb-10">
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-6">
+            <div></div>
+            <div></div>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-b border-ios-divider mb-6" />
+          
+          {/* Title section */}
+          <div className="mb-8">
+            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              Settings
+            </h1>
+            <p className="text-secondary-text mt-2">
+              Manage your account settings and preferences
+            </p>
+          </div>
+        </div>
+        
+        {/* Tab selector - iOS style */}
+        <div className="mb-6">
+          <div className="border-b border-ios-border">
+            <div className="flex justify-between items-center overflow-x-auto">
+              <TabButton
+                title="profile"
+                icon={<UserCircle className="h-4 w-4" />}
+                isSelected={selectedTab === 'profile'}
+                onClick={() => setSelectedTab('profile')}
+              />
+              <TabButton
+                title="security"
+                icon={<Shield className="h-4 w-4" />}
+                isSelected={selectedTab === 'security'}
+                onClick={() => setSelectedTab('security')}
+              />
+              <TabButton
+                title="alerts"
+                icon={<Bell className="h-4 w-4" />}
+                isSelected={selectedTab === 'notifications'}
+                onClick={() => setSelectedTab('notifications')}
+              />
+              <TabButton
+                title="sync"
+                icon={<Cloud className="h-4 w-4" />}
+                isSelected={selectedTab === 'sync'}
+                onClick={() => setSelectedTab('sync')}
+              />
             </div>
           </div>
         </div>
         
-        <CleanCard padding="none" className="mb-6">
-          <Tabs defaultValue="profile" className="w-full">
-            <div className="border-b border-ios-border">
-              <TabsList className="grid grid-cols-5 w-full bg-transparent">
-                <TabsTrigger 
-                  value="profile"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
-                >
-                  <UserCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">PROFILE</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="security"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
-                >
-                  <Shield className="h-4 w-4" />
-                  <span className="hidden sm:inline">SECURITY</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="qr-codes"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
-                >
-                  <QrCode className="h-4 w-4" />
-                  <span className="hidden sm:inline">QR CODES</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="notifications"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
-                >
-                  <Bell className="h-4 w-4" />
-                  <span className="hidden sm:inline">ALERTS</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="sync"
-                  className="text-sm uppercase tracking-wide font-medium data-[state=active]:bg-transparent data-[state=active]:text-primary-text data-[state=active]:border-b-2 data-[state=active]:border-ios-accent rounded-none flex items-center gap-2"
-                >
-                  <Cloud className="h-4 w-4" />
-                  <span className="hidden sm:inline">SYNC</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            
-            {/* Profile Settings */}
-            <TabsContent value="profile" className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Main content */}
+        <div className="space-y-3">
+          {selectedTab === 'profile' && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <CleanCard>
                   <div className="mb-6">
                     <ElegantSectionHeader title="PERSONAL INFORMATION" size="sm" />
@@ -403,7 +410,7 @@ const Settings: React.FC = () => {
                   </Form>
                 </CleanCard>
                 
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
                   <CleanCard>
                     <div className="mb-6">
                       <ElegantSectionHeader title="DEVICE" size="sm" />
@@ -469,10 +476,10 @@ const Settings: React.FC = () => {
                   </CleanCard>
                 </div>
               </div>
-            </TabsContent>
-            
-            {/* Security Settings - keeping existing structure but with CleanCard */}
-            <TabsContent value="security" className="p-6">
+            </>
+          )}
+          
+          {selectedTab === 'security' && (
               <CleanCard>
                 <div className="mb-6">
                   <ElegantSectionHeader title="ACCESS CONTROL" size="sm" />
@@ -588,147 +595,9 @@ const Settings: React.FC = () => {
                   </form>
                 </Form>
               </CleanCard>
-            </TabsContent>
-            
-            {/* Additional tabs can be implemented similarly - keeping existing functionality but with iOS styling */}
-            <TabsContent value="qr-codes" className="p-6">
-              <CleanCard>
-                <div className="mb-6">
-                  <ElegantSectionHeader title="QR CODE CONFIGURATION" size="sm" />
-                  <p className="text-secondary-text mt-1">QR Code generation and scanning preferences</p>
-                </div>
-                
-                <Form {...qrForm}>
-                  <form onSubmit={qrForm.handleSubmit(onQRSubmit)} className="space-y-6">
-                    <FormField
-                      control={qrForm.control}
-                      name="defaultPrintSize"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Default Print Size</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
-                                <SelectValue placeholder="Select size" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="small">Small (1" × 1")</SelectItem>
-                              <SelectItem value="medium">Medium (2" × 2")</SelectItem>
-                              <SelectItem value="large">Large (3" × 3")</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="space-y-4">
-                      <FormField
-                        control={qrForm.control}
-                        name="autoRegenerate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Auto-regenerate QR codes
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Automatically create new codes after transfers
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={qrForm.control}
-                        name="includeName"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Include item name
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Display item name on QR label
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={qrForm.control}
-                        name="includeSerialNumber"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Include serial number
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Display serial number on QR label
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={qrForm.control}
-                        name="scanConfirmation"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Require scan confirmation
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Show confirmation dialog after scanning
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <Button 
-                      type="submit"
-                      className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
-                    >
-                      <Save className="h-4 w-4" />
-                      Save QR Settings
-                    </Button>
-                  </form>
-                </Form>
-              </CleanCard>
-            </TabsContent>
-            
-            <TabsContent value="notifications" className="p-6">
+          )}
+          
+          {selectedTab === 'notifications' && (
               <CleanCard>
                 <div className="mb-6">
                   <ElegantSectionHeader title="NOTIFICATION PREFERENCES" size="sm" />
@@ -874,9 +743,9 @@ const Settings: React.FC = () => {
                   </form>
                 </Form>
               </CleanCard>
-            </TabsContent>
-            
-            <TabsContent value="sync" className="p-6">
+          )}
+          
+          {selectedTab === 'sync' && (
               <CleanCard>
                 <div className="mb-6">
                   <ElegantSectionHeader title="SYNCHRONIZATION" size="sm" />
@@ -908,9 +777,11 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </CleanCard>
-            </TabsContent>
-          </Tabs>
-        </CleanCard>
+          )}
+        </div>
+        
+        {/* Bottom padding for mobile navigation */}
+        <div className="h-24"></div>
       </div>
     </div>
   );

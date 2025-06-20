@@ -82,6 +82,8 @@ export interface Property {
   components?: Component[];
   isComponent?: boolean; // Flag if the item itself is a component
   parentItemId?: string; // Link to parent if it's a component
+  verified?: boolean; // Whether the item has been verified
+  lin?: string; // Line Item Number
 }
 
 // Transfer Types

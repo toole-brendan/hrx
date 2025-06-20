@@ -52,18 +52,6 @@ export const DocumentsInbox: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-8">
-        <ElegantSectionHeader title="DOCUMENTS" className="mb-4" />
-        <div>
-          <h1 className="text-3xl font-light tracking-tight text-primary-text">
-            Document Management
-          </h1>
-          <p className="text-secondary-text mt-1">
-            Maintenance forms and official documents
-          </p>
-        </div>
-      </div>
 
       {/* Tabs */}
       <CleanCard padding="none">
@@ -153,7 +141,18 @@ interface DocumentCardProps {
 }
 
 const DocumentCard: React.FC<DocumentCardProps> = ({ document, selectedTab, onView }) => {
-  const attachments = document.attachments ? JSON.parse(document.attachments) : [];
+  let attachments = [];
+  if (document.attachments) {
+    try {
+      // Try to parse as JSON
+      attachments = JSON.parse(document.attachments);
+    } catch (e) {
+      // If parsing fails, check if it's a URL string
+      if (typeof document.attachments === 'string' && document.attachments.startsWith('http')) {
+        attachments = [{ url: document.attachments, name: 'Attachment' }];
+      }
+    }
+  }
   const isUnread = document.status === 'unread';
 
   return (

@@ -20,6 +20,9 @@ function mapPropertyToProperty(property: any): Property {
     parentItemId: property.parent_item_id,
     nsn: property.nsn,
     assignedTo: property.assigned_to_user_id?.toString(),
+    verified: property.verified || false,
+    lastInventoryDate: property.last_inventory_date || property.last_verified_at,
+    isSensitive: property.is_sensitive_item || false,
   };
 }
 

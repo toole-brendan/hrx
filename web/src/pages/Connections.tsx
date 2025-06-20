@@ -168,106 +168,96 @@ export const Connections: React.FC = () => {
     }
   };
 
-  const getCountForFilter = (filter: ConnectionFilter): number => {
-    switch (filter) {
-      case ConnectionFilter.ALL:
-        return connections.length;
-      case ConnectionFilter.CONNECTED:
-        return acceptedConnections.length;
-      case ConnectionFilter.PENDING:
-        return pendingRequests.length;
-      default:
-        return 0;
-    }
-  };
 
      if (isLoading) {
      return (
-       <div className="min-h-screen bg-ios-background">
+       <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
          <MinimalLoadingView text="LOADING NETWORK" />
        </div>
      );
    }
 
   return (
-    <div className="min-h-screen bg-ios-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
       <div className="max-w-4xl mx-auto px-6 py-8">
         
-        {/* Header */}
+        {/* Header - iOS style */}
         <div className="mb-10">
-          <div className="flex items-center gap-3 mb-2">
-            <Globe className="h-8 w-8 text-ios-accent" />
-            <h1 className="text-3xl font-light text-primary-text tracking-tight">
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-6">
+            <div></div>
+            <div></div>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-b border-ios-divider mb-6" />
+          
+          {/* Title section */}
+          <div className="mb-8">
+            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
               Network
             </h1>
           </div>
-          <p className="text-secondary-text">
-            Connect with other users to share and transfer property items
-          </p>
         </div>
 
-        {/* Network Overview Stats */}
-        <div className="mb-10">
-          <ElegantSectionHeader 
-            title="Network Overview" 
-            subtitle="Your connections and pending requests"
-            className="mb-6"
-            size="lg"
-          />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CleanStatCard
-              title="Connected"
-              value={acceptedConnections.length}
-              icon={<Users className="h-6 w-6" />}
-              color="success"
-            />
-            <CleanStatCard
-              title="Pending"
-              value={pendingRequests.length}
-              icon={<Clock className="h-6 w-6" />}
-              color="warning"
-            />
+        {/* Tab selector - iOS style */}
+        <div className="mb-6">
+          <div className="border-b border-ios-border">
+            <div className="flex justify-between items-center">
+              <TabButton
+                title="all"
+                isSelected={selectedFilter === ConnectionFilter.ALL}
+                onClick={() => setSelectedFilter(ConnectionFilter.ALL)}
+                badge={connections.length}
+              />
+              <TabButton
+                title="connected"
+                isSelected={selectedFilter === ConnectionFilter.CONNECTED}
+                onClick={() => setSelectedFilter(ConnectionFilter.CONNECTED)}
+                badge={acceptedConnections.length}
+              />
+              <TabButton
+                title="pending"
+                isSelected={selectedFilter === ConnectionFilter.PENDING}
+                onClick={() => setSelectedFilter(ConnectionFilter.PENDING)}
+                badge={pendingRequests.length}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Search and Add Connection */}
-        <div className="mb-10">
-          <ElegantSectionHeader 
-            title="Add Connection" 
-            subtitle="Search for users to connect with"
-            className="mb-6"
-          />
-          
-          <CleanCard className="p-6">
-            <div className="flex gap-3 mb-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
-                <Input
-                  placeholder="Search by name, email, rank, or unit..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-10 bg-ios-secondary-background border-ios-divider"
-                />
-              </div>
+        {/* Search for new connections */}
+        <div className="mb-6 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
+            <Input
+              placeholder="Search for users to connect with..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent shadow-sm"
+            />
+            {searchQuery && (
               <Button
                 onClick={handleSearchUsers}
-                disabled={isSearching || !searchQuery.trim()}
-                className="bg-ios-accent hover:bg-ios-accent/90"
+                disabled={isSearching}
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 h-7"
               >
                 {isSearching ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
                 ) : (
-                  <Search className="h-4 w-4" />
+                  "Search"
                 )}
               </Button>
-            </div>
-
-            {/* Search Results */}
-            {searchResults.length > 0 && (
+            )}
+          </div>
+          
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <CleanCard className="p-4">
               <div className="space-y-3">
-                <div className="text-sm font-medium text-secondary-text uppercase tracking-wide">
+                <div className="text-xs font-medium text-secondary-text uppercase tracking-wide">
                   Search Results
                 </div>
                 {searchResults.map((searchUser) => (
@@ -279,24 +269,10 @@ export const Connections: React.FC = () => {
                   />
                 ))}
               </div>
-            )}
-          </CleanCard>
+            </CleanCard>
+          )}
         </div>
 
-        {/* Filter Pills */}
-        <div className="mb-8">
-          <div className="flex gap-4">
-            {Object.values(ConnectionFilter).map((filter) => (
-              <FilterPill
-                key={filter}
-                title={filter}
-                count={getCountForFilter(filter)}
-                isSelected={selectedFilter === filter}
-                onClick={() => setSelectedFilter(filter)}
-              />
-            ))}
-          </div>
-        </div>
 
         {/* Pending Requests Section */}
         {pendingRequests.length > 0 && (selectedFilter === ConnectionFilter.ALL || selectedFilter === ConnectionFilter.PENDING) && (
@@ -351,6 +327,9 @@ export const Connections: React.FC = () => {
              }
            />
         )}
+
+        {/* Bottom padding for mobile navigation */}
+        <div className="h-24"></div>
       </div>
     </div>
   );
@@ -358,67 +337,40 @@ export const Connections: React.FC = () => {
 
 // Supporting Components
 
-interface CleanStatCardProps {
+
+// Tab Button Component (iOS style)
+interface TabButtonProps {
   title: string;
-  value: number;
-  icon: React.ReactNode;
-  color: 'success' | 'warning' | 'info';
-}
-
-const CleanStatCard: React.FC<CleanStatCardProps> = ({ title, value, icon, color }) => {
-  const colorClasses = {
-    success: 'text-ios-success',
-    warning: 'text-ios-warning', 
-    info: 'text-ios-accent'
-  };
-
-  return (
-    <CleanCard className="p-6">
-      <div className="flex items-start justify-between">
-        <div className="space-y-3">
-          <div className={`${colorClasses[color]}`}>
-            {icon}
-          </div>
-          <div>
-            <div className="text-3xl font-light font-mono text-primary-text">
-              {String(value).padStart(2, '0')}
-            </div>
-            <div className="text-sm font-medium text-secondary-text uppercase tracking-wide">
-              {title}
-            </div>
-          </div>
-        </div>
-      </div>
-    </CleanCard>
-  );
-};
-
-interface FilterPillProps {
-  title: string;
-  count: number;
   isSelected: boolean;
   onClick: () => void;
+  badge?: number;
 }
 
-const FilterPill: React.FC<FilterPillProps> = ({ title, count, isSelected, onClick }) => (
-  <Button
-    variant="ghost"
+const TabButton: React.FC<TabButtonProps> = ({ title, isSelected, onClick, badge }) => (
+  <button
     onClick={onClick}
-    className={`flex flex-col items-center gap-1 px-4 py-3 h-auto ${
-      isSelected 
-        ? 'text-ios-accent border-b-2 border-ios-accent bg-ios-accent/5' 
-        : 'text-tertiary-text hover:text-secondary-text'
-    }`}
+    className="relative pb-4 transition-all duration-200"
   >
-    <span className="text-sm font-medium uppercase tracking-wide">
-      {title}
-    </span>
-    {count > 0 && (
-      <span className="text-xs font-mono">
-        {count}
+    <div className="flex items-center space-x-2">
+      <span 
+        className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
+          isSelected ? 'text-ios-accent' : 'text-tertiary-text'
+        }`}
+      >
+        {title}
       </span>
-    )}
-  </Button>
+      {badge !== undefined && badge > 0 && (
+        <span className="bg-ios-destructive text-white text-[11px] font-medium px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+          {badge}
+        </span>
+      )}
+    </div>
+    <div 
+      className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200 ${
+        isSelected ? 'bg-ios-accent' : 'bg-transparent'
+      }`}
+    />
+  </button>
 );
 
 interface UserSearchResultCardProps {
