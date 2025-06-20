@@ -820,6 +820,25 @@
   .badge-military.danger {
     @apply bg-destructive/15 text-destructive;
   }
+
+  /* Hide scrollbar for horizontal scroll areas */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+  
+  /* Ensure horizontal scrolling works */
+  .overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .w-max {
+    width: max-content !important;
+  }
   
   /* Header and section styles */
   .section-header {

@@ -1,18 +1,17 @@
 import React from 'react';
 import { Filter, Radio, Eye, Package, Shield, ClipboardCheck, Wrench, ArrowDownUp } from "lucide-react";
 
-// Category options for dropdown filtering
+// Category options for dropdown filtering - matching iOS exactly
 export const categoryOptions = [
-  { value: "all", label: "All Categories" },
-  { value: "weapons", label: "Weapons Systems" },
-  { value: "comsec", label: "COMSEC & Communications" },
-  { value: "optics", label: "Optics & Sensors" },
-  { value: "vehicles", label: "Vehicles & Mobility" },
-  { value: "individual-equipment", label: "Individual Equipment (TA-50)" },
-  { value: "medical", label: "Medical Equipment" },
-  { value: "support-equipment", label: "Support & Training Equipment" },
-  { value: "electronics", label: "IT & Electronics" },
-  { value: "other", label: "Other Equipment" }
+  { value: "weapons", label: "Weapons" },
+  { value: "comsec", label: "COMSEC" },
+  { value: "optics", label: "Optics" },
+  { value: "vehicles", label: "Vehicles" },
+  { value: "individual-equipment", label: "TA-50" },
+  { value: "medical", label: "Medical" },
+  { value: "support-equipment", label: "Support" },
+  { value: "electronics", label: "IT/Elec" },
+  { value: "other", label: "Other" }
 ];
 
 // Determine category from item name
