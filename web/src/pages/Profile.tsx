@@ -1,18 +1,308 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Calendar, Tag, Award, Truck, Radio, Eye, AlertTriangle, Star, FileText, ChevronRight, Fingerprint, UserCheck, Clock, BarChart3, ArrowRight
+import { useNotifications } from '@/contexts/NotificationContext';
+import { Link } from 'wouter';
+import { 
+  User, 
+  Mail, 
+  Star, 
+  Settings, 
+  Edit, 
+  Inbox, 
+  Info, 
+  HelpCircle, 
+  AlertTriangle, 
+  Lock, 
+  LogOut,
+  ChevronRight
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageWrapper } from '@/components/ui/page-wrapper';
-import { StandardPageLayout } from '@/components/layout/StandardPageLayout'; export default function Profile() { const { user } = useAuth(); if (!user) { return ( <PageWrapper withPadding={true}> <div className="pt-16 pb-10"> <div className="text-xs uppercase tracking-wider font-medium mb-1 text-muted-foreground"> PROFILE </div> <h1 className="text-3xl font-light tracking-tight mb-1">Personnel Profile</h1> </div> <Card className="overflow-hidden border-gray-200 shadow-none bg-white"> <CardContent className="pt-6"> <p>Please log in to view your profile.</p> </CardContent> </Card> </PageWrapper> ); } const getInitials = (name: string) => { return name .split(' ') .map(part => part[0]) .join('') .toUpperCase(); }; // Profile actions const actions = ( <div className="flex items-center gap-2"> <Button size="sm" variant="default" className="flex items-center gap-1 uppercase tracking-wider text-xs" > <FileText className="h-4 w-4" /> <span className="hidden sm:inline">Export Data</span> </Button> <Button size="sm" variant="default" className="flex items-center gap-1 uppercase tracking-wider text-xs" > <UserCheck className="h-4 w-4" /> <span className="hidden sm:inline">Update Profile</span> </Button> </div> ); return ( <PageWrapper withPadding={true}> {/* Header section with 8VC style formatting */} <div className="pt-16 pb-10"> {/* Category label - Small all-caps category label */} <div className="text-xs uppercase tracking-wider font-medium mb-1 text-muted-foreground"> PERSONNEL </div> {/* Main title - following 8VC typography */} <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0"> <div> <h1 className="text-3xl font-light tracking-tight mb-1">{user.name}</h1> <p className="text-sm text-muted-foreground">{user.position} – {user.unit}</p> </div> {actions} </div> </div> <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Profile Card */} <Card className="md:col-span-1 overflow-hidden border-gray-200 shadow-none bg-white"> <div className="p-4"> <div className="uppercase text-xs tracking-wider font-medium text-gray-500 mb-1"> PERSONNEL INFORMATION </div> <div className="text-lg font-normal text-gray-900 flex items-center justify-between"> <span>Service Record</span> <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 uppercase text-[10px] tracking-wider font-medium rounded-none"> {user.rank} </Badge> </div> </div> <CardContent className="p-4 pt-0"> <div className="flex flex-col items-center space-y-4 pt-4"> <Avatar className="h-24 w-24"> <AvatarImage src="" alt={user.name} /> <AvatarFallback className="text-2xl bg-primary text-white">{getInitials(user.name)}</AvatarFallback> </Avatar> <div className="text-center"> <h3 className="text-xl font-medium">{user.name}</h3> <p className="text-sm text-muted-foreground">{user.position}</p> <p className="text-xs text-muted-foreground">{user.unit}</p> </div> <Separator className="bg-gray-100" /> <div className="w-full space-y-3"> <div className="flex justify-between items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500 flex items-center gap-2"> <Shield className="h-4 w-4" /> Years of Service </span> <span className="font-normal">{user.yearsOfService} years</span> </div> <div className="flex justify-between items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500 flex items-center gap-2"> <Calendar className="h-4 w-4" /> Command Time </span> <span className="font-normal">{user.commandTime}</span> </div> <div className="flex justify-between items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500 flex items-center gap-2"> <Tag className="h-4 w-4" /> ID Number </span> <span className="font-normal font-mono">{user.id}</span> </div> <div className="flex justify-between items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500 flex items-center gap-2"> <Award className="h-4 w-4" /> Responsibility </span> <span className="font-normal">Hand Receipt Holder</span> </div> </div> </div> </CardContent> </Card> {/* Main Content Area */} <div className="md:col-span-2 space-y-6"> {/* Property Overview */} <Card className="overflow-hidden border-gray-200 shadow-none bg-white"> <div className="p-4"> <div className="uppercase text-xs tracking-wider font-medium text-gray-500 mb-1"> PROPERTY MANAGEMENT </div> <div className="text-lg font-normal text-gray-900 flex items-center justify-between"> <span>Equipment Overview</span> <span className="text-xs text-muted-foreground">Value: {user.valueManaged}</span> </div> </div> <CardContent className="p-0"> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-100"> <PropertyCard icon={<Truck className="h-5 w-5 text-blue-500" />} title="Vehicles" count={user.equipmentSummary?.vehicles || 0} /> <PropertyCard icon={<Shield className="h-5 w-5 text-red-500" />} title="Weapons" count={user.equipmentSummary?.weapons || 0} /> <PropertyCard icon={<Radio className="h-5 w-5 text-green-500" />} title="Comms" count={user.equipmentSummary?.communications || 0} /> <PropertyCard icon={<Eye className="h-5 w-5 text-purple-500" />} title="Optics" count={user.equipmentSummary?.opticalSystems || 0} /> </div> <div className="p-4 border-t border-gray-100"> <div className="flex justify-between mb-2 items-center"> <div className="text-xs uppercase tracking-wider font-medium text-gray-500 flex items-center gap-2"> <Fingerprint className="h-4 w-4 text-amber-500" /> Sensitive Items Accountability </div> <span className="text-sm">{user.equipmentSummary?.sensitiveItems || 0} items</span> </div> <Progress value={100} className="h-2" /> <div className="flex items-center justify-between mt-1"> <p className="text-xs text-muted-foreground flex items-center gap-1"> <Clock className="h-3 w-3" /> Last inventory: 6 hours ago </p> <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200 uppercase text-[10px] tracking-wider font-medium rounded-none"> 100% Verified </Badge> </div> </div> </CardContent> </Card> {/* Tabs Section */} <Card className="overflow-hidden border-gray-200 shadow-none bg-white"> <div className="p-4"> <div className="uppercase text-xs tracking-wider font-medium text-gray-500 mb-1"> ACCOUNTABILITY </div> <div className="text-lg font-normal text-gray-900"> Calendar & Performance </div> </div> <CardContent className="p-0"> <Tabs defaultValue="upcoming" className="w-full"> <TabsList className="grid grid-cols-2 w-full rounded-none bg-gray-50 h-8"> <TabsTrigger value="upcoming" className="uppercase tracking-wider text-[10px] font-medium">UPCOMING EVENTS</TabsTrigger> <TabsTrigger value="career" className="uppercase tracking-wider text-[10px] font-medium">CAREER METRICS</TabsTrigger> </TabsList> <div className="p-4"> <TabsContent value="upcoming" className="m-0"> <ul className="space-y-4"> {user.upcomingEvents?.map((event, i) => ( <li key={i} className="flex items-start space-x-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0"> <Star className="h-5 w-5 text-amber-500 mt-0.5" /> <div> <p className="font-medium">{event.title}</p> <p className="text-xs text-muted-foreground mt-0.5">Timeline: {event.date}</p> </div> </li> ))} <li className="flex items-start space-x-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0"> <FileText className="h-5 w-5 text-blue-500 mt-0.5" /> <div> <p className="font-medium">Monthly Sensitive Items Inventory</p> <p className="text-xs text-muted-foreground mt-0.5">Due: 15 days</p> </div> </li> <li className="flex items-start space-x-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0"> <Calendar className="h-5 w-5 text-indigo-500 mt-0.5" /> <div> <p className="font-medium">Quarterly Hand Receipt Reconciliation</p> <p className="text-xs text-muted-foreground mt-0.5">Due: 37 days</p> </div> </li> </ul> </TabsContent> <TabsContent value="career" className="m-0"> <div className="space-y-4"> <div> <div className="flex justify-between mb-1 items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500">Property Accountability</span> <span className="text-sm">98%</span> </div> <Progress value={98} className="h-2" /> </div> <div> <div className="flex justify-between mb-1 items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500">Transfer Completion Rate</span> <span className="text-sm">94%</span> </div> <Progress value={94} className="h-2" /> </div> <div> <div className="flex justify-between mb-1 items-center"> <span className="text-xs uppercase tracking-wider font-medium text-gray-500">Supply Requisition Efficiency</span> <span className="text-sm">87%</span> </div> <Progress value={87} className="h-2" /> </div> <Separator className="my-4 bg-gray-100" /> <div className="grid grid-cols-2 gap-px bg-gray-100"> <div className="p-4 bg-white"> <h4 className="text-xs uppercase tracking-wider font-medium text-gray-500 mb-1">TRANSFERS COMPLETED</h4> <div className="flex items-center justify-between"> <p className="text-2xl font-light tracking-tight">287</p> <BarChart3 className="h-4 w-4 text-primary" /> </div> </div> <div className="p-4 bg-white"> <h4 className="text-xs uppercase tracking-wider font-medium text-gray-500 mb-1">EQUIPMENT STATUS</h4> <div className="flex items-center justify-between"> <p className="text-2xl font-light tracking-tight">93%</p> <BarChart3 className="h-4 w-4 text-primary" /> </div> </div> </div> </div> </TabsContent> </div> </Tabs> </CardContent> <div className="px-4 py-2 border-t border-gray-100 flex justify-end"> <Button variant="ghost" className="text-xs uppercase tracking-wider text-purple-600 hover:bg-transparent hover:text-purple-800" onClick={() => {}} > VIEW FULL HISTORY <ArrowRight className="h-3 w-3 ml-1" /> </Button> </div> </Card> </div> </div> </PageWrapper> );
-} // Helper component for property cards
-function PropertyCard({ icon, title, count
-}: { icon: React.ReactNode; title: string; count: number;
-}) { return ( <div className="p-4 bg-white"> <h4 className="text-xs uppercase tracking-wider font-medium text-gray-500 mb-1">{title}</h4> <div className="flex items-center justify-between"> <p className="text-2xl font-light tracking-tight">{count}</p> {icon} </div> </div> );
+
+// iOS-style components
+import { 
+  CleanCard, 
+  ElegantSectionHeader,
+  MinimalLoadingView,
+  MinimalEmptyState
+} from '@/components/ios';
+
+import { useUnreadDocumentCount } from '@/hooks/useDocuments';
+
+export default function Profile() {
+  const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
+  const { data: unreadDocumentCount = 0 } = useUnreadDocumentCount();
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-ios-background">
+        <MinimalLoadingView text="LOADING PROFILE" />
+      </div>
+    );
+  }
+
+  const formatUserName = () => {
+    if (user.lastName && user.firstName) {
+      return `${user.lastName}, ${user.firstName}`;
+    } else if (user.lastName) {
+      return user.lastName;
+    } else if (user.firstName) {
+      return user.firstName;
+    } else {
+      return user.name || "No name available";
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-ios-background">
+      <div className="max-w-2xl mx-auto px-6 py-8">
+        
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-light text-primary-text tracking-tight mb-2">
+            PROFILE
+          </h1>
+        </div>
+
+        <div className="space-y-8">
+          
+          {/* Profile Information Section */}
+          <div className="space-y-6">
+            <ElegantSectionHeader 
+              title="USER INFORMATION" 
+              className="mb-4"
+            />
+            
+            <CleanCard className="p-0">
+              <div className="space-y-0">
+                <ProfileInfoRow
+                  label="NAME"
+                  value={formatUserName()}
+                  icon={<User className="h-4 w-4" />}
+                />
+                
+                <ProfileDivider />
+                
+                <ProfileInfoRow
+                  label="EMAIL"
+                  value={user.email || "No email"}
+                  icon={<Mail className="h-4 w-4" />}
+                  isMonospace
+                />
+                
+                <ProfileDivider />
+                
+                <ProfileInfoRow
+                  label="RANK"
+                  value={user.rank || "No rank"}
+                  icon={<Star className="h-4 w-4" />}
+                  isMonospace
+                />
+              </div>
+            </CleanCard>
+          </div>
+
+          {/* Quick Actions Section */}
+          <div className="space-y-6">
+            <ElegantSectionHeader 
+              title="QUICK ACTIONS" 
+              className="mb-4"
+            />
+            
+            <CleanCard className="p-0">
+              <div className="space-y-0">
+                <Link href="/settings">
+                  <ProfileActionRow
+                    label="Settings"
+                    description="App preferences"
+                    icon={<Settings className="h-4 w-4" />}
+                  />
+                </Link>
+                
+                <ProfileDivider />
+                
+                <Link href="/profile/edit">
+                  <ProfileActionRow
+                    label="Edit Profile"
+                    description="Update your information"
+                    icon={<Edit className="h-4 w-4" />}
+                  />
+                </Link>
+                
+                <ProfileDivider />
+                
+                <Link href="/documents">
+                  <ProfileActionRow
+                    label="Documents"
+                    description={unreadDocumentCount > 0 ? `${unreadDocumentCount} unread` : "View inbox"}
+                    icon={<Inbox className="h-4 w-4" />}
+                    badge={unreadDocumentCount > 0 ? unreadDocumentCount.toString() : undefined}
+                  />
+                </Link>
+              </div>
+            </CleanCard>
+          </div>
+
+          {/* Support Section */}
+          <div className="space-y-6">
+            <ElegantSectionHeader 
+              title="SUPPORT" 
+              className="mb-4"
+            />
+            
+            <CleanCard className="p-0">
+              <div className="space-y-0">
+                <Link href="/about">
+                  <ProfileActionRow
+                    label="About"
+                    description="Learn more about the app"
+                    icon={<Info className="h-4 w-4" />}
+                  />
+                </Link>
+                
+                <ProfileDivider />
+                
+                <Link href="/help">
+                  <ProfileActionRow
+                    label="Help"
+                    description="Get assistance"
+                    icon={<HelpCircle className="h-4 w-4" />}
+                  />
+                </Link>
+                
+                <ProfileDivider />
+                
+                <Link href="/report-issue">
+                  <ProfileActionRow
+                    label="Report Issue"
+                    description="Report a problem"
+                    icon={<AlertTriangle className="h-4 w-4" />}
+                  />
+                </Link>
+              </div>
+            </CleanCard>
+          </div>
+
+          {/* Account Section */}
+          <div className="space-y-6">
+            <ElegantSectionHeader 
+              title="ACCOUNT" 
+              className="mb-4"
+            />
+            
+            <CleanCard className="p-0">
+              <div className="space-y-0">
+                <Link href="/change-password">
+                  <ProfileActionRow
+                    label="Change Password"
+                    description="Update security"
+                    icon={<Lock className="h-4 w-4" />}
+                  />
+                </Link>
+                
+                <ProfileDivider />
+                
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left"
+                >
+                  <ProfileActionRow
+                    label="Sign Out"
+                    description="End session"
+                    icon={<LogOut className="h-4 w-4" />}
+                    isDestructive
+                  />
+                </button>
+              </div>
+            </CleanCard>
+          </div>
+
+          {/* Bottom padding */}
+          <div className="h-10" />
+        </div>
+      </div>
+    </div>
+  );
 }
+
+// Supporting Components
+
+interface ProfileInfoRowProps {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  isMonospace?: boolean;
+}
+
+const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({ 
+  label, 
+  value, 
+  icon, 
+  isMonospace = false 
+}) => (
+  <div className="flex items-center gap-4 px-4 py-4">
+    <div className="text-tertiary-text w-5 flex justify-center">
+      {icon}
+    </div>
+    
+    <div className="text-xs font-medium text-tertiary-text uppercase tracking-wide w-16">
+      {label}
+    </div>
+    
+    <div className={`text-primary-text ${isMonospace ? 'font-mono' : ''} flex-1`}>
+      {value}
+    </div>
+  </div>
+);
+
+interface ProfileActionRowProps {
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  isDestructive?: boolean;
+  badge?: string;
+}
+
+const ProfileActionRow: React.FC<ProfileActionRowProps> = ({ 
+  label, 
+  description, 
+  icon, 
+  isDestructive = false,
+  badge 
+}) => (
+  <div className="flex items-center gap-4 px-4 py-4 hover:bg-ios-secondary-background/50 transition-colors cursor-pointer">
+    <div className={`w-5 flex justify-center ${isDestructive ? 'text-ios-destructive' : 'text-secondary-text'}`}>
+      {icon}
+    </div>
+    
+    <div className="flex-1">
+      <div className={`font-medium ${isDestructive ? 'text-ios-destructive' : 'text-primary-text'}`}>
+        {label}
+      </div>
+      <div className="text-sm text-tertiary-text">
+        {description}
+      </div>
+    </div>
+    
+    {badge && (
+      <div className="bg-ios-accent text-white text-xs font-mono px-2 py-1 rounded-full">
+        {badge}
+      </div>
+    )}
+    
+    <div className="text-tertiary-text">
+      <ChevronRight className="h-3 w-3" />
+    </div>
+  </div>
+);
+
+const ProfileDivider: React.FC = () => (
+  <div className="h-px bg-ios-divider ml-12" />
+);

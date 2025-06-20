@@ -13,6 +13,8 @@ import AuditLog from "./pages/AuditLog";
 import Settings from "./pages/Settings";
 import PropertyBook from "./pages/PropertyBook";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
+import ChangePassword from "./pages/ChangePassword";
 import SensitiveItems from "./pages/SensitiveItems";
 import Maintenance from "./pages/Maintenance";
 import Documents from "./pages/Documents";
@@ -58,6 +60,8 @@ function Router() {
         <Route path="/ledger-verification" component={() => <LedgerVerificationPage />} />
         <Route path="/settings" component={() => <Settings />} />
         <Route path="/profile" component={() => <Profile />} />
+        <Route path="/profile/edit" component={() => <EditProfile />} />
+        <Route path="/change-password" component={() => <ChangePassword />} />
         <Route path="/login" component={() => <Login />} />
         <Route path="/register" component={() => <Register />} />
         <Route component={() => <NotFound />} />
