@@ -93,10 +93,10 @@ const Register: React.FC = () => {
         const error = await response.json();
         throw new Error(error.error || error.message || 'Registration failed');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Registration Failed",
-        description: error.message || "An error occurred during registration",
+        description: error instanceof Error ? error.message : "An error occurred during registration",
         variant: "destructive",
       });
     } finally {

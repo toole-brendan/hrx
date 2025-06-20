@@ -48,7 +48,7 @@ export function useCreateTransfer() {
         description: `Transfer request created for ${newTransfer.name}`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error?.message || 'Failed to create transfer request',

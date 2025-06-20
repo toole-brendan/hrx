@@ -4,7 +4,7 @@ import { getDocuments, markAsRead, sendMaintenanceForm, Document, CreateMaintena
 export const useDocuments = (box?: 'inbox' | 'sent' | 'all', status?: string, type?: string) => {
   return useQuery({
     queryKey: ['documents', box, status, type],
-    queryFn: () => getDocuments(box, status, type),
+    queryFn: () => getDocuments(box, status),
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
 };

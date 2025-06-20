@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useReducer, useCallback } from"react";
 import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreateProperty } from"@/hooks/useProperty";
 import { useTransfers } from"@/hooks/useTransfers";
-import { Property, Transfer, Component } from"@/types";
+import { Property, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
 import { Input } from"@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from"@/components/ui/select";
@@ -25,7 +25,15 @@ import { categoryOptions, getCategoryFromName, getCategoryColor, getCategoryIcon
 import CreatePropertyDialog from"@/components/property/CreatePropertyDialog";
 import { SendMaintenanceForm } from"@/components/property/SendMaintenanceForm";
 import { DA2062ExportDialog } from"@/components/da2062/DA2062ExportDialog";
-import { DA2062ImportDialog } from"@/components/da2062/DA2062ImportDialog"; interface PropertyBookProps { 
+import { DA2062ImportDialog } from"@/components/da2062/DA2062ImportDialog";
+
+// Type alias for display items
+type DisplayItem = Property & {
+  assignedTo?: string;
+  transferDate?: string;
+};
+
+interface PropertyBookProps { 
   id?: string;
 }
 
@@ -48,7 +56,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [showingDA2062Export, setShowingDA2062Export] = useState(false);
   const [showingDA2062Import, setShowingDA2062Import] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
-  const [selectedPropertiesForExport, setSelectedPropertiesForExport] = useState<Set<number>>(new Set());
+  const [selectedPropertiesForExport, setSelectedPropertiesForExport] = useState<Set<string>>(new Set());
   const [showingSortOptions, setShowingSortOptions] = useState(false);
   const [showingAddMenu, setShowingAddMenu] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -132,7 +140,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }, [properties, transfers]);
 
   // Filter items based on search and category
-  const getFilteredItems = useCallback((items: any[], tab: string) => {
+  const getFilteredItems = useCallback((items: DisplayItem[], tab: string) => {
     return items.filter(item => {
       const name = item.name || '';
       const serialNumber = item.serialNumber || '';
@@ -303,17 +311,25 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       });
       
       setCreateItemModalOpen(false);
-    } catch (error: any) {
-      if (error.message?.includes('duplicate') || error.message?.includes('unique') || error.message?.includes('already exists')) {
-        toast({
-          title: "Duplicate Serial Number",
-          description: `An item with serial number ${itemData.serialNumber} already exists.`,
-          variant: "destructive",
-        });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message?.includes('duplicate') || error.message?.includes('unique') || error.message?.includes('already exists')) {
+          toast({
+            title: "Duplicate Serial Number",
+            description: `An item with serial number ${itemData.serialNumber} already exists.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error Creating Item",
+            description: error.message || "Failed to create the digital twin. Please try again.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Error Creating Item",
-          description: error.message || "Failed to create the digital twin. Please try again.",
+          description: "Failed to create the digital twin. Please try again.",
           variant: "destructive",
         });
       }
@@ -338,7 +354,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       const assignedItem = properties.find(item => item.id === id);
       const signedOutItemDetails = signedOutItems.find(item => item.id === id);
       
-      let itemToSelect: any = null;
+      let itemToSelect: Property | DisplayItem | null = null;
       
       if (assignedItem) {
         itemToSelect = assignedItem;
@@ -816,7 +832,7 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
 
 // Property Card Component
 interface PropertyCardProps {
-  property: Property;
+  property: Property | DisplayItem;
   isSelected: boolean;
   isSelectMode: boolean;
   onTap: () => void;

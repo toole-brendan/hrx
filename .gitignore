@@ -116,6 +116,9 @@ vite.config.ts.*
 server/public/
 public/build/
 
+# TypeScript declaration files
+*.d.ts
+
 # Go specific
 # Binaries for programs and plugins
 *.exe

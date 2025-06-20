@@ -159,7 +159,7 @@ async function fetchPropertyComponents(propertyId: string): Promise<any[]> {
 
 /** * Attach a component to a property */
 async function attachComponent(input: { propertyId: string; componentId: number; position?: string; notes?: string;
-}): Promise<any> {
+}): Promise<unknown> {
   const response = await fetch(`${API_BASE_URL}/property/${input.propertyId}/components`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -342,10 +342,10 @@ export function useCreateProperty() {
       queryClient.setQueryData<Property[]>(propertyKeys.lists(), (old) => (old ? [...old, newItem] : [newItem]));
       toast({ title: 'Success', description: `Created ${newItem.name} (SN: ${newItem.serialNumber})`, });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       // Queue for offline sync if network error
       if (!navigator.onLine || error?.message?.includes('network')) {
-        const operation = queueOfflineOperation({ type: 'create', data: error.config?.data });
+        const operation = queueOfflineOperation({ type: 'create', data: {} });
         toast({ title: 'Queued for sync', description: 'Item will be created when connection is restored', });
       } else {
         toast({ title: 'Error', description: error?.message || 'Failed to create property', variant: 'destructive', });
@@ -383,7 +383,7 @@ export function useUpdatePropertyComponents() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ id, components }: { id: string; components: any[] }) => {
+    mutationFn: async ({ id, components }: { id: string; components: unknown[] }) => {
       // For now, we'll update the entire item with new components
       // In a real implementation, you'd have a specific endpoint for this
       const currentItem = queryClient.getQueryData<Property>(propertyKeys.detail(id));
@@ -397,7 +397,7 @@ export function useUpdatePropertyComponents() {
       // Also update in the list
       queryClient.setQueryData<Property[]>(propertyKeys.lists(), (old) => old?.map(property => property.id === updatedItem.id ? updatedItem : property) || []);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Error', description: error?.message || 'Failed to update components', variant: 'destructive', });
     },
   });
@@ -439,7 +439,7 @@ export function useProcessOfflineQueue() {
         toast({ title: 'Sync Complete', description: `Processed ${result.processed} offline operations. ${result.remaining} remaining.`, });
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Sync Error', description: error?.message || 'Failed to process offline queue', variant: 'destructive', });
     },
   });
@@ -494,7 +494,7 @@ export function useAttachComponent() {
       queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
       toast({ title: 'Component Attached', description: 'Component has been successfully attached to the property', });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Error', description: error?.message || 'Failed to attach component', variant: 'destructive', });
     },
   });
@@ -514,7 +514,7 @@ export function useDetachComponent() {
       queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
       toast({ title: 'Component Detached', description: 'Component has been successfully detached from the property', });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Error', description: error?.message || 'Failed to detach component', variant: 'destructive', });
     },
   });
@@ -532,7 +532,7 @@ export function useUpdateComponentPosition() {
       queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.propertyId) });
       toast({ title: 'Position Updated', description: 'Component position has been updated successfully', });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Error', description: error?.message || 'Failed to update component position', variant: 'destructive', });
     },
   });

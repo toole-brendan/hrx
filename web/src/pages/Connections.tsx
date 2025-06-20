@@ -74,7 +74,7 @@ export const Connections: React.FC = () => {
       setSearchResults([]);
       setSearchQuery('');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ 
         title: 'Failed to send request', 
         description: error.message,
@@ -92,7 +92,7 @@ export const Connections: React.FC = () => {
         title: variables.status === 'accepted' ? 'Connection accepted' : 'Connection blocked'
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ 
         title: 'Failed to update connection', 
         description: error.message,

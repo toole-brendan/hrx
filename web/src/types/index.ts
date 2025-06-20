@@ -1,6 +1,61 @@
 // @ts-ignore
 import { LatLngExpression } from 'leaflet';
 
+// Backend API Response Types
+export interface BackendUser {
+  id: number;
+  name: string;
+  rank: string;
+  email: string;
+  unit?: string;
+}
+
+export interface BackendProperty {
+  id: number;
+  name: string;
+  serial_number: string;
+  nsn?: string;
+  category?: string;
+}
+
+export interface BackendTransfer {
+  id: number;
+  property?: BackendProperty;
+  item_name?: string;
+  serial_number?: string;
+  from_user?: BackendUser;
+  to_user?: BackendUser;
+  from?: string;
+  to?: string;
+  request_date: string;
+  resolved_date?: string;
+  status: string;
+  notes?: string;
+}
+
+export interface TransferOffer {
+  id: number;
+  property: {
+    id: number;
+    name: string;
+    serialNumber: string;
+  };
+  offeringUser: {
+    id: number;
+    name: string;
+    rank: string;
+  };
+  notes?: string;
+  expiresAt?: string;
+  createdAt: string;
+}
+
+export interface OfferResponse {
+  id: number;
+  message: string;
+  offers: TransferOffer[];
+}
+
 // User Types
 export interface User {
   id: string;
@@ -11,6 +66,7 @@ export interface User {
   rank?: string;
   position?: string;
   unit?: string;
+  phone?: string;
   yearsOfService?: number;
   commandTime?: string;
   responsibility?: string;

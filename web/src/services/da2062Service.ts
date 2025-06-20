@@ -21,7 +21,7 @@ export interface DA2062Form {
   processedAt?: string;
 }
 
-export interface EditableDA2062Item extends DA2062Item {
+export interface EditableDA2062Item extends Omit<DA2062Item, 'quantity'> {
   id: string;
   description: string;
   nsn: string;
@@ -52,12 +52,12 @@ export interface BatchImportItem {
 }
 
 export interface BatchImportResponse {
-  items: any[];
+  items: unknown[];
   created_count: number;
   failed_count: number;
   total_attempted: number;
   verified_count: number;
-  verification_needed: any[];
+  verification_needed: unknown[];
   failed_items: Array<{
     item: BatchImportItem;
     error: string;
@@ -163,7 +163,7 @@ export async function getUnverifiedItems(): Promise<any[]> {
 export async function verifyImportedItem(
   itemId: number,
   data: { serialNumber?: string; nsn?: string }
-): Promise<any> {
+): Promise<unknown> {
   const response = await fetch(`${API_BASE_URL}/da2062/verify/${itemId}`, {
     method: 'PUT',
     headers: {

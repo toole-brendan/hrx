@@ -251,7 +251,7 @@ export async function getDbStats(): Promise<{ [storeName: string]: number }> {
   const db = await getDb();
   const stats: { [storeName: string]: number } = {};
   
-  const storeNames: (keyof HandReceiptDB)[] = ['inventory', 'notifications', 'syncQueue', 'consumables', 'consumptionHistory'];
+  const storeNames = ['inventory', 'notifications', 'syncQueue', 'consumables', 'consumptionHistory'] as const;
   
   for (const storeName of storeNames) {
     const count = await db.count(storeName);
@@ -261,4 +261,27 @@ export async function getDbStats(): Promise<{ [storeName: string]: number }> {
   return stats;
 }
 
-console.log('IndexedDB helper module loaded.'); 
+console.log('IndexedDB helper module loaded.');
+
+// Aliases for compatibility with ConsumablesManager
+export const getConsumablesFromDB = getAllConsumables;
+export const saveConsumablesToDB = async (consumables: ConsumableItem[]) => {
+  const db = await getDb();
+  const tx = db.transaction('consumables', 'readwrite');
+  await tx.objectStore('consumables').clear();
+  for (const consumable of consumables) {
+    await tx.objectStore('consumables').add(consumable);
+  }
+  await tx.done;
+};
+export const deleteConsumableFromDB = deleteConsumable;
+export const updateConsumableQuantity = async (id: string, quantity: number) => {
+  const db = await getDb();
+  const consumable = await db.get('consumables', id);
+  if (consumable) {
+    consumable.currentQuantity = quantity;
+    await db.put('consumables', consumable);
+  }
+};
+export const addConsumptionHistoryEntryToDB = addConsumptionHistory;
+export const getConsumptionHistoryByItemFromDB = getConsumptionHistoryByItem; 

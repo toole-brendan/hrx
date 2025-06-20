@@ -1,4 +1,4 @@
-import { Transfer } from '@/types';
+import { Transfer, BackendTransfer, TransferOffer, OfferResponse } from '@/types';
 
 // Transfer Service API
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
@@ -16,7 +16,7 @@ function getAuthHeaders(): HeadersInit {
 /**
  * Maps backend transfer format to frontend Transfer format
  */
-function mapBackendTransferToFrontend(backendTransfer: any): Transfer {
+function mapBackendTransferToFrontend(backendTransfer: BackendTransfer): Transfer {
   return {
     id: backendTransfer.id.toString(),
     name: backendTransfer.property?.name || backendTransfer.item_name || 'Unknown Item',
@@ -24,7 +24,7 @@ function mapBackendTransferToFrontend(backendTransfer: any): Transfer {
     from: backendTransfer.from_user?.name || backendTransfer.from || 'Unknown',
     to: backendTransfer.to_user?.name || backendTransfer.to || 'Unknown',
     date: backendTransfer.request_date || new Date().toISOString(),
-    status: backendTransfer.status?.toLowerCase() || 'pending',
+    status: (backendTransfer.status?.toLowerCase() || 'pending') as 'approved' | 'rejected' | 'pending',
     approvedDate: backendTransfer.resolved_date && backendTransfer.status === 'Approved' 
       ? backendTransfer.resolved_date 
       : undefined,
@@ -186,7 +186,7 @@ export async function createOffer(data: {
   includeComponents?: boolean;
   notes?: string;
   expiresInDays?: number;
-}): Promise<any> {
+}): Promise<OfferResponse> {
   const response = await fetch(`${API_BASE_URL}/transfers/offer`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -211,7 +211,7 @@ export async function createOffer(data: {
 /**
  * Get active offers for the current user
  */
-export async function getActiveOffers(): Promise<any[]> {
+export async function getActiveOffers(): Promise<TransferOffer[]> {
   const response = await fetch(`${API_BASE_URL}/transfers/offers/active`, {
     method: 'GET',
     headers: getAuthHeaders(),
@@ -229,7 +229,7 @@ export async function getActiveOffers(): Promise<any[]> {
 /**
  * Accept a transfer offer
  */
-export async function acceptOffer(offerId: number): Promise<any> {
+export async function acceptOffer(offerId: number): Promise<BackendTransfer> {
   const response = await fetch(`${API_BASE_URL}/transfers/offers/${offerId}/accept`, {
     method: 'POST',
     headers: getAuthHeaders(),

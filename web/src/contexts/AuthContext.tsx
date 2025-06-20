@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { User } from "../types";
 
 // Define a type for the authedFetch function
-type AuthedFetch = <T = any>(input: RequestInfo | URL, init?: RequestInit) => Promise<{ data: T, response: Response }>;
+type AuthedFetch = <T = unknown>(input: RequestInfo | URL, init?: RequestInit) => Promise<{ data: T, response: Response }>;
 
 interface AuthContextType {
   user: User | null;
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // --- New authedFetch function ---
-  const authedFetch = useCallback(async <T = any>(
+  const authedFetch = useCallback(async <T = unknown>(
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<{ data: T, response: Response }> => {
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     
     if (!response.ok) {
-      let errorPayload: any = { message: `HTTP error! status: ${response.status}` };
+      let errorPayload: { message: string; details?: unknown; error?: string } = { message: `HTTP error! status: ${response.status}` };
       
       try {
         errorPayload = await response.json();
@@ -153,9 +153,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data } = await authedFetch<{ user: User }>('/auth/me');
         setUser(data.user);
         setIsAuthenticated(true);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 401 is expected when not authenticated - don't log as error
-        if (!error.message?.includes('401') && !error.message?.includes('User not authenticated')) {
+        if (error instanceof Error && !error.message?.includes('401') && !error.message?.includes('User not authenticated')) {
           console.warn("Check auth status failed:", error);
         }
         setUser(null);
@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(data.user);
         setIsAuthenticated(true);
       } else {
-        let errorData: any = { message: 'Login failed' };
+        let errorData: { message: string; details?: unknown; error?: string } = { message: 'Login failed' };
         
         try {
           errorData = await response.json();
@@ -227,7 +227,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!BYPASS_AUTH) {
       try {
         await authedFetch('/auth/logout', { method: 'POST' });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Logout error:", error);
       }
     }
