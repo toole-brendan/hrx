@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
 /** * Converts backend property format to frontend Property format */
 function mapPropertyToProperty(property: any): Property {

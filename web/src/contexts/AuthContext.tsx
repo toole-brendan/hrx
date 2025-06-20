@@ -14,7 +14,7 @@ interface AuthContextType {
 }
 
 // API Base URL - Use environment variable or default
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
 // Development mode - bypass auth when running locally
 const isDevelopment = window.location.hostname === 'localhost' && !import.meta.env.PROD;
@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Check real auth status
       try {
-        const { data } = await authedFetch<{ user: User }>('/api/auth/me');
+        const { data } = await authedFetch<{ user: User }>('/auth/me');
         setUser(data.user);
         setIsAuthenticated(true);
       } catch (error: any) {
@@ -183,7 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Real login
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -226,7 +226,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (!BYPASS_AUTH) {
       try {
-        await authedFetch('/api/auth/logout', { method: 'POST' });
+        await authedFetch('/auth/logout', { method: 'POST' });
       } catch (error) {
         console.error("Logout error:", error);
       }

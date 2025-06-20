@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 // API Configuration
 const API_BASE_URL = import.meta.env.DEV 
   ? ''  // Empty string for relative paths in development
-  : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api');
+  : (import.meta.env.VITE_API_URL || 'http://localhost:8000');
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),

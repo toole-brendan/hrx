@@ -447,8 +447,8 @@ jobs:
                 HANDRECEIPT_CONFIG_NAME=config.azure \
                 AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
                 AZURE_OCR_KEY=secretref:azure-ocr-key \
-                CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
-                CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
+                CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
+                CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
                 CORS_ALLOWED_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS" \
                 CORS_ALLOWED_HEADERS="*" \
                 CORS_CREDENTIALS="true"
@@ -490,8 +490,8 @@ jobs:
                 HANDRECEIPT_CONFIG_NAME=config.azure \
                 AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
                 AZURE_OCR_KEY=secretref:azure-ocr-key \
-                CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
-                CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5173,capacitor://localhost" \
+                CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
+                CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
                 CORS_ALLOWED_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS" \
                 CORS_ALLOWED_HEADERS="*" \
                 CORS_CREDENTIALS="true"
