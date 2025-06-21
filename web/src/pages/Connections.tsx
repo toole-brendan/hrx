@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, UserPlus, Users, Clock, CheckCircle, XCircle, Globe } from 'lucide-react';
+import { Search, UserPlus, Users, Clock, CheckCircle, XCircle, Globe, Filter, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // iOS Components
 import { 
@@ -171,105 +172,128 @@ export const Connections: React.FC = () => {
 
      if (isLoading) {
      return (
-       <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
-         <MinimalLoadingView text="LOADING NETWORK" />
+       <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+         <div className="max-w-6xl mx-auto px-6 py-8">
+           <CleanCard className="py-24 shadow-sm">
+             <MinimalLoadingView text="LOADING NETWORK" />
+           </CleanCard>
+         </div>
        </div>
      );
    }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
-      <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         
-        {/* Header - iOS style */}
-        <div className="mb-10">
-          {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-6">
-            <div></div>
-            <div></div>
-          </div>
-          
-          {/* Divider */}
-          <div className="border-b border-ios-divider mb-6" />
-          
-          {/* Title section */}
-          <div className="mb-8">
-            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-              Network
-            </h1>
+        {/* Enhanced Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+                <Globe className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-ios-primary-text">
+                  Network
+                </h1>
+                <p className="text-sm text-ios-secondary-text mt-1">
+                  Connect with other users for secure transfers
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Tab selector - iOS style */}
-        <div className="mb-6">
-          <div className="border-b border-ios-border">
-            <div className="flex justify-between items-center">
+        {/* Enhanced Tab selector with modern styling */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-ios-secondary-background to-ios-tertiary-background/50 rounded-2xl p-4 shadow-inner">
+            <div className="grid grid-cols-3 gap-4">
               <TabButton
-                title="all"
+                title="All"
+                icon={<Users className="h-6 w-6" />}
                 isSelected={selectedFilter === ConnectionFilter.ALL}
                 onClick={() => setSelectedFilter(ConnectionFilter.ALL)}
                 badge={connections.length}
+                description="All connections"
               />
               <TabButton
-                title="connected"
+                title="Connected"
+                icon={<CheckCircle className="h-6 w-6" />}
                 isSelected={selectedFilter === ConnectionFilter.CONNECTED}
                 onClick={() => setSelectedFilter(ConnectionFilter.CONNECTED)}
                 badge={acceptedConnections.length}
+                description="Active network"
               />
               <TabButton
-                title="pending"
+                title="Pending"
+                icon={<Clock className="h-6 w-6" />}
                 isSelected={selectedFilter === ConnectionFilter.PENDING}
                 onClick={() => setSelectedFilter(ConnectionFilter.PENDING)}
                 badge={pendingRequests.length}
+                description="Awaiting response"
               />
             </div>
           </div>
         </div>
 
-        {/* Search for new connections */}
-        <div className="mb-6 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
-            <Input
-              placeholder="Search for users to connect with..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent shadow-sm"
-            />
-            {searchQuery && (
-              <Button
-                onClick={handleSearchUsers}
-                disabled={isSearching}
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 h-7"
-              >
-                {isSearching ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                ) : (
-                  "Search"
+        {/* Enhanced Search Section */}
+        <div className="mb-8">
+          <CleanCard className="p-4 shadow-sm">
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
+                <Input
+                  placeholder="Search for users to connect with..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="pl-12 pr-4 border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+                />
+                {searchQuery && (
+                  <Button
+                    onClick={handleSearchUsers}
+                    disabled={isSearching}
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 h-8 px-4 rounded-lg shadow-sm transition-all duration-200"
+                  >
+                    {isSearching ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                    ) : (
+                      "Search"
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
-          </div>
+              </div>
+            </div>
+          </CleanCard>
           
           {/* Search Results */}
           {searchResults.length > 0 && (
-            <CleanCard className="p-4">
-              <div className="space-y-3">
-                <div className="text-xs font-medium text-secondary-text uppercase tracking-wide">
-                  Search Results
+            <div className="mt-4">
+              <CleanCard className="p-6 shadow-sm">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                      SEARCH RESULTS
+                    </h3>
+                    <span className="text-xs text-ios-secondary-text font-['Courier_New',_monospace]">
+                      {searchResults.length} FOUND
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {searchResults.map((searchUser) => (
+                      <UserSearchResultCard
+                        key={searchUser.id}
+                        user={searchUser}
+                        onConnect={() => sendRequestMutation.mutate(searchUser.id)}
+                        isLoading={sendRequestMutation.isPending}
+                      />
+                    ))}
+                  </div>
                 </div>
-                {searchResults.map((searchUser) => (
-                  <UserSearchResultCard
-                    key={searchUser.id}
-                    user={searchUser}
-                    onConnect={() => sendRequestMutation.mutate(searchUser.id)}
-                    isLoading={sendRequestMutation.isPending}
-                  />
-                ))}
-              </div>
-            </CleanCard>
+              </CleanCard>
+            </div>
           )}
         </div>
 
@@ -277,11 +301,19 @@ export const Connections: React.FC = () => {
         {/* Pending Requests Section */}
         {pendingRequests.length > 0 && (selectedFilter === ConnectionFilter.ALL || selectedFilter === ConnectionFilter.PENDING) && (
           <div className="mb-10">
-            <ElegantSectionHeader 
-              title="Pending Requests" 
-              subtitle={`${pendingRequests.length} awaiting your response`}
-              className="mb-6"
-            />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-500/10 rounded-lg">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    PENDING REQUESTS
+                  </h2>
+                  <p className="text-xs text-ios-secondary-text mt-0.5">{pendingRequests.length} awaiting your response</p>
+                </div>
+              </div>
+            </div>
             
             <div className="space-y-4">
               {pendingRequests.map((request) => (
@@ -300,11 +332,19 @@ export const Connections: React.FC = () => {
         {/* Connections List */}
         {filteredConnections.length > 0 ? (
           <div className="mb-10">
-            <ElegantSectionHeader 
-              title={selectedFilter === ConnectionFilter.PENDING ? "Outgoing Requests" : "Connected Users"}
-              subtitle={`${filteredConnections.length} in your network`}
-              className="mb-6"
-            />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <Users className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    {selectedFilter === ConnectionFilter.PENDING ? "OUTGOING REQUESTS" : "CONNECTED USERS"}
+                  </h2>
+                  <p className="text-xs text-ios-secondary-text mt-0.5">{filteredConnections.length} in your network</p>
+                </div>
+              </div>
+            </div>
             
             <div className="space-y-4">
               {filteredConnections.map((connection) => (
@@ -316,16 +356,30 @@ export const Connections: React.FC = () => {
             </div>
           </div>
         ) : (
-                     <MinimalEmptyState
-             title="No Connections Found"
-             description={
-               searchQuery.trim() 
-                 ? "No connections match your search criteria. Try adjusting your search terms."
-                 : selectedFilter === ConnectionFilter.ALL
-                 ? "You haven't connected with anyone yet. Search for users above to start building your network."
-                 : `No ${selectedFilter.toLowerCase()} connections found.`
-             }
-           />
+          <CleanCard className="py-24 shadow-sm">
+            <MinimalEmptyState
+              icon={<Users className="h-12 w-12" />}
+              title="NO CONNECTIONS FOUND"
+              description={
+                searchQuery.trim() 
+                  ? "No connections match your search criteria. Try adjusting your search terms."
+                  : selectedFilter === ConnectionFilter.ALL
+                  ? "You haven't connected with anyone yet. Search for users above to start building your network."
+                  : `No ${selectedFilter.toLowerCase()} connections found.`
+              }
+              action={
+                selectedFilter === ConnectionFilter.ALL && !searchQuery.trim() ? (
+                  <Button
+                    onClick={() => setSearchQuery('')}
+                    className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Search for Users
+                  </Button>
+                ) : undefined
+              }
+            />
+          </CleanCard>
         )}
 
         {/* Bottom padding for mobile navigation */}
@@ -338,38 +392,78 @@ export const Connections: React.FC = () => {
 // Supporting Components
 
 
-// Tab Button Component (iOS style)
+// Enhanced Tab Button Component with better styling
 interface TabButtonProps {
   title: string;
+  icon: React.ReactNode;
   isSelected: boolean;
   onClick: () => void;
   badge?: number;
+  description?: string;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ title, isSelected, onClick, badge }) => (
+const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick, badge, description }) => (
   <button
     onClick={onClick}
-    className="relative pb-4 transition-all duration-200"
+    className={cn(
+      "relative p-4 transition-all duration-300 rounded-xl group",
+      isSelected 
+        ? "bg-white shadow-lg border-2 border-ios-accent/20 scale-[1.02]" 
+        : "bg-ios-tertiary-background/30 hover:bg-ios-tertiary-background/50 border-2 border-transparent hover:border-ios-border"
+    )}
   >
-    <div className="flex items-center space-x-2">
-      <span 
-        className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
-          isSelected ? 'text-ios-accent' : 'text-tertiary-text'
-        }`}
-      >
-        {title}
-      </span>
-      {badge !== undefined && badge > 0 && (
-        <span className="bg-ios-destructive text-white text-[11px] font-medium px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-          {badge}
-        </span>
-      )}
+    <div className="flex flex-col items-center gap-3">
+      <div className={cn(
+        "p-3 rounded-full transition-all duration-300",
+        isSelected 
+          ? "bg-ios-accent text-white shadow-md" 
+          : "bg-ios-secondary-background text-ios-secondary-text group-hover:bg-white group-hover:shadow-sm"
+      )}>
+        {icon}
+      </div>
+      
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-2">
+          <span 
+            className={cn(
+              "text-sm font-bold uppercase tracking-wider transition-colors duration-300",
+              isSelected ? "text-ios-primary-text" : "text-ios-secondary-text",
+              "font-['Courier_New',_monospace]"
+            )}
+          >
+            {title}
+          </span>
+          {badge !== undefined && badge > 0 && (
+            <span className={cn(
+              "text-xs font-bold px-2 py-0.5 rounded-full transition-all duration-300",
+              isSelected 
+                ? "bg-ios-accent text-white" 
+                : "bg-ios-accent/10 text-ios-accent",
+              "font-['Courier_New',_monospace]"
+            )}>
+              {badge}
+            </span>
+          )}
+        </div>
+        
+        {description && (
+          <p className={cn(
+            "text-xs mt-1 transition-colors duration-300",
+            isSelected ? "text-ios-secondary-text" : "text-ios-tertiary-text"
+          )}>
+            {description}
+          </p>
+        )}
+      </div>
     </div>
-    <div 
-      className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200 ${
-        isSelected ? 'bg-ios-accent' : 'bg-transparent'
-      }`}
-    />
+    
+    {/* Active indicator */}
+    <div className={cn(
+      "absolute bottom-0 left-1/2 transform -translate-x-1/2 h-1 rounded-full transition-all duration-300",
+      isSelected 
+        ? "w-12 bg-ios-accent" 
+        : "w-0 bg-transparent"
+    )} />
   </button>
 );
 
@@ -380,19 +474,19 @@ interface UserSearchResultCardProps {
 }
 
 const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onConnect, isLoading }) => (
-  <CleanCard className="p-4">
+  <CleanCard className="p-5 border border-ios-border hover:border-ios-accent/30 transition-all duration-200 shadow-sm hover:shadow-md">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-ios-accent/10 flex items-center justify-center">
-          <span className="text-ios-accent font-medium">
-            {user.name?.split(' ').map(n => n[0]).join('') || '?'}
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-ios-accent/20 to-ios-accent/10 flex items-center justify-center shadow-sm">
+          <span className="text-ios-accent font-semibold font-['Courier_New',_monospace]">
+            {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
           </span>
         </div>
         <div>
-          <div className="font-medium text-primary-text">
+          <div className="font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
             {user.name}
           </div>
-          <div className="text-sm text-secondary-text">
+          <div className="text-sm text-ios-secondary-text mt-0.5">
             {user.rank && user.unit ? `${user.rank} • ${user.unit}` : user.rank || user.unit || user.email}
           </div>
         </div>
@@ -401,14 +495,14 @@ const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onCon
         size="sm"
         onClick={onConnect}
         disabled={isLoading}
-        className="bg-ios-accent hover:bg-ios-accent/90"
+        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
       >
         {isLoading ? (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
         ) : (
           <>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Connect
+            <UserPlus className="h-4 w-4" />
+            <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Connect</span>
           </>
         )}
       </Button>
@@ -424,33 +518,34 @@ interface PendingRequestCardProps {
 }
 
 const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAccept, onReject, isLoading }) => (
-  <CleanCard className="p-6">
+  <CleanCard className="p-6 border border-orange-500/20 hover:border-orange-500/30 transition-all duration-200 shadow-sm hover:shadow-md bg-gradient-to-r from-orange-500/5 to-transparent">
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-ios-warning/10 flex items-center justify-center">
-            <span className="text-ios-warning font-medium">
-              {request.connectedUser?.name?.split(' ').map(n => n[0]).join('') || '?'}
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500/20 to-orange-500/10 flex items-center justify-center shadow-sm">
+            <span className="text-orange-500 font-semibold font-['Courier_New',_monospace]">
+              {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
             </span>
           </div>
           <div>
-            <div className="font-medium text-primary-text">
+            <div className="font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
               {request.connectedUser?.name || 'Unknown User'}
             </div>
-            <div className="text-sm text-secondary-text">
+            <div className="text-sm text-ios-secondary-text mt-0.5">
               {request.connectedUser?.rank && request.connectedUser?.unit 
                 ? `${request.connectedUser.rank} • ${request.connectedUser.unit}`
                 : request.connectedUser?.email || 'No additional info'
               }
             </div>
-            <div className="text-sm text-ios-warning italic">
-              Wants to connect
+            <div className="text-xs text-orange-500 font-semibold mt-1 font-['Courier_New',_monospace] uppercase tracking-wider">
+              Connection Request
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-ios-warning" />
-          <StatusBadge status="pending" />
+          <div className="px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
+            Pending
+          </div>
         </div>
       </div>
       
@@ -460,19 +555,19 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
           size="sm"
           onClick={onReject}
           disabled={isLoading}
-          className="flex-1 border-ios-divider"
+          className="flex-1 border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text rounded-lg px-4 py-2.5 font-medium transition-all duration-200"
         >
           <XCircle className="h-4 w-4 mr-2" />
-          Decline
+          <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Decline</span>
         </Button>
         <Button
           size="sm"
           onClick={onAccept}
           disabled={isLoading}
-          className="flex-1 bg-ios-success hover:bg-ios-success/90"
+          className="flex-1 bg-ios-success hover:bg-ios-success/90 text-white rounded-lg px-4 py-2.5 font-medium shadow-sm transition-all duration-200"
         >
           <CheckCircle className="h-4 w-4 mr-2" />
-          Accept
+          <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Accept</span>
         </Button>
       </div>
     </div>
@@ -484,19 +579,19 @@ interface ConnectionCardProps {
 }
 
 const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
-  <CleanCard className="p-4">
+  <CleanCard className="p-5 border border-ios-border hover:border-ios-accent/30 transition-all duration-200 shadow-sm hover:shadow-md group">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-ios-success/10 flex items-center justify-center">
-          <span className="text-ios-success font-medium">
-            {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('') || '?'}
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500/20 to-green-500/10 flex items-center justify-center shadow-sm">
+          <span className="text-green-500 font-semibold font-['Courier_New',_monospace]">
+            {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
           </span>
         </div>
-        <div>
-          <div className="font-medium text-primary-text">
+        <div className="flex-1">
+          <div className="font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
             {connection.connectedUser?.name || 'Unknown User'}
           </div>
-          <div className="text-sm text-secondary-text">
+          <div className="text-sm text-ios-secondary-text mt-0.5">
             {connection.connectedUser?.rank && connection.connectedUser?.unit 
               ? `${connection.connectedUser.rank} • ${connection.connectedUser.unit}`
               : connection.connectedUser?.email || 'No additional info'
@@ -504,10 +599,12 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
           </div>
         </div>
       </div>
-             <div className="flex items-center gap-2">
-         <CheckCircle className="h-4 w-4 text-ios-success" />
-         <StatusBadge status="approved" />
-       </div>
+      <div className="flex items-center gap-3">
+        <div className="px-3 py-1 bg-green-500/10 text-green-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
+          Connected
+        </div>
+        <ArrowRight className="h-4 w-4 text-ios-tertiary-text opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      </div>
     </div>
   </CleanCard>
 ); 
