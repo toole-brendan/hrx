@@ -177,7 +177,7 @@ export default function Documents() {
               {/* Left side - Create actions */}
               <div className="flex items-center gap-2">
                 <Button
-                  className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+                  className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200 flex items-center gap-2 border-0"
                 >
                   <Plus className="h-4 w-4" />
                   New Document
@@ -186,7 +186,7 @@ export default function Documents() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
                   onClick={() => setShowingDA2062Import(true)}
                 >
                   <Upload className="h-4 w-4 mr-2" />
@@ -195,7 +195,7 @@ export default function Documents() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
                 >
                   <Scan className="h-4 w-4 mr-2" />
                   Scan
@@ -246,7 +246,7 @@ export default function Documents() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
                 >
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
                   Filters
@@ -347,7 +347,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text font-normal"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Last 7 days
@@ -355,7 +355,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text font-normal"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Last 30 days
@@ -363,7 +363,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text font-normal"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Custom range

@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { 
   Upload, 
   FileText, 
@@ -16,7 +17,8 @@ import {
   Edit2,
   X,
   FileImage,
-  Package
+  Package,
+  Shield
 } from 'lucide-react';
 
 // iOS Components

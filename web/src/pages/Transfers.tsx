@@ -619,7 +619,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-                className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+                className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2 border-0"
               >
                 <Plus className="h-4 w-4" />
                 New Transfer
@@ -881,7 +881,7 @@ const TransferStats: React.FC<{ transfers: Transfer[] }> = ({ transfers }) => {
     const approved = transfers.filter(t => t.status === 'approved').length;
     const rejected = transfers.filter(t => t.status === 'rejected').length;
     const thisMonth = transfers.filter(t => {
-      const createdAt = new Date(t.createdAt || t.date);
+      const createdAt = new Date(t.date);
       const now = new Date();
       return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear();
     }).length;

@@ -24,9 +24,40 @@ import {
   Mail,
   Phone,
   Hash,
-  Activity
+  Activity,
+  Calendar,
+  MapPin,
+  ChevronDown,
+  X,
+  Inbox,
+  Send as SendIcon,
+  UserCog,
+  MoreVertical,
+  FileText,
+  Download,
+  MessageSquare,
+  ArrowLeftRight,
+  Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
 
 // iOS Components
 import { 
@@ -70,12 +101,26 @@ enum ConnectionFilter {
   PENDING = 'Pending'
 }
 
+type NetworkTab = 'my-network' | 'requests' | 'directory';
+
+// Advanced search filters
+interface SearchFilters {
+  organization?: string;
+  rank?: string;
+  location?: string;
+}
+
 export const Connections: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<ConnectionFilter>(ConnectionFilter.ALL);
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showUserDetails, setShowUserDetails] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<NetworkTab>('my-network');
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({});
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [selectedConnections, setSelectedConnections] = useState<Set<number>>(new Set());
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -190,6 +235,11 @@ export const Connections: React.FC = () => {
     }
   };
 
+  // Helper function to get suggested connections
+  const suggestedConnections = useMemo(() => {
+    // In a real app, this would be based on mutual connections, same unit, etc.
+    return searchResults.slice(0, 3);
+  }, [searchResults]);
 
      if (isLoading) {
      return (
@@ -203,14 +253,39 @@ export const Connections: React.FC = () => {
      );
    }
 
+  // Handle advanced search
+  const handleAdvancedSearch = async () => {
+    if (!searchQuery.trim() && !Object.values(searchFilters).some(v => v)) return;
+    
+    // Add to recent searches
+    if (searchQuery.trim() && !recentSearches.includes(searchQuery)) {
+      setRecentSearches(prev => [searchQuery, ...prev.slice(0, 4)]);
+    }
+    
+    setIsSearching(true);
+    try {
+      const results = await searchUsers(searchQuery);
+      // In real app, would filter by searchFilters here
+      setSearchResults(results);
+    } catch (error) {
+      toast({ 
+        title: 'Search failed', 
+        description: 'Unable to search users',
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         
         {/* Enhanced Header section */}
-        <div className="mb-12">
+        <div className="mb-8">
           {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
                 <Users className="h-6 w-6 text-white" />
@@ -224,202 +299,129 @@ export const Connections: React.FC = () => {
                 </p>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Network Stats */}
         <NetworkStats connections={connections} />
         
-        {/* Filter Pills */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 p-2 bg-white rounded-xl shadow-sm border border-ios-border">
-            {[
-              { id: ConnectionFilter.ALL, label: 'All', icon: <Users className="h-4 w-4" />, count: connections.length },
-              { id: ConnectionFilter.CONNECTED, label: 'Connected', icon: <Link2 className="h-4 w-4" />, count: acceptedConnections.length },
-              { id: ConnectionFilter.PENDING, label: 'Pending', icon: <Clock className="h-4 w-4" />, count: pendingRequests.length }
-            ].map((filter) => (
+        {/* Professional Tabbed Interface */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NetworkTab)} className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
+            <div className="grid grid-cols-3 gap-1">
               <button
-                key={filter.id}
-                onClick={() => setSelectedFilter(filter.id)}
+                onClick={() => setActiveTab('my-network')}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200",
-                  selectedFilter === filter.id
-                    ? "bg-ios-accent text-white shadow-md"
-                    : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background"
+                  "relative rounded-lg transition-all duration-200 py-3 px-4 font-medium group flex items-center justify-center",
+                  activeTab === 'my-network' 
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm" 
+                    : "bg-transparent text-ios-secondary-text hover:text-ios-primary-text hover:bg-gray-50"
                 )}
               >
-                {filter.icon}
-                <span>{filter.label}</span>
-                {filter.count > 0 && (
-                  <span className={cn(
-                    "ml-1 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace]",
-                    selectedFilter === filter.id
-                      ? "bg-white/20 text-white"
-                      : "bg-ios-tertiary-background text-ios-secondary-text"
-                  )}>
-                    {filter.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search Section */}
-        <div className="mb-8">
-          <CleanCard className="p-6 shadow-sm">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-ios-accent/10 rounded-lg">
-                  <UserPlus className="h-5 w-5 text-ios-accent" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
-                    FIND NEW CONNECTIONS
-                  </h3>
-                  <p className="text-xs text-ios-secondary-text mt-0.5">Search by name, rank, or unit</p>
-                </div>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-ios-tertiary-text" />
-                <Input
-                  placeholder="Search for users to connect with..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-12 pr-4 border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
-                />
-                {searchQuery && (
-                  <Button
-                    onClick={handleSearchUsers}
-                    disabled={isSearching}
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 text-white h-10 px-6 rounded-lg shadow-md transition-all duration-200"
-                  >
-                    {isSearching ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    ) : (
-                      "Search"
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CleanCard>
-          
-          {/* Search Results */}
-          {searchResults.length > 0 && (
-            <div className="mt-4">
-              <CleanCard className="p-6 shadow-sm">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
-                      SEARCH RESULTS
-                    </h3>
-                    <span className="text-xs text-ios-secondary-text font-['Courier_New',_monospace]">
-                      {searchResults.length} FOUND
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-sm font-semibold">My Network</span>
+                  {acceptedConnections.length > 0 && (
+                    <span className={cn(
+                      "ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace] min-w-[1.5rem] text-center",
+                      activeTab === 'my-network' 
+                        ? "bg-white/20 text-white" 
+                        : "bg-blue-500/10 text-blue-600"
+                    )}>
+                      {acceptedConnections.length}
                     </span>
-                  </div>
-                  <div className="space-y-3">
-                    {searchResults.map((searchUser) => (
-                      <UserSearchResultCard
-                        key={searchUser.id}
-                        user={searchUser}
-                        onConnect={() => sendRequestMutation.mutate(searchUser.id)}
-                        isLoading={sendRequestMutation.isPending}
-                      />
-                    ))}
-                  </div>
+                  )}
                 </div>
-              </CleanCard>
-            </div>
-          )}
-        </div>
-
-
-        {/* Pending Requests Section */}
-        {pendingRequests.length > 0 && (selectedFilter === ConnectionFilter.ALL || selectedFilter === ConnectionFilter.PENDING) && (
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/10 rounded-lg">
-                  <Clock className="h-5 w-5 text-orange-500" />
+              </button>
+              <button
+                onClick={() => setActiveTab('requests')}
+                className={cn(
+                  "relative rounded-lg transition-all duration-200 py-3 px-4 font-medium group flex items-center justify-center",
+                  activeTab === 'requests' 
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm" 
+                    : "bg-transparent text-ios-secondary-text hover:text-ios-primary-text hover:bg-gray-50"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Inbox className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-sm font-semibold">Requests</span>
+                  {(pendingRequests.length > 0 || connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length > 0) && (
+                    <span className={cn(
+                      "ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace] min-w-[1.5rem] text-center",
+                      activeTab === 'requests' 
+                        ? "bg-white/20 text-white" 
+                        : "bg-orange-500/10 text-orange-600 animate-pulse"
+                    )}>
+                      {pendingRequests.length + connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length}
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
-                    PENDING REQUESTS
-                  </h2>
-                  <p className="text-xs text-ios-secondary-text mt-0.5">{pendingRequests.length} awaiting your response</p>
+              </button>
+              <button
+                onClick={() => setActiveTab('directory')}
+                className={cn(
+                  "relative rounded-lg transition-all duration-200 py-3 px-4 font-medium group flex items-center justify-center",
+                  activeTab === 'directory' 
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm" 
+                    : "bg-transparent text-ios-secondary-text hover:text-ios-primary-text hover:bg-gray-50"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-sm font-semibold">Directory</span>
                 </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {pendingRequests.map((request) => (
-                <PendingRequestCard
-                  key={request.id}
-                  request={request}
-                  onAccept={() => updateStatusMutation.mutate({ id: request.id, status: 'accepted' })}
-                  onReject={() => updateStatusMutation.mutate({ id: request.id, status: 'blocked' })}
-                  isLoading={updateStatusMutation.isPending}
-                />
-              ))}
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Connections List */}
-        {filteredConnections.length > 0 ? (
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <Users className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
-                    {selectedFilter === ConnectionFilter.PENDING ? "OUTGOING REQUESTS" : "CONNECTED USERS"}
-                  </h2>
-                  <p className="text-xs text-ios-secondary-text mt-0.5">{filteredConnections.length} in your network</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {filteredConnections.map((connection) => (
-                <ConnectionCard
-                  key={connection.id}
-                  connection={connection}
-                />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <CleanCard className="py-24 shadow-sm">
-            <MinimalEmptyState
-              icon={<Users className="h-12 w-12" />}
-              title="NO CONNECTIONS FOUND"
-              description={
-                searchQuery.trim() 
-                  ? "No connections match your search criteria. Try adjusting your search terms."
-                  : selectedFilter === ConnectionFilter.ALL
-                  ? "You haven't connected with anyone yet. Search for users above to start building your network."
-                  : `No ${selectedFilter.toLowerCase()} connections found.`
-              }
-              action={
-                selectedFilter === ConnectionFilter.ALL && !searchQuery.trim() ? (
-                  <Button
-                    onClick={() => setSearchQuery('')}
-                    className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Search for Users
-                  </Button>
-                ) : undefined
-              }
+          {/* My Network Tab */}
+          <TabsContent value="my-network" className="space-y-6">
+            <MyNetworkContent 
+              connections={acceptedConnections}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ['connections'] })}
             />
-          </CleanCard>
-        )}
+          </TabsContent>
+
+          {/* Requests Tab */}
+          <TabsContent value="requests" className="space-y-6">
+            <RequestsContent
+              pendingRequests={pendingRequests}
+              outgoingRequests={connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0'))}
+              onAccept={(id) => updateStatusMutation.mutate({ id, status: 'accepted' })}
+              onReject={(id) => updateStatusMutation.mutate({ id, status: 'blocked' })}
+              isLoading={updateStatusMutation.isPending}
+            />
+          </TabsContent>
+
+          {/* Directory Tab */}
+          <TabsContent value="directory" className="space-y-6">
+            <DirectoryContent
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchFilters={searchFilters}
+              setSearchFilters={setSearchFilters}
+              showAdvancedSearch={showAdvancedSearch}
+              setShowAdvancedSearch={setShowAdvancedSearch}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              onSearch={handleAdvancedSearch}
+              onConnect={(userId) => sendRequestMutation.mutate(userId)}
+              isConnecting={sendRequestMutation.isPending}
+              recentSearches={recentSearches}
+              suggestedConnections={suggestedConnections}
+            />
+          </TabsContent>
+        </Tabs>
 
         {/* Bottom padding for mobile navigation */}
         <div className="h-24"></div>
@@ -725,4 +727,710 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
       </div>
     </CleanCard>
   </div>
+);
+
+// My Network Content Component - Professional Table View
+interface MyNetworkContentProps {
+  connections: UserConnection[];
+  onRefresh: () => void;
+}
+
+const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefresh }) => {
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const filteredConnections = useMemo(() => {
+    if (!searchTerm) return connections;
+    
+    const term = searchTerm.toLowerCase();
+    return connections.filter(conn => 
+      conn.connectedUser?.name.toLowerCase().includes(term) ||
+      conn.connectedUser?.rank?.toLowerCase().includes(term) ||
+      conn.connectedUser?.unit?.toLowerCase().includes(term)
+    );
+  }, [connections, searchTerm]);
+  
+  const toggleRow = (id: number) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRows(newSelected);
+  };
+  
+  const toggleAll = () => {
+    if (selectedRows.size === filteredConnections.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(filteredConnections.map(c => c.id)));
+    }
+  };
+  
+  if (connections.length === 0) {
+    return (
+      <CleanCard className="py-24 shadow-sm">
+        <MinimalEmptyState
+          icon={<Users className="h-12 w-12" />}
+          title="NO CONNECTIONS YET"
+          description="Start building your network by searching for users in the Directory tab"
+          action={
+            <Button
+              onClick={() => {
+                const directoryTab = document.querySelector('[value="directory"]') as HTMLButtonElement;
+                directoryTab?.click();
+              }}
+              className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Browse Directory
+            </Button>
+          }
+        />
+      </CleanCard>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      {/* Search and Actions Bar */}
+      <CleanCard className="p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
+            <Input
+              placeholder="Search connections..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 h-9 border-ios-border bg-ios-tertiary-background/50 rounded-lg text-sm placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedRows.size > 0 && (
+              <span className="text-sm text-ios-secondary-text mr-2">
+                {selectedRows.size} selected
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+            >
+              <Activity className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CleanCard>
+      
+      {/* Connections Table */}
+      <CleanCard className="overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-ios-border hover:bg-transparent">
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedRows.size === filteredConnections.length && filteredConnections.length > 0}
+                  onCheckedChange={toggleAll}
+                  className="data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+                />
+              </TableHead>
+              <TableHead className="font-semibold text-ios-primary-text">Name</TableHead>
+              <TableHead className="font-semibold text-ios-primary-text">Rank</TableHead>
+              <TableHead className="font-semibold text-ios-primary-text">Unit</TableHead>
+              <TableHead className="font-semibold text-ios-primary-text">Contact</TableHead>
+              <TableHead className="font-semibold text-ios-primary-text">Connected Since</TableHead>
+              <TableHead className="font-semibold text-ios-primary-text">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredConnections.map((connection) => (
+              <TableRow
+                key={connection.id}
+                className="border-b border-ios-border hover:bg-ios-secondary-background/50 transition-colors"
+              >
+                <TableCell>
+                  <Checkbox
+                    checked={selectedRows.has(connection.id)}
+                    onCheckedChange={() => toggleRow(connection.id)}
+                    className="data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                      <span className="text-white font-bold text-sm font-['Courier_New',_monospace]">
+                        {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                      </span>
+                    </div>
+                    <div className="font-medium text-ios-primary-text">
+                      {connection.connectedUser?.name || 'Unknown User'}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-ios-secondary-text">
+                    {connection.connectedUser?.rank || 'N/A'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-ios-secondary-text">
+                    {connection.connectedUser?.unit || 'N/A'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    {connection.connectedUser?.email && (
+                      <span className="text-xs text-ios-secondary-text flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {connection.connectedUser.email}
+                      </span>
+                    )}
+                    {connection.connectedUser?.phone && (
+                      <span className="text-xs text-ios-secondary-text flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {connection.connectedUser.phone}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-ios-secondary-text">
+                    {format(new Date(connection.createdAt), 'MMM d, yyyy')}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-ios-tertiary-background"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Message
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <ArrowLeftRight className="h-4 w-4 mr-2" />
+                        Transfer Property
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-ios-destructive">
+                        <UserX className="h-4 w-4 mr-2" />
+                        Remove Connection
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CleanCard>
+    </div>
+  );
+};
+
+// Requests Content Component
+interface RequestsContentProps {
+  pendingRequests: UserConnection[];
+  outgoingRequests: UserConnection[];
+  onAccept: (id: number) => void;
+  onReject: (id: number) => void;
+  isLoading: boolean;
+}
+
+const RequestsContent: React.FC<RequestsContentProps> = ({ 
+  pendingRequests, 
+  outgoingRequests, 
+  onAccept, 
+  onReject, 
+  isLoading 
+}) => {
+  return (
+    <div className="space-y-6">
+      {/* Incoming Requests */}
+      {pendingRequests.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-orange-500/10 rounded-lg">
+              <Inbox className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                INCOMING REQUESTS
+              </h3>
+              <p className="text-xs text-ios-secondary-text mt-0.5">{pendingRequests.length} awaiting your response</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {pendingRequests.map((request) => (
+              <EnhancedPendingRequestCard
+                key={request.id}
+                request={request}
+                onAccept={() => onAccept(request.id)}
+                onReject={() => onReject(request.id)}
+                isLoading={isLoading}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Outgoing Requests */}
+      {outgoingRequests.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <SendIcon className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                OUTGOING REQUESTS
+              </h3>
+              <p className="text-xs text-ios-secondary-text mt-0.5">{outgoingRequests.length} pending approval</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {outgoingRequests.map((request) => (
+              <OutgoingRequestCard
+                key={request.id}
+                request={request}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {pendingRequests.length === 0 && outgoingRequests.length === 0 && (
+        <CleanCard className="py-24 shadow-sm">
+          <MinimalEmptyState
+            icon={<Inbox className="h-12 w-12" />}
+            title="NO PENDING REQUESTS"
+            description="You don't have any connection requests at the moment"
+          />
+        </CleanCard>
+      )}
+    </div>
+  );
+};
+
+// Enhanced Pending Request Card
+const EnhancedPendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAccept, onReject, isLoading }) => (
+  <CleanCard className="p-6 border border-orange-500/20 hover:border-orange-500/30 transition-all duration-200 shadow-sm hover:shadow-md">
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/10 flex items-center justify-center shadow-sm">
+            <span className="text-orange-500 font-semibold text-lg font-['Courier_New',_monospace]">
+              {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+            </span>
+          </div>
+          <div>
+            <div className="font-semibold text-lg text-ios-primary-text">
+              {request.connectedUser?.name || 'Unknown User'}
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              {request.connectedUser?.rank && (
+                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                  <Shield className="h-3 w-3" />
+                  {request.connectedUser.rank}
+                </span>
+              )}
+              {request.connectedUser?.unit && (
+                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                  <Building2 className="h-3 w-3" />
+                  {request.connectedUser.unit}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Clock className="h-3 w-3 text-ios-tertiary-text" />
+              <span className="text-xs text-ios-tertiary-text">
+                Requested {format(new Date(request.createdAt), 'MMM d, yyyy')}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
+          Pending
+        </div>
+      </div>
+      
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onReject}
+          disabled={isLoading}
+          className="flex-1 border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text rounded-lg px-4 py-2.5 font-medium transition-all duration-200"
+        >
+          <XCircle className="h-4 w-4 mr-2" />
+          Decline
+        </Button>
+        <Button
+          size="sm"
+          onClick={onAccept}
+          disabled={isLoading}
+          className="flex-1 bg-ios-success hover:bg-ios-success/90 text-white rounded-lg px-4 py-2.5 font-medium shadow-sm transition-all duration-200"
+        >
+          <CheckCircle className="h-4 w-4 mr-2" />
+          Accept
+        </Button>
+      </div>
+    </div>
+  </CleanCard>
+);
+
+// Outgoing Request Card
+interface OutgoingRequestCardProps {
+  request: UserConnection;
+}
+
+const OutgoingRequestCard: React.FC<OutgoingRequestCardProps> = ({ request }) => (
+  <CleanCard className="p-6 border border-blue-500/20 hover:border-blue-500/30 transition-all duration-200 shadow-sm hover:shadow-md">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center shadow-sm">
+          <span className="text-blue-500 font-semibold text-lg font-['Courier_New',_monospace]">
+            {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+          </span>
+        </div>
+        <div>
+          <div className="font-semibold text-lg text-ios-primary-text">
+            {request.connectedUser?.name || 'Unknown User'}
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            {request.connectedUser?.rank && (
+              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                <Shield className="h-3 w-3" />
+                {request.connectedUser.rank}
+              </span>
+            )}
+            {request.connectedUser?.unit && (
+              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                <Building2 className="h-3 w-3" />
+                {request.connectedUser.unit}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Clock className="h-3 w-3 text-ios-tertiary-text" />
+            <span className="text-xs text-ios-tertiary-text">
+              Sent {format(new Date(request.createdAt), 'MMM d, yyyy')}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
+        Pending Response
+      </div>
+    </div>
+  </CleanCard>
+);
+
+// Directory Content Component with Advanced Search
+interface DirectoryContentProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  searchFilters: SearchFilters;
+  setSearchFilters: (filters: SearchFilters) => void;
+  showAdvancedSearch: boolean;
+  setShowAdvancedSearch: (show: boolean) => void;
+  searchResults: User[];
+  isSearching: boolean;
+  onSearch: () => void;
+  onConnect: (userId: number) => void;
+  isConnecting: boolean;
+  recentSearches: string[];
+  suggestedConnections: User[];
+}
+
+const DirectoryContent: React.FC<DirectoryContentProps> = ({
+  searchQuery,
+  setSearchQuery,
+  searchFilters,
+  setSearchFilters,
+  showAdvancedSearch,
+  setShowAdvancedSearch,
+  searchResults,
+  isSearching,
+  onSearch,
+  onConnect,
+  isConnecting,
+  recentSearches,
+  suggestedConnections
+}) => {
+  return (
+    <div className="space-y-6">
+      {/* Enhanced Search Section */}
+      <CleanCard className="p-6 shadow-sm">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-ios-accent/10 rounded-lg">
+                <Search className="h-5 w-5 text-ios-accent" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  SEARCH DIRECTORY
+                </h3>
+                <p className="text-xs text-ios-secondary-text mt-0.5">Find users by name, rank, or organization</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+              className="text-ios-accent hover:text-ios-accent/80 hover:bg-transparent"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Advanced
+              <ChevronDown className={cn(
+                "h-4 w-4 ml-1 transition-transform duration-200",
+                showAdvancedSearch && "rotate-180"
+              )} />
+            </Button>
+          </div>
+          
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-ios-tertiary-text" />
+            <Input
+              placeholder="Search by name, rank, or unit..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && onSearch()}
+              className="pl-12 pr-4 border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+            />
+            {searchQuery && (
+              <Button
+                onClick={onSearch}
+                disabled={isSearching}
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 text-white h-10 px-6 rounded-lg shadow-md transition-all duration-200"
+              >
+                {isSearching ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                ) : (
+                  "Search"
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {/* Advanced Filters */}
+          {showAdvancedSearch && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-ios-border">
+              <div>
+                <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
+                  Organization/Unit
+                </label>
+                <Input
+                  placeholder="e.g., 1st Battalion"
+                  value={searchFilters.organization || ''}
+                  onChange={(e) => setSearchFilters({ ...searchFilters, organization: e.target.value })}
+                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
+                  Rank
+                </label>
+                <Select
+                  value={searchFilters.rank || ''}
+                  onValueChange={(value) => setSearchFilters({ ...searchFilters, rank: value })}
+                >
+                  <SelectTrigger className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm">
+                    <SelectValue placeholder="Select rank" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Ranks</SelectItem>
+                    <SelectItem value="PVT">Private (PVT)</SelectItem>
+                    <SelectItem value="PFC">Private First Class (PFC)</SelectItem>
+                    <SelectItem value="SPC">Specialist (SPC)</SelectItem>
+                    <SelectItem value="CPL">Corporal (CPL)</SelectItem>
+                    <SelectItem value="SGT">Sergeant (SGT)</SelectItem>
+                    <SelectItem value="SSG">Staff Sergeant (SSG)</SelectItem>
+                    <SelectItem value="SFC">Sergeant First Class (SFC)</SelectItem>
+                    <SelectItem value="MSG">Master Sergeant (MSG)</SelectItem>
+                    <SelectItem value="1SG">First Sergeant (1SG)</SelectItem>
+                    <SelectItem value="SGM">Sergeant Major (SGM)</SelectItem>
+                    <SelectItem value="2LT">Second Lieutenant (2LT)</SelectItem>
+                    <SelectItem value="1LT">First Lieutenant (1LT)</SelectItem>
+                    <SelectItem value="CPT">Captain (CPT)</SelectItem>
+                    <SelectItem value="MAJ">Major (MAJ)</SelectItem>
+                    <SelectItem value="LTC">Lieutenant Colonel (LTC)</SelectItem>
+                    <SelectItem value="COL">Colonel (COL)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
+                  Location
+                </label>
+                <Input
+                  placeholder="e.g., Fort Bragg"
+                  value={searchFilters.location || ''}
+                  onChange={(e) => setSearchFilters({ ...searchFilters, location: e.target.value })}
+                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text"
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Recent Searches */}
+          {recentSearches.length > 0 && !searchQuery && (
+            <div className="pt-4 border-t border-ios-border">
+              <h4 className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2">
+                Recent Searches
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {recentSearches.map((search, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSearchQuery(search);
+                      onSearch();
+                    }}
+                    className="px-3 py-1.5 bg-ios-tertiary-background hover:bg-ios-secondary-background text-ios-secondary-text text-sm rounded-lg transition-colors duration-200"
+                  >
+                    <Clock className="h-3 w-3 inline mr-1" />
+                    {search}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </CleanCard>
+      
+      {/* Suggested Connections */}
+      {suggestedConnections.length > 0 && searchResults.length === 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-purple-500/10 rounded-lg">
+              <UserPlus className="h-5 w-5 text-purple-500" />
+            </div>
+            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              SUGGESTED CONNECTIONS
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {suggestedConnections.map((user) => (
+              <EnhancedUserSearchResultCard
+                key={user.id}
+                user={user}
+                onConnect={() => onConnect(user.id)}
+                isLoading={isConnecting}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Search Results */}
+      {searchResults.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              SEARCH RESULTS
+            </h3>
+            <span className="text-xs text-ios-secondary-text font-['Courier_New',_monospace]">
+              {searchResults.length} FOUND
+            </span>
+          </div>
+          <div className="space-y-3">
+            {searchResults.map((user) => (
+              <EnhancedUserSearchResultCard
+                key={user.id}
+                user={user}
+                onConnect={() => onConnect(user.id)}
+                isLoading={isConnecting}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {searchQuery && searchResults.length === 0 && !isSearching && (
+        <CleanCard className="py-24 shadow-sm">
+          <MinimalEmptyState
+            icon={<Search className="h-12 w-12" />}
+            title="NO RESULTS FOUND"
+            description={`No users found matching "${searchQuery}". Try adjusting your search criteria.`}
+          />
+        </CleanCard>
+      )}
+    </div>
+  );
+};
+
+// Enhanced User Search Result Card
+const EnhancedUserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onConnect, isLoading }) => (
+  <CleanCard className="p-6 shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm">
+          <span className="text-white font-bold text-lg font-['Courier_New',_monospace]">
+            {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+          </span>
+        </div>
+        <div>
+          <div className="font-semibold text-lg text-ios-primary-text">
+            {user.name}
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            {user.rank && (
+              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                <Shield className="h-3 w-3" />
+                {user.rank}
+              </span>
+            )}
+            {user.unit && (
+              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                <Building2 className="h-3 w-3" />
+                {user.unit}
+              </span>
+            )}
+            {user.email && (
+              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                <Mail className="h-3 w-3" />
+                {user.email}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        onClick={onConnect}
+        disabled={isLoading}
+        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+      >
+        {isLoading ? (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+        ) : (
+          <>
+            <UserPlus className="h-4 w-4" />
+            Connect
+          </>
+        )}
+      </Button>
+    </div>
+  </CleanCard>
 ); 

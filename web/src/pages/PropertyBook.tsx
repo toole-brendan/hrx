@@ -732,7 +732,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             
             <Button
               onClick={() => setShowingAddMenu(true)}
-              className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 h-11 font-medium shadow-sm transition-all duration-200"
+              className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 h-11 font-medium shadow-sm transition-all duration-200 border-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden md:inline">Add Item</span>
