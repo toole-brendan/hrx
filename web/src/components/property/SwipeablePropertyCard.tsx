@@ -2,8 +2,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Property } from '@/types';
 import { cn } from '@/lib/utils';
 import { getCategoryFromName, getCategoryIcon, getCategoryColor, normalizeItemStatus } from '@/lib/propertyUtils';
-import { CleanCard } from '@/components/ios';
-import { Shield, Info, ArrowLeftRight, Wrench, Eye } from 'lucide-react';
+import { CleanCard, StatusBadge } from '@/components/ios';
+import { 
+  Shield, 
+  Info, 
+  ArrowLeftRight, 
+  Wrench, 
+  Eye, 
+  Calendar, 
+  Package, 
+  FileText,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  ChevronRight,
+  MoreVertical
+} from 'lucide-react';
 
 interface SwipeablePropertyCardProps {
   property: Property;
@@ -75,9 +89,6 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
     if (deltaX < -SWIPE_THRESHOLD) {
       // Swiped left - show transfer action
       onTransfer();
-    } else if (deltaX > SWIPE_THRESHOLD && onMaintenance) {
-      // Swiped right - show maintenance action
-      onMaintenance();
     }
     
     // Reset position
@@ -85,36 +96,61 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
     setIsDragging(false);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     const normalizedStatus = normalizeItemStatus(status);
     switch (normalizedStatus) {
-      case 'Operational': return 'text-ios-success';
+      case 'Operational': 
+        return { 
+          color: 'text-green-500', 
+          bgColor: 'bg-green-500/10', 
+          icon: CheckCircle,
+          label: 'FMC'
+        };
       case 'Maintenance': 
-      case 'Non-Operational': return 'text-ios-warning';
-      case 'Missing': return 'text-ios-destructive';
-      default: return 'text-secondary-text';
+        return { 
+          color: 'text-orange-500', 
+          bgColor: 'bg-orange-500/10', 
+          icon: Wrench,
+          label: 'DL'
+        };
+      case 'Non-Operational': 
+        return { 
+          color: 'text-red-500', 
+          bgColor: 'bg-red-500/10', 
+          icon: AlertTriangle,
+          label: 'NMC'
+        };
+      case 'Missing': 
+        return { 
+          color: 'text-red-600', 
+          bgColor: 'bg-red-600/10', 
+          icon: AlertTriangle,
+          label: 'MISSING'
+        };
+      default: 
+        return { 
+          color: 'text-ios-secondary-text', 
+          bgColor: 'bg-ios-tertiary-background', 
+          icon: Info,
+          label: status || 'UNKNOWN'
+        };
     }
   };
 
-  const getVerificationDateColor = (date: string | null) => {
-    if (!date) return 'text-tertiary-text';
+  const getVerificationStatus = (date: string | null) => {
+    if (!date) return { status: 'never', label: 'Never verified', color: 'text-ios-destructive' };
     const daysSince = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSince > 90) return 'text-ios-destructive';
-    if (daysSince > 30) return 'text-ios-warning';
-    return 'text-secondary-text';
+    if (daysSince > 90) return { status: 'overdue', label: `${daysSince} days ago`, color: 'text-ios-destructive' };
+    if (daysSince > 30) return { status: 'due', label: `${daysSince} days ago`, color: 'text-ios-warning' };
+    if (daysSince === 0) return { status: 'recent', label: 'Today', color: 'text-green-500' };
+    if (daysSince === 1) return { status: 'recent', label: 'Yesterday', color: 'text-green-500' };
+    return { status: 'ok', label: `${daysSince} days ago`, color: 'text-ios-secondary-text' };
   };
 
   return (
     <div className="relative overflow-hidden">
       {/* Background action indicators */}
-      <div className="absolute inset-0 flex items-center justify-between px-6">
-        <div className={cn(
-          "flex items-center gap-2 transition-opacity",
-          swipeX > SWIPE_THRESHOLD / 2 ? "opacity-100" : "opacity-0"
-        )}>
-          <Wrench className="h-5 w-5 text-ios-warning" />
-          <span className="text-sm font-medium text-ios-warning">Maintenance</span>
-        </div>
+      <div className="absolute inset-0 flex items-center justify-end px-6">
         <div className={cn(
           "flex items-center gap-2 transition-opacity",
           swipeX < -SWIPE_THRESHOLD / 2 ? "opacity-100" : "opacity-0"
@@ -144,92 +180,163 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
       >
         <CleanCard 
           className={cn(
-            "cursor-pointer hover:shadow-md transition-shadow duration-200 overflow-hidden bg-white",
-            isSelected && "ring-2 ring-ios-accent"
+            "cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border border-ios-border hover:border-ios-accent/30",
+            isSelected && "ring-2 ring-ios-accent border-ios-accent shadow-md"
           )}
           onClick={onTap}
           padding="none"
         >
-          <div className="p-6">
-            <div className="space-y-5">
-              {/* Property header */}
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    {isSelectMode && (
+          <div className="p-5">
+            <div className="space-y-4">
+              {/* Property header with enhanced design */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3">
+                    {/* Selection checkbox or category icon */}
+                    {isSelectMode ? (
                       <div className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0",
-                        isSelected ? "bg-ios-accent border-ios-accent" : "border-ios-border"
+                        "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 mt-0.5",
+                        isSelected ? "bg-ios-accent border-ios-accent scale-110" : "border-ios-border hover:border-ios-accent/50"
                       )}>
                         {isSelected && (
                           <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </div>
+                    ) : (
+                      <div className={cn(
+                        "p-2.5 rounded-lg flex-shrink-0",
+                        category !== 'other' ? getCategoryColor(property.name).replace('text-', 'bg-').replace('500', '500/10') : 'bg-ios-tertiary-background'
+                      )}>
+                        {category !== 'other' ? (
+                          <span className={cn("text-xl", getCategoryColor(property.name))}>
+                            {categoryIcon}
+                          </span>
+                        ) : (
+                          <Package className="h-5 w-5 text-ios-secondary-text" />
+                        )}
+                      </div>
                     )}
-                    <h3 className="text-lg font-medium text-primary-text" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-                      {property.name}
-                    </h3>
-                    {property.isSensitive && (
-                      <Shield className="h-4 w-4 text-ios-warning" />
-                    )}
-                    {needsVerification && (
-                      <Info className="h-4 w-4 text-ios-destructive" />
-                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-semibold text-ios-primary-text truncate">
+                          {property.name}
+                        </h3>
+                        {property.isSensitive && (
+                          <div className="p-1 bg-orange-500/10 rounded">
+                            <Shield className="h-3.5 w-3.5 text-orange-500" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1 text-ios-secondary-text">
+                            <FileText className="h-3 w-3" />
+                            <span className="font-['Courier_New',_monospace]">SN: {property.serialNumber}</span>
+                          </span>
+                          {property.nsn && (
+                            <span className="flex items-center gap-1 text-ios-tertiary-text">
+                              <Package className="h-3 w-3" />
+                              <span className="font-['Courier_New',_monospace]">NSN: {property.nsn}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-secondary-text font-mono">
-                    SN: {property.serialNumber}
-                  </p>
-                  {property.nsn && (
-                    <p className="text-xs text-tertiary-text font-mono mt-1">
-                      NSN: {property.nsn}
-                    </p>
+                </div>
+                
+                {/* Status badge */}
+                <div className="flex-shrink-0">
+                  {(() => {
+                    const statusConfig = getStatusConfig(property.status || 'Unknown');
+                    const StatusIcon = statusConfig.icon;
+                    return (
+                      <div className={cn(
+                        "px-3 py-1.5 rounded-full flex items-center gap-1.5",
+                        statusConfig.bgColor
+                      )}>
+                        <StatusIcon className={cn("h-3.5 w-3.5", statusConfig.color)} />
+                        <span className={cn(
+                          "text-xs font-semibold uppercase tracking-wider",
+                          statusConfig.color
+                        )}>
+                          {statusConfig.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+              
+              {/* Additional info and actions */}
+              <div className="flex items-center justify-between pt-2 border-t border-ios-divider">
+                <div className="flex items-center gap-4">
+                  {/* Verification status */}
+                  {lastInventoryDate && (() => {
+                    const verificationStatus = getVerificationStatus(lastInventoryDate);
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className={cn("h-3.5 w-3.5", verificationStatus.color)} />
+                        <span className={cn("text-xs", verificationStatus.color)}>
+                          Verified {verificationStatus.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* Component count if any */}
+                  {property.components && property.components.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-ios-secondary-text">
+                      <Package className="h-3.5 w-3.5" />
+                      <span className="text-xs">
+                        {property.components.length} components
+                      </span>
+                    </div>
                   )}
                 </div>
                 
-                {/* Category icon */}
-                {category !== 'other' && (
-                  <span className={cn("text-2xl", getCategoryColor(property.name))}>
-                    {categoryIcon}
-                  </span>
-                )}
-              </div>
-              
-              {/* Status and verification info */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className={cn("text-xs uppercase tracking-wide font-medium", getStatusColor(property.status || 'Unknown'))}>
-                    {property.status || 'Unknown'}
-                  </span>
-                </div>
-                
-                {lastInventoryDate && (
-                  <div className="text-right">
-                    <p className="text-xs text-tertiary-text">Last verified</p>
-                    <p className={cn("text-xs font-medium", getVerificationDateColor(lastInventoryDate))}>
-                      {new Date(lastInventoryDate).toLocaleDateString()}
-                    </p>
+                {/* Action indicator */}
+                {!isSelectMode && (
+                  <div className="flex items-center gap-2">
+                    <ChevronRight className="h-4 w-4 text-ios-tertiary-text" />
                   </div>
                 )}
               </div>
-              
-              {/* Desktop action buttons */}
-              {!isSelectMode && (
-                <div className="pt-3 border-t border-ios-divider flex justify-end md:flex hidden">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTransfer();
-                    }}
-                    className="text-ios-accent hover:bg-transparent px-0 text-sm font-medium"
-                  >
-                    Transfer
-                  </button>
-                </div>
-              )}
             </div>
           </div>
+          
+          {/* Quick action bar for desktop */}
+          {!isSelectMode && (
+            <div className="hidden md:flex items-center justify-between px-5 py-3 bg-ios-tertiary-background/50 border-t border-ios-divider">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails?.();
+                }}
+                className="text-xs font-medium text-ios-secondary-text hover:text-ios-primary-text transition-colors flex items-center gap-1.5"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View Details
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTransfer();
+                  }}
+                  className="text-xs font-medium text-ios-accent hover:text-ios-accent/80 transition-colors flex items-center gap-1.5"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  Transfer
+                </button>
+              </div>
+            </div>
+          )}
         </CleanCard>
       </div>
     </div>

@@ -1,34 +1,65 @@
-import { useState, useEffect, useMemo, useReducer, useCallback, useRef } from"react";
+import { useState, useEffect, useMemo, useReducer, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreateProperty } from"@/hooks/useProperty";
-import { useTransfers } from"@/hooks/useTransfers";
+import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreateProperty } from "@/hooks/useProperty";
+import { useTransfers } from "@/hooks/useTransfers";
 import { Property, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
-import { Input } from"@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from"@/components/ui/select";
-import { Button } from"@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from"@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from"@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from"@/components/ui/table";
-import { useToast } from"@/hooks/use-toast";
-import { CleanCard, ElegantSectionHeader, StatusBadge, ModernPropertyCard, FloatingActionButton, MinimalEmptyState, MinimalLoadingView } from"@/components/ios";
-import TransferRequestModal from"@/components/modals/TransferRequestModal";
-import ComponentList from"@/components/property/ComponentList";
-import { SwipeablePropertyCard } from"@/components/property/SwipeablePropertyCard";
-import { ScrollableContainer } from"@/components/ui/scrollable-container";
-import { Search, Filter, ArrowDownUp, ArrowLeftRight, Info, ClipboardCheck, Calendar, ShieldCheck, Send, CheckCircle, Package, Shield, Radio, Eye, Wrench, SearchX, ArrowUpDown, ChevronDown, ChevronRight, Plus, Download, FileText, WifiOff, X, Loader2
-} from"lucide-react";
-import { Checkbox } from"@/components/ui/checkbox";
-import BulkActionMenu from"@/components/shared/BulkActionMenu";
-import { Skeleton } from"@/components/ui/skeleton";
-import { cn } from"@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from"@/components/ui/tooltip";
-import { propertyBookReducer, initialState } from"@/lib/propertyBookReducer";
-import { categoryOptions, getCategoryFromName, getCategoryColor, getCategoryIcon, normalizeItemStatus } from"@/lib/propertyUtils";
-import CreatePropertyDialog from"@/components/property/CreatePropertyDialog";
-import { SendMaintenanceForm } from"@/components/property/SendMaintenanceForm";
-import { DA2062ExportDialog } from"@/components/da2062/DA2062ExportDialog";
-import { DA2062ImportDialog } from"@/components/da2062/DA2062ImportDialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { CleanCard, ElegantSectionHeader, StatusBadge, ModernPropertyCard, FloatingActionButton, MinimalEmptyState, MinimalLoadingView } from "@/components/ios";
+import TransferRequestModal from "@/components/modals/TransferRequestModal";
+import ComponentList from "@/components/property/ComponentList";
+import { SwipeablePropertyCard } from "@/components/property/SwipeablePropertyCard";
+import { ScrollableContainer } from "@/components/ui/scrollable-container";
+import { 
+  Search, 
+  Filter, 
+  ArrowDownUp, 
+  ArrowLeftRight, 
+  Info, 
+  ClipboardCheck, 
+  Calendar, 
+  ShieldCheck, 
+  Send, 
+  CheckCircle, 
+  Package, 
+  Shield, 
+  Radio, 
+  Eye, 
+  Wrench, 
+  SearchX, 
+  ArrowUpDown, 
+  ChevronDown, 
+  ChevronRight, 
+  Plus, 
+  Download, 
+  FileText, 
+  WifiOff, 
+  X, 
+  Loader2,
+  Bell,
+  SlidersHorizontal,
+  BarChart3,
+  Zap,
+  ArrowRight,
+  Activity,
+  AlertTriangle
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import BulkActionMenu from "@/components/shared/BulkActionMenu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { propertyBookReducer, initialState } from "@/lib/propertyBookReducer";
+import { categoryOptions, getCategoryFromName, getCategoryColor, getCategoryIcon, normalizeItemStatus } from "@/lib/propertyUtils";
+import CreatePropertyDialog from "@/components/property/CreatePropertyDialog";
+import { DA2062ExportDialog } from "@/components/da2062/DA2062ExportDialog";
+import { DA2062ImportDialog } from "@/components/da2062/DA2062ImportDialog";
 
 // Type alias for display items
 type DisplayItem = Property & {
@@ -107,7 +138,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
-  const [maintenanceFormModalOpen, setMaintenanceFormModalOpen] = useState(false);
   const [showingDA2062Export, setShowingDA2062Export] = useState(false);
   const [showingDA2062Import, setShowingDA2062Import] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -276,11 +306,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     });
   }, [toast]);
 
-  // Handler for sending maintenance form
-  const handleSendMaintenanceForm = useCallback((item: Property) => {
-    setSelectedItem(item);
-    setMaintenanceFormModalOpen(true);
-  }, []);
 
   // Handler for adding a component to an item
   const handleAddComponent = async (newComponentData: Omit<Component, 'id'>) => {
@@ -514,18 +539,18 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
       {/* Sticky header for mobile */}
       <div 
         ref={headerRef}
         className={cn(
-          "fixed top-0 left-0 right-0 z-40 bg-white border-b border-ios-divider transition-all duration-200 md:hidden",
+          "fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-ios-divider transition-all duration-200 md:hidden shadow-sm",
           isHeaderSticky ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
         )}
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-primary-text">Property Book</h2>
+            <h2 className="text-lg font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">Property Book</h2>
             {isSelectMode && (
               <Button
                 onClick={() => {
@@ -534,71 +559,126 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 }}
                 variant="ghost"
                 size="sm"
-                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
+                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0 font-['Courier_New',_monospace]"
               >
                 Cancel
               </Button>
             )}
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
             <Input
               placeholder="Search properties..."
               value={state.searchTerm}
               onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-              className="pl-10 border-0 bg-gray-50 rounded-lg h-9 text-sm"
+              className="pl-10 border-0 bg-ios-tertiary-background rounded-lg h-9 text-sm"
             />
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-8">
-        {/* Header - iOS style */}
-        <div className="mb-6 md:mb-10">
-          {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <div className="md:hidden">
-              <p className="text-sm text-secondary-text">
-                {properties.length} items tracked
-              </p>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Enhanced Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-ios-primary-text">
+                  Property Book
+                </h1>
+                <p className="text-sm text-ios-secondary-text mt-1">
+                  {properties.length} items tracked • {assignedToMe.length} assigned
+                </p>
+              </div>
             </div>
-            <div className="hidden md:block"></div>
-            {!isSelectMode && properties.length > 0 && (
-              <Button
-                onClick={() => setIsSelectMode(true)}
-                variant="ghost"
-                size="sm"
-                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
-              >
-                Select
-              </Button>
-            )}
-            {isSelectMode && (
-              <Button
-                onClick={() => {
-                  setIsSelectMode(false);
-                  setSelectedPropertiesForExport(new Set());
-                }}
-                variant="ghost"
-                size="sm"
-                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
-              >
-                Cancel
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              {!isSelectMode && properties.length > 0 && (
+                <Button
+                  onClick={() => setIsSelectMode(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Select
+                </Button>
+              )}
+              {isSelectMode && (
+                <Button
+                  onClick={() => {
+                    setIsSelectMode(false);
+                    setSelectedPropertiesForExport(new Set());
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
           </div>
           
-          {/* Divider */}
-          <div className="hidden md:block border-b border-ios-divider mb-6" />
-          
-          {/* Title section - hidden on mobile when scrolled */}
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-3xl md:text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-              Property Book
-            </h1>
-            <p className="hidden md:block text-secondary-text mt-2">
-              {properties.length} items tracked
-            </p>
+          {/* Key Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-ios-accent/10 rounded-lg">
+                  <Package className="h-5 w-5 text-ios-accent" />
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                  {properties.length}
+                </div>
+                <h3 className="text-sm font-medium text-ios-secondary-text">Total Items</h3>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-green-500/10 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                  {properties.filter(p => normalizeItemStatus(p.status) === 'operational').length}
+                </div>
+                <h3 className="text-sm font-medium text-ios-secondary-text">Operational</h3>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-orange-500/10 rounded-lg">
+                  <Wrench className="h-5 w-5 text-orange-500" />
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                  {properties.filter(p => normalizeItemStatus(p.status) === 'maintenance').length}
+                </div>
+                <h3 className="text-sm font-medium text-ios-secondary-text">In Maintenance</h3>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-blue-500/10 rounded-lg">
+                  <ArrowLeftRight className="h-5 w-5 text-blue-500" />
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                  {transfers.filter(t => t.status === 'pending').length}
+                </div>
+                <h3 className="text-sm font-medium text-ios-secondary-text">Pending Transfers</h3>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -619,82 +699,65 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         )}
 
         {/* Search and Filter Controls */}
-        <div className="mb-4 md:mb-6 space-y-3 md:space-y-4">
-          {/* Desktop search */}
-          <div className="hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
+        <div className="mb-8">
+          {/* Search Bar with Actions */}
+          <div className="flex gap-3 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-ios-tertiary-text" />
               <Input
-                placeholder="Search properties..."
+                placeholder="Search by name, serial number, or NSN..."
                 value={state.searchTerm}
                 onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent shadow-sm"
+                className="pl-10 pr-10 border-0 bg-white rounded-lg h-11 text-base placeholder:text-ios-quaternary-text focus-visible:ring-2 focus-visible:ring-ios-accent shadow-sm font-['SF_Pro_Text',_-apple-system,_BlinkMacSystemFont,_sans-serif]"
               />
               {state.searchTerm && (
                 <button
                   onClick={() => dispatch({ type: 'SET_SEARCH_TERM', payload: '' })}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-ios-tertiary-background rounded transition-colors"
                 >
-                  <X className="h-4 w-4 text-tertiary-text" />
+                  <X className="h-4 w-4 text-ios-tertiary-text" />
                 </button>
               )}
             </div>
-          </div>
-
-          {/* Mobile search */}
-          <div className="md:hidden">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
-              <Input
-                placeholder="Search properties..."
-                value={state.searchTerm}
-                onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent"
-              />
-              {state.searchTerm && (
-                <button
-                  onClick={() => dispatch({ type: 'SET_SEARCH_TERM', payload: '' })}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                >
-                  <X className="h-4 w-4 text-tertiary-text" />
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {/* Action buttons row */}
-          <div className="flex gap-2 md:gap-3">
-            {/* Filter/Sort button */}
+            
+            {/* Action buttons */}
             <Button
-              variant="outline"
-              size="sm"
               onClick={() => setShowingSortOptions(true)}
-              className="border-ios-border text-secondary-text hover:text-primary-text text-xs md:text-sm"
+              className="bg-white hover:bg-ios-tertiary-background text-ios-primary-text border border-ios-border rounded-lg px-4 h-11 font-medium shadow-sm transition-all duration-200"
             >
-              <Filter className="h-4 w-4 mr-1 md:mr-2" />
-              Sort
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              <span className="hidden md:inline">Filter & Sort</span>
+              <span className="md:hidden">Filter</span>
             </Button>
             
-            {/* Add button */}
             <Button
-              variant="outline"
-              size="sm"
               onClick={() => setShowingAddMenu(true)}
-              className="border-ios-border text-secondary-text hover:text-primary-text text-xs md:text-sm"
+              className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 h-11 font-medium shadow-sm transition-all duration-200"
             >
-              <Plus className="h-4 w-4 mr-1 md:mr-2" />
-              Add
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden md:inline">Add Item</span>
+              <span className="md:hidden">Add</span>
             </Button>
           </div>
           
-          {/* iOS-style filter tabs */}
+          {/* Quick Filter Pills */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-ios-accent/10 rounded-lg">
+              <Filter className="h-5 w-5 text-ios-accent" />
+            </div>
+            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              QUICK FILTERS
+            </h3>
+          </div>
+          
+          {/* Filter tabs */}
           <div className="space-y-3">
             {/* Main filter type selector */}
-            <div className="w-full overflow-hidden">
+            <div className="w-full overflow-hidden bg-white rounded-lg p-1 shadow-sm border border-ios-border">
               <div 
                 ref={mainFilterScroll.scrollRef}
                 className={cn(
-                  "filter-scroll-container overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0",
+                  "filter-scroll-container overflow-x-auto scrollbar-hide",
                   mainFilterScroll.isDragging && "cursor-grabbing"
                 )}
                 style={{ 
@@ -705,9 +768,9 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 }}
                 {...mainFilterScroll.handlers}
               >
-                <div className="flex gap-2 w-max pb-1">
+                <div className="flex gap-1 w-max">
                   <FilterTypeChip
-                    label="ALL"
+                    label="ALL ITEMS"
                     active={selectedFilterType === 'all'}
                     onClick={() => {
                       setSelectedFilterType('all');
@@ -716,17 +779,17 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     }}
                   />
                   <FilterTypeChip
-                    label="CATEGORY"
+                    label="BY CATEGORY"
                     active={selectedFilterType === 'category'}
                     onClick={() => setSelectedFilterType('category')}
                   />
                   <FilterTypeChip
-                    label="STATUS"
+                    label="BY STATUS"
                     active={selectedFilterType === 'status'}
                     onClick={() => setSelectedFilterType('status')}
                   />
                   <FilterTypeChip
-                    label="LOCATION"
+                    label="BY LOCATION"
                     active={selectedFilterType === 'location'}
                     onClick={() => setSelectedFilterType('location')}
                   />
@@ -736,11 +799,11 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
             {/* Sub-filter chips */}
             {(selectedFilterType === 'category' || selectedFilterType === 'status') && (
-              <div className="w-full overflow-hidden">
+              <div className="w-full overflow-hidden bg-gradient-to-r from-ios-tertiary-background/50 to-transparent rounded-lg p-3">
                 <div 
                   ref={subFilterScroll.scrollRef}
                   className={cn(
-                    "filter-scroll-container overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0",
+                    "filter-scroll-container overflow-x-auto scrollbar-hide",
                     subFilterScroll.isDragging && "cursor-grabbing"
                   )}
                   style={{ 
@@ -751,7 +814,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   }}
                   {...subFilterScroll.handlers}
                 >
-                  <div className="flex gap-2 w-max pb-1">
+                  <div className="flex gap-2.5 w-max">
                     {selectedFilterType === 'category' && (
                       <>
                         <FilterChip
@@ -824,29 +887,55 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           </div>
         )}
 
-        {/* Main content */}
-        <div className="space-y-3">
-
-          {state.isLoading && assignedToMe.length === 0 && !isOffline ? (
-            <div className="space-y-3">
-              {/* Skeleton loaders for cards */}
-              {[1, 2, 3, 4].map((i) => (
-                <PropertyCardSkeleton key={i} />
-              ))}
+        {/* Main content section */}
+        <div className="">
+          {/* Section Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Package className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  ASSIGNED ITEMS
+                </h2>
+                <p className="text-xs text-ios-secondary-text mt-0.5">{currentItems.length} items match your filters</p>
+              </div>
             </div>
-          ) : error && assignedToMe.length === 0 ? (
-            <CleanCard className="py-16 text-center">
-              <p className="text-ios-destructive mb-2">Error loading properties</p>
-              <p className="text-secondary-text text-sm">{error?.message || "Please try again later"}</p>
+            {currentItems.length > 0 && (
               <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="mt-4"
+                onClick={() => setShowingDA2062Export(true)}
+                className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
               >
-                Retry
+                Export DA-2062
+                <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
-            </CleanCard>
+            )}
+          </div>
+          
+          <div className="space-y-3">
+            {state.isLoading && assignedToMe.length === 0 && !isOffline ? (
+              <div className="space-y-3">
+                {/* Skeleton loaders for cards */}
+                {[1, 2, 3, 4].map((i) => (
+                  <PropertyCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : error && assignedToMe.length === 0 ? (
+              <CleanCard className="py-16 text-center">
+                <p className="text-ios-destructive mb-2">Error loading properties</p>
+                <p className="text-secondary-text text-sm">{error?.message || "Please try again later"}</p>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                >
+                  Retry
+                </Button>
+              </CleanCard>
           ) : currentItems.length === 0 ? (
             <MinimalEmptyState
               title={state.searchTerm || state.filterCategory !== "all" 
@@ -892,15 +981,12 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     setSelectedItem(item);
                     setTransferModalOpen(true);
                   }}
-                  onMaintenance={() => {
-                    setSelectedItem(item);
-                    setMaintenanceFormModalOpen(true);
-                  }}
                   onViewDetails={() => handleViewDetails(item)}
                 />
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -927,68 +1013,230 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       )}
 
       <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-primary-text">{selectedItem?.name}</DialogTitle>
-            <DialogDescription className="text-secondary-text">
-              Serial Number: {selectedItem?.serialNumber}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <label className="text-tertiary-text text-xs uppercase tracking-wide font-medium">
-                  STATUS
-                </label>
-                <div className="mt-1">
-                  {selectedItem && (
-                    <StatusBadge
-                      status={selectedItem.status === 'Operational' ? 'operational' : 
-                             selectedItem.status === 'Non-Operational' ? 'non-operational' : 'maintenance'}
-                    />
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-b from-white to-ios-tertiary-background/30">
+          <DialogHeader className="border-b border-ios-divider pb-5">
+            <div className="flex items-start gap-4">
+              <div className={cn(
+                "p-3 rounded-xl flex-shrink-0",
+                selectedItem && getCategoryFromName(selectedItem.name) !== 'other' 
+                  ? getCategoryColor(selectedItem.name).replace('text-', 'bg-').replace('500', '500/10')
+                  : 'bg-ios-tertiary-background'
+              )}>
+                {selectedItem && getCategoryFromName(selectedItem.name) !== 'other' ? (
+                  <span className={cn("text-2xl", getCategoryColor(selectedItem.name))}>
+                    {getCategoryIcon(selectedItem.name)}
+                  </span>
+                ) : (
+                  <Package className="h-6 w-6 text-ios-secondary-text" />
+                )}
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-2xl font-semibold text-ios-primary-text mb-2">
+                  {selectedItem?.name}
+                </DialogTitle>
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="flex items-center gap-1.5 text-ios-secondary-text">
+                    <FileText className="h-4 w-4" />
+                    <span className="font-['Courier_New',_monospace]">SN: {selectedItem?.serialNumber}</span>
+                  </span>
+                  {selectedItem?.nsn && (
+                    <span className="flex items-center gap-1.5 text-ios-secondary-text">
+                      <Package className="h-4 w-4" />
+                      <span className="font-['Courier_New',_monospace]">NSN: {selectedItem?.nsn}</span>
+                    </span>
+                  )}
+                  {selectedItem?.lin && (
+                    <span className="flex items-center gap-1.5 text-ios-secondary-text">
+                      <Shield className="h-4 w-4" />
+                      <span className="font-['Courier_New',_monospace]">LIN: {selectedItem?.lin}</span>
+                    </span>
                   )}
                 </div>
               </div>
-              <div>
-                <label className="text-tertiary-text text-xs uppercase tracking-wide font-medium">
-                  CATEGORY
-                </label>
-                <div className="mt-1 text-primary-text font-mono">
-                  {selectedItem?.category || 'Other'}
+              {selectedItem?.isSensitive && (
+                <div className="p-2 bg-orange-500/10 rounded-lg">
+                  <Shield className="h-5 w-5 text-orange-500" />
+                </div>
+              )}
+            </div>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto px-1">
+            <div className="p-6 space-y-6">
+              {/* Key Information Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Category & Location Card */}
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-ios-border">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Info className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                      CLASSIFICATION
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-ios-tertiary-text uppercase tracking-wider mb-1">Category</p>
+                      <p className="text-sm font-medium text-ios-primary-text capitalize">
+                        {selectedItem?.category || 'Other'}
+                      </p>
+                    </div>
+                    {selectedItem?.location && (
+                      <div>
+                        <p className="text-xs text-ios-tertiary-text uppercase tracking-wider mb-1">Location</p>
+                        <p className="text-sm font-medium text-ios-primary-text">
+                          {selectedItem.location}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Assignment Info Card */}
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-ios-border">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                      <Calendar className="h-4 w-4 text-purple-500" />
+                    </div>
+                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                      ASSIGNMENT INFO
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-ios-tertiary-text uppercase tracking-wider mb-1">Assigned Date</p>
+                      <p className="text-sm font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                        {selectedItem?.assignedDate ? 
+                          (() => {
+                            const date = new Date(selectedItem.assignedDate);
+                            const day = date.getDate().toString().padStart(2, '0');
+                            const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                            const year = date.getFullYear();
+                            return `${day}${month}${year}`;
+                          })()
+                          : 'UNKNOWN'
+                        }
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {selectedItem?.components && selectedItem.components.length > 0 && (
-              <div>
-                <ElegantSectionHeader title="COMPONENTS" className="mb-4" />
-                <ComponentList
-                  itemId={selectedItem.id}
-                  components={selectedItem.components}
-                  onAddComponent={handleAddComponent}
-                  onUpdateComponent={handleUpdateComponent}
-                  onRemoveComponent={handleRemoveComponent}
-                />
+              
+              {/* Transfer History */}
+              <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-5 border border-ios-accent/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <ArrowLeftRight className="h-4 w-4 text-ios-accent" />
+                  </div>
+                  <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    TRANSFER HISTORY
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  {/* Mock transfer history - replace with actual data */}
+                  {[
+                    { from: 'SGT JOHNSON', to: 'CPT SMITH', date: '2024-12-15T14:30:00', status: 'completed' },
+                    { from: 'PVT WILLIAMS', to: 'SGT JOHNSON', date: '2024-10-20T09:15:00', status: 'completed' },
+                    { from: 'SUPPLY', to: 'PVT WILLIAMS', date: '2024-08-05T11:00:00', status: 'completed' }
+                  ].map((transfer, index) => (
+                    <div key={index} className="flex items-start gap-3 pb-3 border-b border-ios-divider last:border-0 last:pb-0">
+                      <div className="p-1.5 bg-ios-accent/10 rounded-full mt-0.5">
+                        <CheckCircle className="h-3 w-3 text-ios-accent" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-medium text-ios-primary-text">
+                            {transfer.from} → {transfer.to}
+                          </p>
+                          <span className="text-xs text-green-500 font-medium uppercase">Completed</span>
+                        </div>
+                        <p className="text-xs text-ios-tertiary-text font-['Courier_New',_monospace]">
+                          {(() => {
+                            const date = new Date(transfer.date);
+                            const day = date.getDate().toString().padStart(2, '0');
+                            const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                            const year = date.getFullYear();
+                            const time = date.toLocaleTimeString('en-US', { 
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: false 
+                            });
+                            return `${day}${month}${year} ${time}`;
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {/* If no transfer history */}
+                  {false && (
+                    <p className="text-sm text-ios-tertiary-text text-center py-4">
+                      No transfer history available
+                    </p>
+                  )}
+                </div>
               </div>
-            )}
+              
+              {/* Description if available */}
+              {selectedItem?.description && (
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-ios-border">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                      <FileText className="h-4 w-4 text-purple-500" />
+                    </div>
+                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                      DESCRIPTION
+                    </h3>
+                  </div>
+                  <p className="text-sm text-ios-secondary-text leading-relaxed">
+                    {selectedItem.description}
+                  </p>
+                </div>
+              )}
+              
+              {/* Components section */}
+              {selectedItem?.components && selectedItem.components.length > 0 && (
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-ios-border">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-orange-500/10 rounded-lg">
+                      <Package className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                      COMPONENTS ({selectedItem.components.length})
+                    </h3>
+                  </div>
+                  <ComponentList
+                    itemId={selectedItem.id}
+                    components={selectedItem.components}
+                    onAddComponent={handleAddComponent}
+                    onUpdateComponent={handleUpdateComponent}
+                    onRemoveComponent={handleRemoveComponent}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-          <DialogFooter className="gap-2">
+          
+          <DialogFooter className="border-t border-ios-divider pt-4 px-6 pb-6">
             <Button
               variant="outline"
               onClick={() => setDetailsModalOpen(false)}
-              className="text-primary-text border-ios-border hover:bg-gray-50"
+              className="border-ios-border hover:bg-ios-tertiary-background font-medium"
             >
               Close
             </Button>
-            <Button
-              onClick={() => {
-                setDetailsModalOpen(false);
-                if (selectedItem) handleTransferRequest(selectedItem);
-              }}
-              className="bg-ios-accent hover:bg-accent-hover text-white"
-            >
-              Transfer Item
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setDetailsModalOpen(false);
+                  if (selectedItem) handleTransferRequest(selectedItem);
+                }}
+                className="bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200"
+              >
+                <ArrowLeftRight className="h-4 w-4 mr-2" />
+                Transfer Item
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -999,19 +1247,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         onSubmit={handleCreateItem}
       />
 
-      {selectedItem && (
-        <SendMaintenanceForm
-          open={maintenanceFormModalOpen}
-          onClose={() => setMaintenanceFormModalOpen(false)}
-          property={{
-            id: typeof selectedItem.id === 'string' ? parseInt(selectedItem.id) : selectedItem.id,
-            name: selectedItem.name,
-            serialNumber: selectedItem.serialNumber,
-            nsn: selectedItem.nsn,
-            location: selectedItem.location,
-          }}
-        />
-      )}
       
       {/* DA 2062 Export Dialog */}
       <DA2062ExportDialog
@@ -1115,7 +1350,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   );
 };
 
-// Filter Type Chip Component (iOS style)
+// Enhanced Filter Type Chip Component
 interface FilterTypeChipProps {
   label: string;
   active: boolean;
@@ -1127,10 +1362,10 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
     <button
       onClick={onClick}
       className={cn(
-        "px-4 py-2 text-xs font-medium rounded whitespace-nowrap transition-all uppercase tracking-[0.06em]",
+        "px-5 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-primary-text text-white"
-          : "bg-secondary-background text-secondary-text border border-ios-border"
+          ? "bg-ios-accent text-white shadow-sm"
+          : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
       )}
     >
       {label}
@@ -1138,7 +1373,7 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
   );
 };
 
-// Filter Chip Component
+// Enhanced Filter Chip Component
 interface FilterChipProps {
   label: string;
   active: boolean;
@@ -1150,10 +1385,10 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
     <button
       onClick={onClick}
       className={cn(
-        "px-4 py-2 text-xs font-medium rounded whitespace-nowrap transition-all uppercase tracking-[0.06em]",
+        "px-5 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-primary-text text-white"
-          : "bg-secondary-background text-secondary-text border border-ios-border"
+          ? "bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-md"
+          : "bg-white text-ios-secondary-text border border-ios-border hover:border-ios-accent/30 hover:text-ios-primary-text hover:bg-gradient-to-r hover:from-ios-accent/5 hover:to-ios-accent/10 hover:shadow-sm"
       )}
     >
       {label}
@@ -1161,34 +1396,34 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
   );
 };
 
-// Property Card Skeleton Component
+// Enhanced Property Card Skeleton Component
 const PropertyCardSkeleton: React.FC = () => {
   return (
-    <CleanCard padding="none">
+    <CleanCard className="shadow-sm">
       <div className="p-6">
         <div className="space-y-5">
           {/* Header skeleton */}
           <div className="flex items-start justify-between">
             <div className="flex-1 space-y-3">
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="h-6 w-3/4 bg-ios-tertiary-background" />
+              <Skeleton className="h-4 w-1/2 bg-ios-tertiary-background" />
+              <Skeleton className="h-3 w-1/3 bg-ios-tertiary-background" />
             </div>
-            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-10 w-10 rounded-lg bg-ios-tertiary-background" />
           </div>
           
           {/* Status skeleton */}
           <div className="flex items-center justify-between">
-            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-6 w-24 rounded-full bg-ios-tertiary-background" />
             <div className="space-y-1">
-              <Skeleton className="h-3 w-16 ml-auto" />
-              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-16 ml-auto bg-ios-tertiary-background" />
+              <Skeleton className="h-3 w-20 bg-ios-tertiary-background" />
             </div>
           </div>
           
           {/* Action skeleton */}
           <div className="pt-3 border-t border-ios-divider">
-            <Skeleton className="h-4 w-16 ml-auto" />
+            <Skeleton className="h-4 w-20 ml-auto bg-ios-tertiary-background" />
           </div>
         </div>
       </div>

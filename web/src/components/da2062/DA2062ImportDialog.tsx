@@ -262,20 +262,23 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
   // Render upload step
   const renderUploadStep = () => (
     <div className="space-y-6">
-      <CleanCard>
-        <div className="p-8 text-center">
-          <div className="mb-6">
-            <div className="mx-auto w-16 h-16 rounded-full bg-ios-secondary-background flex items-center justify-center">
-              <FileImage className="h-8 w-8 text-secondary-text" />
-            </div>
+      <div className="text-center mb-8">
+        <div className="mb-6">
+          <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-ios-accent/20 to-ios-accent/10 flex items-center justify-center shadow-sm">
+            <FileImage className="h-10 w-10 text-ios-accent" />
           </div>
-          
-          <h3 className="text-lg font-medium text-primary-text mb-2">
-            Upload DA Form 2062
-          </h3>
-          <p className="text-sm text-secondary-text mb-6">
-            Upload a scanned image or PDF of your DA-2062 hand receipt
-          </p>
+        </div>
+        
+        <h3 className="text-xl font-semibold text-ios-primary-text mb-2">
+          Upload DA Form 2062
+        </h3>
+        <p className="text-sm text-ios-secondary-text max-w-md mx-auto">
+          Upload a scanned image or PDF of your DA-2062 hand receipt for automatic item extraction
+        </p>
+      </div>
+      
+      <CleanCard className="shadow-sm border border-ios-border">
+        <div className="p-6">
           
           <input
             ref={fileInputRef}
@@ -286,32 +289,42 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
           />
           
           {selectedFile ? (
-            <div className="mb-4 p-4 bg-ios-secondary-background rounded-lg">
+            <div className="mb-6 p-4 bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-lg border border-ios-accent/20">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <FileText className="h-5 w-5 text-secondary-text" />
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-white rounded-lg shadow-sm">
+                    <FileText className="h-5 w-5 text-ios-accent" />
+                  </div>
                   <div className="text-left">
-                    <p className="text-sm font-medium text-primary-text">{selectedFile.name}</p>
-                    <p className="text-xs text-secondary-text">
+                    <p className="text-sm font-medium text-ios-primary-text">{selectedFile.name}</p>
+                    <p className="text-xs text-ios-secondary-text font-['Courier_New',_monospace]">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedFile(null)}
-                  className="text-tertiary-text hover:text-primary-text"
+                  className="p-1.5 hover:bg-white/50 rounded-lg transition-colors"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 text-ios-tertiary-text" />
                 </button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="mb-6 p-8 border-2 border-dashed border-ios-border rounded-lg hover:border-ios-accent/30 transition-colors">
+              <div className="text-center">
+                <Upload className="h-8 w-8 text-ios-tertiary-text mx-auto mb-3" />
+                <p className="text-sm text-ios-secondary-text mb-1">Drop your file here, or click to browse</p>
+                <p className="text-xs text-ios-tertiary-text">JPG, PNG, or PDF (max 10MB)</p>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-3">
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full"
+              className="w-full h-11 border-ios-border hover:border-ios-accent/30 hover:bg-ios-tertiary-background font-medium transition-all duration-200"
               disabled={isProcessing}
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -321,13 +334,13 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
             {selectedFile && (
               <Button
                 onClick={processFile}
-                className="w-full"
+                className="w-full h-11 bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200"
                 disabled={isProcessing}
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
+                    Processing Document...
                   </>
                 ) : (
                   <>
@@ -343,37 +356,46 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
       
       {/* Processing status */}
       {uploadProgress && (
-        <CleanCard>
-          <div className="p-4">
-            <div className="flex items-center space-x-3">
-              <Loader2 className="h-5 w-5 text-ios-accent animate-spin" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-primary-text capitalize">
-                  {uploadProgress.phase.replace(/_/g, ' ')}
-                </p>
-                <p className="text-xs text-secondary-text">
-                  {uploadProgress.message}
-                </p>
-              </div>
+        <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 rounded-lg p-4 border border-blue-500/20">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white rounded-lg shadow-sm">
+              <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-ios-primary-text capitalize">
+                {uploadProgress.phase.replace(/_/g, ' ')}
+              </p>
+              <p className="text-xs text-ios-secondary-text mt-0.5">
+                {uploadProgress.message}
+              </p>
             </div>
           </div>
-        </CleanCard>
+        </div>
       )}
       
-      {/* Instructions */}
-      <div className="space-y-2 text-sm text-secondary-text">
-        <p className="flex items-start space-x-2">
-          <span className="text-ios-accent">•</span>
-          <span>Supported formats: JPG, PNG, PDF</span>
-        </p>
-        <p className="flex items-start space-x-2">
-          <span className="text-ios-accent">•</span>
-          <span>Maximum file size: 10MB</span>
-        </p>
-        <p className="flex items-start space-x-2">
-          <span className="text-ios-accent">•</span>
-          <span>OCR processing extracts item details automatically</span>
-        </p>
+      {/* Instructions Card */}
+      <div className="bg-ios-tertiary-background/50 rounded-lg p-4">
+        <h4 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider mb-3 font-['Courier_New',_monospace]">
+          UPLOAD GUIDELINES
+        </h4>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-ios-secondary-text">Supported formats: JPG, PNG, PDF</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-ios-secondary-text">Maximum file size: 10MB</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-ios-secondary-text">OCR extracts item details automatically</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-ios-secondary-text">Ensure text is clear and readable for best results</p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -387,104 +409,141 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
       <div className="space-y-6">
         {/* Form info */}
         {parsedForm && (
-          <CleanCard>
-            <div className="p-4 space-y-2">
+          <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-5 border border-ios-accent/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 bg-white rounded-lg shadow-sm">
+                <FileText className="h-5 w-5 text-ios-accent" />
+              </div>
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                FORM DETAILS
+              </h3>
+            </div>
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-secondary-text">Form Confidence</span>
-                <span className={`text-sm font-medium ${getConfidenceColor(parsedForm.confidence)}`}>
-                  {getConfidenceLabel(parsedForm.confidence)} ({Math.round(parsedForm.confidence * 100)}%)
-                </span>
+                <span className="text-xs text-ios-secondary-text uppercase tracking-wider">Confidence Score</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        className={cn(
+                          "h-2 w-6 rounded-full transition-colors",
+                          parsedForm.confidence >= level * 0.2
+                            ? "bg-green-500"
+                            : "bg-ios-tertiary-background"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className={`text-sm font-bold ${getConfidenceColor(parsedForm.confidence)}`}>
+                    {Math.round(parsedForm.confidence * 100)}%
+                  </span>
+                </div>
               </div>
               {parsedForm.unitName && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-secondary-text">Unit</span>
-                  <span className="text-sm font-medium text-primary-text">{parsedForm.unitName}</span>
+                  <span className="text-xs text-ios-secondary-text uppercase tracking-wider">Unit</span>
+                  <span className="text-sm font-medium text-ios-primary-text font-['Courier_New',_monospace]">{parsedForm.unitName}</span>
                 </div>
               )}
               {parsedForm.formNumber && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-secondary-text">Form Number</span>
-                  <span className="text-sm font-medium text-primary-text">{parsedForm.formNumber}</span>
+                  <span className="text-xs text-ios-secondary-text uppercase tracking-wider">Form Number</span>
+                  <span className="text-sm font-medium text-ios-primary-text font-['Courier_New',_monospace]">{parsedForm.formNumber}</span>
                 </div>
               )}
             </div>
-          </CleanCard>
+          </div>
         )}
         
         {/* Selection controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Checkbox
-              checked={allSelected}
-              onCheckedChange={toggleAllSelection}
-            />
-            <span className="text-sm font-medium text-primary-text">
-              Select All ({selectedCount} of {editableItems.length})
-            </span>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-ios-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={toggleAllSelection}
+                className="data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+              />
+              <label className="text-sm font-medium text-ios-primary-text cursor-pointer select-none">
+                Select All Items
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-ios-secondary-text">
+                {selectedCount} of {editableItems.length} selected
+              </span>
+              <div className="px-3 py-1 bg-ios-accent text-white text-xs font-semibold rounded-full uppercase tracking-wider">
+                {selectedCount} ITEMS
+              </div>
+            </div>
           </div>
-          <StatusBadge status="pending" size="sm">
-            {selectedCount} SELECTED
-          </StatusBadge>
         </div>
         
         {/* Items list */}
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
           {editableItems.map((item) => {
             const isExpanded = expandedItems.has(item.id);
             
             return (
-              <CleanCard key={item.id}>
+              <CleanCard key={item.id} className="shadow-sm border border-ios-border hover:border-ios-accent/30 transition-all duration-200">
                 <div className="p-4">
                   {/* Item header */}
-                  <div className="flex items-start space-x-3">
+                  <div className="flex items-start gap-3">
                     <Checkbox
                       checked={item.isSelected}
                       onCheckedChange={() => toggleItemSelection(item.id)}
-                      className="mt-0.5"
+                      className="mt-0.5 data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
                     />
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-medium text-primary-text">
+                          <h4 className="font-semibold text-ios-primary-text">
                             {item.description}
-                          </p>
-                          <div className="flex items-center space-x-4 mt-1">
-                            <span className="text-xs text-secondary-text">
-                              Qty: {item.quantity}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            <span className="inline-flex items-center gap-1 text-xs text-ios-secondary-text">
+                              <Package className="h-3 w-3" />
+                              Qty: <span className="font-semibold">{item.quantity}</span>
                             </span>
                             {item.nsn && (
-                              <span className="text-xs text-secondary-text">
-                                NSN: {formatNSN(item.nsn)}
+                              <span className="inline-flex items-center gap-1 text-xs text-ios-secondary-text">
+                                <FileText className="h-3 w-3" />
+                                NSN: <span className="font-mono">{formatNSN(item.nsn)}</span>
                               </span>
                             )}
-                            <span className="text-xs text-secondary-text">
-                              S/N: {item.serialNumber}
+                            <span className="inline-flex items-center gap-1 text-xs text-ios-secondary-text">
+                              <Shield className="h-3 w-3" />
+                              S/N: <span className="font-mono">{item.serialNumber}</span>
                             </span>
                           </div>
                         </div>
                         
                         <button
                           onClick={() => toggleItemExpansion(item.id)}
-                          className="p-1 hover:bg-ios-secondary-background rounded"
+                          className="p-1.5 hover:bg-ios-tertiary-background rounded-lg transition-colors"
                         >
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-tertiary-text" />
+                            <ChevronDown className="h-4 w-4 text-ios-tertiary-text" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-tertiary-text" />
+                            <ChevronRight className="h-4 w-4 text-ios-tertiary-text" />
                           )}
                         </button>
                       </div>
                       
                       {/* Warnings */}
                       {item.needsVerification && (
-                        <div className="flex items-center space-x-2 mt-2">
-                          <AlertTriangle className="h-3 w-3 text-ios-warning" />
-                          <span className="text-xs text-ios-warning">
-                            {!item.hasExplicitSerial && 'Serial number will be generated • '}
-                            {item.confidence < 0.7 && 'Low OCR confidence • '}
-                            {item.quantityConfidence < 0.7 && 'Verify quantity'}
-                          </span>
+                        <div className="flex items-start gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                          <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                          <div className="text-xs text-orange-700">
+                            <p className="font-medium mb-1">Verification Required</p>
+                            <ul className="space-y-0.5">
+                              {!item.hasExplicitSerial && <li>• Serial number will be auto-generated</li>}
+                              {item.confidence < 0.7 && <li>• Low OCR confidence - please verify details</li>}
+                              {item.quantityConfidence < 0.7 && <li>• Quantity needs verification</li>}
+                            </ul>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -561,11 +620,22 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-primary-text">
-            <Package className="h-5 w-5" />
-            Import DA 2062
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-b from-white to-ios-tertiary-background/30">
+        <DialogHeader className="border-b border-ios-divider pb-4">
+          <DialogTitle className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-lg shadow-sm">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-ios-primary-text">
+                Import DA 2062
+              </h2>
+              <p className="text-xs text-ios-secondary-text mt-0.5">
+                {currentStep === 'upload' && 'Upload your form'}
+                {currentStep === 'review' && `Review ${editableItems.length} items`}
+                {currentStep === 'importing' && 'Processing import'}
+              </p>
+            </div>
           </DialogTitle>
         </DialogHeader>
         
@@ -575,17 +645,16 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
           {currentStep === 'importing' && renderImportingStep()}
         </div>
         
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter className="border-t border-ios-divider pt-4">
           {currentStep === 'upload' && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                disabled={isProcessing}
-              >
-                Cancel
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={isProcessing}
+              className="border-ios-border hover:bg-ios-tertiary-background font-medium"
+            >
+              Cancel
+            </Button>
           )}
           
           {currentStep === 'review' && (
@@ -594,12 +663,14 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                 variant="outline"
                 onClick={() => setCurrentStep('upload')}
                 disabled={isImporting}
+                className="border-ios-border hover:bg-ios-tertiary-background font-medium"
               >
                 Back
               </Button>
               <Button
                 onClick={importItems}
                 disabled={isImporting || editableItems.filter(i => i.isSelected).length === 0}
+                className="bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200"
               >
                 <Package className="h-4 w-4 mr-2" />
                 Import {editableItems.filter(i => i.isSelected).length} Items
