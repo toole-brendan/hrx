@@ -376,11 +376,11 @@ export const Connections: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="border-ios-border hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-500 hover:text-white hover:border-transparent text-ios-primary-text font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
+                className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4 mr-1.5" />
                 Export
               </Button>
             </div>
@@ -390,101 +390,68 @@ export const Connections: React.FC = () => {
         {/* Network Stats */}
         <NetworkStats connections={connections} />
         
-        {/* Professional Tabbed Interface */}
+        {/* Tab selector with Transfers styling */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NetworkTab)} className="space-y-6">
-          <div className="relative bg-gradient-to-br from-white to-ios-secondary-background/30 rounded-2xl shadow-xl border border-ios-border/50 p-1.5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-2xl" />
-            <div className="relative grid grid-cols-3 gap-1.5">
-              <button
-                onClick={() => setActiveTab('my-network')}
-                className={cn(
-                  "relative rounded-xl transition-all duration-300 py-4 px-5 font-medium group flex items-center justify-center transform-gpu",
-                  activeTab === 'my-network' 
-                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg scale-[1.02]" 
-                    : "bg-white/50 text-ios-secondary-text hover:text-ios-primary-text hover:bg-white/70 hover:shadow-md hover:scale-[1.01]"
-                )}
-              >
-                {activeTab === 'my-network' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                )}
-                <div className="relative flex items-center gap-2.5">
-                  <Users className={cn(
-                    "h-4 w-4 transition-all duration-300",
-                    activeTab === 'my-network' ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
-                  )} />
-                  <span className="text-sm font-bold uppercase tracking-wider">My Network</span>
+          <div className="space-y-3">
+            <div className="w-full overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  onClick={() => setActiveTab('my-network')}
+                  className={cn(
+                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
+                    activeTab === 'my-network'
+                      ? "bg-ios-accent text-white shadow-lg scale-105"
+                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
+                  )}
+                >
+                  <Users className="h-5 w-5" />
+                  MY NETWORK
                   {acceptedConnections.length > 0 && (
                     <span className={cn(
-                      "ml-2 px-2.5 py-1 rounded-full text-xs font-black font-['Courier_New',_monospace] min-w-[2rem] text-center transition-all duration-300",
-                      activeTab === 'my-network' 
-                        ? "bg-white/25 text-white shadow-sm" 
-                        : "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 group-hover:from-blue-500/20 group-hover:to-indigo-500/20"
+                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+                      activeTab === 'my-network'
+                        ? "bg-white/20 text-white"
+                        : "bg-gray-300 text-gray-700"
                     )}>
                       {acceptedConnections.length}
                     </span>
                   )}
-                </div>
-                {activeTab === 'my-network' && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab('requests')}
-                className={cn(
-                  "relative rounded-xl transition-all duration-300 py-4 px-5 font-medium group flex items-center justify-center transform-gpu",
-                  activeTab === 'requests' 
-                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg scale-[1.02]" 
-                    : "bg-white/50 text-ios-secondary-text hover:text-ios-primary-text hover:bg-white/70 hover:shadow-md hover:scale-[1.01]"
-                )}
-              >
-                {activeTab === 'requests' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-amber-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                )}
-                <div className="relative flex items-center gap-2.5">
-                  <Inbox className={cn(
-                    "h-4 w-4 transition-all duration-300",
-                    activeTab === 'requests' ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
-                  )} />
-                  <span className="text-sm font-bold uppercase tracking-wider">Requests</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('requests')}
+                  className={cn(
+                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
+                    activeTab === 'requests'
+                      ? "bg-ios-accent text-white shadow-lg scale-105"
+                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
+                  )}
+                >
+                  <Inbox className="h-5 w-5" />
+                  REQUESTS
                   {(pendingRequests.length > 0 || connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length > 0) && (
                     <span className={cn(
-                      "ml-2 px-2.5 py-1 rounded-full text-xs font-black font-['Courier_New',_monospace] min-w-[2rem] text-center transition-all duration-300",
-                      activeTab === 'requests' 
-                        ? "bg-white/25 text-white shadow-sm" 
-                        : "bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-600 animate-pulse group-hover:animate-none"
+                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+                      activeTab === 'requests'
+                        ? "bg-white/20 text-white"
+                        : "bg-orange-500 text-white animate-pulse"
                     )}>
                       {pendingRequests.length + connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length}
                     </span>
                   )}
-                </div>
-                {activeTab === 'requests' && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab('directory')}
-                className={cn(
-                  "relative rounded-xl transition-all duration-300 py-4 px-5 font-medium group flex items-center justify-center transform-gpu",
-                  activeTab === 'directory' 
-                    ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg scale-[1.02]" 
-                    : "bg-white/50 text-ios-secondary-text hover:text-ios-primary-text hover:bg-white/70 hover:shadow-md hover:scale-[1.01]"
-                )}
-              >
-                {activeTab === 'directory' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                )}
-                <div className="relative flex items-center gap-2.5">
-                  <Globe className={cn(
-                    "h-4 w-4 transition-all duration-300",
-                    activeTab === 'directory' ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
-                  )} />
-                  <span className="text-sm font-bold uppercase tracking-wider">Directory</span>
-                  <Sparkles className="h-3 w-3 text-white/60 absolute -top-1 -right-1" />
-                </div>
-                {activeTab === 'directory' && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
-                )}
-              </button>
+                </button>
+                <button
+                  onClick={() => setActiveTab('directory')}
+                  className={cn(
+                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
+                    activeTab === 'directory'
+                      ? "bg-ios-accent text-white shadow-lg scale-105"
+                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
+                  )}
+                >
+                  <Globe className="h-5 w-5" />
+                  DIRECTORY
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1025,7 +992,7 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
                   </div>
                 </TableCell>
                 <TableCell className="py-4">
-                  <span className="text-sm font-bold text-ios-secondary-text font-['Courier_New',_monospace]">
+                  <span className="text-sm text-ios-secondary-text font-['Courier_New',_monospace]">
                     {format(new Date(connection.createdAt), 'ddMMMyyyy').toUpperCase()}
                   </span>
                 </TableCell>

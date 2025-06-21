@@ -597,8 +597,12 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
 
   // --- Render Logic ---
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+      {/* Decorative gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
+      
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8 relative z-10">
         {/* Enhanced Header section */}
         <div className="space-y-8">
           {/* Top navigation bar */}
@@ -619,9 +623,11 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-                className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 transform-gpu flex items-center gap-2 border-0"
+                variant="ghost"
+                size="sm"
+                className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 mr-1.5" />
                 New Transfer
               </Button>
             </div>
@@ -631,35 +637,33 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         {/* Transfer Stats */}
         <TransferStats transfers={transfers || []} />
         
-        {/* Enhanced Tab selector with transfer theme */}
-        <div>
-          <div className="bg-gradient-to-br from-white to-ios-secondary-background/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-ios-border p-2">
-            <div className="grid grid-cols-3 gap-2">
+        {/* Tab selector with Property Book styling */}
+        <div className="space-y-3">
+          <div className="w-full overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
+            <div className="grid grid-cols-3 gap-1">
               {[
-                { id: 'incoming' as TransferView, label: 'Incoming', icon: <ArrowDownCircle className="h-5 w-5" />, count: incomingPendingCount, color: 'green' },
-                { id: 'outgoing' as TransferView, label: 'Outgoing', icon: <ArrowUpCircle className="h-5 w-5" />, count: outgoingPendingCount, color: 'orange' },
-                { id: 'history' as TransferView, label: 'History', icon: <History className="h-5 w-5" />, count: historyTransfers.length, color: 'gray' }
+                { id: 'incoming' as TransferView, label: 'INCOMING', icon: <ArrowDownCircle className="h-5 w-5" />, count: incomingPendingCount },
+                { id: 'outgoing' as TransferView, label: 'OUTGOING', icon: <ArrowUpCircle className="h-5 w-5" />, count: outgoingPendingCount },
+                { id: 'history' as TransferView, label: 'HISTORY', icon: <History className="h-5 w-5" />, count: historyTransfers.length }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: tab.id })}
                   className={cn(
-                    "relative flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200",
+                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
                     activeView === tab.id
-                      ? tab.color === 'green' ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg"
-                        : tab.color === 'orange' ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg"
-                        : "bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-lg"
-                      : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background"
+                      ? "bg-ios-accent text-white shadow-lg scale-105"
+                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
                   )}
                 >
                   {tab.icon}
-                  <span>{tab.label}</span>
+                  {tab.label}
                   {tab.count > 0 && (
                     <span className={cn(
-                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace]",
+                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
                       activeView === tab.id
                         ? "bg-white/20 text-white"
-                        : "bg-ios-tertiary-background text-ios-secondary-text"
+                        : "bg-gray-300 text-gray-700"
                     )}>
                       {tab.count}
                     </span>
@@ -764,7 +768,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 action={activeView !== 'incoming' ? (
                   <Button
                     onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-                    className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+                    className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2 border-0"
                   >
                     <Plus className="h-4 w-4" />
                     Create Transfer

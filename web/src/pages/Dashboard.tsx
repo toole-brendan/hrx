@@ -324,8 +324,12 @@ export default function Dashboard() {
   }, []);
   
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-ios-background via-ios-background/95 to-ios-tertiary-background">
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+      {/* Decorative gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
+      
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8 relative z-10">
         {/* Enhanced Header section */}
         <div className="space-y-8">
           {/* Top navigation bar */}

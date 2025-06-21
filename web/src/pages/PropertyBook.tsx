@@ -558,11 +558,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50/95 to-gray-100/90 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+      {/* Decorative gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
       {/* Sticky header for mobile */}
       <div 
         ref={headerRef}
@@ -600,7 +599,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
         {/* Enhanced Header */}
         <div className="mb-12 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-8">
@@ -623,9 +622,9 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   onClick={() => setIsSelectMode(true)}
                   variant="ghost"
                   size="sm"
-                  className="text-xs font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
+                  className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
                 >
-                  <CheckCircle className="h-3 w-3 mr-1" />
+                  <CheckCircle className="h-4 w-4 mr-1.5" />
                   Select
                 </Button>
               )}
@@ -637,7 +636,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   }}
                   variant="ghost"
                   size="sm"
-                  className="text-xs font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
+                  className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
                 >
                   Cancel
                 </Button>
@@ -780,7 +779,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           {/* Filter tabs */}
           <div className="space-y-3">
             {/* Main filter type selector */}
-            <div className="w-full overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
+            <div className="w-fit overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
               <div 
                 ref={mainFilterScroll.scrollRef}
                 className={cn(
@@ -826,7 +825,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
             {/* Sub-filter chips */}
             {(selectedFilterType === 'category' || selectedFilterType === 'status') && (
-              <div className="w-full overflow-hidden bg-gradient-to-r from-gray-100/50 to-transparent rounded-lg p-3 shadow-inner">
+              <div className="w-fit overflow-hidden rounded-lg p-3">
                 <div 
                   ref={subFilterScroll.scrollRef}
                   className={cn(
@@ -1392,13 +1391,13 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
     <button
       onClick={onClick}
       className={cn(
-        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] relative overflow-hidden",
+        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105 before:absolute before:inset-0 before:bg-white/20 before:rounded-lg"
-          : "bg-transparent text-gray-600 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
+          ? "bg-ios-accent text-white shadow-lg scale-105"
+          : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
       )}
     >
-      <span className="relative z-10">{label}</span>
+      {label}
     </button>
   );
 };
@@ -1415,10 +1414,10 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
     <button
       onClick={onClick}
       className={cn(
-        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] relative",
+        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105 border-2 border-ios-accent/30"
-          : "bg-gradient-to-r from-white to-gray-50 text-gray-600 border border-gray-200/50 hover:border-ios-accent/30 hover:text-gray-900 hover:from-ios-accent/5 hover:to-ios-accent/10 hover:shadow-md hover:scale-[1.02]"
+          ? "bg-ios-accent text-white shadow-lg scale-105"
+          : "bg-white text-gray-600 border border-gray-200/50 hover:border-ios-accent/30 hover:text-gray-900 hover:bg-ios-accent/5 hover:shadow-md hover:scale-[1.02]"
       )}
     >
       {label}

@@ -198,7 +198,7 @@ const Sidebar = ({
         >
           {!sidebarCollapsed ? (
             <div className="flex items-center w-full">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md group-hover:shadow-lg transition-shadow duration-200">
+              <div className="w-10 h-10 rounded-full bg-ios-accent flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md group-hover:shadow-lg transition-shadow duration-200">
                 {getUserInitials()}
               </div>
               <div className="flex-1">
@@ -232,12 +232,12 @@ const Sidebar = ({
                 className={cn(
                   "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                   isActive(item.path) 
-                    ? "bg-blue-500 text-white shadow-md" 
+                    ? "bg-ios-accent text-white shadow-md" 
                     : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                 )}
               >
                 {isActive(item.path) && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                 )}
                 <div className={cn(
                   "transition-transform duration-200",
@@ -270,12 +270,12 @@ const Sidebar = ({
                   className={cn(
                     "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                     isActive(item.path) 
-                      ? "bg-blue-500 text-white shadow-md" 
+                      ? "bg-ios-accent text-white shadow-md" 
                       : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                   )}
                 >
                   {isActive(item.path) && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                   )}
                   <div className={cn(
                     "transition-transform duration-200",
@@ -295,7 +295,7 @@ const Sidebar = ({
                       "ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold rounded-full",
                       isActive(item.path) 
                         ? "bg-white/20 text-white" 
-                        : "bg-blue-500 text-white animate-pulse"
+                        : "bg-ios-accent text-white animate-pulse"
                     )}>
                       {item.notificationCount}
                     </span>
@@ -431,7 +431,7 @@ const Sidebar = ({
         >
           {!sidebarCollapsed ? (
             <div className="flex items-center w-full">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md group-hover:shadow-lg transition-shadow duration-200">
+              <div className="w-10 h-10 rounded-full bg-ios-accent flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md group-hover:shadow-lg transition-shadow duration-200">
                 {getUserInitials()}
               </div>
               <div className="flex-1">
@@ -444,7 +444,7 @@ const Sidebar = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex justify-center w-full">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-200">
+                  <div className="w-10 h-10 rounded-full bg-ios-accent flex items-center justify-center text-white text-sm font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-200">
                     {getUserInitials()}
                   </div>
                 </div>
@@ -470,13 +470,13 @@ const Sidebar = ({
                   className={cn(
                     "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                     isActive(item.path) 
-                      ? "bg-blue-500 text-white shadow-md" 
+                      ? "bg-ios-accent text-white shadow-md" 
                       : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                   )}
                   onClick={() => item.onClick ? handleLinkClick(item.onClick) : undefined}
                 >
                   {isActive(item.path) && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                   )}
                   <div className={cn(
                     "transition-transform duration-200",
@@ -497,7 +497,7 @@ const Sidebar = ({
                       "ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold rounded-full",
                       isActive(item.path) 
                         ? "bg-white/20 text-white" 
-                        : "bg-blue-500 text-white animate-pulse"
+                        : "bg-ios-accent text-white animate-pulse"
                     )}>
                       {item.notificationCount}
                     </span>
@@ -598,13 +598,13 @@ const Sidebar = ({
                         className={cn(
                           "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                           isActive("/settings") 
-                            ? "bg-blue-500 text-white shadow-md" 
+                            ? "bg-ios-accent text-white shadow-md" 
                             : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                         )}
                         onClick={() => handleLinkClick()}
                       >
                         {isActive("/settings") && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                         )}
                         <Settings className={cn(
                           "h-5 w-5 transition-transform duration-200",
@@ -623,13 +623,13 @@ const Sidebar = ({
                     className={cn(
                       "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                       isActive("/settings") 
-                        ? "bg-blue-500 text-white shadow-md" 
+                        ? "bg-ios-accent text-white shadow-md" 
                         : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                     )}
                     onClick={() => handleLinkClick()}
                   >
                     {isActive("/settings") && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                     )}
                     <Settings className={cn(
                       "h-5 w-5 mr-3 transition-transform duration-200",
@@ -649,13 +649,13 @@ const Sidebar = ({
                         className={cn(
                           "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                           isActive("/profile") 
-                            ? "bg-blue-500 text-white shadow-md" 
+                            ? "bg-ios-accent text-white shadow-md" 
                             : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                         )}
                         onClick={() => handleLinkClick()}
                       >
                         {isActive("/profile") && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                         )}
                         <UserCircle className={cn(
                           "h-5 w-5 transition-transform duration-200",
@@ -674,13 +674,13 @@ const Sidebar = ({
                     className={cn(
                       "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                       isActive("/profile") 
-                        ? "bg-blue-500 text-white shadow-md" 
+                        ? "bg-ios-accent text-white shadow-md" 
                         : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                     )}
                     onClick={() => handleLinkClick()}
                   >
                     {isActive("/profile") && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ios-accent rounded-r-full -ml-3" />
                     )}
                     <UserCircle className={cn(
                       "h-5 w-5 mr-3 transition-transform duration-200",
