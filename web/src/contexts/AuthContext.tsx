@@ -150,8 +150,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Check real auth status
       try {
-        const { data } = await authedFetch<{ user: User }>('/auth/me');
-        setUser(data.user);
+        const { data } = await authedFetch<{ user: any }>('/auth/me');
+        console.log('[AuthContext] User data from /auth/me:', data.user);
+        
+        // Map snake_case from backend to camelCase for frontend
+        const mappedUser: User = {
+          id: data.user.id?.toString() || '',
+          email: data.user.email || '',
+          name: data.user.name,
+          firstName: data.user.first_name || data.user.firstName,
+          lastName: data.user.last_name || data.user.lastName,
+          rank: data.user.rank,
+          position: data.user.position,
+          unit: data.user.unit,
+          phone: data.user.phone,
+          yearsOfService: data.user.yearsOfService || data.user.years_of_service,
+          commandTime: data.user.commandTime || data.user.command_time,
+          responsibility: data.user.responsibility,
+          valueManaged: data.user.valueManaged || data.user.value_managed,
+          upcomingEvents: data.user.upcomingEvents || data.user.upcoming_events,
+          equipmentSummary: data.user.equipmentSummary || data.user.equipment_summary
+        };
+        
+        setUser(mappedUser);
         setIsAuthenticated(true);
       } catch (error: unknown) {
         // 401 is expected when not authenticated - don't log as error
@@ -194,7 +215,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        console.log('[AuthContext] Login response user data:', data.user);
+        
+        // Map snake_case from backend to camelCase for frontend
+        const mappedUser: User = {
+          id: data.user.id?.toString() || '',
+          email: data.user.email || '',
+          name: data.user.name,
+          firstName: data.user.first_name || data.user.firstName,
+          lastName: data.user.last_name || data.user.lastName,
+          rank: data.user.rank,
+          position: data.user.position,
+          unit: data.user.unit,
+          phone: data.user.phone,
+          yearsOfService: data.user.yearsOfService || data.user.years_of_service,
+          commandTime: data.user.commandTime || data.user.command_time,
+          responsibility: data.user.responsibility,
+          valueManaged: data.user.valueManaged || data.user.value_managed,
+          upcomingEvents: data.user.upcomingEvents || data.user.upcoming_events,
+          equipmentSummary: data.user.equipmentSummary || data.user.equipment_summary
+        };
+        
+        setUser(mappedUser);
         setIsAuthenticated(true);
       } else {
         let errorData: { message: string; details?: unknown; error?: string } = { message: 'Login failed' };
