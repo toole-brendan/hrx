@@ -21,7 +21,8 @@ import {
   History,
   Package,
   Users,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Activity
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -236,18 +237,29 @@ const TransferCard: React.FC<TransferCardProps> = ({
   return (
     <div
       className={cn(
-        "transition-all duration-300 group",
-        isPressed ? "scale-[0.98]" : "scale-100 hover:scale-[1.01]"
+        "relative transition-all duration-300 group",
+        isPressed ? "scale-[0.98]" : "scale-100"
       )}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
     >
+      {/* Glow effect on hover */}
+      <div className={cn(
+        "absolute -inset-1 rounded-xl opacity-0 group-hover:opacity-20 blur-md transition-opacity duration-300",
+        transfer.status === 'pending' && "bg-gradient-to-r from-orange-500 to-amber-500",
+        transfer.status === 'approved' && "bg-gradient-to-r from-emerald-500 to-green-500",
+        transfer.status === 'rejected' && "bg-gradient-to-r from-red-500 to-pink-500"
+      )} />
+      
       <CleanCard 
         className={cn(
-          "cursor-pointer border transition-all duration-300 overflow-hidden",
-          "hover:shadow-lg hover:border-ios-accent/30",
-          statusStyles.border
+          "relative cursor-pointer border-2 transition-all duration-300 overflow-hidden",
+          "hover:shadow-xl",
+          transfer.status === 'pending' && "border-orange-500/30 hover:border-orange-500/50",
+          transfer.status === 'approved' && "border-emerald-500/30 hover:border-emerald-500/50",
+          transfer.status === 'rejected' && "border-red-500/30 hover:border-red-500/50",
+          isIncoming && transfer.status === 'pending' && "animate-pulse-subtle"
         )}
         onClick={onTap}
         padding="none"
@@ -274,9 +286,14 @@ const TransferCard: React.FC<TransferCardProps> = ({
               </div>
             </div>
 
-            {/* Transfer flow visualization */}
-            <div className="bg-ios-tertiary-background/30 rounded-lg p-4">
-              <div className="flex items-center justify-between">
+            {/* Enhanced Transfer flow visualization */}
+            <div className={cn(
+              "relative rounded-xl p-4 overflow-hidden",
+              transfer.status === 'pending' && "bg-gradient-to-r from-orange-500/10 to-amber-500/10",
+              transfer.status === 'approved' && "bg-gradient-to-r from-emerald-500/10 to-green-500/10",
+              transfer.status === 'rejected' && "bg-gradient-to-r from-red-500/10 to-pink-500/10"
+            )}>
+              <div className="relative z-10 flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-['Courier_New',_monospace]">
                     FROM
@@ -286,8 +303,23 @@ const TransferCard: React.FC<TransferCardProps> = ({
                   </p>
                 </div>
                 
-                <div className="px-4">
-                  <ArrowRight className="h-5 w-5 text-ios-accent" />
+                <div className="px-4 relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className={cn(
+                      "h-0.5 w-full",
+                      transfer.status === 'pending' && "bg-gradient-to-r from-orange-500/30 to-amber-500/30",
+                      transfer.status === 'approved' && "bg-gradient-to-r from-emerald-500/30 to-green-500/30",
+                      transfer.status === 'rejected' && "bg-gradient-to-r from-red-500/30 to-pink-500/30"
+                    )} />
+                  </div>
+                  <div className={cn(
+                    "relative z-10 p-2 rounded-full bg-white shadow-md",
+                    transfer.status === 'pending' && "text-orange-500",
+                    transfer.status === 'approved' && "text-emerald-500",
+                    transfer.status === 'rejected' && "text-red-500"
+                  )}>
+                    <ArrowRight className="h-5 w-5" />
+                  </div>
                 </div>
                 
                 <div className="flex-1 text-right">
@@ -527,11 +559,25 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       return dateB - dateA;
     });
   }, [filteredTransfers]);
+  
+  // Get different transfer categories for stats
+  const incomingTransfers = useMemo(() => 
+    transfers.filter(t => t.to === currentUser), [transfers, currentUser]);
+  const outgoingTransfers = useMemo(() => 
+    transfers.filter(t => t.from === currentUser), [transfers, currentUser]);
+  const historyTransfers = useMemo(() => 
+    transfers.filter(t => t.status !== 'pending'), [transfers]);
 
   // --- Derived State ---
   const incomingPendingCount = useMemo(() => {
     return transfers.filter(
       transfer => transfer.to === currentUser && transfer.status === "pending"
+    ).length;
+  }, [transfers, currentUser]);
+  
+  const outgoingPendingCount = useMemo(() => {
+    return transfers.filter(
+      transfer => transfer.from === currentUser && transfer.status === "pending"
     ).length;
   }, [transfers, currentUser]);
 
@@ -553,8 +599,9 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Enhanced Header */}
+        {/* Enhanced Header section */}
         <div className="mb-12">
+          {/* Top navigation bar */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
@@ -569,44 +616,56 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-              className="text-ios-accent hover:text-ios-accent/80 font-['Courier_New',_monospace] font-semibold uppercase tracking-wider text-xs flex items-center gap-2 transition-colors"
-              variant="ghost"
-              size="sm"
-            >
-              <Plus className="h-4 w-4" />
-              New Transfer
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
+                className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                New Transfer
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Enhanced Tab selector with modern styling */}
+        {/* Transfer Stats */}
+        <TransferStats transfers={transfers || []} />
+        
+        {/* Enhanced Tab selector with transfer theme */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-ios-secondary-background to-ios-tertiary-background/50 rounded-2xl p-4 shadow-inner">
-            <div className="grid grid-cols-3 gap-4">
-              <TabButton
-                title="Incoming"
-                icon={<ArrowDownCircle className="h-6 w-6" />}
-                isSelected={activeView === 'incoming'}
-                onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'incoming' })}
-                badge={incomingPendingCount}
-                description="Requests to you"
-              />
-              <TabButton
-                title="Outgoing"
-                icon={<ArrowUpCircle className="h-6 w-6" />}
-                isSelected={activeView === 'outgoing'}
-                onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'outgoing' })}
-                description="Your requests"
-              />
-              <TabButton
-                title="History"
-                icon={<History className="h-6 w-6" />}
-                isSelected={activeView === 'history'}
-                onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'history' })}
-                description="All transfers"
-              />
+          <div className="bg-white rounded-2xl shadow-sm border border-ios-border p-2">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'incoming' as TransferView, label: 'Incoming', icon: <ArrowDownCircle className="h-5 w-5" />, count: incomingPendingCount, color: 'green' },
+                { id: 'outgoing' as TransferView, label: 'Outgoing', icon: <ArrowUpCircle className="h-5 w-5" />, count: outgoingPendingCount, color: 'orange' },
+                { id: 'history' as TransferView, label: 'History', icon: <History className="h-5 w-5" />, count: historyTransfers.length, color: 'gray' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: tab.id })}
+                  className={cn(
+                    "relative flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200",
+                    activeView === tab.id
+                      ? tab.color === 'green' ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg"
+                        : tab.color === 'orange' ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg"
+                        : "bg-gradient-to-r from-gray-500 to-slate-500 text-white shadow-lg"
+                      : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background"
+                  )}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span className={cn(
+                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace]",
+                      activeView === tab.id
+                        ? "bg-white/20 text-white"
+                        : "bg-ios-tertiary-background text-ios-secondary-text"
+                    )}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -810,6 +869,54 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
           }}
         />
       )}
+    </div>
+  );
+};
+
+// Transfer Stats Component
+const TransferStats: React.FC<{ transfers: Transfer[] }> = ({ transfers }) => {
+  const stats = useMemo(() => {
+    const total = transfers.length;
+    const pending = transfers.filter(t => t.status === 'pending').length;
+    const approved = transfers.filter(t => t.status === 'approved').length;
+    const rejected = transfers.filter(t => t.status === 'rejected').length;
+    const thisMonth = transfers.filter(t => {
+      const createdAt = new Date(t.createdAt || t.date);
+      const now = new Date();
+      return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear();
+    }).length;
+    
+    return { total, pending, approved, rejected, thisMonth };
+  }, [transfers]);
+  
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      {[
+        { label: 'Total Transfers', value: stats.total, icon: <ArrowLeftRight className="h-5 w-5" />, color: 'orange' },
+        { label: 'Pending', value: stats.pending, icon: <Clock8 className="h-5 w-5" />, color: 'amber' },
+        { label: 'Approved', value: stats.approved, icon: <CheckCircle className="h-5 w-5" />, color: 'green' },
+        { label: 'Rejected', value: stats.rejected, icon: <XCircle className="h-5 w-5" />, color: 'red' },
+        { label: 'This Month', value: stats.thisMonth, icon: <Activity className="h-5 w-5" />, color: 'purple' }
+      ].map((stat, idx) => (
+        <div key={idx} className="bg-white rounded-xl p-4 border border-ios-border shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className={cn(
+              "p-2 rounded-lg",
+              stat.color === 'orange' && "bg-orange-500/10 text-orange-500",
+              stat.color === 'amber' && "bg-amber-500/10 text-amber-500",
+              stat.color === 'green' && "bg-green-500/10 text-green-500",
+              stat.color === 'red' && "bg-red-500/10 text-red-500",
+              stat.color === 'purple' && "bg-purple-500/10 text-purple-500"
+            )}>
+              {stat.icon}
+            </div>
+            <span className="text-2xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+              {stat.value}
+            </span>
+          </div>
+          <p className="text-xs text-ios-secondary-text">{stat.label}</p>
+        </div>
+      ))}
     </div>
   );
 };

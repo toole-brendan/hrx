@@ -207,40 +207,21 @@ export const Connections: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
       <div className="max-w-6xl mx-auto px-6 py-8">
         
-        {/* Enhanced Header with Network theme */}
+        {/* Enhanced Header section */}
         <div className="mb-12">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-8 shadow-xl">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg">
-                    <Network className="h-8 w-8 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-4xl font-bold text-white">
-                      Network
-                    </h1>
-                    <p className="text-blue-100 mt-1">
-                      Build your trusted network for secure property transfers
-                    </p>
-                  </div>
-                </div>
-                <div className="hidden md:flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-white font-['Courier_New',_monospace]">
-                      {acceptedConnections.length}
-                    </p>
-                    <p className="text-xs text-blue-100 uppercase tracking-wider">Connections</p>
-                  </div>
-                  <div className="h-12 w-px bg-white/20" />
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-white font-['Courier_New',_monospace]">
-                      {pendingRequests.length}
-                    </p>
-                    <p className="text-xs text-blue-100 uppercase tracking-wider">Pending</p>
-                  </div>
-                </div>
+          {/* Top navigation bar */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-ios-primary-text">
+                  Network
+                </h1>
+                <p className="text-sm text-ios-secondary-text mt-1">
+                  Build your trusted network for secure property transfers
+                </p>
               </div>
             </div>
           </div>
@@ -249,7 +230,7 @@ export const Connections: React.FC = () => {
         {/* Network Stats */}
         <NetworkStats connections={connections} />
         
-        {/* Enhanced Filter Pills with network theme */}
+        {/* Filter Pills */}
         <div className="mb-8">
           <div className="flex items-center gap-3 p-2 bg-white rounded-xl shadow-sm border border-ios-border">
             {[
@@ -263,7 +244,7 @@ export const Connections: React.FC = () => {
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200",
                   selectedFilter === filter.id
-                    ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                    ? "bg-ios-accent text-white shadow-md"
                     : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background"
                 )}
               >
@@ -284,50 +265,47 @@ export const Connections: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced Search Section with network branding */}
+        {/* Search Section */}
         <div className="mb-8">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl" />
-            <CleanCard className="relative p-6 shadow-lg border-2 border-blue-500/20">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
-                    <UserPlus className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
-                      FIND NEW CONNECTIONS
-                    </h3>
-                    <p className="text-xs text-ios-secondary-text mt-0.5">Search by name, rank, or unit</p>
-                  </div>
+          <CleanCard className="p-6 shadow-sm">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-ios-accent/10 rounded-lg">
+                  <UserPlus className="h-5 w-5 text-ios-accent" />
                 </div>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-500" />
-                  <Input
-                    placeholder="Search for users to connect with..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="pl-12 pr-4 border-2 border-ios-border hover:border-blue-500/30 focus:border-blue-500/50 bg-white rounded-xl h-14 text-base placeholder:text-ios-tertiary-text focus-visible:ring-0 transition-all duration-200"
-                  />
-                  {searchQuery && (
-                    <Button
-                      onClick={handleSearchUsers}
-                      disabled={isSearching}
-                      size="sm"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white h-10 px-6 rounded-lg shadow-md transition-all duration-200"
-                    >
-                      {isSearching ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      ) : (
-                        "Search"
-                      )}
-                    </Button>
-                  )}
+                <div>
+                  <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    FIND NEW CONNECTIONS
+                  </h3>
+                  <p className="text-xs text-ios-secondary-text mt-0.5">Search by name, rank, or unit</p>
                 </div>
               </div>
-            </CleanCard>
-          </div>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-ios-tertiary-text" />
+                <Input
+                  placeholder="Search for users to connect with..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="pl-12 pr-4 border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+                />
+                {searchQuery && (
+                  <Button
+                    onClick={handleSearchUsers}
+                    disabled={isSearching}
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 text-white h-10 px-6 rounded-lg shadow-md transition-all duration-200"
+                  >
+                    {isSearching ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    ) : (
+                      "Search"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CleanCard>
           
           {/* Search Results */}
           {searchResults.length > 0 && (
@@ -619,18 +597,19 @@ const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onCon
           onClick={onConnect}
           disabled={isLoading}
           className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg px-6 py-2.5 font-medium shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
-      >
-        {isLoading ? (
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-        ) : (
-          <>
-            <UserPlus className="h-4 w-4" />
-            <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Connect</span>
-          </>
-        )}
-      </Button>
-    </div>
-  </CleanCard>
+        >
+          {isLoading ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" />
+              <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Connect</span>
+            </>
+          )}
+        </Button>
+      </div>
+    </CleanCard>
+  </div>
 );
 
 interface PendingRequestCardProps {
