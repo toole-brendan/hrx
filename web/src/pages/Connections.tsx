@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getConnections, searchUsers, sendConnectionRequest, updateConnectionStatus } from '@/services/connectionService';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,9 @@ import {
   Download,
   MessageSquare,
   ArrowLeftRight,
-  Eye
+  Eye,
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -121,10 +123,29 @@ export const Connections: React.FC = () => {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [selectedConnections, setSelectedConnections] = useState<Set<number>>(new Set());
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // Add ResizeObserver for responsive behavior
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    
+    resizeObserver.observe(containerRef.current);
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Fetch existing connections
   const { data: connections = [], isLoading } = useQuery({
@@ -243,11 +264,61 @@ export const Connections: React.FC = () => {
 
      if (isLoading) {
      return (
-       <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-         <div className="max-w-6xl mx-auto px-6 py-8">
-           <CleanCard className="py-24 shadow-sm">
-             <MinimalLoadingView text="LOADING NETWORK" />
-           </CleanCard>
+       <div className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+         <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl animate-pulse" />
+         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse" />
+         <div className="max-w-6xl mx-auto px-6 py-8 relative z-10">
+           <div className="space-y-8">
+             {/* Header Skeleton */}
+             <div className="flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-200 to-gray-100 animate-pulse" />
+                 <div className="space-y-2">
+                   <div className="h-10 w-48 bg-gradient-to-r from-gray-200 to-gray-100 rounded-lg animate-pulse" />
+                   <div className="h-4 w-64 bg-gradient-to-r from-gray-200 to-gray-100 rounded-md animate-pulse" />
+                 </div>
+               </div>
+               <div className="h-10 w-24 bg-gradient-to-r from-gray-200 to-gray-100 rounded-lg animate-pulse" />
+             </div>
+             
+             {/* Stats Skeleton */}
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {[...Array(4)].map((_, i) => (
+                 <div key={i} className="bg-white/50 backdrop-blur-sm rounded-xl p-5 border border-ios-border/30 shadow-md">
+                   <div className="flex items-center justify-between mb-3">
+                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-200 to-gray-100 animate-pulse" />
+                     <div className="h-8 w-16 bg-gradient-to-r from-gray-200 to-gray-100 rounded-md animate-pulse" />
+                   </div>
+                   <div className="h-3 w-20 bg-gradient-to-r from-gray-200 to-gray-100 rounded animate-pulse" />
+                 </div>
+               ))}
+             </div>
+             
+             {/* Tabs Skeleton */}
+             <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-1.5 shadow-lg border border-ios-border/30">
+               <div className="grid grid-cols-3 gap-1.5">
+                 {[...Array(3)].map((_, i) => (
+                   <div key={i} className="h-16 bg-gradient-to-r from-gray-200 to-gray-100 rounded-xl animate-pulse" />
+                 ))}
+               </div>
+             </div>
+             
+             {/* Content Skeleton */}
+             <CleanCard className="py-12 shadow-lg bg-white/50 backdrop-blur-sm">
+               <div className="space-y-4 px-6">
+                 {[...Array(3)].map((_, i) => (
+                   <div key={i} className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-xl">
+                     <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-200 to-gray-100 animate-pulse" />
+                     <div className="flex-1 space-y-2">
+                       <div className="h-5 w-32 bg-gradient-to-r from-gray-200 to-gray-100 rounded animate-pulse" />
+                       <div className="h-3 w-48 bg-gradient-to-r from-gray-200 to-gray-100 rounded animate-pulse" />
+                     </div>
+                     <div className="h-9 w-24 bg-gradient-to-r from-gray-200 to-gray-100 rounded-lg animate-pulse" />
+                   </div>
+                 ))}
+               </div>
+             </CleanCard>
+           </div>
          </div>
        </div>
      );
@@ -279,22 +350,26 @@ export const Connections: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+      {/* Decorative gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
+      
+      <div ref={containerRef} className="max-w-7xl mx-auto px-6 py-8 relative z-10">
         
         {/* Enhanced Header section */}
         <div className="mb-8">
           {/* Top navigation bar */}
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 transform-gpu">
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-ios-primary-text">
+                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
                   Network
                 </h1>
-                <p className="text-sm text-ios-secondary-text mt-1">
+                <p className="text-sm text-ios-secondary-text mt-1 font-medium">
                   Build your trusted network for secure property transfers
                 </p>
               </div>
@@ -303,7 +378,7 @@ export const Connections: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
+                className="border-ios-border hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-500 hover:text-white hover:border-transparent text-ios-primary-text font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -317,69 +392,98 @@ export const Connections: React.FC = () => {
         
         {/* Professional Tabbed Interface */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NetworkTab)} className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-            <div className="grid grid-cols-3 gap-1">
+          <div className="relative bg-gradient-to-br from-white to-ios-secondary-background/30 rounded-2xl shadow-xl border border-ios-border/50 p-1.5 backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-2xl" />
+            <div className="relative grid grid-cols-3 gap-1.5">
               <button
                 onClick={() => setActiveTab('my-network')}
                 className={cn(
-                  "relative rounded-lg transition-all duration-200 py-3 px-4 font-medium group flex items-center justify-center",
+                  "relative rounded-xl transition-all duration-300 py-4 px-5 font-medium group flex items-center justify-center transform-gpu",
                   activeTab === 'my-network' 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm" 
-                    : "bg-transparent text-ios-secondary-text hover:text-ios-primary-text hover:bg-gray-50"
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg scale-[1.02]" 
+                    : "bg-white/50 text-ios-secondary-text hover:text-ios-primary-text hover:bg-white/70 hover:shadow-md hover:scale-[1.01]"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-sm font-semibold">My Network</span>
+                {activeTab === 'my-network' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                )}
+                <div className="relative flex items-center gap-2.5">
+                  <Users className={cn(
+                    "h-4 w-4 transition-all duration-300",
+                    activeTab === 'my-network' ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
+                  )} />
+                  <span className="text-sm font-bold uppercase tracking-wider">My Network</span>
                   {acceptedConnections.length > 0 && (
                     <span className={cn(
-                      "ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace] min-w-[1.5rem] text-center",
+                      "ml-2 px-2.5 py-1 rounded-full text-xs font-black font-['Courier_New',_monospace] min-w-[2rem] text-center transition-all duration-300",
                       activeTab === 'my-network' 
-                        ? "bg-white/20 text-white" 
-                        : "bg-blue-500/10 text-blue-600"
+                        ? "bg-white/25 text-white shadow-sm" 
+                        : "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 group-hover:from-blue-500/20 group-hover:to-indigo-500/20"
                     )}>
                       {acceptedConnections.length}
                     </span>
                   )}
                 </div>
+                {activeTab === 'my-network' && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('requests')}
                 className={cn(
-                  "relative rounded-lg transition-all duration-200 py-3 px-4 font-medium group flex items-center justify-center",
+                  "relative rounded-xl transition-all duration-300 py-4 px-5 font-medium group flex items-center justify-center transform-gpu",
                   activeTab === 'requests' 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm" 
-                    : "bg-transparent text-ios-secondary-text hover:text-ios-primary-text hover:bg-gray-50"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg scale-[1.02]" 
+                    : "bg-white/50 text-ios-secondary-text hover:text-ios-primary-text hover:bg-white/70 hover:shadow-md hover:scale-[1.01]"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <Inbox className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-sm font-semibold">Requests</span>
+                {activeTab === 'requests' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-amber-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                )}
+                <div className="relative flex items-center gap-2.5">
+                  <Inbox className={cn(
+                    "h-4 w-4 transition-all duration-300",
+                    activeTab === 'requests' ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
+                  )} />
+                  <span className="text-sm font-bold uppercase tracking-wider">Requests</span>
                   {(pendingRequests.length > 0 || connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length > 0) && (
                     <span className={cn(
-                      "ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace] min-w-[1.5rem] text-center",
+                      "ml-2 px-2.5 py-1 rounded-full text-xs font-black font-['Courier_New',_monospace] min-w-[2rem] text-center transition-all duration-300",
                       activeTab === 'requests' 
-                        ? "bg-white/20 text-white" 
-                        : "bg-orange-500/10 text-orange-600 animate-pulse"
+                        ? "bg-white/25 text-white shadow-sm" 
+                        : "bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-600 animate-pulse group-hover:animate-none"
                     )}>
                       {pendingRequests.length + connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length}
                     </span>
                   )}
                 </div>
+                {activeTab === 'requests' && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('directory')}
                 className={cn(
-                  "relative rounded-lg transition-all duration-200 py-3 px-4 font-medium group flex items-center justify-center",
+                  "relative rounded-xl transition-all duration-300 py-4 px-5 font-medium group flex items-center justify-center transform-gpu",
                   activeTab === 'directory' 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm" 
-                    : "bg-transparent text-ios-secondary-text hover:text-ios-primary-text hover:bg-gray-50"
+                    ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg scale-[1.02]" 
+                    : "bg-white/50 text-ios-secondary-text hover:text-ios-primary-text hover:bg-white/70 hover:shadow-md hover:scale-[1.01]"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-sm font-semibold">Directory</span>
+                {activeTab === 'directory' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                )}
+                <div className="relative flex items-center gap-2.5">
+                  <Globe className={cn(
+                    "h-4 w-4 transition-all duration-300",
+                    activeTab === 'directory' ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3"
+                  )} />
+                  <span className="text-sm font-bold uppercase tracking-wider">Directory</span>
+                  <Sparkles className="h-3 w-3 text-white/60 absolute -top-1 -right-1" />
                 </div>
+                {activeTab === 'directory' && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/30 rounded-full" />
+                )}
               </button>
             </div>
           </div>
@@ -451,27 +555,33 @@ const NetworkStats: React.FC<{ connections: UserConnection[] }> = ({ connections
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {[
-        { label: 'Total Network', value: stats.total, icon: <Users className="h-5 w-5" />, color: 'blue' },
-        { label: 'Active', value: stats.active, icon: <UserCheck className="h-5 w-5" />, color: 'green' },
-        { label: 'Pending', value: stats.pending, icon: <Clock className="h-5 w-5" />, color: 'orange' },
-        { label: 'Recent (7d)', value: stats.recent, icon: <Activity className="h-5 w-5" />, color: 'purple' }
+        { label: 'Total Network', value: stats.total, icon: <Users className="h-5 w-5" />, color: 'blue', gradient: 'from-blue-500 to-indigo-500' },
+        { label: 'Active', value: stats.active, icon: <UserCheck className="h-5 w-5" />, color: 'green', gradient: 'from-green-500 to-emerald-500' },
+        { label: 'Pending', value: stats.pending, icon: <Clock className="h-5 w-5" />, color: 'orange', gradient: 'from-orange-500 to-amber-500' },
+        { label: 'Recent (7d)', value: stats.recent, icon: <Activity className="h-5 w-5" />, color: 'purple', gradient: 'from-purple-500 to-pink-500' }
       ].map((stat, idx) => (
-        <div key={idx} className="bg-white rounded-xl p-4 border border-ios-border shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className={cn(
-              "p-2 rounded-lg",
-              stat.color === 'blue' && "bg-blue-500/10 text-blue-500",
-              stat.color === 'green' && "bg-green-500/10 text-green-500",
-              stat.color === 'orange' && "bg-orange-500/10 text-orange-500",
-              stat.color === 'purple' && "bg-purple-500/10 text-purple-500"
-            )}>
-              {stat.icon}
+        <div key={idx} className="group relative">
+          <div className="absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-20 blur transition duration-300" 
+               style={{ backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))` }}
+               className={cn(
+                 stat.gradient
+               )}></div>
+          <div className="relative bg-gradient-to-br from-white to-ios-secondary-background/50 rounded-xl p-5 border border-ios-border/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-transparent transform-gpu">
+            <div className="flex items-center justify-between mb-3">
+              <div className={cn(
+                "p-3 rounded-xl bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-110",
+                stat.gradient
+              )}>
+                <div className="text-white">
+                  {stat.icon}
+                </div>
+              </div>
+              <span className="text-3xl font-black text-ios-primary-text font-['Courier_New',_monospace] tabular-nums">
+                {stat.value}
+              </span>
             </div>
-            <span className="text-2xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
-              {stat.value}
-            </span>
+            <p className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider">{stat.label}</p>
           </div>
-          <p className="text-xs text-ios-secondary-text">{stat.label}</p>
         </div>
       ))}
     </div>
@@ -561,33 +671,33 @@ interface UserSearchResultCardProps {
 }
 
 const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onConnect, isLoading }) => (
-  <div className="group relative overflow-hidden rounded-xl border-2 border-transparent hover:border-blue-500/30 transition-all duration-300">
-    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-    <CleanCard className="relative p-6 shadow-sm hover:shadow-lg transition-all duration-200">
+  <div className="group relative overflow-hidden rounded-2xl border-2 border-transparent hover:border-blue-500/30 transition-all duration-300 transform-gpu hover:scale-[1.01]">
+    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <CleanCard className="relative p-6 bg-gradient-to-br from-white to-ios-secondary-background/30 shadow-lg hover:shadow-2xl transition-all duration-300">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg font-['Courier_New',_monospace]">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <span className="text-white font-black text-xl font-['Courier_New',_monospace]">
                 {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
               </span>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-md animate-pulse" />
           </div>
           <div>
-            <div className="font-semibold text-lg text-ios-primary-text">
+            <div className="font-bold text-xl text-ios-primary-text group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 transition-all duration-300">
               {user.name}
             </div>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1.5">
               {user.rank && (
-                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
-                  <Shield className="h-3 w-3" />
+                <span className="flex items-center gap-1.5 text-sm text-ios-secondary-text font-medium">
+                  <Shield className="h-3.5 w-3.5 text-blue-500" />
                   {user.rank}
                 </span>
               )}
               {user.unit && (
-                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
-                  <Building2 className="h-3 w-3" />
+                <span className="flex items-center gap-1.5 text-sm text-ios-secondary-text font-medium">
+                  <Building2 className="h-3.5 w-3.5 text-indigo-500" />
                   {user.unit}
                 </span>
               )}
@@ -598,14 +708,15 @@ const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onCon
           size="sm"
           onClick={onConnect}
           disabled={isLoading}
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg px-6 py-2.5 font-medium shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+          className="relative bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl px-7 py-3 font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2.5 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden group"
         >
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
           {isLoading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <>
-              <UserPlus className="h-4 w-4" />
-              <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Connect</span>
+              <UserPlus className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              <span className="font-['Courier_New',_monospace] uppercase tracking-widest text-xs">Connect</span>
             </>
           )}
         </Button>
@@ -622,60 +733,70 @@ interface PendingRequestCardProps {
 }
 
 const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAccept, onReject, isLoading }) => (
-  <CleanCard className="p-6 border border-orange-500/20 hover:border-orange-500/30 transition-all duration-200 shadow-sm hover:shadow-md bg-gradient-to-r from-orange-500/5 to-transparent">
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500/20 to-orange-500/10 flex items-center justify-center shadow-sm">
-            <span className="text-orange-500 font-semibold font-['Courier_New',_monospace]">
-              {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-            </span>
+  <div className="group relative">
+    <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-2xl opacity-50 group-hover:opacity-100 blur transition duration-300"></div>
+    <CleanCard className="relative p-6 border-2 border-orange-500/20 hover:border-orange-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-orange-500/5 via-amber-500/5 to-transparent transform-gpu hover:scale-[1.01]">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <span className="text-white font-black text-lg font-['Courier_New',_monospace]">
+                  {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                </span>
+              </div>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse" />
+            </div>
+            <div>
+              <div className="font-bold text-lg text-ios-primary-text">
+                {request.connectedUser?.name || 'Unknown User'}
+              </div>
+              <div className="text-sm text-ios-secondary-text mt-0.5 font-medium">
+                {request.connectedUser?.rank && request.connectedUser?.unit 
+                  ? `${request.connectedUser.rank} • ${request.connectedUser.unit}`
+                  : request.connectedUser?.email || 'No additional info'
+                }
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Clock className="h-3 w-3 text-orange-500" />
+                <span className="text-xs text-orange-600 font-bold uppercase tracking-wider">
+                  Awaiting Response
+                </span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
-              {request.connectedUser?.name || 'Unknown User'}
-            </div>
-            <div className="text-sm text-ios-secondary-text mt-0.5">
-              {request.connectedUser?.rank && request.connectedUser?.unit 
-                ? `${request.connectedUser.rank} • ${request.connectedUser.unit}`
-                : request.connectedUser?.email || 'No additional info'
-              }
-            </div>
-            <div className="text-xs text-orange-500 font-semibold mt-1 font-['Courier_New',_monospace] uppercase tracking-wider">
-              Connection Request
+          <div className="flex items-center gap-2">
+            <div className="px-4 py-2 bg-gradient-to-r from-orange-500/10 to-amber-500/10 text-orange-600 rounded-xl text-xs font-black uppercase tracking-widest font-['Courier_New',_monospace] shadow-sm">
+              Pending
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
-            Pending
-          </div>
+        
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReject}
+            disabled={isLoading}
+            className="flex-1 border-2 border-ios-border hover:border-red-500/30 hover:bg-red-500/5 text-ios-secondary-text hover:text-red-600 rounded-xl px-5 py-3 font-bold transition-all duration-300 hover:scale-105 active:scale-95 group"
+          >
+            <XCircle className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
+            <span className="font-['Courier_New',_monospace] uppercase tracking-widest text-xs">Decline</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={onAccept}
+            disabled={isLoading}
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl px-5 py-3 font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+            <CheckCircle className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:scale-110 relative z-10" />
+            <span className="font-['Courier_New',_monospace] uppercase tracking-widest text-xs relative z-10">Accept</span>
+          </Button>
         </div>
       </div>
-      
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onReject}
-          disabled={isLoading}
-          className="flex-1 border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text rounded-lg px-4 py-2.5 font-medium transition-all duration-200"
-        >
-          <XCircle className="h-4 w-4 mr-2" />
-          <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Decline</span>
-        </Button>
-        <Button
-          size="sm"
-          onClick={onAccept}
-          disabled={isLoading}
-          className="flex-1 bg-ios-success hover:bg-ios-success/90 text-white rounded-lg px-4 py-2.5 font-medium shadow-sm transition-all duration-200"
-        >
-          <CheckCircle className="h-4 w-4 mr-2" />
-          <span className="font-['Courier_New',_monospace] uppercase tracking-wider text-xs">Accept</span>
-        </Button>
-      </div>
-    </div>
-  </CleanCard>
+    </CleanCard>
+  </div>
 );
 
 interface ConnectionCardProps {
@@ -684,34 +805,34 @@ interface ConnectionCardProps {
 
 const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
   <div className="group relative">
-    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl opacity-0 group-hover:opacity-20 blur transition duration-300" />
-    <CleanCard className="relative p-6 border-2 border-transparent hover:border-blue-500/20 transition-all duration-200 shadow-sm hover:shadow-lg">
+    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-teal-500/20 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition duration-500" />
+    <CleanCard className="relative p-6 bg-gradient-to-br from-white to-emerald-50/30 border-2 border-emerald-500/10 hover:border-emerald-500/30 transition-all duration-300 shadow-lg hover:shadow-2xl transform-gpu hover:scale-[1.02]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg font-['Courier_New',_monospace]">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 via-green-500 to-teal-500 flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <span className="text-white font-black text-xl font-['Courier_New',_monospace]">
                 {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
               </span>
             </div>
-            <div className="absolute -top-1 -right-1 flex items-center justify-center w-6 h-6 bg-emerald-500 rounded-full border-2 border-white">
-              <CheckCircle className="h-3 w-3 text-white" />
+            <div className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-7 h-7 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-white shadow-md">
+              <CheckCircle className="h-4 w-4 text-white" />
             </div>
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-lg text-ios-primary-text">
+            <div className="font-bold text-xl text-ios-primary-text group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 transition-all duration-300">
               {connection.connectedUser?.name || 'Unknown User'}
             </div>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1.5">
               {connection.connectedUser?.rank && (
-                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
-                  <Shield className="h-3 w-3" />
+                <span className="flex items-center gap-1.5 text-sm text-ios-secondary-text font-medium">
+                  <Shield className="h-3.5 w-3.5 text-emerald-500" />
                   {connection.connectedUser.rank}
                 </span>
               )}
               {connection.connectedUser?.unit && (
-                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
-                  <Building2 className="h-3 w-3" />
+                <span className="flex items-center gap-1.5 text-sm text-ios-secondary-text font-medium">
+                  <Building2 className="h-3.5 w-3.5 text-teal-500" />
                   {connection.connectedUser.unit}
                 </span>
               )}
@@ -719,8 +840,8 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-emerald-400/10 text-emerald-600 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace] flex items-center gap-2">
-            <Link2 className="h-3 w-3" />
+          <div className="px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest font-['Courier_New',_monospace] flex items-center gap-2.5 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
+            <Link2 className="h-3.5 w-3.5 animate-pulse" />
             Connected
           </div>
         </div>
@@ -770,45 +891,48 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
   
   if (connections.length === 0) {
     return (
-      <CleanCard className="py-24 shadow-sm">
-        <MinimalEmptyState
-          icon={<Users className="h-12 w-12" />}
-          title="NO CONNECTIONS YET"
-          description="Start building your network by searching for users in the Directory tab"
-          action={
-            <Button
-              onClick={() => {
-                const directoryTab = document.querySelector('[value="directory"]') as HTMLButtonElement;
-                directoryTab?.click();
-              }}
-              className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
-            >
-              <UserPlus className="h-4 w-4" />
-              Browse Directory
-            </Button>
-          }
-        />
-      </CleanCard>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-2xl blur-xl" />
+        <CleanCard className="relative py-24 shadow-xl bg-gradient-to-br from-white to-ios-secondary-background/30">
+          <MinimalEmptyState
+            icon={<Users className="h-16 w-16 text-ios-tertiary-text" />}
+            title="NO CONNECTIONS YET"
+            description="Start building your network by searching for users in the Directory tab"
+            action={
+              <Button
+                onClick={() => {
+                  const directoryTab = document.querySelector('[value="directory"]') as HTMLButtonElement;
+                  directoryTab?.click();
+                }}
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl px-8 py-3 font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2.5 hover:scale-105 active:scale-95 uppercase tracking-wider"
+              >
+                <UserPlus className="h-5 w-5" />
+                Browse Directory
+              </Button>
+            }
+          />
+        </CleanCard>
+      </div>
     );
   }
   
   return (
     <div className="space-y-4">
       {/* Search and Actions Bar */}
-      <CleanCard className="p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
+      <CleanCard className="p-5 shadow-lg bg-gradient-to-br from-white to-ios-secondary-background/30 border border-ios-border/50">
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md group">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-ios-tertiary-text transition-colors duration-300 group-focus-within:text-ios-accent" />
             <Input
               placeholder="Search connections..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 h-9 border-ios-border bg-ios-tertiary-background/50 rounded-lg text-sm placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+              className="pl-12 pr-4 h-12 border-2 border-ios-border bg-ios-tertiary-background/50 hover:bg-white/70 rounded-xl text-base font-medium placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent focus-visible:border-transparent transition-all duration-300 shadow-sm hover:shadow-md"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {selectedRows.size > 0 && (
-              <span className="text-sm text-ios-secondary-text mr-2">
+              <span className="text-sm font-bold text-ios-secondary-text bg-ios-tertiary-background/50 px-3 py-1.5 rounded-lg">
                 {selectedRows.size} selected
               </span>
             )}
@@ -816,118 +940,123 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
               variant="outline"
               size="sm"
               onClick={onRefresh}
-              className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+              className="border-2 border-ios-border hover:border-ios-accent hover:bg-ios-accent hover:text-white text-ios-primary-text font-bold transition-all duration-300 px-4 py-2.5 rounded-xl hover:shadow-lg hover:scale-105 active:scale-95"
             >
-              <Activity className="h-4 w-4" />
+              <Activity className="h-4 w-4 transition-transform duration-300 hover:rotate-180" />
             </Button>
           </div>
         </div>
       </CleanCard>
       
       {/* Connections Table */}
-      <CleanCard className="overflow-hidden shadow-sm">
+      <CleanCard className="overflow-hidden shadow-xl bg-gradient-to-br from-white to-ios-secondary-background/30 border border-ios-border/50">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-ios-border hover:bg-transparent">
-              <TableHead className="w-12">
+            <TableRow className="border-b-2 border-ios-border hover:bg-transparent bg-ios-secondary-background/20">
+              <TableHead className="w-12 py-4">
                 <Checkbox
                   checked={selectedRows.size === filteredConnections.length && filteredConnections.length > 0}
                   onCheckedChange={toggleAll}
-                  className="data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+                  className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-500 data-[state=checked]:border-transparent transition-all duration-300 hover:scale-110"
                 />
               </TableHead>
-              <TableHead className="font-semibold text-ios-primary-text">Name</TableHead>
-              <TableHead className="font-semibold text-ios-primary-text">Rank</TableHead>
-              <TableHead className="font-semibold text-ios-primary-text">Unit</TableHead>
-              <TableHead className="font-semibold text-ios-primary-text">Contact</TableHead>
-              <TableHead className="font-semibold text-ios-primary-text">Connected Since</TableHead>
-              <TableHead className="font-semibold text-ios-primary-text">Actions</TableHead>
+              <TableHead className="font-black text-xs uppercase tracking-widest text-ios-primary-text py-4">Name</TableHead>
+              <TableHead className="font-black text-xs uppercase tracking-widest text-ios-primary-text py-4">Rank</TableHead>
+              <TableHead className="font-black text-xs uppercase tracking-widest text-ios-primary-text py-4">Unit</TableHead>
+              <TableHead className="font-black text-xs uppercase tracking-widest text-ios-primary-text py-4">Contact</TableHead>
+              <TableHead className="font-black text-xs uppercase tracking-widest text-ios-primary-text py-4">Connected Since</TableHead>
+              <TableHead className="font-black text-xs uppercase tracking-widest text-ios-primary-text py-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredConnections.map((connection) => (
               <TableRow
                 key={connection.id}
-                className="border-b border-ios-border hover:bg-ios-secondary-background/50 transition-colors"
+                className="border-b border-ios-border/50 hover:bg-gradient-to-r hover:from-ios-secondary-background/30 hover:to-transparent transition-all duration-300 group"
               >
-                <TableCell>
+                <TableCell className="py-4">
                   <Checkbox
                     checked={selectedRows.has(connection.id)}
                     onCheckedChange={() => toggleRow(connection.id)}
-                    className="data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+                    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-indigo-500 data-[state=checked]:border-transparent transition-all duration-300 hover:scale-110"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-sm">
-                      <span className="text-white font-bold text-sm font-['Courier_New',_monospace]">
-                        {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-                      </span>
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                        <span className="text-white font-black text-sm font-['Courier_New',_monospace]">
+                          {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                        </span>
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white animate-pulse" />
                     </div>
-                    <div className="font-medium text-ios-primary-text">
+                    <div className="font-bold text-base text-ios-primary-text group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 transition-all duration-300">
                       {connection.connectedUser?.name || 'Unknown User'}
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm text-ios-secondary-text">
+                <TableCell className="py-4">
+                  <span className="text-sm font-medium text-ios-secondary-text flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-emerald-500 opacity-60" />
                     {connection.connectedUser?.rank || 'N/A'}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm text-ios-secondary-text">
+                <TableCell className="py-4">
+                  <span className="text-sm font-medium text-ios-secondary-text flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-teal-500 opacity-60" />
                     {connection.connectedUser?.unit || 'N/A'}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
+                <TableCell className="py-4">
+                  <div className="flex flex-col gap-1.5">
                     {connection.connectedUser?.email && (
-                      <span className="text-xs text-ios-secondary-text flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
+                      <span className="text-xs font-medium text-ios-secondary-text flex items-center gap-1.5 group-hover:text-ios-primary-text transition-colors duration-300">
+                        <Mail className="h-3.5 w-3.5 text-blue-500 opacity-60" />
                         {connection.connectedUser.email}
                       </span>
                     )}
                     {connection.connectedUser?.phone && (
-                      <span className="text-xs text-ios-secondary-text flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
+                      <span className="text-xs font-medium text-ios-secondary-text flex items-center gap-1.5 group-hover:text-ios-primary-text transition-colors duration-300">
+                        <Phone className="h-3.5 w-3.5 text-indigo-500 opacity-60" />
                         {connection.connectedUser.phone}
                       </span>
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm text-ios-secondary-text">
-                    {format(new Date(connection.createdAt), 'MMM d, yyyy')}
+                <TableCell className="py-4">
+                  <span className="text-sm font-bold text-ios-secondary-text font-['Courier_New',_monospace]">
+                    {format(new Date(connection.createdAt), 'ddMMMyyyy').toUpperCase()}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 hover:bg-ios-tertiary-background"
+                        className="h-9 w-9 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreVertical className="h-4 w-4 transition-transform duration-300 hover:rotate-90" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Message
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl border-ios-border/50 bg-white/95 backdrop-blur-xl">
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                        <MessageSquare className="h-4 w-4 mr-3 text-blue-500 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="font-medium">Message</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <ArrowLeftRight className="h-4 w-4 mr-2" />
-                        Transfer Property
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                        <ArrowLeftRight className="h-4 w-4 mr-3 text-purple-500 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="font-medium">Transfer Property</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Profile
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                        <Eye className="h-4 w-4 mr-3 text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="font-medium">View Profile</span>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-ios-destructive">
-                        <UserX className="h-4 w-4 mr-2" />
-                        Remove Connection
+                      <DropdownMenuSeparator className="my-2 bg-ios-border/30" />
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 rounded-lg transition-all duration-200 cursor-pointer group text-red-600">
+                        <UserX className="h-4 w-4 mr-3 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="font-medium">Remove Connection</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1101,45 +1230,51 @@ interface OutgoingRequestCardProps {
 }
 
 const OutgoingRequestCard: React.FC<OutgoingRequestCardProps> = ({ request }) => (
-  <CleanCard className="p-6 border border-blue-500/20 hover:border-blue-500/30 transition-all duration-200 shadow-sm hover:shadow-md">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center shadow-sm">
-          <span className="text-blue-500 font-semibold text-lg font-['Courier_New',_monospace]">
-            {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-          </span>
+  <div className="group relative">
+    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl opacity-50 group-hover:opacity-100 blur transition duration-300"></div>
+    <CleanCard className="relative p-6 border-2 border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-transparent transform-gpu hover:scale-[1.01]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <span className="text-white font-black text-lg font-['Courier_New',_monospace]">
+                {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+              </span>
+            </div>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
+          </div>
+          <div>
+            <div className="font-bold text-lg text-ios-primary-text">
+              {request.connectedUser?.name || 'Unknown User'}
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              {request.connectedUser?.rank && (
+                <span className="flex items-center gap-1.5 text-sm text-ios-secondary-text font-medium">
+                  <Shield className="h-3.5 w-3.5 text-blue-500" />
+                  {request.connectedUser.rank}
+                </span>
+              )}
+              {request.connectedUser?.unit && (
+                <span className="flex items-center gap-1.5 text-sm text-ios-secondary-text font-medium">
+                  <Building2 className="h-3.5 w-3.5 text-indigo-500" />
+                  {request.connectedUser.unit}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Clock className="h-3 w-3 text-blue-500" />
+              <span className="text-xs text-blue-600 font-bold uppercase tracking-wider">
+                Sent {format(new Date(request.createdAt), 'MMM d, yyyy')}
+              </span>
+            </div>
+          </div>
         </div>
-        <div>
-          <div className="font-semibold text-lg text-ios-primary-text">
-            {request.connectedUser?.name || 'Unknown User'}
-          </div>
-          <div className="flex items-center gap-3 mt-1">
-            {request.connectedUser?.rank && (
-              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
-                <Shield className="h-3 w-3" />
-                {request.connectedUser.rank}
-              </span>
-            )}
-            {request.connectedUser?.unit && (
-              <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
-                <Building2 className="h-3 w-3" />
-                {request.connectedUser.unit}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Clock className="h-3 w-3 text-ios-tertiary-text" />
-            <span className="text-xs text-ios-tertiary-text">
-              Sent {format(new Date(request.createdAt), 'MMM d, yyyy')}
-            </span>
-          </div>
+        <div className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest font-['Courier_New',_monospace] shadow-sm animate-pulse">
+          Awaiting Response
         </div>
       </div>
-      <div className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
-        Pending Response
-      </div>
-    </div>
-  </CleanCard>
+    </CleanCard>
+  </div>
 );
 
 // Directory Content Component with Advanced Search
@@ -1177,30 +1312,30 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
   return (
     <div className="space-y-6">
       {/* Enhanced Search Section */}
-      <CleanCard className="p-6 shadow-sm">
+      <CleanCard className="p-6 shadow-xl bg-gradient-to-br from-white to-ios-secondary-background/30 border border-ios-border/50">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-ios-accent/10 rounded-lg">
-                <Search className="h-5 w-5 text-ios-accent" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-300">
+                <Search className="h-6 w-6 text-ios-accent" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                <h3 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
                   SEARCH DIRECTORY
                 </h3>
-                <p className="text-xs text-ios-secondary-text mt-0.5">Find users by name, rank, or organization</p>
+                <p className="text-xs text-ios-secondary-text mt-1 font-medium">Find users by name, rank, or organization</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className="text-ios-accent hover:text-ios-accent/80 hover:bg-transparent"
+              className="text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/5 rounded-xl px-4 py-2 font-bold transition-all duration-300 hover:scale-105 active:scale-95"
             >
-              <Filter className="h-4 w-4 mr-2" />
+              <Filter className="h-4 w-4 mr-2 transition-transform duration-300" />
               Advanced
               <ChevronDown className={cn(
-                "h-4 w-4 ml-1 transition-transform duration-200",
+                "h-4 w-4 ml-1 transition-transform duration-300",
                 showAdvancedSearch && "rotate-180"
               )} />
             </Button>

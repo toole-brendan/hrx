@@ -202,11 +202,8 @@ const Sidebar = ({
                 {getUserInitials()}
               </div>
               <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
-                  {user?.rank}
-                </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
+                  {user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
                 </p>
               </div>
             </div>
@@ -438,11 +435,8 @@ const Sidebar = ({
                 {getUserInitials()}
               </div>
               <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
-                  {user?.rank}
-                </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
+                  {user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
                 </p>
               </div>
             </div>

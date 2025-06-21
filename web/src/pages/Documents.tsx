@@ -80,7 +80,7 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle }) => (
-  <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+  <div className="bg-gradient-to-br from-white to-ios-secondary-background/50 rounded-xl p-6 border border-ios-border shadow-lg hover:shadow-xl transition-all duration-300">
     <div className="flex items-start justify-between mb-4">
       <div className="p-3 bg-ios-accent/10 rounded-lg">
         {icon}
@@ -147,21 +147,25 @@ export default function Documents() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+      {/* Decorative gradient orbs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
+      
+      <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
         {/* Enhanced Header section */}
         <div className="mb-8">
           {/* Top navigation bar */}
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 transform-gpu">
                 <FileText className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-ios-primary-text">
+                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
                   Documents
                 </h1>
-                <p className="text-sm text-ios-secondary-text mt-1">
+                <p className="text-sm text-ios-secondary-text mt-1 font-medium">
                   Manage your forms, receipts, and official documents
                 </p>
               </div>
@@ -172,12 +176,12 @@ export default function Documents() {
 
         {/* Professional Document Actions Toolbar */}
         <div className="mb-6">
-          <CleanCard className="p-4 shadow-sm">
+          <CleanCard className="p-4 shadow-lg bg-gradient-to-br from-white to-ios-secondary-background/30">
             <div className="flex items-center justify-between">
               {/* Left side - Create actions */}
               <div className="flex items-center gap-2">
                 <Button
-                  className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200 flex items-center gap-2 border-0"
+                  className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 py-2 font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 border-0"
                 >
                   <Plus className="h-4 w-4" />
                   New Document
@@ -186,7 +190,7 @@ export default function Documents() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
+                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200 hover:shadow-md"
                   onClick={() => setShowingDA2062Import(true)}
                 >
                   <Upload className="h-4 w-4 mr-2" />
@@ -195,7 +199,7 @@ export default function Documents() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
+                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200 hover:shadow-md"
                 >
                   <Scan className="h-4 w-4 mr-2" />
                   Scan
@@ -211,7 +215,7 @@ export default function Documents() {
                     placeholder="Search documents..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 w-64 h-9 border-ios-border bg-ios-tertiary-background/50 rounded-lg text-sm placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+                    className="pl-10 pr-4 w-64 h-9 border-ios-border bg-ios-tertiary-background/50 rounded-lg text-sm placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200 hover:shadow-sm"
                   />
                 </div>
                 
@@ -246,7 +250,7 @@ export default function Documents() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200"
+                  className="border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-primary-text font-medium transition-all duration-200 hover:shadow-md"
                 >
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
                   Filters
@@ -267,7 +271,7 @@ export default function Documents() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkAction('download')}
-                    className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+                    className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200 hover:shadow-md"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download
@@ -276,7 +280,7 @@ export default function Documents() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkAction('archive')}
-                    className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200"
+                    className="border-ios-border hover:bg-ios-tertiary-background text-ios-primary-text font-medium transition-all duration-200 hover:shadow-md"
                   >
                     <Archive className="h-4 w-4 mr-2" />
                     Archive
@@ -285,7 +289,7 @@ export default function Documents() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleBulkAction('delete')}
-                    className="border-ios-destructive/20 hover:bg-ios-destructive hover:border-ios-destructive text-ios-destructive hover:text-white font-medium transition-all duration-200"
+                    className="border-ios-destructive/20 hover:bg-ios-destructive hover:border-ios-destructive text-ios-destructive hover:text-white font-medium transition-all duration-200 hover:shadow-md"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
@@ -300,7 +304,7 @@ export default function Documents() {
         <div className="flex gap-6">
           {/* Sidebar - Document Categories */}
           <div className="w-64 flex-shrink-0">
-            <CleanCard className="p-4 shadow-sm">
+            <CleanCard className="p-4 shadow-lg bg-gradient-to-br from-white to-ios-secondary-background/30">
               <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider mb-4 font-['Courier_New',_monospace]">
                 CATEGORIES
               </h3>
@@ -315,7 +319,7 @@ export default function Documents() {
                         "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group",
                         isSelected
                           ? "bg-ios-accent text-white shadow-sm"
-                          : "hover:bg-ios-tertiary-background text-ios-secondary-text hover:text-ios-primary-text"
+                          : "hover:bg-ios-tertiary-background text-ios-secondary-text hover:text-ios-primary-text hover:shadow-sm"
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -347,7 +351,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200 hover:shadow-md"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Last 7 days
@@ -355,7 +359,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200 hover:shadow-md"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Last 30 days
@@ -363,7 +367,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200 hover:shadow-md"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Custom range

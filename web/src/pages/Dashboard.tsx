@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 
 // iOS Components
 import { CleanCard, ElegantSectionHeader, StatusBadge } from '@/components/ios';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Dashboard components
 import RecentActivity from '@/components/dashboard/RecentActivity';
@@ -45,6 +46,11 @@ interface QuickActionCardProps {
   trend?: number;
   onClick: () => void;
   color?: 'accent' | 'blue' | 'green' | 'orange' | 'purple';
+  badge?: {
+    text: string;
+    variant: 'success' | 'warning' | 'error' | 'info';
+  };
+  isUrgent?: boolean;
 }
 
 const QuickActionCard: React.FC<QuickActionCardProps> = ({ 
@@ -54,7 +60,9 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
   description,
   trend,
   onClick,
-  color = 'accent'
+  color = 'accent',
+  badge,
+  isUrgent
 }) => {
   const colorClasses = {
     accent: 'bg-ios-accent/10 text-ios-accent border-ios-accent/20',
@@ -67,18 +75,40 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] w-full"
+      className="group w-full"
     >
-      <CleanCard className="h-full p-5 border border-ios-border hover:border-ios-accent/30 hover:shadow-lg transition-all duration-300">
-        <div className="flex flex-col h-full">
+      <div className={cn(
+        "bg-gradient-to-br from-white to-ios-secondary-background/70 rounded-xl p-6 border shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 transform-gpu relative overflow-hidden",
+        isUrgent ? "border-orange-500/50 hover:border-orange-500" : "border-ios-border hover:border-ios-accent/30"
+      )}>
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-ios-accent/10 to-transparent" />
+        </div>
+        <div className="flex flex-col h-full relative z-10">
           <div className="flex items-start justify-between mb-3">
-            <div className={cn(
-              "p-2.5 rounded-lg transition-all duration-300 group-hover:scale-110",
-              colorClasses[color]
-            )}>
-              {icon}
+            <div className="relative">
+              <div className={cn(
+                "p-3 rounded-lg transition-all duration-300 group-hover:scale-110",
+                colorClasses[color]
+              )}>
+                {icon}
+              </div>
+              {isUrgent && (
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-orange-500 rounded-full animate-pulse" />
+              )}
             </div>
-            {trend !== undefined && (
+            {badge ? (
+              <span className={cn(
+                "px-2 py-1 text-xs font-medium rounded-full",
+                badge.variant === 'success' && "bg-green-100 text-green-700",
+                badge.variant === 'warning' && "bg-orange-100 text-orange-700",
+                badge.variant === 'error' && "bg-red-100 text-red-700",
+                badge.variant === 'info' && "bg-blue-100 text-blue-700"
+              )}>
+                {badge.text}
+              </span>
+            ) : trend !== undefined && (
               <div className={cn(
                 "flex items-center gap-1 text-xs font-medium",
                 trend > 0 ? "text-green-500" : trend < 0 ? "text-red-500" : "text-ios-tertiary-text"
@@ -90,29 +120,36 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
           </div>
           
           <div className="flex-1 flex flex-col justify-between">
-            <div>
-              {value !== undefined && (
-                <div className="text-2xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
-                  {typeof value === 'number' ? value.toLocaleString() : value}
-                </div>
-              )}
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+            <div className="text-center">
+              <h3 className="text-sm font-semibold text-ios-secondary-text uppercase tracking-wider mb-1">
                 {title}
               </h3>
+              {value !== undefined && (
+                <div className="text-3xl font-bold text-ios-primary-text font-['SF_Mono',_'Courier_New',_monospace]">
+                  {typeof value === 'number' ? (
+                    <span className="tabular-nums">{value.toLocaleString()}</span>
+                  ) : (
+                    value
+                  )}
+                </div>
+              )}
             </div>
             
             {description && (
-              <p className="text-xs text-ios-secondary-text mt-2 line-clamp-2">
+              <p className="text-sm text-ios-secondary-text mt-3 line-clamp-2 leading-relaxed text-center">
                 {description}
               </p>
             )}
           </div>
           
-          <div className="mt-3 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <ArrowRight className="h-4 w-4 text-ios-accent" />
+          <div className="mt-auto pt-3 flex items-center justify-center">
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span className="text-xs font-medium text-ios-accent">View Details</span>
+              <ArrowRight className="h-4 w-4 text-ios-accent" />
+            </div>
           </div>
         </div>
-      </CleanCard>
+      </div>
     </button>
   );
 };
@@ -129,10 +166,20 @@ interface StatCardProps {
   subtitle?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle }) => (
-  <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle }) => {
+  // Loading state for stat cards
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+  <div className="group bg-gradient-to-br from-white to-ios-secondary-background/70 rounded-xl p-6 border border-ios-border shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 transform-gpu">
     <div className="flex items-start justify-between mb-4">
-      <div className="p-3 bg-ios-accent/10 rounded-lg">
+      <div className="p-3 bg-ios-accent/10 rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-ios-accent/20">
         {icon}
       </div>
       {trend && (
@@ -148,16 +195,27 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle
       )}
     </div>
     <div>
-      <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </div>
-      <h3 className="text-sm font-medium text-ios-secondary-text">{title}</h3>
-      {subtitle && (
-        <p className="text-xs text-ios-tertiary-text mt-1">{subtitle}</p>
+      {isLoading ? (
+        <>
+          <Skeleton className="h-10 w-24 mb-2 bg-ios-tertiary-background" />
+          <Skeleton className="h-4 w-32 bg-ios-tertiary-background" />
+          {subtitle && <Skeleton className="h-3 w-20 mt-1 bg-ios-tertiary-background" />}
+        </>
+      ) : (
+        <>
+          <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </div>
+          <h3 className="text-sm font-medium text-ios-secondary-text">{title}</h3>
+          {subtitle && (
+            <p className="text-xs text-ios-tertiary-text mt-1">{subtitle}</p>
+          )}
+        </>
       )}
     </div>
   </div>
-);
+  );
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -248,22 +306,39 @@ export default function Dashboard() {
   
   // TODO: Add real maintenance notification checks from API
   
+  // ResizeObserver for responsive behavior
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+  
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-ios-background via-ios-background/95 to-ios-tertiary-background">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         {/* Enhanced Header section */}
-        <div className="mb-12">
+        <div className="space-y-8">
           {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 transform-gpu">
                 <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-ios-primary-text">
+                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
                   Dashboard
                 </h1>
-                <p className="text-sm text-ios-secondary-text mt-1">
+                <p className="text-sm font-medium text-ios-secondary-text mt-1">
                   {getWelcomeMessage()}, {getUserTitle()}
                 </p>
               </div>
@@ -273,18 +348,18 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowNotifications(true)}
-                className="relative p-2.5 hover:bg-ios-tertiary-background rounded-lg transition-colors"
+                className="relative p-2.5 hover:bg-ios-tertiary-background/80 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 transform-gpu"
               >
                 <Bell className="h-5 w-5 text-ios-secondary-text" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-ios-destructive rounded-full" />
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-ios-destructive rounded-full animate-pulse" />
                 )}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/search')}
-                className="p-2.5 hover:bg-ios-tertiary-background rounded-lg transition-colors"
+                className="p-2.5 hover:bg-ios-tertiary-background/80 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 transform-gpu"
               >
                 <Search className="h-5 w-5 text-ios-secondary-text" />
               </Button>
@@ -292,7 +367,7 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/profile')}
-                className="p-2.5 hover:bg-ios-tertiary-background rounded-lg transition-colors"
+                className="p-2.5 hover:bg-ios-tertiary-background/80 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 transform-gpu"
               >
                 <UserCircle className="h-5 w-5 text-ios-secondary-text" />
               </Button>
@@ -300,7 +375,7 @@ export default function Dashboard() {
           </div>
           
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <StatCard
               title="Total Properties"
               value={totalProperties}
@@ -329,17 +404,17 @@ export default function Dashboard() {
         </div>
         
         {/* Quick Actions Section */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
             <div className="p-2 bg-ios-accent/10 rounded-lg">
               <Zap className="h-5 w-5 text-ios-accent" />
             </div>
-            <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+            <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
               QUICK ACTIONS
             </h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <QuickActionCard
               title="Property Book"
               value={totalProperties}
@@ -347,6 +422,7 @@ export default function Dashboard() {
               description="View and manage all assigned equipment"
               onClick={() => navigate('/property-book')}
               color="accent"
+              badge={totalProperties > 0 ? { text: "Active", variant: "success" } : undefined}
             />
             
             <QuickActionCard
@@ -364,48 +440,68 @@ export default function Dashboard() {
               description="View receipts, forms, and reports"
               onClick={() => navigate('/documents')}
               color="purple"
+              badge={documentsCount > 0 ? { text: `${documentsCount} New`, variant: "warning" } : undefined}
+              isUrgent={documentsCount > 5}
             />
           </div>
         </div>
         
         {/* Network Section */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-lg">
                 <Users className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
                   NETWORK
                 </h2>
-                <p className="text-xs text-ios-secondary-text mt-0.5">Connected users and transfer partners</p>
+                <p className="text-xs font-medium text-ios-secondary-text mt-0.5">Connected users and transfer partners</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/network')}
-              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-300 hover:scale-105 active:scale-95"
             >
               View All
               <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
           
-          <CleanCard className="p-6 shadow-sm">
+          <CleanCard className="p-6 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
-                  {connectedUsersCount}
-                </div>
-                <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Connected</div>
+                {connections === undefined ? (
+                  <>
+                    <Skeleton className="h-9 w-16 mb-1 mx-auto bg-ios-tertiary-background" />
+                    <Skeleton className="h-3 w-20 mx-auto bg-ios-tertiary-background" />
+                  </>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                      {connectedUsersCount}
+                    </div>
+                    <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Connected</div>
+                  </>
+                )}
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-500 mb-1 font-['Courier_New',_monospace]">
-                  {pendingConnectionsCount}
-                </div>
-                <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Pending</div>
+                {connections === undefined ? (
+                  <>
+                    <Skeleton className="h-9 w-16 mb-1 mx-auto bg-ios-tertiary-background" />
+                    <Skeleton className="h-3 w-20 mx-auto bg-ios-tertiary-background" />
+                  </>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold text-orange-500 mb-1 font-['Courier_New',_monospace]">
+                      {pendingConnectionsCount}
+                    </div>
+                    <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Pending</div>
+                  </>
+                )}
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
@@ -424,51 +520,51 @@ export default function Dashboard() {
         </div>
         
         {/* Recent Activity Section */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-500/10 rounded-lg">
                 <Activity className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
                   RECENT ACTIVITY
                 </h2>
-                <p className="text-xs text-ios-secondary-text mt-0.5">Latest transfers and updates</p>
+                <p className="text-xs font-medium text-ios-secondary-text mt-0.5">Latest transfers and updates</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/transfers')}
-              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-300 hover:scale-105 active:scale-95"
             >
               See All
               <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
-          <CleanCard className="p-0 shadow-sm overflow-hidden">
+          <CleanCard className="p-0 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
             <RecentActivity activities={[]} />
           </CleanCard>
         </div>
         
         {/* Property Status Section */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-500/10 rounded-lg">
               <BarChart3 className="h-5 w-5 text-orange-500" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
                 PROPERTY STATUS
               </h2>
-              <p className="text-xs text-ios-secondary-text mt-0.5">Equipment operational readiness</p>
+              <p className="text-xs font-medium text-ios-secondary-text mt-0.5">Equipment operational readiness</p>
             </div>
           </div>
           
-          <CleanCard className="p-6 shadow-sm">
+          <CleanCard className="p-6 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="space-y-6">
-              <div className="flex items-center justify-between group">
+              <div className="flex items-center justify-between group p-3 rounded-lg hover:bg-ios-tertiary-background/50 transition-all duration-300 -mx-3">
                 <div className="flex items-center gap-4">
                   <div className="p-2.5 bg-green-500/10 rounded-lg transition-all duration-200 group-hover:scale-110">
                     <CheckCircle className="h-5 w-5 text-green-500" />
@@ -491,7 +587,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between group">
+              <div className="flex items-center justify-between group p-3 rounded-lg hover:bg-ios-tertiary-background/50 transition-all duration-300 -mx-3">
                 <div className="flex items-center gap-4">
                   <div className="p-2.5 bg-orange-500/10 rounded-lg transition-all duration-200 group-hover:scale-110">
                     <Clock8 className="h-5 w-5 text-orange-500" />
@@ -514,7 +610,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between group">
+              <div className="flex items-center justify-between group p-3 rounded-lg hover:bg-ios-tertiary-background/50 transition-all duration-300 -mx-3">
                 <div className="flex items-center gap-4">
                   <div className="p-2.5 bg-red-500/10 rounded-lg transition-all duration-200 group-hover:scale-110">
                     <AlertTriangle className="h-5 w-5 text-red-500" />

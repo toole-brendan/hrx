@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useReducer, useCallback, useRef, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreateProperty } from "@/hooks/useProperty";
 import { useTransfers } from "@/hooks/useTransfers";
@@ -151,6 +151,8 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [bulkActionProgress, setBulkActionProgress] = useState<{active: boolean; current: number; total: number}>({active: false, current: 0, total: 0});
   const headerRef = useRef<HTMLDivElement>(null);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Drag-to-scroll for filter containers
   const mainFilterScroll = useDragToScroll();
@@ -520,6 +522,23 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ResizeObserver for responsive behavior
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   // Handle error state after all hooks are called
   if (error) {
     console.error("PropertyBook error:", error);
@@ -539,18 +558,22 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50/95 to-gray-100/90 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
       {/* Sticky header for mobile */}
       <div 
         ref={headerRef}
         className={cn(
-          "fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-ios-divider transition-all duration-200 md:hidden shadow-sm",
-          isHeaderSticky ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
+          "fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-lg border-b border-ios-divider transition-all duration-300 md:hidden",
+          isHeaderSticky ? "opacity-100 translate-y-0 shadow-lg" : "opacity-0 -translate-y-full pointer-events-none"
         )}
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">Property Book</h2>
+            <h2 className="text-lg font-bold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">Property Book</h2>
             {isSelectMode && (
               <Button
                 onClick={() => {
@@ -571,7 +594,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               placeholder="Search properties..."
               value={state.searchTerm}
               onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-              className="pl-10 border-0 bg-ios-tertiary-background rounded-lg h-9 text-sm"
+              className="pl-10 border-0 bg-gradient-to-r from-gray-100 to-gray-50 rounded-lg h-9 text-sm shadow-inner transition-all duration-200 focus:shadow-md"
             />
           </div>
         </div>
@@ -579,17 +602,17 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Enhanced Header */}
-        <div className="mb-12">
+        <div className="mb-12 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300">
                 <Package className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-ios-primary-text">
+                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
                   Property Book
                 </h1>
-                <p className="text-sm text-ios-secondary-text mt-1">
+                <p className="text-sm font-medium text-ios-secondary-text mt-1">
                   {properties.length} items tracked • {assignedToMe.length} assigned
                 </p>
               </div>
@@ -600,7 +623,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   onClick={() => setIsSelectMode(true)}
                   variant="ghost"
                   size="sm"
-                  className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+                  className="text-xs font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
                 >
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Select
@@ -614,7 +637,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   }}
                   variant="ghost"
                   size="sm"
-                  className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+                  className="text-xs font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
                 >
                   Cancel
                 </Button>
@@ -624,59 +647,59 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           
           {/* Key Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-ios-accent/10 rounded-lg">
+                <div className="p-3 bg-gradient-to-br from-ios-accent/10 to-ios-accent/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
                   <Package className="h-5 w-5 text-ios-accent" />
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 font-['Courier_New',_monospace]">
                   {properties.length}
                 </div>
-                <h3 className="text-sm font-medium text-ios-secondary-text">Total Items</h3>
+                <h3 className="text-sm font-semibold text-ios-secondary-text">Total Items</h3>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-green-500/10 rounded-lg">
+                <div className="p-3 bg-gradient-to-br from-green-500/10 to-green-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-green-500 mb-1 font-['Courier_New',_monospace]">
                   {properties.filter(p => normalizeItemStatus(p.status) === 'operational').length}
                 </div>
-                <h3 className="text-sm font-medium text-ios-secondary-text">Operational</h3>
+                <h3 className="text-sm font-semibold text-ios-secondary-text">Operational</h3>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-orange-500/10 rounded-lg">
+                <div className="p-3 bg-gradient-to-br from-orange-500/10 to-orange-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
                   <Wrench className="h-5 w-5 text-orange-500" />
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-700 to-orange-500 mb-1 font-['Courier_New',_monospace]">
                   {properties.filter(p => normalizeItemStatus(p.status) === 'maintenance').length}
                 </div>
-                <h3 className="text-sm font-medium text-ios-secondary-text">In Maintenance</h3>
+                <h3 className="text-sm font-semibold text-ios-secondary-text">In Maintenance</h3>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-6 border border-ios-border shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-blue-500/10 rounded-lg">
+                <div className="p-3 bg-gradient-to-br from-blue-500/10 to-blue-500/20 rounded-lg group-hover:scale-110 transition-transform duration-300">
                   <ArrowLeftRight className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500 mb-1 font-['Courier_New',_monospace]">
                   {transfers.filter(t => t.status === 'pending').length}
                 </div>
-                <h3 className="text-sm font-medium text-ios-secondary-text">Pending Transfers</h3>
+                <h3 className="text-sm font-semibold text-ios-secondary-text">Pending Transfers</h3>
               </div>
             </div>
           </div>
@@ -684,15 +707,19 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         
         {/* Offline banner with sync status */}
         {isOffline && (
-          <div className="mb-4 md:mb-6 bg-ios-warning/10 rounded-lg p-3 md:p-4 border border-ios-warning/20">
+          <div className="mb-4 md:mb-6 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-3 md:p-4 border border-orange-200/50 shadow-md animate-in slide-in-from-top duration-300">
             <div className="flex items-center gap-3">
-              <WifiOff className="h-4 w-4 text-ios-warning flex-shrink-0" />
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <WifiOff className="h-4 w-4 text-orange-600" />
+              </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-primary-text">Offline Mode</p>
-                <p className="text-xs text-secondary-text">Changes will sync when connected</p>
+                <p className="text-sm font-semibold text-gray-900">Offline Mode</p>
+                <p className="text-xs text-gray-600">Changes will sync when connected</p>
               </div>
               {isSyncing && (
-                <Loader2 className="h-4 w-4 text-ios-warning animate-spin" />
+                <div className="p-2">
+                  <Loader2 className="h-4 w-4 text-orange-600 animate-spin" />
+                </div>
               )}
             </div>
           </div>
@@ -708,7 +735,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 placeholder="Search by name, serial number, or NSN..."
                 value={state.searchTerm}
                 onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-10 pr-10 border-0 bg-white rounded-lg h-11 text-base placeholder:text-ios-quaternary-text focus-visible:ring-2 focus-visible:ring-ios-accent shadow-sm font-['SF_Pro_Text',_-apple-system,_BlinkMacSystemFont,_sans-serif]"
+                className="pl-10 pr-10 border border-gray-200/50 bg-gradient-to-r from-white to-gray-50 rounded-lg h-11 text-base placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-ios-accent shadow-md hover:shadow-lg transition-all duration-200 font-['SF_Pro_Text',_-apple-system,_BlinkMacSystemFont,_sans-serif]"
               />
               {state.searchTerm && (
                 <button
@@ -723,7 +750,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             {/* Action buttons */}
             <Button
               onClick={() => setShowingSortOptions(true)}
-              className="bg-white hover:bg-ios-tertiary-background text-ios-primary-text border border-ios-border rounded-lg px-4 h-11 font-medium shadow-sm transition-all duration-200"
+              className="bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 text-ios-primary-text border border-gray-200/50 rounded-lg px-4 h-11 font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
             >
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               <span className="hidden md:inline">Filter & Sort</span>
@@ -732,7 +759,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             
             <Button
               onClick={() => setShowingAddMenu(true)}
-              className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 h-11 font-medium shadow-sm transition-all duration-200 border-0"
+              className="bg-gradient-to-r from-ios-accent to-ios-accent/90 hover:from-ios-accent/90 hover:to-ios-accent/80 text-white rounded-lg px-4 h-11 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 border-0 hover:scale-105"
             >
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden md:inline">Add Item</span>
@@ -742,10 +769,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           
           {/* Quick Filter Pills */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-ios-accent/10 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-ios-accent/10 to-ios-accent/20 rounded-lg">
               <Filter className="h-5 w-5 text-ios-accent" />
             </div>
-            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+            <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
               QUICK FILTERS
             </h3>
           </div>
@@ -753,7 +780,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           {/* Filter tabs */}
           <div className="space-y-3">
             {/* Main filter type selector */}
-            <div className="w-full overflow-hidden bg-white rounded-lg p-1 shadow-sm border border-ios-border">
+            <div className="w-full overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
               <div 
                 ref={mainFilterScroll.scrollRef}
                 className={cn(
@@ -799,7 +826,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
             {/* Sub-filter chips */}
             {(selectedFilterType === 'category' || selectedFilterType === 'status') && (
-              <div className="w-full overflow-hidden bg-gradient-to-r from-ios-tertiary-background/50 to-transparent rounded-lg p-3">
+              <div className="w-full overflow-hidden bg-gradient-to-r from-gray-100/50 to-transparent rounded-lg p-3 shadow-inner">
                 <div 
                   ref={subFilterScroll.scrollRef}
                   className={cn(
@@ -871,16 +898,16 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
         {/* Bulk action progress bar */}
         {bulkActionProgress.active && (
-          <div className="mb-4 bg-white rounded-lg p-4 shadow-sm border border-ios-border">
+          <div className="mb-4 bg-gradient-to-r from-white to-gray-50 rounded-lg p-4 shadow-lg border border-gray-200/50 animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-primary-text">Processing items...</span>
-              <span className="text-sm text-secondary-text">
+              <span className="text-sm font-semibold text-gray-900">Processing items...</span>
+              <span className="text-sm font-medium text-gray-600">
                 {bulkActionProgress.current} / {bulkActionProgress.total}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <div 
-                className="bg-ios-accent h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-ios-accent to-ios-accent/80 h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${(bulkActionProgress.current / bulkActionProgress.total) * 100}%` }}
               />
             </div>
@@ -892,14 +919,14 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           {/* Section Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-blue-500/20 rounded-lg shadow-md">
                 <Package className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
                   ASSIGNED ITEMS
                 </h2>
-                <p className="text-xs text-ios-secondary-text mt-0.5">{currentItems.length} items match your filters</p>
+                <p className="text-xs font-medium text-gray-600 mt-0.5">{currentItems.length} items match your filters</p>
               </div>
             </div>
             {currentItems.length > 0 && (
@@ -907,7 +934,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowingDA2062Export(true)}
-                className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-colors"
+                className="text-xs font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
               >
                 Export DA-2062
                 <ArrowRight className="h-3 w-3 ml-1" />
@@ -924,18 +951,21 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 ))}
               </div>
             ) : error && assignedToMe.length === 0 ? (
-              <CleanCard className="py-16 text-center">
-                <p className="text-ios-destructive mb-2">Error loading properties</p>
-                <p className="text-secondary-text text-sm">{error?.message || "Please try again later"}</p>
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-16 text-center shadow-lg border border-red-200/50">
+                <div className="p-4 bg-red-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <AlertTriangle className="h-8 w-8 text-red-600" />
+                </div>
+                <p className="text-red-700 font-semibold mb-2">Error loading properties</p>
+                <p className="text-red-600 text-sm">{error?.message || "Please try again later"}</p>
                 <Button
                   onClick={() => window.location.reload()}
                   variant="outline"
                   size="sm"
-                  className="mt-4"
+                  className="mt-4 border-red-300 hover:bg-red-50 text-red-700"
                 >
                   Retry
                 </Button>
-              </CleanCard>
+              </div>
           ) : currentItems.length === 0 ? (
             <MinimalEmptyState
               title={state.searchTerm || state.filterCategory !== "all" 
@@ -992,10 +1022,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
 
       {/* Floating export button when items are selected */}
       {isSelectMode && selectedPropertiesForExport.size > 0 && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom duration-300">
           <Button
             onClick={() => setShowingDA2062Export(true)}
-            className="bg-ios-accent hover:bg-ios-accent/90 text-white shadow-lg rounded-lg px-6 py-3"
+            className="bg-gradient-to-r from-ios-accent to-ios-accent/90 hover:from-ios-accent/90 hover:to-ios-accent/80 text-white shadow-xl hover:shadow-2xl rounded-lg px-6 py-3 transition-all duration-300 hover:scale-105"
           >
             <FileText className="h-5 w-5 mr-2" />
             Export DA 2062 ({selectedPropertiesForExport.size})
@@ -1013,14 +1043,14 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       )}
 
       <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-b from-white to-ios-tertiary-background/30">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-b from-white to-gray-50/50 backdrop-blur-xl shadow-2xl border border-gray-200/50">
           <DialogHeader className="border-b border-ios-divider pb-5">
             <div className="flex items-start gap-4">
               <div className={cn(
-                "p-3 rounded-xl flex-shrink-0",
+                "p-3 rounded-xl flex-shrink-0 shadow-md transition-all duration-300 hover:scale-110",
                 selectedItem && getCategoryFromName(selectedItem.name) !== 'other' 
                   ? getCategoryColor(selectedItem.name).replace('text-', 'bg-').replace('500', '500/10')
-                  : 'bg-ios-tertiary-background'
+                  : 'bg-gradient-to-br from-gray-100 to-gray-200'
               )}>
                 {selectedItem && getCategoryFromName(selectedItem.name) !== 'other' ? (
                   <span className={cn("text-2xl", getCategoryColor(selectedItem.name))}>
@@ -1031,7 +1061,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 )}
               </div>
               <div className="flex-1">
-                <DialogTitle className="text-2xl font-semibold text-ios-primary-text mb-2">
+                <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-2">
                   {selectedItem?.name}
                 </DialogTitle>
                 <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -1066,12 +1096,12 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               {/* Key Information Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Category & Location Card */}
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-ios-border">
+                <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-5 shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <div className="p-2 bg-gradient-to-br from-blue-500/10 to-blue-500/20 rounded-lg">
                       <Info className="h-4 w-4 text-blue-500" />
                     </div>
-                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
                       CLASSIFICATION
                     </h3>
                   </div>
@@ -1094,18 +1124,18 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 </div>
                 
                 {/* Assignment Info Card */}
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-ios-border">
+                <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-5 shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <div className="p-2 bg-gradient-to-br from-purple-500/10 to-purple-500/20 rounded-lg">
                       <Calendar className="h-4 w-4 text-purple-500" />
                     </div>
-                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
                       ASSIGNMENT INFO
                     </h3>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-ios-tertiary-text uppercase tracking-wider mb-1">Assigned Date</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Assigned Date</p>
                       <p className="text-sm font-bold text-ios-primary-text font-['Courier_New',_monospace]">
                         {selectedItem?.assignedDate ? 
                           (() => {
@@ -1124,9 +1154,9 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               </div>
               
               {/* Transfer History */}
-              <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-5 border border-ios-accent/20">
+              <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-5 border border-ios-accent/20 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                  <div className="p-2 bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-md">
                     <ArrowLeftRight className="h-4 w-4 text-ios-accent" />
                   </div>
                   <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
@@ -1141,7 +1171,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     { from: 'SUPPLY', to: 'PVT WILLIAMS', date: '2024-08-05T11:00:00', status: 'completed' }
                   ].map((transfer, index) => (
                     <div key={index} className="flex items-start gap-3 pb-3 border-b border-ios-divider last:border-0 last:pb-0">
-                      <div className="p-1.5 bg-ios-accent/10 rounded-full mt-0.5">
+                      <div className="p-1.5 bg-gradient-to-br from-ios-accent/10 to-ios-accent/20 rounded-full mt-0.5 hover:scale-110 transition-transform duration-200">
                         <CheckCircle className="h-3 w-3 text-ios-accent" />
                       </div>
                       <div className="flex-1">
@@ -1184,7 +1214,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     <div className="p-2 bg-purple-500/10 rounded-lg">
                       <FileText className="h-4 w-4 text-purple-500" />
                     </div>
-                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
                       DESCRIPTION
                     </h3>
                   </div>
@@ -1201,7 +1231,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     <div className="p-2 bg-orange-500/10 rounded-lg">
                       <Package className="h-4 w-4 text-orange-500" />
                     </div>
-                    <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
                       COMPONENTS ({selectedItem.components.length})
                     </h3>
                   </div>
@@ -1277,7 +1307,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       
       {/* Sort Options Action Sheet */}
       <Dialog open={showingSortOptions} onOpenChange={setShowingSortOptions}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-gradient-to-b from-white to-gray-50 backdrop-blur-xl shadow-2xl border border-gray-200/50">
           <DialogHeader>
             <DialogTitle>Sort Properties</DialogTitle>
           </DialogHeader>
@@ -1318,7 +1348,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       
       {/* Add Menu Action Sheet */}
       <Dialog open={showingAddMenu} onOpenChange={setShowingAddMenu}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-gradient-to-b from-white to-gray-50 backdrop-blur-xl shadow-2xl border border-gray-200/50">
           <DialogHeader>
             <DialogTitle>Add Property</DialogTitle>
           </DialogHeader>
@@ -1362,13 +1392,13 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
     <button
       onClick={onClick}
       className={cn(
-        "px-5 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace]",
+        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] relative overflow-hidden",
         active
-          ? "bg-ios-accent text-white shadow-sm"
-          : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
+          ? "bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105 before:absolute before:inset-0 before:bg-white/20 before:rounded-lg"
+          : "bg-transparent text-gray-600 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
       )}
     >
-      {label}
+      <span className="relative z-10">{label}</span>
     </button>
   );
 };
@@ -1385,10 +1415,10 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
     <button
       onClick={onClick}
       className={cn(
-        "px-5 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace]",
+        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] relative",
         active
-          ? "bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-md"
-          : "bg-white text-ios-secondary-text border border-ios-border hover:border-ios-accent/30 hover:text-ios-primary-text hover:bg-gradient-to-r hover:from-ios-accent/5 hover:to-ios-accent/10 hover:shadow-sm"
+          ? "bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105 border-2 border-ios-accent/30"
+          : "bg-gradient-to-r from-white to-gray-50 text-gray-600 border border-gray-200/50 hover:border-ios-accent/30 hover:text-gray-900 hover:from-ios-accent/5 hover:to-ios-accent/10 hover:shadow-md hover:scale-[1.02]"
       )}
     >
       {label}
@@ -1399,35 +1429,35 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
 // Enhanced Property Card Skeleton Component
 const PropertyCardSkeleton: React.FC = () => {
   return (
-    <CleanCard className="shadow-sm">
+    <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
       <div className="p-6">
         <div className="space-y-5">
           {/* Header skeleton */}
           <div className="flex items-start justify-between">
             <div className="flex-1 space-y-3">
-              <Skeleton className="h-6 w-3/4 bg-ios-tertiary-background" />
-              <Skeleton className="h-4 w-1/2 bg-ios-tertiary-background" />
-              <Skeleton className="h-3 w-1/3 bg-ios-tertiary-background" />
+              <Skeleton className="h-6 w-3/4 bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
+              <Skeleton className="h-4 w-1/2 bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
+              <Skeleton className="h-3 w-1/3 bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
             </div>
-            <Skeleton className="h-10 w-10 rounded-lg bg-ios-tertiary-background" />
+            <Skeleton className="h-10 w-10 rounded-lg bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
           </div>
           
           {/* Status skeleton */}
           <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-24 rounded-full bg-ios-tertiary-background" />
+            <Skeleton className="h-6 w-24 rounded-full bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
             <div className="space-y-1">
-              <Skeleton className="h-3 w-16 ml-auto bg-ios-tertiary-background" />
-              <Skeleton className="h-3 w-20 bg-ios-tertiary-background" />
+              <Skeleton className="h-3 w-16 ml-auto bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
+              <Skeleton className="h-3 w-20 bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
             </div>
           </div>
           
           {/* Action skeleton */}
-          <div className="pt-3 border-t border-ios-divider">
-            <Skeleton className="h-4 w-20 ml-auto bg-ios-tertiary-background" />
+          <div className="pt-3 border-t border-gray-200/50">
+            <Skeleton className="h-4 w-20 ml-auto bg-gradient-to-r from-gray-200 to-gray-100 animate-pulse" />
           </div>
         </div>
       </div>
-    </CleanCard>
+    </div>
   );
 };
 

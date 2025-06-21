@@ -254,8 +254,8 @@ const TransferCard: React.FC<TransferCardProps> = ({
       
       <CleanCard 
         className={cn(
-          "relative cursor-pointer border-2 transition-all duration-300 overflow-hidden",
-          "hover:shadow-xl",
+          "relative cursor-pointer border transition-all duration-300 overflow-hidden",
+          "bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl hover:scale-[1.01] transform-gpu",
           transfer.status === 'pending' && "border-orange-500/30 hover:border-orange-500/50",
           transfer.status === 'approved' && "border-emerald-500/30 hover:border-emerald-500/50",
           transfer.status === 'rejected' && "border-red-500/30 hover:border-red-500/50",
@@ -598,20 +598,20 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   // --- Render Logic ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         {/* Enhanced Header section */}
-        <div className="mb-12">
+        <div className="space-y-8">
           {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 transform-gpu">
                 <ArrowLeftRight className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-ios-primary-text">
+                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
                   Transfers
                 </h1>
-                <p className="text-sm text-ios-secondary-text mt-1">
+                <p className="text-sm font-medium text-ios-secondary-text mt-1">
                   {getPageDescription()}
                 </p>
               </div>
@@ -619,7 +619,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-                className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2 border-0"
+                className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 transform-gpu flex items-center gap-2 border-0"
               >
                 <Plus className="h-4 w-4" />
                 New Transfer
@@ -632,8 +632,8 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         <TransferStats transfers={transfers || []} />
         
         {/* Enhanced Tab selector with transfer theme */}
-        <div className="mb-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-ios-border p-2">
+        <div>
+          <div className="bg-gradient-to-br from-white to-ios-secondary-background/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-ios-border p-2">
             <div className="grid grid-cols-3 gap-2">
               {[
                 { id: 'incoming' as TransferView, label: 'Incoming', icon: <ArrowDownCircle className="h-5 w-5" />, count: incomingPendingCount, color: 'green' },
@@ -672,8 +672,8 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
 
         {/* Enhanced Search and Filter Section */}
         {sortedTransfers.length > 0 && (
-          <div className="mb-8">
-            <CleanCard className="p-4 shadow-sm">
+          <div>
+            <CleanCard className="p-4 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
@@ -716,14 +716,14 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         <div className="space-y-4">
           {/* Loading State */}
           {isLoadingTransfers && (
-            <CleanCard className="py-24 shadow-sm">
+            <CleanCard className="py-24 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg">
               <MinimalLoadingView text="LOADING TRANSFERS" />
             </CleanCard>
           )}
 
           {/* Error State */}
           {!isLoadingTransfers && transfersError && (
-            <CleanCard className="py-24 shadow-sm">
+            <CleanCard className="py-24 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg">
               <div className="text-center space-y-4">
                 <div className="inline-flex p-4 bg-ios-destructive/10 rounded-full">
                   <AlertTriangle className="h-8 w-8 text-ios-destructive" />
@@ -744,7 +744,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
 
           {/* Empty State */}
           {!isLoadingTransfers && !transfersError && sortedTransfers.length === 0 && (
-            <CleanCard className="py-24 shadow-sm">
+            <CleanCard className="py-24 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg">
               <MinimalEmptyState
                 icon={
                   activeView === 'incoming' 
@@ -898,10 +898,10 @@ const TransferStats: React.FC<{ transfers: Transfer[] }> = ({ transfers }) => {
         { label: 'Rejected', value: stats.rejected, icon: <XCircle className="h-5 w-5" />, color: 'red' },
         { label: 'This Month', value: stats.thisMonth, icon: <Activity className="h-5 w-5" />, color: 'purple' }
       ].map((stat, idx) => (
-        <div key={idx} className="bg-white rounded-xl p-4 border border-ios-border shadow-sm hover:shadow-md transition-all duration-200">
+        <div key={idx} className="group bg-gradient-to-br from-white to-ios-secondary-background/70 rounded-xl p-6 border border-ios-border shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 transform-gpu">
           <div className="flex items-center justify-between mb-2">
             <div className={cn(
-              "p-2 rounded-lg",
+              "p-3 rounded-lg transition-all duration-300 group-hover:scale-110",
               stat.color === 'orange' && "bg-orange-500/10 text-orange-500",
               stat.color === 'amber' && "bg-amber-500/10 text-amber-500",
               stat.color === 'green' && "bg-green-500/10 text-green-500",
@@ -910,11 +910,11 @@ const TransferStats: React.FC<{ transfers: Transfer[] }> = ({ transfers }) => {
             )}>
               {stat.icon}
             </div>
-            <span className="text-2xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+            <span className="text-3xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
               {stat.value}
             </span>
           </div>
-          <p className="text-xs text-ios-secondary-text">{stat.label}</p>
+          <p className="text-sm font-medium text-ios-secondary-text">{stat.label}</p>
         </div>
       ))}
     </div>

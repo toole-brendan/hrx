@@ -90,13 +90,13 @@ export const DocumentsInbox: React.FC<DocumentsInboxProps> = ({
     <div className="space-y-6">
 
       {/* Tabs */}
-      <CleanCard padding="none" className="shadow-sm overflow-hidden">
+      <CleanCard padding="none" className="shadow-lg bg-gradient-to-br from-white to-ios-secondary-background/30 overflow-hidden">
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <div className="bg-white p-1">
+          <div className="bg-gradient-to-br from-white to-ios-secondary-background/20 p-1">
             <TabsList className="grid grid-cols-3 w-full gap-1 bg-transparent h-auto">
               <TabsTrigger
                 value="inbox"
-                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-ios-accent data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text relative"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-ios-accent data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text hover:shadow-sm relative"
               >
                 INBOX
                 {(data?.unread_count ?? 0) > 0 && (
@@ -107,13 +107,13 @@ export const DocumentsInbox: React.FC<DocumentsInboxProps> = ({
               </TabsTrigger>
               <TabsTrigger
                 value="sent"
-                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-ios-accent data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-ios-accent data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text hover:shadow-sm"
               >
                 SENT
               </TabsTrigger>
               <TabsTrigger
                 value="all"
-                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-200 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-ios-accent data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-ios-accent data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text hover:shadow-sm"
               >
                 ALL DOCUMENTS
               </TabsTrigger>
