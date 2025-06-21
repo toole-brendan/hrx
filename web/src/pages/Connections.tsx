@@ -363,7 +363,7 @@ export const Connections: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 transform-gpu">
-                <Users className="h-6 w-6 text-white" />
+                <Globe className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
@@ -394,63 +394,71 @@ export const Connections: React.FC = () => {
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NetworkTab)} className="space-y-6">
           <div className="space-y-3">
             <div className="w-full overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  onClick={() => setActiveTab('my-network')}
-                  className={cn(
-                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
-                    activeTab === 'my-network'
-                      ? "bg-ios-accent text-white shadow-lg scale-105"
-                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
-                  )}
-                >
-                  <Users className="h-5 w-5" />
-                  MY NETWORK
-                  {acceptedConnections.length > 0 && (
-                    <span className={cn(
-                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+              <div className="overflow-x-auto">
+                <div className="flex gap-1 w-full">
+                  <button
+                    onClick={() => setActiveTab('my-network')}
+                    className={cn(
+                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                       activeTab === 'my-network'
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-300 text-gray-700"
-                    )}>
-                      {acceptedConnections.length}
+                        ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                        : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      MY NETWORK
+                      {acceptedConnections.length > 0 && (
+                        <span className={cn(
+                          "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+                          activeTab === 'my-network'
+                            ? "bg-white/20 text-white"
+                            : "bg-gray-300 text-gray-700"
+                        )}>
+                          {acceptedConnections.length}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('requests')}
-                  className={cn(
-                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
-                    activeTab === 'requests'
-                      ? "bg-ios-accent text-white shadow-lg scale-105"
-                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
-                  )}
-                >
-                  <Inbox className="h-5 w-5" />
-                  REQUESTS
-                  {(pendingRequests.length > 0 || connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length > 0) && (
-                    <span className={cn(
-                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('requests')}
+                    className={cn(
+                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                       activeTab === 'requests'
-                        ? "bg-white/20 text-white"
-                        : "bg-orange-500 text-white animate-pulse"
-                    )}>
-                      {pendingRequests.length + connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length}
+                        ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                        : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Inbox className="h-5 w-5" />
+                      REQUESTS
+                      {(pendingRequests.length > 0 || connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length > 0) && (
+                        <span className={cn(
+                          "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+                          activeTab === 'requests'
+                            ? "bg-white/20 text-white"
+                            : "bg-orange-500 text-white animate-pulse"
+                        )}>
+                          {pendingRequests.length + connections.filter(c => c.connectionStatus === 'pending' && c.userId === parseInt(user?.id || '0')).length}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('directory')}
-                  className={cn(
-                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
-                    activeTab === 'directory'
-                      ? "bg-ios-accent text-white shadow-lg scale-105"
-                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
-                  )}
-                >
-                  <Globe className="h-5 w-5" />
-                  DIRECTORY
-                </button>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('directory')}
+                    className={cn(
+                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
+                      activeTab === 'directory'
+                        ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                        : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Globe className="h-5 w-5" />
+                      DIRECTORY
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -640,8 +640,9 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         {/* Tab selector with Property Book styling */}
         <div className="space-y-3">
           <div className="w-full overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
-            <div className="grid grid-cols-3 gap-1">
-              {[
+            <div className="overflow-x-auto">
+              <div className="flex gap-1 w-full">
+                {[
                 { id: 'incoming' as TransferView, label: 'INCOMING', icon: <ArrowDownCircle className="h-5 w-5" />, count: incomingPendingCount },
                 { id: 'outgoing' as TransferView, label: 'OUTGOING', icon: <ArrowUpCircle className="h-5 w-5" />, count: outgoingPendingCount },
                 { id: 'history' as TransferView, label: 'HISTORY', icon: <History className="h-5 w-5" />, count: historyTransfers.length }
@@ -650,26 +651,29 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                   key={tab.id}
                   onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: tab.id })}
                   className={cn(
-                    "px-6 py-3 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2",
+                    "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                     activeView === tab.id
-                      ? "bg-ios-accent text-white shadow-lg scale-105"
-                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
+                      ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                      : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   )}
                 >
-                  {tab.icon}
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <span className={cn(
-                      "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
-                      activeView === tab.id
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-300 text-gray-700"
-                    )}>
-                      {tab.count}
-                    </span>
-                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {tab.icon}
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className={cn(
+                        "ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] inline-flex items-center justify-center",
+                        activeView === tab.id
+                          ? "bg-white/20 text-white"
+                          : "bg-gray-300 text-gray-700"
+                      )}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
+              </div>
             </div>
           </div>
         </div>

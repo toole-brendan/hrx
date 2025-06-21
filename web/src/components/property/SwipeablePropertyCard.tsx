@@ -148,9 +148,9 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
   };
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative">
       {/* Background action indicators */}
-      <div className="absolute inset-0 flex items-center justify-end px-6">
+      <div className="absolute inset-0 flex items-center justify-end px-6 overflow-hidden rounded-xl">
         <div className={cn(
           "flex items-center gap-2 transition-opacity",
           swipeX < -SWIPE_THRESHOLD / 2 ? "opacity-100" : "opacity-0"
@@ -180,8 +180,8 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
       >
         <CleanCard 
           className={cn(
-            "cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border border-ios-border hover:border-ios-accent/30",
-            isSelected && "ring-2 ring-ios-accent border-ios-accent shadow-md"
+            "cursor-pointer bg-gradient-to-br from-white to-gray-50 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200/50 hover:border-ios-accent/30 hover:scale-[1.02] transform-gpu",
+            isSelected && "ring-2 ring-ios-accent border-ios-accent shadow-lg scale-[1.02]"
           )}
           onClick={onTap}
           padding="none"

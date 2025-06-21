@@ -140,8 +140,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
   const [showingDA2062Export, setShowingDA2062Export] = useState(false);
   const [showingDA2062Import, setShowingDA2062Import] = useState(false);
-  const [isSelectMode, setIsSelectMode] = useState(false);
-  const [selectedPropertiesForExport, setSelectedPropertiesForExport] = useState<Set<string>>(new Set());
   const [showingSortOptions, setShowingSortOptions] = useState(false);
   const [showingAddMenu, setShowingAddMenu] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -573,19 +571,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-bold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">Property Book</h2>
-            {isSelectMode && (
-              <Button
-                onClick={() => {
-                  setIsSelectMode(false);
-                  setSelectedPropertiesForExport(new Set());
-                }}
-                variant="ghost"
-                size="sm"
-                className="text-sm font-medium text-ios-accent hover:bg-transparent px-0 font-['Courier_New',_monospace]"
-              >
-                Cancel
-              </Button>
-            )}
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
@@ -617,28 +602,15 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {!isSelectMode && properties.length > 0 && (
+              {getCurrentItems().length > 0 && (
                 <Button
-                  onClick={() => setIsSelectMode(true)}
+                  onClick={() => setShowingDA2062Export(true)}
                   variant="ghost"
                   size="sm"
                   className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
                 >
-                  <CheckCircle className="h-4 w-4 mr-1.5" />
-                  Select
-                </Button>
-              )}
-              {isSelectMode && (
-                <Button
-                  onClick={() => {
-                    setIsSelectMode(false);
-                    setSelectedPropertiesForExport(new Set());
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
-                >
-                  Cancel
+                  <FileText className="h-4 w-4 mr-1.5" />
+                  Generate DA 2062
                 </Button>
               )}
             </div>
@@ -725,7 +697,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         )}
 
         {/* Search and Filter Controls */}
-        <div className="mb-8">
+        <div className="mb-0">
           {/* Search Bar with Actions */}
           <div className="flex gap-3 mb-6">
             <div className="flex-1 relative">
@@ -758,7 +730,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             
             <Button
               onClick={() => setShowingAddMenu(true)}
-              className="bg-gradient-to-r from-ios-accent to-ios-accent/90 hover:from-ios-accent/90 hover:to-ios-accent/80 text-white rounded-lg px-4 h-11 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 border-0 hover:scale-105"
+              className="bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg rounded-lg px-4 h-11 font-semibold transition-all duration-200 border-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden md:inline">Add Item</span>
@@ -766,18 +738,23 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             </Button>
           </div>
           
-          {/* Quick Filter Pills */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-gradient-to-br from-ios-accent/10 to-ios-accent/20 rounded-lg">
-              <Filter className="h-5 w-5 text-ios-accent" />
+          {/* Section Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gradient-to-br from-blue-500/10 to-blue-500/20 rounded-lg shadow-md">
+              <Package className="h-5 w-5 text-blue-500" />
             </div>
-            <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
-              QUICK FILTERS
-            </h3>
+            <div>
+              <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
+                ASSIGNED ITEMS
+              </h2>
+              <p className="text-xs font-medium text-gray-600 mt-0.5">{getCurrentItems().length} items match your filters</p>
+            </div>
           </div>
-          
-          {/* Filter tabs */}
-          <div className="space-y-3">
+        </div>
+        
+        {/* Filter tabs and content */}
+        <div className="">
+          <div className="space-y-3 mb-3">
             {/* Main filter type selector */}
             <div className="w-fit overflow-hidden bg-gradient-to-r from-white to-gray-50 rounded-lg p-1 shadow-md border border-gray-200/50">
               <div 
@@ -893,9 +870,8 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Bulk action progress bar */}
+          {/* Bulk action progress bar */}
         {bulkActionProgress.active && (
           <div className="mb-4 bg-gradient-to-r from-white to-gray-50 rounded-lg p-4 shadow-lg border border-gray-200/50 animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between mb-2">
@@ -914,39 +890,14 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         )}
 
         {/* Main content section */}
-        <div className="">
-          {/* Section Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-blue-500/20 rounded-lg shadow-md">
-                <Package className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
-                  ASSIGNED ITEMS
-                </h2>
-                <p className="text-xs font-medium text-gray-600 mt-0.5">{currentItems.length} items match your filters</p>
-              </div>
-            </div>
-            {currentItems.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowingDA2062Export(true)}
-                className="text-xs font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
-              >
-                Export DA-2062
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            )}
-          </div>
-          
           <div className="space-y-3">
             {state.isLoading && assignedToMe.length === 0 && !isOffline ? (
-              <div className="space-y-3">
+              <div className="space-y-4 py-2">
                 {/* Skeleton loaders for cards */}
                 {[1, 2, 3, 4].map((i) => (
-                  <PropertyCardSkeleton key={i} />
+                  <div key={i} className="px-1">
+                    <PropertyCardSkeleton />
+                  </div>
                 ))}
               </div>
             ) : error && assignedToMe.length === 0 ? (
@@ -986,32 +937,21 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               }
             />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4 py-2">
               {currentItems.map((item) => (
-                <SwipeablePropertyCard
-                  key={item.id}
-                  property={item}
-                  isSelected={isSelectMode && selectedPropertiesForExport.has(item.id)}
-                  isSelectMode={isSelectMode}
-                  onTap={() => {
-                    if (isSelectMode) {
-                      if (selectedPropertiesForExport.has(item.id)) {
-                        const newSet = new Set(selectedPropertiesForExport);
-                        newSet.delete(item.id);
-                        setSelectedPropertiesForExport(newSet);
-                      } else {
-                        setSelectedPropertiesForExport(new Set([...selectedPropertiesForExport, item.id]));
-                      }
-                    } else {
-                      handleViewDetails(item);
-                    }
-                  }}
-                  onTransfer={() => {
-                    setSelectedItem(item);
-                    setTransferModalOpen(true);
-                  }}
-                  onViewDetails={() => handleViewDetails(item)}
-                />
+                <div key={item.id} className="px-1">
+                  <SwipeablePropertyCard
+                    property={item}
+                    isSelected={false}
+                    isSelectMode={false}
+                    onTap={() => handleViewDetails(item)}
+                    onTransfer={() => {
+                      setSelectedItem(item);
+                      setTransferModalOpen(true);
+                    }}
+                    onViewDetails={() => handleViewDetails(item)}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -1019,18 +959,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         </div>
       </div>
 
-      {/* Floating export button when items are selected */}
-      {isSelectMode && selectedPropertiesForExport.size > 0 && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom duration-300">
-          <Button
-            onClick={() => setShowingDA2062Export(true)}
-            className="bg-gradient-to-r from-ios-accent to-ios-accent/90 hover:from-ios-accent/90 hover:to-ios-accent/80 text-white shadow-xl hover:shadow-2xl rounded-lg px-6 py-3 transition-all duration-300 hover:scale-105"
-          >
-            <FileText className="h-5 w-5 mr-2" />
-            Export DA 2062 ({selectedPropertiesForExport.size})
-          </Button>
-        </div>
-      )}
 
       {/* Modals */}
       {selectedItem && (
@@ -1248,24 +1176,15 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           
           <DialogFooter className="border-t border-ios-divider pt-4 px-6 pb-6">
             <Button
-              variant="outline"
-              onClick={() => setDetailsModalOpen(false)}
-              className="border-ios-border hover:bg-ios-tertiary-background font-medium"
+              onClick={() => {
+                setDetailsModalOpen(false);
+                if (selectedItem) handleTransferRequest(selectedItem);
+              }}
+              className="bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200 border-0"
             >
-              Close
+              <ArrowLeftRight className="h-4 w-4 mr-2" />
+              Transfer Item
             </Button>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  setDetailsModalOpen(false);
-                  if (selectedItem) handleTransferRequest(selectedItem);
-                }}
-                className="bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200"
-              >
-                <ArrowLeftRight className="h-4 w-4 mr-2" />
-                Transfer Item
-              </Button>
-            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1282,12 +1201,8 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         isOpen={showingDA2062Export}
         onClose={() => {
           setShowingDA2062Export(false);
-          setIsSelectMode(false);
-          setSelectedPropertiesForExport(new Set());
         }}
-        selectedProperties={Array.from(selectedPropertiesForExport).map(id => 
-          properties.find(p => p.id === id)
-        ).filter(Boolean) as Property[]}
+        selectedProperties={getCurrentItems()}
       />
       
       {/* DA 2062 Import Dialog */}
@@ -1393,8 +1308,8 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
       className={cn(
         "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-ios-accent text-white shadow-lg scale-105"
-          : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]"
+          ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+          : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
       )}
     >
       {label}
@@ -1416,8 +1331,8 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
       className={cn(
         "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-ios-accent text-white shadow-lg scale-105"
-          : "bg-white text-gray-600 border border-gray-200/50 hover:border-ios-accent/30 hover:text-gray-900 hover:bg-ios-accent/5 hover:shadow-md hover:scale-[1.02]"
+          ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+          : "bg-white text-gray-600 border border-gray-200/50 hover:text-gray-900"
       )}
     >
       {label}
