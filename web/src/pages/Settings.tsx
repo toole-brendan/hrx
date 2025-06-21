@@ -32,38 +32,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 import {
-  UserCircle,
   Shield,
   Bell,
   Cloud,
   Save,
-  LogOut,
   RefreshCw,
-  Settings as SettingsIcon,
-  Smartphone,
-  Key,
-  AlertCircle,
-  CheckCircle,
-  Clock,
   Loader2,
-  ChevronDown,
-  Check,
+  Lock,
+  ShieldCheck,
+  AlertTriangle,
+  Wifi,
+  WifiOff,
+  CheckCircle2,
+  Clock,
+  Smartphone,
+  LogOut,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // iOS Components
 import {
   CleanCard,
   ElegantSectionHeader
 } from "@/components/ios";
-
-// Form schema for profile
-const profileFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  rank: z.string().optional(),
-  unit: z.string().optional(),
-});
 
 // Form schema for security settings
 const securityFormSchema = z.object({
@@ -92,63 +83,126 @@ const syncFormSchema = z.object({
 });
 
 // Define types from schemas
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type SecurityFormValues = z.infer<typeof securityFormSchema>;
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 type SyncFormValues = z.infer<typeof syncFormSchema>;
 
-// Tab Button Component (iOS style)
+// Enhanced Tab Button Component with better styling
 interface TabButtonProps {
   title: string;
   icon?: React.ReactNode;
   isSelected: boolean;
   onClick: () => void;
+  description?: string;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick }) => (
+const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick, description }) => (
   <button
     onClick={onClick}
-    className="relative pb-4 transition-all duration-200 flex items-center gap-2"
-  >
-    {icon && (
-      <span className={`transition-colors duration-200 ${
-        isSelected ? 'text-ios-accent' : 'text-tertiary-text'
-      }`}>
-        {icon}
-      </span>
+    className={cn(
+      "relative p-4 transition-all duration-300 flex flex-col items-center gap-2 rounded-lg hover:bg-ios-tertiary-background/50",
+      isSelected && "bg-white shadow-sm"
     )}
-    <span 
-      className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
-        isSelected ? 'text-ios-accent' : 'text-tertiary-text'
-      }`}
-    >
-      {title}
-    </span>
-    <div 
-      className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200 ${
-        isSelected ? 'bg-ios-accent' : 'bg-transparent'
-      }`}
-    />
+  >
+    <div className={cn(
+      "p-3 rounded-full transition-all duration-300",
+      isSelected ? "bg-ios-accent text-white" : "bg-ios-tertiary-background text-ios-secondary-text"
+    )}>
+      {icon}
+    </div>
+    <div className="text-center">
+      <span className={cn(
+        "text-sm font-semibold block transition-colors duration-300 uppercase tracking-wider",
+        isSelected ? "text-ios-primary-text" : "text-ios-secondary-text",
+        "font-['Courier_New',_monospace]"
+      )}>
+        {title}
+      </span>
+      {description && (
+        <span className="text-xs text-ios-tertiary-text mt-1 block">
+          {description}
+        </span>
+      )}
+    </div>
   </button>
+);
+
+// Enhanced form section component
+const FormSection: React.FC<{ 
+  title: string; 
+  description?: string; 
+  icon?: React.ReactNode;
+  children: React.ReactNode 
+}> = ({ title, description, icon, children }) => (
+  <div className="mb-8">
+    <div className="flex items-center gap-3 mb-4">
+      {icon && (
+        <div className="p-2 bg-ios-accent/10 rounded-lg">
+          {icon}
+        </div>
+      )}
+      <div>
+        <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">{title}</h3>
+        {description && (
+          <p className="text-sm text-ios-secondary-text mt-0.5">{description}</p>
+        )}
+      </div>
+    </div>
+    <div className="space-y-4">
+      {children}
+    </div>
+  </div>
+);
+
+// Enhanced toggle component
+const SettingToggle: React.FC<{
+  title: string;
+  description?: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+}> = ({ title, description, checked, onCheckedChange, disabled, icon }) => (
+  <div className={cn(
+    "flex items-center justify-between p-4 rounded-lg transition-all duration-200",
+    "hover:bg-ios-tertiary-background/30 border border-transparent",
+    checked && "border-ios-accent/20 bg-ios-accent/5"
+  )}>
+    <div className="flex items-center gap-3 flex-1">
+      {icon && (
+        <div className={cn(
+          "p-2 rounded-lg transition-colors duration-200",
+          checked ? "bg-ios-accent/10 text-ios-accent" : "bg-ios-tertiary-background"
+        )}>
+          {icon}
+        </div>
+      )}
+      <div className="space-y-0.5">
+        <div className="text-sm font-medium text-ios-primary-text">
+          {title}
+        </div>
+        {description && (
+          <div className="text-xs text-ios-secondary-text">
+            {description}
+          </div>
+        )}
+      </div>
+    </div>
+    <Switch
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      disabled={disabled}
+      className="data-[state=checked]:bg-ios-accent"
+    />
+  </div>
 );
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [selectedTab, setSelectedTab] = useState<string>('profile');
-  
-  // Profile form
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      name: user?.name || "",
-      email: "john.doe@military.gov",
-      phone: "555-123-4567",
-      rank: user?.rank || "",
-      unit: "",
-    },
-  });
+  const [selectedTab, setSelectedTab] = useState<string>('security');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   
   // Security form
   const securityForm = useForm<SecurityFormValues>({
@@ -186,14 +240,11 @@ const Settings: React.FC = () => {
   });
   
   // Form submission handlers
-  const onProfileSubmit = (data: ProfileFormValues) => {
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been updated",
-    });
-  };
-  
-  const onSecuritySubmit = (data: SecurityFormValues) => {
+  const onSecuritySubmit = async (data: SecurityFormValues) => {
+    setIsSaving(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsSaving(false);
     toast({
       title: "Security Settings Updated",
       description: "Your security preferences have been saved",
@@ -201,14 +252,22 @@ const Settings: React.FC = () => {
   };
   
   
-  const onNotificationSubmit = (data: NotificationFormValues) => {
+  const onNotificationSubmit = async (data: NotificationFormValues) => {
+    setIsSaving(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsSaving(false);
     toast({
       title: "Notification Settings Updated",
       description: "Your notification preferences have been saved",
     });
   };
   
-  const onSyncSubmit = (data: SyncFormValues) => {
+  const onSyncSubmit = async (data: SyncFormValues) => {
+    setIsSaving(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsSaving(false);
     toast({
       title: "Sync Settings Updated",
       description: "Your synchronization preferences have been saved",
@@ -235,280 +294,92 @@ const Settings: React.FC = () => {
     if (!dateString) return "Never";
     try {
       const date = new Date(dateString);
-      return date.toLocaleString();
+      const now = new Date();
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+      
+      if (diffInMinutes < 1) return "Just now";
+      if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
+      return date.toLocaleDateString();
     } catch (e) {
       return "Unknown";
     }
   };
   
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header - iOS style */}
-        <div className="mb-10">
-          {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-6">
-            <div></div>
-            <div></div>
-          </div>
-          
-          {/* Divider */}
-          <div className="border-b border-ios-divider mb-6" />
-          
-          {/* Title section */}
-          <div className="mb-8">
-            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Enhanced Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-4xl font-bold text-ios-primary-text">
               Settings
             </h1>
-            <p className="text-secondary-text mt-2">
-              Manage your account settings and preferences
-            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="text-ios-destructive hover:text-ios-destructive hover:bg-ios-destructive/10 font-['Courier_New',_monospace] uppercase tracking-wider text-xs"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+          <p className="text-ios-secondary-text">
+            Manage your security, notifications, and sync preferences
+          </p>
+        </div>
+        
+        {/* Enhanced Tab selector */}
+        <div className="mb-8">
+          <div className="grid grid-cols-3 gap-4 p-2 bg-ios-secondary-background rounded-xl">
+            <TabButton
+              title="Security"
+              description="Access & Protection"
+              icon={<Shield className="h-5 w-5" />}
+              isSelected={selectedTab === 'security'}
+              onClick={() => setSelectedTab('security')}
+            />
+            <TabButton
+              title="Notifications"
+              description="Alerts & Updates"
+              icon={<Bell className="h-5 w-5" />}
+              isSelected={selectedTab === 'notifications'}
+              onClick={() => setSelectedTab('notifications')}
+            />
+            <TabButton
+              title="Sync"
+              description="Data & Backup"
+              icon={<Cloud className="h-5 w-5" />}
+              isSelected={selectedTab === 'sync'}
+              onClick={() => setSelectedTab('sync')}
+            />
           </div>
         </div>
         
-        {/* Tab selector - iOS style */}
-        <div className="mb-6">
-          <div className="border-b border-ios-border">
-            <div className="flex justify-between items-center overflow-x-auto">
-              <TabButton
-                title="profile"
-                icon={<UserCircle className="h-4 w-4" />}
-                isSelected={selectedTab === 'profile'}
-                onClick={() => setSelectedTab('profile')}
-              />
-              <TabButton
-                title="security"
-                icon={<Shield className="h-4 w-4" />}
-                isSelected={selectedTab === 'security'}
-                onClick={() => setSelectedTab('security')}
-              />
-              <TabButton
-                title="alerts"
-                icon={<Bell className="h-4 w-4" />}
-                isSelected={selectedTab === 'notifications'}
-                onClick={() => setSelectedTab('notifications')}
-              />
-              <TabButton
-                title="sync"
-                icon={<Cloud className="h-4 w-4" />}
-                isSelected={selectedTab === 'sync'}
-                onClick={() => setSelectedTab('sync')}
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Main content */}
-        <div className="space-y-3">
-          {selectedTab === 'profile' && (
-            <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <CleanCard>
-                  <div className="mb-6">
-                    <ElegantSectionHeader title="PERSONAL INFORMATION" size="sm" />
-                    <p className="text-secondary-text mt-1">User Details</p>
-                  </div>
-                  
-                  <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                      <FormField
-                        control={profileForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Full Name</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                readOnly
-                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
-                              />
-                            </FormControl>
-                            <FormDescription className="text-xs text-quaternary-text">
-                              Contact admin to update name
-                            </FormDescription>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={profileForm.control}
-                        name="rank"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Rank</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                readOnly
-                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={profileForm.control}
-                        name="unit"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Unit</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                readOnly
-                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text bg-transparent focus:border-primary-text focus:border-b-2 transition-all duration-200 focus-visible:ring-0 focus-visible:ring-offset-0 bg-gray-50"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={profileForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Email</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={profileForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Phone</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text placeholder:text-quaternary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <Button 
-                        type="submit"
-                        className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none w-full flex items-center justify-center gap-2"
-                      >
-                        <Save className="h-4 w-4" />
-                        Save Changes
-                      </Button>
-                    </form>
-                  </Form>
-                </CleanCard>
-                
-                <div className="flex flex-col gap-4">
-                  <CleanCard>
-                    <div className="mb-6">
-                      <ElegantSectionHeader title="DEVICE" size="sm" />
-                      <p className="text-secondary-text mt-1">Device Settings</p>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-primary-text">Device ID</h4>
-                          <p className="text-xs text-secondary-text font-mono">DVC-{user?.id || "000000"}</p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            toast({
-                              title: "Device Reset",
-                              description: "Device ID has been regenerated",
-                            });
-                          }}
-                          className="flex items-center gap-1 rounded-none border-ios-border text-xs"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Reset
-                        </Button>
-                      </div>
-                    </div>
-                  </CleanCard>
-                  
-                  <CleanCard>
-                    <div className="mb-6">
-                      <ElegantSectionHeader title="ACCOUNT" size="sm" />
-                      <p className="text-secondary-text mt-1">System Actions</p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <Button
-                        variant="outline"
-                        className="w-full flex items-center justify-center gap-2 rounded-none border-ios-border text-primary-text hover:bg-gray-50"
-                        onClick={() => {
-                          toast({
-                            title: "Account Preferences Reset",
-                            description: "Your settings have been restored to defaults",
-                          });
-                        }}
-                      >
-                        <SettingsIcon className="h-4 w-4" />
-                        Reset Preferences
-                      </Button>
-                      
-                      <div className="pt-4 border-t border-ios-border">
-                        <Button
-                          variant="destructive"
-                          className="w-full flex items-center justify-center gap-2 bg-ios-destructive hover:bg-destructive-dim rounded-none"
-                          onClick={logout}
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Sign Out
-                        </Button>
-                      </div>
-                    </div>
-                  </CleanCard>
-                </div>
-              </div>
-            </>
-          )}
-          
+        {/* Main content with animation */}
+        <div className="space-y-6">
           {selectedTab === 'security' && (
-              <CleanCard>
-                <div className="mb-6">
-                  <ElegantSectionHeader title="ACCESS CONTROL" size="sm" />
-                  <p className="text-secondary-text mt-1">Security Settings</p>
-                </div>
-                
+            <div className="animate-in fade-in-50 duration-300">
+              <CleanCard className="p-6 shadow-sm">
                 <Form {...securityForm}>
                   <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormSection 
+                      title="Access Control" 
+                      description="Manage how you access sensitive information"
+                      icon={<Lock className="h-5 w-5 text-ios-accent" />}
+                    >
                       <FormField
                         control={securityForm.control}
                         name="requirePinForSensitive"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Require PIN for Sensitive Items
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Additional security for classified equipment
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
+                          <SettingToggle
+                            title="Require PIN for Sensitive Items"
+                            description="Additional security layer for classified equipment"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            icon={<ShieldCheck className="h-4 w-4" />}
+                          />
                         )}
                       />
                       
@@ -516,267 +387,364 @@ const Settings: React.FC = () => {
                         control={securityForm.control}
                         name="showItemDetails"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Show Item Details
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Display technical specifications in lists
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
+                          <SettingToggle
+                            title="Show Item Details"
+                            description="Display technical specifications in item lists"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            icon={<AlertTriangle className="h-4 w-4" />}
+                          />
                         )}
                       />
-                    </div>
+                    </FormSection>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={securityForm.control}
-                        name="autoLogout"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">Auto Logout (minutes)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
-                                  <SelectValue placeholder="Select timeout" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="15">15 minutes</SelectItem>
-                                <SelectItem value="30">30 minutes</SelectItem>
-                                <SelectItem value="60">1 hour</SelectItem>
-                                <SelectItem value="120">2 hours</SelectItem>
-                                <SelectItem value="0">Never</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={securityForm.control}
-                        name="pinTimeout"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-tertiary-text text-xs uppercase tracking-wide font-medium">PIN Timeout (minutes)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="border-0 border-b border-ios-border rounded-none px-0 py-2 text-base text-primary-text focus:border-primary-text focus:border-b-2 transition-all duration-200 bg-transparent focus:ring-0 focus:ring-offset-0 h-auto">
-                                  <SelectValue placeholder="Select PIN timeout" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="1">1 minute</SelectItem>
-                                <SelectItem value="5">5 minutes</SelectItem>
-                                <SelectItem value="10">10 minutes</SelectItem>
-                                <SelectItem value="30">30 minutes</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <Separator className="bg-ios-divider" />
                     
-                    <Button 
-                      type="submit"
-                      className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
+                    <FormSection 
+                      title="Session Management" 
+                      description="Control automatic logout and PIN timeouts"
+                      icon={<Clock className="h-5 w-5 text-ios-accent" />}
                     >
-                      <Save className="h-4 w-4" />
-                      Save Security Settings
-                    </Button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={securityForm.control}
+                          name="autoLogout"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                                AUTO LOGOUT TIMER
+                              </FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="bg-ios-tertiary-background border-ios-border">
+                                    <SelectValue placeholder="Select timeout" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="15">15 minutes</SelectItem>
+                                  <SelectItem value="30">30 minutes</SelectItem>
+                                  <SelectItem value="60">1 hour</SelectItem>
+                                  <SelectItem value="120">2 hours</SelectItem>
+                                  <SelectItem value="0">Never</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription className="text-xs">
+                                Automatically log out after inactivity
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={securityForm.control}
+                          name="pinTimeout"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                                PIN RE-ENTRY TIMER
+                              </FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="bg-ios-tertiary-background border-ios-border">
+                                    <SelectValue placeholder="Select PIN timeout" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="1">1 minute</SelectItem>
+                                  <SelectItem value="5">5 minutes</SelectItem>
+                                  <SelectItem value="10">10 minutes</SelectItem>
+                                  <SelectItem value="30">30 minutes</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription className="text-xs">
+                                Re-enter PIN after this duration
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </FormSection>
+                    
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit"
+                        disabled={isSaving}
+                        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </CleanCard>
+            </div>
           )}
           
           {selectedTab === 'notifications' && (
-              <CleanCard>
-                <div className="mb-6">
-                  <ElegantSectionHeader title="NOTIFICATION PREFERENCES" size="sm" />
-                  <p className="text-secondary-text mt-1">Manage alerts and notifications</p>
-                </div>
-                
+            <div className="animate-in fade-in-50 duration-300">
+              <CleanCard className="p-6 shadow-sm">
                 <Form {...notificationForm}>
                   <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-                    <FormField
-                      control={notificationForm.control}
-                      name="enableNotifications"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-sm font-medium text-primary-text">
-                              Enable notifications
-                            </FormLabel>
-                            <FormDescription className="text-xs text-secondary-text">
-                              Receive alerts for important events
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
+                    <FormSection 
+                      title="Notification Preferences" 
+                      description="Choose what updates you want to receive"
+                      icon={<Bell className="h-5 w-5 text-ios-accent" />}
+                    >
+                      <FormField
+                        control={notificationForm.control}
+                        name="enableNotifications"
+                        render={({ field }) => (
+                          <div className="mb-6">
+                            <SettingToggle
+                              title="Enable All Notifications"
+                              description="Master switch for all notification types"
                               checked={field.value}
                               onCheckedChange={field.onChange}
+                              icon={<Bell className="h-4 w-4" />}
                             />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                          </div>
+                        )}
+                      />
+                      
+                      <div className={cn(
+                        "space-y-3 transition-opacity duration-200",
+                        !notificationForm.watch('enableNotifications') && "opacity-50"
+                      )}>
+                        <FormField
+                          control={notificationForm.control}
+                          name="transferRequests"
+                          render={({ field }) => (
+                            <SettingToggle
+                              title="Transfer Requests"
+                              description="New incoming and outgoing transfer notifications"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!notificationForm.watch('enableNotifications')}
+                              icon={<Smartphone className="h-4 w-4" />}
+                            />
+                          )}
+                        />
+                        
+                        <FormField
+                          control={notificationForm.control}
+                          name="statusUpdates"
+                          render={({ field }) => (
+                            <SettingToggle
+                              title="Status Updates"
+                              description="Equipment status change notifications"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!notificationForm.watch('enableNotifications')}
+                              icon={<CheckCircle2 className="h-4 w-4" />}
+                            />
+                          )}
+                        />
+                        
+                        <FormField
+                          control={notificationForm.control}
+                          name="systemAlerts"
+                          render={({ field }) => (
+                            <SettingToggle
+                              title="System Alerts"
+                              description="Important system messages and updates"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!notificationForm.watch('enableNotifications')}
+                              icon={<AlertTriangle className="h-4 w-4" />}
+                            />
+                          )}
+                        />
+                        
+                        <FormField
+                          control={notificationForm.control}
+                          name="dailyDigest"
+                          render={({ field }) => (
+                            <SettingToggle
+                              title="Daily Digest"
+                              description="Summary email delivered daily at 0600 hours"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!notificationForm.watch('enableNotifications')}
+                              icon={<Clock className="h-4 w-4" />}
+                            />
+                          )}
+                        />
+                      </div>
+                    </FormSection>
                     
-                    <div className="h-px bg-ios-divider" />
-                    
-                    <div className="space-y-4">
-                      <h4 className="text-xs uppercase tracking-wide text-tertiary-text font-medium">
-                        NOTIFICATION TYPES
-                      </h4>
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="transferRequests"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Transfer requests
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                New incoming and outgoing transfers
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch('enableNotifications')}
-                              />
-                            </FormControl>
-                          </FormItem>
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit"
+                        disabled={isSaving}
+                        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
                         )}
-                      />
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="statusUpdates"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Status updates
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Equipment status changes
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch('enableNotifications')}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="systemAlerts"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                System alerts
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Important system messages
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch('enableNotifications')}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="dailyDigest"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm font-medium text-primary-text">
-                                Daily digest
-                              </FormLabel>
-                              <FormDescription className="text-xs text-secondary-text">
-                                Summary email sent daily at 0600
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!notificationForm.watch('enableNotifications')}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                      </Button>
                     </div>
-                    
-                    <Button 
-                      type="submit"
-                      className="bg-primary-text hover:bg-black/90 text-white font-medium px-6 py-3 rounded-none flex items-center gap-2"
-                    >
-                      <Save className="h-4 w-4" />
-                      Save Notification Settings
-                    </Button>
                   </form>
                 </Form>
               </CleanCard>
+            </div>
           )}
           
           {selectedTab === 'sync' && (
-              <CleanCard>
-                <div className="mb-6">
-                  <ElegantSectionHeader title="SYNCHRONIZATION" size="sm" />
-                  <p className="text-secondary-text mt-1">Data synchronization preferences</p>
-                </div>
-                
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-primary-text">Manual Sync</h4>
-                      <p className="text-xs text-secondary-text">Synchronize your data now</p>
+            <div className="animate-in fade-in-50 duration-300">
+              <CleanCard className="p-6 shadow-sm">
+                <Form {...syncForm}>
+                  <form onSubmit={syncForm.handleSubmit(onSyncSubmit)} className="space-y-6">
+                    {/* Sync Status Card */}
+                    <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-lg p-4 border border-ios-accent/20">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-white rounded-lg shadow-sm">
+                            <Cloud className="h-6 w-6 text-ios-accent" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                              SYNC STATUS
+                            </h4>
+                            <p className="text-xs text-ios-secondary-text mt-0.5 font-['Courier_New',_monospace]">
+                              Last synced: {formatLastSynced(syncForm.watch('lastSynced'))}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleManualSync}
+                          disabled={isSyncing}
+                          className="bg-white hover:bg-ios-tertiary-background text-ios-accent border border-ios-accent/20 rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200"
+                        >
+                          {isSyncing ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Syncing...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Sync Now
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      onClick={handleManualSync}
-                      disabled={isSyncing}
-                      className="bg-ios-accent hover:bg-accent-hover text-white rounded-none flex items-center gap-2"
+                    
+                    <FormSection 
+                      title="Automatic Sync" 
+                      description="Configure automatic data synchronization"
+                      icon={<RefreshCw className="h-5 w-5 text-ios-accent" />}
                     >
-                      {isSyncing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4" />
-                      )}
-                      {isSyncing ? 'Syncing...' : 'Sync Now'}
-                    </Button>
-                  </div>
-                  
-                  <div className="text-xs text-secondary-text">
-                    Last synced: {formatLastSynced(syncForm.watch('lastSynced'))}
-                  </div>
-                </div>
+                      <FormField
+                        control={syncForm.control}
+                        name="autoSync"
+                        render={({ field }) => (
+                          <SettingToggle
+                            title="Enable Auto Sync"
+                            description="Automatically sync data in the background"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            icon={<RefreshCw className="h-4 w-4" />}
+                          />
+                        )}
+                      />
+                      
+                      <div className={cn(
+                        "space-y-4 transition-opacity duration-200",
+                        !syncForm.watch('autoSync') && "opacity-50"
+                      )}>
+                        <FormField
+                          control={syncForm.control}
+                          name="syncInterval"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                                SYNC FREQUENCY
+                              </FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                                disabled={!syncForm.watch('autoSync')}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="bg-ios-tertiary-background border-ios-border">
+                                    <SelectValue placeholder="Select sync interval" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="5">Every 5 minutes</SelectItem>
+                                  <SelectItem value="15">Every 15 minutes</SelectItem>
+                                  <SelectItem value="30">Every 30 minutes</SelectItem>
+                                  <SelectItem value="60">Every hour</SelectItem>
+                                  <SelectItem value="360">Every 6 hours</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription className="text-xs">
+                                How often to check for updates
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={syncForm.control}
+                          name="syncOnWifiOnly"
+                          render={({ field }) => (
+                            <SettingToggle
+                              title="Wi-Fi Only"
+                              description="Only sync when connected to Wi-Fi networks"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!syncForm.watch('autoSync')}
+                              icon={field.value ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+                            />
+                          )}
+                        />
+                      </div>
+                    </FormSection>
+                    
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit"
+                        disabled={isSaving}
+                        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CleanCard>
+            </div>
           )}
         </div>
         

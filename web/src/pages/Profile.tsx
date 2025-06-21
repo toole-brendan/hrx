@@ -14,8 +14,16 @@ import {
   AlertTriangle, 
   Lock, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Shield,
+  Building,
+  Phone,
+  MapPin,
+  Calendar,
+  Award,
+  FileText,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // iOS-style components
 import { 
@@ -27,6 +35,29 @@ import {
 
 import { useUnreadDocumentCount } from '@/hooks/useDocuments';
 
+// Enhanced section component
+const ProfileSection: React.FC<{ 
+  title: string; 
+  icon?: React.ReactNode;
+  children: React.ReactNode 
+}> = ({ title, icon, children }) => (
+  <div className="mb-8">
+    <div className="flex items-center gap-3 mb-4">
+      {icon && (
+        <div className="p-2 bg-ios-accent/10 rounded-lg">
+          {icon}
+        </div>
+      )}
+      <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+        {title}
+      </h2>
+    </div>
+    <CleanCard className="p-0 shadow-sm overflow-hidden">
+      {children}
+    </CleanCard>
+  </div>
+);
+
 export default function Profile() {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
@@ -34,7 +65,7 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
         <div className="max-w-4xl mx-auto px-6 py-8">
           <MinimalLoadingView text="LOADING PROFILE" />
         </div>
@@ -63,180 +94,186 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
-      <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+      <div className="max-w-5xl mx-auto px-6 py-8">
         
-        {/* Header - iOS style */}
-        <div className="mb-10">
-          {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-6">
-            <div></div>
-            <div></div>
-          </div>
-          
-          {/* Divider */}
-          <div className="border-b border-ios-divider mb-6" />
-          
-          {/* Title section */}
-          <div className="mb-8">
-            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+        {/* Enhanced Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-4xl font-bold text-ios-primary-text">
               Profile
             </h1>
+            <Link href="/profile/edit">
+              <button className="text-ios-accent hover:text-ios-accent/80 font-['Courier_New',_monospace] font-semibold uppercase tracking-wider text-xs flex items-center gap-2 transition-colors">
+                <Edit className="h-4 w-4" />
+                Edit Profile
+              </button>
+            </Link>
+          </div>
+          <p className="text-ios-secondary-text">
+            Your account information and preferences
+          </p>
+        </div>
+
+        {/* User Info Card - Premium Style */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-6 border border-ios-accent/20">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white rounded-xl shadow-sm">
+                  <User className="h-8 w-8 text-ios-accent" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
+                    {user.rank} {formatUserName()}
+                  </h2>
+                  <p className="text-sm text-ios-secondary-text mt-1">
+                    {user.position || "Service Member"}
+                  </p>
+                  <div className="flex items-center gap-4 mt-3 text-xs text-ios-tertiary-text">
+                    <span className="flex items-center gap-1">
+                      <Building className="h-3 w-3" />
+                      {user.unit || "Not specified"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      {user.email}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-ios-tertiary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  USER ID
+                </p>
+                <p className="text-sm font-mono text-ios-secondary-text">
+                  #{user.id ? String(user.id).slice(0, 8).toUpperCase() : "000000"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-6">
           
-          {/* Profile Information Section */}
-          <div className="space-y-4">
-            <ElegantSectionHeader 
-              title="USER INFORMATION" 
-              className="mb-4"
-            />
-            
-            <CleanCard className="p-0">
-              <div className="space-y-0">
-                <ProfileInfoRow
-                  label="NAME"
-                  value={formatUserName()}
-                  icon={<User className="h-4 w-4" />}
-                  isMonospace
-                />
-                
-                <ProfileDivider />
-                
-                <ProfileInfoRow
-                  label="EMAIL"
-                  value={user.email || "No email"}
-                  icon={<Mail className="h-4 w-4" />}
-                  isMonospace
-                />
-                
-                <ProfileDivider />
-                
-                <ProfileInfoRow
-                  label="RANK"
-                  value={user.rank || "No rank"}
-                  icon={<Star className="h-4 w-4" />}
-                  isMonospace
-                />
-              </div>
-            </CleanCard>
-          </div>
+          {/* Personal Information Section */}
+          <ProfileSection 
+            title="PERSONAL INFORMATION" 
+            icon={<User className="h-5 w-5 text-ios-accent" />}
+          >
+            <div className="divide-y divide-ios-divider">
+              <ProfileInfoRow
+                label="FULL NAME"
+                value={formatUserName()}
+                icon={<User className="h-4 w-4" />}
+              />
+              
+              <ProfileInfoRow
+                label="EMAIL ADDRESS"
+                value={user.email || "No email"}
+                icon={<Mail className="h-4 w-4" />}
+              />
+              
+              <ProfileInfoRow
+                label="RANK"
+                value={user.rank || "No rank"}
+                icon={<Star className="h-4 w-4" />}
+              />
+              
+              <ProfileInfoRow
+                label="UNIT"
+                value={user.unit || "Not specified"}
+                icon={<Building className="h-4 w-4" />}
+              />
+            </div>
+          </ProfileSection>
 
           {/* Quick Actions Section */}
-          <div className="space-y-4">
-            <ElegantSectionHeader 
-              title="QUICK ACTIONS" 
-              className="mb-4"
-            />
-            
-            <CleanCard className="p-0">
-              <div className="space-y-0">
-                <Link href="/settings">
-                  <ProfileActionRow
-                    label="Settings"
-                    description="App preferences"
-                    icon={<Settings className="h-4 w-4" />}
-                  />
-                </Link>
-                
-                <ProfileDivider />
-                
-                <Link href="/profile/edit">
-                  <ProfileActionRow
-                    label="Edit Profile"
-                    description="Update your information"
-                    icon={<Edit className="h-4 w-4" />}
-                  />
-                </Link>
-                
-                <ProfileDivider />
-                
-                <Link href="/documents">
-                  <ProfileActionRow
-                    label="Documents"
-                    description={unreadDocumentCount > 0 ? `${unreadDocumentCount} unread` : "View inbox"}
-                    icon={<Inbox className="h-4 w-4" />}
-                    badge={unreadDocumentCount > 0 ? unreadDocumentCount.toString() : undefined}
-                  />
-                </Link>
-              </div>
-            </CleanCard>
-          </div>
+          <ProfileSection 
+            title="QUICK ACTIONS" 
+            icon={<Settings className="h-5 w-5 text-ios-accent" />}
+          >
+            <div className="divide-y divide-ios-divider">
+              <Link href="/settings">
+                <ProfileActionRow
+                  label="Settings"
+                  description="App preferences and configuration"
+                  icon={<Settings className="h-4 w-4" />}
+                  iconBg="bg-ios-accent/10"
+                  iconColor="text-ios-accent"
+                />
+              </Link>
+              
+              <Link href="/documents">
+                <ProfileActionRow
+                  label="Documents"
+                  description={unreadDocumentCount > 0 ? `${unreadDocumentCount} unread documents` : "View your inbox"}
+                  icon={<Inbox className="h-4 w-4" />}
+                  badge={unreadDocumentCount > 0 ? unreadDocumentCount.toString() : undefined}
+                  iconBg="bg-blue-500/10"
+                  iconColor="text-blue-500"
+                />
+              </Link>
+              
+              <Link href="/change-password">
+                <ProfileActionRow
+                  label="Security"
+                  description="Change password and security settings"
+                  icon={<Lock className="h-4 w-4" />}
+                  iconBg="bg-green-500/10"
+                  iconColor="text-green-500"
+                />
+              </Link>
+            </div>
+          </ProfileSection>
 
           {/* Support Section */}
-          <div className="space-y-4">
-            <ElegantSectionHeader 
-              title="SUPPORT" 
-              className="mb-4"
-            />
-            
-            <CleanCard className="p-0">
-              <div className="space-y-0">
-                <Link href="/about">
-                  <ProfileActionRow
-                    label="About"
-                    description="Learn more about the app"
-                    icon={<Info className="h-4 w-4" />}
-                  />
-                </Link>
-                
-                <ProfileDivider />
-                
-                <Link href="/help">
-                  <ProfileActionRow
-                    label="Help"
-                    description="Get assistance"
-                    icon={<HelpCircle className="h-4 w-4" />}
-                  />
-                </Link>
-                
-                <ProfileDivider />
-                
-                <Link href="/report-issue">
-                  <ProfileActionRow
-                    label="Report Issue"
-                    description="Report a problem"
-                    icon={<AlertTriangle className="h-4 w-4" />}
-                  />
-                </Link>
-              </div>
-            </CleanCard>
-          </div>
+          <ProfileSection 
+            title="HELP & SUPPORT" 
+            icon={<HelpCircle className="h-5 w-5 text-ios-accent" />}
+          >
+            <div className="divide-y divide-ios-divider">
+              <Link href="/about">
+                <ProfileActionRow
+                  label="About HandReceipt"
+                  description="Version info and details"
+                  icon={<Info className="h-4 w-4" />}
+                  iconBg="bg-purple-500/10"
+                  iconColor="text-purple-500"
+                />
+              </Link>
+              
+              <Link href="/help">
+                <ProfileActionRow
+                  label="Help Center"
+                  description="Get assistance and FAQs"
+                  icon={<HelpCircle className="h-4 w-4" />}
+                  iconBg="bg-orange-500/10"
+                  iconColor="text-orange-500"
+                />
+              </Link>
+              
+              <Link href="/report-issue">
+                <ProfileActionRow
+                  label="Report an Issue"
+                  description="Submit feedback or report problems"
+                  icon={<AlertTriangle className="h-4 w-4" />}
+                  iconBg="bg-yellow-500/10"
+                  iconColor="text-yellow-500"
+                />
+              </Link>
+            </div>
+          </ProfileSection>
 
-          {/* Account Section */}
-          <div className="space-y-4">
-            <ElegantSectionHeader 
-              title="ACCOUNT" 
-              className="mb-4"
-            />
-            
-            <CleanCard className="p-0">
-              <div className="space-y-0">
-                <Link href="/change-password">
-                  <ProfileActionRow
-                    label="Change Password"
-                    description="Update security"
-                    icon={<Lock className="h-4 w-4" />}
-                  />
-                </Link>
-                
-                <ProfileDivider />
-                
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left"
-                >
-                  <ProfileActionRow
-                    label="Sign Out"
-                    description="End session"
-                    icon={<LogOut className="h-4 w-4" />}
-                    isDestructive
-                  />
-                </button>
-              </div>
-            </CleanCard>
+          {/* Account Actions */}
+          <div className="pt-4">
+            <button
+              onClick={handleLogout}
+              className="w-full bg-ios-destructive hover:bg-ios-destructive/90 text-white rounded-lg px-6 py-3 font-semibold shadow-sm transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider text-sm font-['Courier_New',_monospace]"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
           </div>
 
           {/* Bottom padding */}
@@ -247,41 +284,31 @@ export default function Profile() {
   );
 }
 
-// Supporting Components
+// Enhanced Supporting Components
 
 interface ProfileInfoRowProps {
   label: string;
   value: string;
   icon: React.ReactNode;
-  isMonospace?: boolean;
 }
 
 const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({ 
   label, 
   value, 
   icon, 
-  isMonospace = false 
 }) => (
-  <div className="flex items-center gap-4 px-4 py-4">
-    <div className="text-tertiary-text w-5 flex justify-center">
+  <div className="flex items-center gap-4 px-6 py-4 hover:bg-ios-tertiary-background/30 transition-colors">
+    <div className="text-ios-secondary-text w-5 flex justify-center">
       {icon}
     </div>
     
-    <div className="text-xs font-medium text-tertiary-text uppercase tracking-wide w-16">
-      {label}
-    </div>
-    
-    <div 
-      className="text-primary-text flex-1"
-      style={isMonospace ? {
-        fontFamily: '"Courier New", "Consolas", "Monaco", monospace',
-        fontSize: '15px',
-        fontWeight: '500',
-        letterSpacing: '1px',
-        lineHeight: '1.4'
-      } : {}}
-    >
-      {value}
+    <div className="flex-1">
+      <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider font-['Courier_New',_monospace] mb-1">
+        {label}
+      </p>
+      <p className="text-sm text-ios-primary-text font-medium">
+        {value}
+      </p>
     </div>
   </div>
 );
@@ -292,6 +319,8 @@ interface ProfileActionRowProps {
   icon: React.ReactNode;
   isDestructive?: boolean;
   badge?: string;
+  iconBg?: string;
+  iconColor?: string;
 }
 
 const ProfileActionRow: React.FC<ProfileActionRowProps> = ({ 
@@ -299,34 +328,41 @@ const ProfileActionRow: React.FC<ProfileActionRowProps> = ({
   description, 
   icon, 
   isDestructive = false,
-  badge 
+  badge,
+  iconBg = "bg-ios-tertiary-background",
+  iconColor = "text-ios-secondary-text"
 }) => (
-  <div className="flex items-center gap-4 px-4 py-4 hover:bg-ios-secondary-background/50 transition-colors cursor-pointer">
-    <div className={`w-5 flex justify-center ${isDestructive ? 'text-ios-destructive' : 'text-secondary-text'}`}>
-      {icon}
+  <div className="flex items-center gap-4 px-6 py-4 hover:bg-ios-tertiary-background/30 transition-all duration-200 cursor-pointer group">
+    <div className={cn(
+      "p-2.5 rounded-lg transition-all duration-200",
+      iconBg,
+      "group-hover:scale-110"
+    )}>
+      <div className={cn("w-5 h-5 flex items-center justify-center", iconColor)}>
+        {icon}
+      </div>
     </div>
     
     <div className="flex-1">
-      <div className={`font-medium ${isDestructive ? 'text-ios-destructive' : 'text-primary-text'}`}>
+      <div className={cn(
+        "font-medium text-sm",
+        isDestructive ? "text-ios-destructive" : "text-ios-primary-text"
+      )}>
         {label}
       </div>
-      <div className="text-sm text-tertiary-text">
+      <div className="text-xs text-ios-tertiary-text mt-0.5">
         {description}
       </div>
     </div>
     
     {badge && (
-      <div className="bg-ios-accent text-white text-xs font-mono px-2 py-1 rounded-full">
+      <div className="bg-ios-accent text-white text-xs font-semibold px-2.5 py-1 rounded-full font-['Courier_New',_monospace]">
         {badge}
       </div>
     )}
     
-    <div className="text-tertiary-text">
-      <ChevronRight className="h-3 w-3" />
+    <div className="text-ios-tertiary-text transition-transform duration-200 group-hover:translate-x-0.5">
+      <ChevronRight className="h-4 w-4" />
     </div>
   </div>
-);
-
-const ProfileDivider: React.FC = () => (
-  <div className="h-px bg-ios-divider ml-12" />
 );

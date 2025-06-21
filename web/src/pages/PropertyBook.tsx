@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useReducer, useCallback, useRef } from"react";
+import { useLocation } from "wouter";
 import { useProperties, useOfflineSync, useUpdatePropertyComponents, useCreateProperty } from"@/hooks/useProperty";
 import { useTransfers } from"@/hooks/useTransfers";
 import { Property, Transfer, Component } from "@/types";
@@ -126,12 +127,26 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const subFilterScroll = useDragToScroll();
   
   const { toast } = useToast();
+  const [location] = useLocation();
   
   // Use React Query hooks for data fetching
   const { data: properties = [], isLoading, error } = useProperties();
   const { data: transfers = [] } = useTransfers();
   const updateComponents = useUpdatePropertyComponents();
   const createProperty = useCreateProperty();
+  
+  // Handle URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    
+    if (action === 'import-da2062') {
+      setShowingDA2062Import(true);
+      // Clear the query parameter to avoid reopening on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [location]);
   
   console.log("PropertyBook data:", { 
     properties, 

@@ -167,7 +167,7 @@ const Sidebar = ({
               </div>
               <div>
                 <p className="text-sm font-medium tracking-wider text-gray-900">
-                  {user?.rank} {user?.lastName}
+                  {user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
                 </p>
               </div>
             </div>
@@ -309,7 +309,7 @@ const Sidebar = ({
             </div>
             <div>
               <p className="text-sm font-medium tracking-wider text-gray-900">
-                {user?.rank} {user?.lastName}
+                {user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
               </p>
             </div>
           </div>

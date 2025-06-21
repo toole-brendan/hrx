@@ -7,8 +7,16 @@ import {
   Mail, 
   Star, 
   Building2,
-  ArrowLeft
+  ArrowLeft,
+  Save,
+  Loader2,
+  Shield,
+  Phone,
+  MapPin,
+  UserCheck
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 // iOS-style components
 import { 
@@ -16,6 +24,29 @@ import {
   ElegantSectionHeader,
   MinimalLoadingView
 } from '@/components/ios';
+
+// Enhanced form section component
+const FormSection: React.FC<{ 
+  title: string; 
+  icon?: React.ReactNode;
+  children: React.ReactNode 
+}> = ({ title, icon, children }) => (
+  <div className="mb-8">
+    <div className="flex items-center gap-3 mb-4">
+      {icon && (
+        <div className="p-2 bg-ios-accent/10 rounded-lg">
+          {icon}
+        </div>
+      )}
+      <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+        {title}
+      </h2>
+    </div>
+    <CleanCard className="p-0 shadow-sm overflow-hidden">
+      {children}
+    </CleanCard>
+  </div>
+);
 
 export default function EditProfile() {
   const { user } = useAuth();
@@ -98,178 +129,211 @@ export default function EditProfile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-ios-background">
-        <MinimalLoadingView text="LOADING" />
+      <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+        <div className="max-w-2xl mx-auto px-6 py-8">
+          <MinimalLoadingView text="LOADING" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-ios-background">
-      <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+      <div className="max-w-3xl mx-auto px-6 py-8">
         
-        {/* Header with Back Button */}
-        <div className="mb-10">
+        {/* Enhanced Header */}
+        <div className="mb-12">
           <button
             onClick={handleBack}
-            className="flex items-center gap-2 text-secondary-text hover:text-primary-text transition-colors mb-4"
+            className="flex items-center gap-2 text-ios-secondary-text hover:text-ios-primary-text transition-colors mb-6 group"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm">Back</span>
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <span className="text-sm font-medium">Back to Profile</span>
           </button>
           
-          <h1 className="text-3xl font-light text-primary-text tracking-tight font-mono">
-            Edit Profile
-          </h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-ios-primary-text">
+                Edit Profile
+              </h1>
+              <p className="text-ios-secondary-text mt-2">
+                Update your personal and military information
+              </p>
+            </div>
+            <div className="p-3 bg-ios-accent/10 rounded-xl">
+              <UserCheck className="h-6 w-6 text-ios-accent" />
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           
           {/* Personal Information */}
-          <div className="space-y-6">
-            <ElegantSectionHeader 
-              title="Personal Information" 
-              className="mb-4"
-            />
-            
-            <CleanCard className="p-0">
-              <div className="space-y-0">
-                <ModernFormField
-                  label="First Name"
-                  value={firstName}
-                  onChange={setFirstName}
-                  icon={<User className="h-4 w-4" />}
-                />
-                
-                <div className="h-px bg-ios-divider ml-12" />
-                
-                <ModernFormField
-                  label="Last Name"
-                  value={lastName}
-                  onChange={setLastName}
-                  icon={<User className="h-4 w-4" />}
-                />
-              </div>
-            </CleanCard>
-          </div>
+          <FormSection 
+            title="PERSONAL INFORMATION" 
+            icon={<User className="h-5 w-5 text-ios-accent" />}
+          >
+            <div className="divide-y divide-ios-divider">
+              <EnhancedFormField
+                label="FIRST NAME"
+                value={firstName}
+                onChange={setFirstName}
+                icon={<User className="h-4 w-4" />}
+                placeholder="Enter your first name"
+                required
+              />
+              
+              <EnhancedFormField
+                label="LAST NAME"
+                value={lastName}
+                onChange={setLastName}
+                icon={<User className="h-4 w-4" />}
+                placeholder="Enter your last name"
+                required
+              />
+            </div>
+          </FormSection>
 
           {/* Contact Information */}
-          <div className="space-y-6">
-            <ElegantSectionHeader 
-              title="Contact Information" 
-              className="mb-4"
+          <FormSection 
+            title="CONTACT INFORMATION" 
+            icon={<Mail className="h-5 w-5 text-ios-accent" />}
+          >
+            <EnhancedFormField
+              label="EMAIL ADDRESS"
+              value={email}
+              onChange={setEmail}
+              icon={<Mail className="h-4 w-4" />}
+              type="email"
+              placeholder="your.email@military.gov"
+              required
             />
-            
-            <CleanCard className="p-0">
-              <ModernFormField
-                label="Email Address"
-                value={email}
-                onChange={setEmail}
-                icon={<Mail className="h-4 w-4" />}
-                type="email"
-              />
-            </CleanCard>
-          </div>
+          </FormSection>
 
           {/* Military Information */}
-          <div className="space-y-6">
-            <ElegantSectionHeader 
-              title="Military Information" 
-              className="mb-4"
-            />
-            
-            <CleanCard className="p-0">
-              <div className="space-y-0">
-                <ModernFormField
-                  label="Rank"
-                  value={rank}
-                  onChange={setRank}
-                  icon={<Star className="h-4 w-4" />}
-                />
-                
-                <div className="h-px bg-ios-divider ml-12" />
-                
-                <ModernFormField
-                  label="Unit/Organization"
-                  value={unit}
-                  onChange={setUnit}
-                  icon={<Building2 className="h-4 w-4" />}
-                />
-              </div>
-            </CleanCard>
-          </div>
+          <FormSection 
+            title="MILITARY INFORMATION" 
+            icon={<Shield className="h-5 w-5 text-ios-accent" />}
+          >
+            <div className="divide-y divide-ios-divider">
+              <EnhancedFormField
+                label="RANK"
+                value={rank}
+                onChange={setRank}
+                icon={<Star className="h-4 w-4" />}
+                placeholder="e.g., CPT, SGT, PVT"
+              />
+              
+              <EnhancedFormField
+                label="UNIT/ORGANIZATION"
+                value={unit}
+                onChange={setUnit}
+                icon={<Building2 className="h-4 w-4" />}
+                placeholder="Your unit designation"
+              />
+            </div>
+          </FormSection>
 
           {/* Error Message */}
           {errorMessage && (
-            <div className="px-6">
-              <p className="text-sm text-ios-destructive">{errorMessage}</p>
+            <div className="bg-ios-destructive/10 border border-ios-destructive/20 rounded-lg p-4">
+              <p className="text-sm text-ios-destructive font-medium">{errorMessage}</p>
             </div>
           )}
 
-          {/* Save Button */}
-          <div className="px-6 pt-2">
-            <button
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              className="flex-1 border-ios-border hover:bg-ios-tertiary-background font-['Courier_New',_monospace] uppercase tracking-wider text-sm font-semibold"
+            >
+              Cancel
+            </Button>
+            
+            <Button
               onClick={handleSaveProfile}
               disabled={!formIsValid || isLoading}
-              className={`w-full py-4 px-8 rounded font-medium text-white transition-all duration-200 ${
+              className={cn(
+                "flex-1 font-['Courier_New',_monospace] uppercase tracking-wider text-sm font-semibold shadow-sm transition-all duration-200",
                 formIsValid && !isLoading
-                  ? 'bg-primary-text hover:bg-primary-text/90 active:bg-primary-text/80'
-                  : 'bg-quaternary-text cursor-not-allowed'
-              }`}
+                  ? "bg-ios-accent hover:bg-ios-accent/90 text-white"
+                  : "bg-ios-tertiary-background text-ios-quaternary-text cursor-not-allowed"
+              )}
             >
               {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  <span>Saving...</span>
-                </div>
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
               ) : (
-                'Save Changes'
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
               )}
-            </button>
+            </Button>
           </div>
 
           {/* Bottom padding */}
-          <div className="h-20" />
+          <div className="h-24" />
         </div>
       </div>
     </div>
   );
 }
 
-// Supporting Components
-
-interface ModernFormFieldProps {
+// Enhanced Form Field Component
+interface EnhancedFormFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
   icon: React.ReactNode;
   type?: string;
+  placeholder?: string;
+  required?: boolean;
 }
 
-const ModernFormField: React.FC<ModernFormFieldProps> = ({ 
+const EnhancedFormField: React.FC<EnhancedFormFieldProps> = ({ 
   label, 
   value, 
   onChange, 
   icon,
-  type = 'text'
-}) => (
-  <div className="flex items-center gap-4 px-4 py-4">
-    <div className="text-ios-accent w-5 flex justify-center">
-      {icon}
-    </div>
-    
-    <div className="flex-1 space-y-2">
-      <label className="block text-xs font-medium text-secondary-text uppercase tracking-wide">
-        {label}
-      </label>
+  type = 'text',
+  placeholder,
+  required = false
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  
+  return (
+    <div className={cn(
+      "flex items-start gap-4 px-6 py-5 transition-all duration-200",
+      isFocused && "bg-ios-tertiary-background/30"
+    )}>
+      <div className={cn(
+        "p-2 rounded-lg transition-colors duration-200 mt-0.5",
+        isFocused ? "bg-ios-accent/10 text-ios-accent" : "bg-ios-tertiary-background text-ios-secondary-text"
+      )}>
+        {icon}
+      </div>
       
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-transparent border-none outline-none text-primary-text placeholder:text-quaternary-text"
-        autoCapitalize="none"
-      />
+      <div className="flex-1 space-y-2">
+        <label className="block text-xs font-medium text-ios-tertiary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+          {label}
+          {required && <span className="text-ios-destructive ml-1">*</span>}
+        </label>
+        
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={placeholder}
+          className="w-full bg-transparent border-0 border-b-2 border-ios-border outline-none text-ios-primary-text placeholder:text-ios-quaternary-text pb-1 transition-all duration-200 focus:border-ios-accent"
+          autoCapitalize="none"
+        />
+      </div>
     </div>
-  </div>
-); 
+  );
+};

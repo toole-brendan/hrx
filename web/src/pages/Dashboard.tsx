@@ -154,7 +154,7 @@ export default function Dashboard() {
               
               <Button
                 variant="ghost"
-                onClick={() => navigate('/da2062')}
+                onClick={() => navigate('/property-book?action=import-da2062')}
                 className="h-20 p-0 hover:bg-transparent hover:opacity-90 active:opacity-70"
               >
                 <CleanCard className="w-full h-full hover:shadow-md transition-shadow">
