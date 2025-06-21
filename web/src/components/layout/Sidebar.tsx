@@ -1,6 +1,6 @@
 // web/src/components/layout/Sidebar.tsx
 
-import { useContext } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,8 +21,16 @@ import {
   UserCircle,
   Bell,
   Inbox,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useUnreadDocumentCount } from "@/hooks/useDocuments";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -38,11 +46,33 @@ const Sidebar = ({
   toggleSidebar: toggleSidebarProp,
   openNotificationPanel,
 }: SidebarProps) => {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user } = useAuth();
   const { sidebarCollapsed, toggleSidebar: contextToggleSidebar } = useApp();
   const { unreadCount } = useNotifications();
   const { data: unreadDocumentCount = 0 } = useUnreadDocumentCount();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [showTooltip, setShowTooltip] = useState<string | null>(null);
+
+  // Use ResizeObserver for responsive behavior
+  useEffect(() => {
+    if (!sidebarRef.current || isMobile) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        // Only auto-collapse if window is being resized and sidebar is not manually collapsed
+        if (width < 100 && !sidebarCollapsed && window.innerWidth < 1024) {
+          contextToggleSidebar();
+        }
+      }
+    });
+
+    resizeObserver.observe(sidebarRef.current);
+    return () => resizeObserver.disconnect();
+  }, [sidebarCollapsed, contextToggleSidebar, isMobile]);
 
   // Use the functions from context directly if they're not passed as props
   const toggleSidebar = () => {
@@ -92,6 +122,14 @@ const Sidebar = ({
     return firstInitial + lastInitial || "U";
   };
 
+  // Handle profile click
+  const handleProfileClick = () => {
+    navigate('/profile');
+    if (isMobile && closeMobileMenu) {
+      closeMobileMenu();
+    }
+  };
+
   interface NavItem {
     path: string;
     icon: React.ReactNode;
@@ -133,12 +171,7 @@ const Sidebar = ({
 
   if (isMobile) {
     return (
-      <nav 
-        className="flex-1 flex flex-col" 
-        style={{ 
-          backgroundColor: '#FAFAFA' 
-        }}
-      >
+      <nav className="flex-1 flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 shadow-inner">
         {/* Header - Logo */}
         <div className="p-6">
           <div 
@@ -153,52 +186,82 @@ const Sidebar = ({
           </div>
         </div>
         
-        {/* Divider with same styling as Quick Action dividers */}
-        <div className="px-4">
-          <div className="border-t border-gray-200 mb-2"></div>
+        {/* Gradient divider */}
+        <div className="px-4 py-2">
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
         </div>
         
-        {/* User Profile section with proper vertical centering */}
-        <div className="flex items-center min-h-[60px]"> {/* Fixed height container with flexbox centering */}
+        {/* User Profile section with improved styling */}
+        <div 
+          className="flex items-center min-h-[70px] px-4 py-3 cursor-pointer transition-all duration-200 hover:bg-white/50 group"
+          onClick={handleProfileClick}
+        >
           {!sidebarCollapsed ? (
-            <div className="flex items-center cursor-pointer px-4 w-full">
-              <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium mr-3 shadow-sm">
+            <div className="flex items-center w-full">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md group-hover:shadow-lg transition-shadow duration-200">
                 {getUserInitials()}
               </div>
-              <div>
-                <p className="text-sm font-medium tracking-wider text-gray-900">
-                  {user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
+                  {user?.rank}
+                </p>
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center w-full">
-              <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium cursor-pointer shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-200">
                 {getUserInitials()}
               </div>
             </div>
           )}
         </div>
         
-        {/* Divider with same styling as Quick Action dividers */}
-        <div className="px-4">
-          <div className="border-t border-gray-200 mb-2"></div>
+        {/* Gradient divider */}
+        <div className="px-4 py-2">
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
         </div>
         
         {/* Main navigation section */}
-        <div className="flex-1 space-y-1 py-2 px-4">
+        <div className="flex-1 space-y-1 py-2 px-3">
           {/* Main navigation items */}
           {navItems.map((item) => 
             item.onClick ? (
               <div 
                 key={item.path}
                 onClick={() => handleLinkClick(item.onClick)}
-                className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
+                className={cn(
+                  "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                  isActive(item.path) 
+                    ? "bg-blue-500 text-white shadow-md" 
+                    : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                )}
               >
-                {item.icon}
-                <span>{item.label}</span>
+                {isActive(item.path) && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                )}
+                <div className={cn(
+                  "transition-transform duration-200",
+                  !isActive(item.path) && "group-hover:scale-110"
+                )}>
+                  {React.cloneElement(item.icon as React.ReactElement, {
+                    className: cn(
+                      "h-5 w-5 mr-3",
+                      isActive(item.path) ? "text-white" : "text-gray-600"
+                    ),
+                    strokeWidth: 2
+                  })}
+                </div>
+                <span className="font-medium">{item.label}</span>
                 {item.notificationCount && (
-                  <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
+                  <span className={cn(
+                    "ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold rounded-full",
+                    isActive(item.path) 
+                      ? "bg-white/20 text-white" 
+                      : "bg-blue-500 text-white animate-pulse"
+                  )}>
                     {item.notificationCount}
                   </span>
                 )}
@@ -207,12 +270,36 @@ const Sidebar = ({
               <Link key={item.path} href={item.path}>
                 <div 
                   onClick={() => handleLinkClick()}
-                  className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
+                  className={cn(
+                    "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                    isActive(item.path) 
+                      ? "bg-blue-500 text-white shadow-md" 
+                      : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                  )}
                 >
-                  {item.icon}
-                  <span>{item.label}</span>
+                  {isActive(item.path) && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                  )}
+                  <div className={cn(
+                    "transition-transform duration-200",
+                    !isActive(item.path) && "group-hover:scale-110"
+                  )}>
+                    {React.cloneElement(item.icon as React.ReactElement, {
+                      className: cn(
+                        "h-5 w-5 mr-3",
+                        isActive(item.path) ? "text-white" : "text-gray-600"
+                      ),
+                      strokeWidth: 2
+                    })}
+                  </div>
+                  <span className="font-medium">{item.label}</span>
                   {item.notificationCount && (
-                    <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
+                    <span className={cn(
+                      "ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold rounded-full",
+                      isActive(item.path) 
+                        ? "bg-white/20 text-white" 
+                        : "bg-blue-500 text-white animate-pulse"
+                    )}>
                       {item.notificationCount}
                     </span>
                   )}
@@ -224,18 +311,21 @@ const Sidebar = ({
         
         {/* Footer section */}
         <div className="mt-auto p-4 space-y-3">
-          {/* Footer divider */}
-          <div className="border-t border-gray-200 my-3"></div>
+          {/* Gradient divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
           
           {/* Mobile version - Notification Item */}
           <div 
-            className="sidebar-item relative cursor-pointer"
+            className={cn(
+              "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+              "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+            )}
             onClick={handleNotificationClick}
           >
-            <Bell className="sidebar-item-icon" />
-            <span>Notifications</span>
+            <Bell className="h-5 w-5 mr-3 text-gray-600 transition-transform duration-200 group-hover:scale-110" strokeWidth={2} />
+            <span className="font-medium">Notifications</span>
             {unreadCount > 0 && (
-              <span className="absolute inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-red-600 rounded-full top-1/2 right-1 transform -translate-y-1/2">
+              <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold bg-red-500 text-white rounded-full animate-pulse">
                 {unreadCount}
               </span>
             )}
@@ -245,21 +335,43 @@ const Sidebar = ({
           <Link href="/settings">
             <div 
               onClick={() => handleLinkClick()}
-              className={`sidebar-item ${isActive("/settings") ? "active" : ""}`}
+              className={cn(
+                "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                isActive("/settings") 
+                  ? "bg-blue-500 text-white shadow-md" 
+                  : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+              )}
             >
-              {settingsAction.icon}
-              <span>{settingsAction.label}</span>
+              {isActive("/settings") && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+              )}
+              <Settings className={cn(
+                "h-5 w-5 mr-3 transition-transform duration-200",
+                isActive("/settings") ? "text-white" : "text-gray-600 group-hover:scale-110"
+              )} strokeWidth={2} />
+              <span className="font-medium">{settingsAction.label}</span>
             </div>
           </Link>
           
           {/* Profile link */}
           <Link href="/profile">
             <div
-              className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
+              className={cn(
+                "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                isActive("/profile") 
+                  ? "bg-blue-500 text-white shadow-md" 
+                  : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+              )}
               onClick={() => handleLinkClick()}
             >
-              <UserCircle className="sidebar-item-icon" />
-              <span>Profile</span>
+              {isActive("/profile") && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+              )}
+              <UserCircle className={cn(
+                "h-5 w-5 mr-3 transition-transform duration-200",
+                isActive("/profile") ? "text-white" : "text-gray-600 group-hover:scale-110"
+              )} strokeWidth={2} />
+              <span className="font-medium">Profile</span>
             </div>
           </Link>
         </div>
@@ -268,178 +380,361 @@ const Sidebar = ({
   }
 
   return (
-    <aside 
-      className={`sidebar hidden md:flex flex-col ${sidebarCollapsed ? 'collapsed' : ''}`}
-      style={{ 
-        backgroundColor: '#FAFAFA',
-        borderRight: `1px solid #E0E0E0` 
-      }}
-    >
-      {/* Header - Logo */}
-      <div className="p-6">
-        {!sidebarCollapsed ? (
-          <div 
-            className="flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={handleLogoClick}
-          >
-            <img 
-              src="/hr_logo.png" 
-              alt="HandReceipt"
-              className="h-8 w-auto"
-            />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-5">
-            {/* Empty div to maintain spacing in collapsed mode */}
-          </div>
+    <TooltipProvider>
+      <aside 
+        ref={sidebarRef}
+        className={cn(
+          "sidebar hidden md:flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl backdrop-blur-md transition-all duration-300",
+          sidebarCollapsed ? 'collapsed' : ''
         )}
-      </div>
-      
-      {/* Divider with same styling as Quick Action dividers */}
-      <div className="px-2">
-        <div className="border-t border-gray-200"></div>
-      </div>
-      
-      {/* User Profile section with proper vertical centering */}
-      <div className="flex items-center min-h-[60px]"> {/* Fixed height container with flexbox centering */}
-        {!sidebarCollapsed ? (
-          <div className="flex items-center cursor-pointer px-4 w-full">
-            <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium mr-3 shadow-sm">
-              {getUserInitials()}
+        style={{ 
+          borderRight: `1px solid #E0E0E0`,
+          width: sidebarCollapsed ? '70px' : '250px'
+        }}
+      >
+        {/* Header - Logo */}
+        <div className={cn("flex items-center justify-center", sidebarCollapsed ? "p-4 h-16" : "p-6")}>
+          {!sidebarCollapsed ? (
+            <div 
+              className="cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={handleLogoClick}
+            >
+              <img 
+                src="/hr_logo.png" 
+                alt="HandReceipt"
+                className="h-8 w-auto"
+              />
             </div>
-            <div>
-              <p className="text-sm font-medium tracking-wider text-gray-900">
-                {user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex justify-center w-full">
-            <div className="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center text-blue-800 text-sm font-medium cursor-pointer shadow-sm">
-              {getUserInitials()}
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Divider with same styling as Quick Action dividers */}
-      <div className="px-2">
-        <div className="border-t border-gray-200 mb-2"></div>
-      </div>
-      
-      <div className="flex flex-col flex-1">
-        {/* Main navigation items section */}
-        <nav className={`flex-1 px-2 pt-1 pb-4 space-y-1 overflow-y-auto ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          {navItems.map((item) => 
-            item.onClick ? (
-              <div 
-                key={item.path}
-                onClick={() => handleLinkClick(item.onClick)}
-                className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
-              >
-                {item.icon}
-                {!sidebarCollapsed && <span className="text-nav-item">{item.label}</span>}
-                {item.notificationCount && !sidebarCollapsed && (
-                  <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
-                    {item.notificationCount}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <Link key={item.path} href={item.path}>
-                <div
-                  className={`sidebar-item ${isActive(item.path) ? "active" : ""}`}
-                  onClick={() => handleLinkClick()}
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div 
+                  className="cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={handleLogoClick}
                 >
-                  {item.icon}
-                  {!sidebarCollapsed && <span className="text-nav-item">{item.label}</span>}
+                  <Home className="h-6 w-6 text-gray-600" strokeWidth={2} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                <p>Dashboard</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        
+        {/* Gradient divider */}
+        <div className="px-3">
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+        </div>
+        
+        {/* User Profile section with improved styling */}
+        <div 
+          className="flex items-center min-h-[70px] px-4 py-3 cursor-pointer transition-all duration-200 hover:bg-white/50 group"
+          onClick={handleProfileClick}
+        >
+          {!sidebarCollapsed ? (
+            <div className="flex items-center w-full">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md group-hover:shadow-lg transition-shadow duration-200">
+                {getUserInitials()}
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
+                  {user?.rank}
+                </p>
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex justify-center w-full">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-200">
+                    {getUserInitials()}
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                <p>{user?.rank} {user?.lastName}{user?.firstName ? `, ${user?.firstName}` : ''}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        
+        {/* Gradient divider */}
+        <div className="px-3">
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+        </div>
+        
+        <div className="flex flex-col flex-1">
+          {/* Main navigation items section */}
+          <nav className={cn("flex-1 px-3 pt-4 pb-4 space-y-1 overflow-y-auto", sidebarCollapsed ? 'collapsed' : '')}>
+            {navItems.map((item) => {
+              const NavContent = (
+                <div
+                  className={cn(
+                    "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                    isActive(item.path) 
+                      ? "bg-blue-500 text-white shadow-md" 
+                      : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                  )}
+                  onClick={() => item.onClick ? handleLinkClick(item.onClick) : undefined}
+                >
+                  {isActive(item.path) && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                  )}
+                  <div className={cn(
+                    "transition-transform duration-200",
+                    !isActive(item.path) && "group-hover:scale-110"
+                  )}>
+                    {React.cloneElement(item.icon as React.ReactElement, {
+                      className: cn(
+                        "h-5 w-5",
+                        !sidebarCollapsed && "mr-3",
+                        isActive(item.path) ? "text-white" : "text-gray-600"
+                      ),
+                      strokeWidth: 2
+                    })}
+                  </div>
+                  {!sidebarCollapsed && <span className="font-medium text-nav-item">{item.label}</span>}
                   {item.notificationCount && !sidebarCollapsed && (
-                    <span className="ml-auto inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-ios-accent rounded-full">
+                    <span className={cn(
+                      "ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold rounded-full",
+                      isActive(item.path) 
+                        ? "bg-white/20 text-white" 
+                        : "bg-blue-500 text-white animate-pulse"
+                    )}>
                       {item.notificationCount}
                     </span>
                   )}
+                  {item.notificationCount && sidebarCollapsed && (
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 text-xs font-bold bg-red-500 text-white rounded-full animate-pulse">
+                      {item.notificationCount > 9 ? '9+' : item.notificationCount}
+                    </span>
+                  )}
                 </div>
-              </Link>
-            )
-          )}
-        </nav>
-        
-        {/* Bottom action links section */}
-        <div className={`mt-auto px-2 pt-2 pb-4 ${sidebarCollapsed ? 'text-center' : ''}`}>
-          {/* First divider */}
-          <div className="border-t border-gray-200 mb-2"></div>
+              );
+
+              if (sidebarCollapsed) {
+                return (
+                  <Tooltip key={item.path}>
+                    <TooltipTrigger asChild>
+                      {item.onClick ? (
+                        NavContent
+                      ) : (
+                        <Link href={item.path}>
+                          {NavContent}
+                        </Link>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                      <p>{item.label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return item.onClick ? (
+                <div key={item.path}>
+                  {NavContent}
+                </div>
+              ) : (
+                <Link key={item.path} href={item.path}>
+                  {NavContent}
+                </Link>
+              );
+            })}
+          </nav>
           
-          {/* Navigation items group - styled as regular sidebar items */}
-          <div className="mb-2">
-            {/* Desktop version - Notification Item */}
-            <div 
-              className="sidebar-item relative cursor-pointer"
-              onClick={handleNotificationClick}
-              title="Notifications"
-            >
-              <Bell className="sidebar-item-icon" />
-              {!sidebarCollapsed && <span className="text-nav-item">Notifications</span>}
-              {unreadCount > 0 && (
-                <span className={cn(
-                  "absolute inline-flex items-center justify-center h-5 w-5 text-xs font-medium text-white bg-red-600 rounded-full",
-                  sidebarCollapsed 
-                    ? "top-0 right-0 transform translate-x-1/2 -translate-y-1/2" 
-                    : "top-1/2 right-1 transform -translate-y-1/2" // Centered vertically and moved closer
-                )}>
-                  {unreadCount}
-                </span>
+          {/* Bottom action links section */}
+          <div className={cn("mt-auto px-3 pt-2 pb-4", sidebarCollapsed ? 'text-center' : '')}>
+            {/* Gradient divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent mb-3"></div>
+            
+            {/* Navigation items group - styled as regular sidebar items */}
+            <div className="space-y-1 mb-3">
+              {/* Desktop version - Notification Item */}
+              {sidebarCollapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className={cn(
+                        "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                        "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                      )}
+                      onClick={handleNotificationClick}
+                    >
+                      <Bell className="h-5 w-5 text-gray-600 transition-transform duration-200 group-hover:scale-110" strokeWidth={2} />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 text-xs font-bold bg-red-500 text-white rounded-full animate-pulse">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                    <p>Notifications</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <div 
+                  className={cn(
+                    "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                    "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                  )}
+                  onClick={handleNotificationClick}
+                >
+                  <Bell className="h-5 w-5 mr-3 text-gray-600 transition-transform duration-200 group-hover:scale-110" strokeWidth={2} />
+                  <span className="font-medium text-nav-item">Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-bold bg-red-500 text-white rounded-full animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {/* Settings link */}
+              {sidebarCollapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/settings">
+                      <div
+                        className={cn(
+                          "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                          isActive("/settings") 
+                            ? "bg-blue-500 text-white shadow-md" 
+                            : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                        )}
+                        onClick={() => handleLinkClick()}
+                      >
+                        {isActive("/settings") && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                        )}
+                        <Settings className={cn(
+                          "h-5 w-5 transition-transform duration-200",
+                          isActive("/settings") ? "text-white" : "text-gray-600 group-hover:scale-110"
+                        )} strokeWidth={2} />
+                      </div>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                    <p>Settings</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Link href="/settings">
+                  <div
+                    className={cn(
+                      "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                      isActive("/settings") 
+                        ? "bg-blue-500 text-white shadow-md" 
+                        : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                    )}
+                    onClick={() => handleLinkClick()}
+                  >
+                    {isActive("/settings") && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                    )}
+                    <Settings className={cn(
+                      "h-5 w-5 mr-3 transition-transform duration-200",
+                      isActive("/settings") ? "text-white" : "text-gray-600 group-hover:scale-110"
+                    )} strokeWidth={2} />
+                    <span className="font-medium text-nav-item">{settingsAction.label}</span>
+                  </div>
+                </Link>
+              )}
+              
+              {/* Profile link */}
+              {sidebarCollapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/profile">
+                      <div
+                        className={cn(
+                          "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                          isActive("/profile") 
+                            ? "bg-blue-500 text-white shadow-md" 
+                            : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                        )}
+                        onClick={() => handleLinkClick()}
+                      >
+                        {isActive("/profile") && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                        )}
+                        <UserCircle className={cn(
+                          "h-5 w-5 transition-transform duration-200",
+                          isActive("/profile") ? "text-white" : "text-gray-600 group-hover:scale-110"
+                        )} strokeWidth={2} />
+                      </div>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                    <p>Profile</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Link href="/profile">
+                  <div
+                    className={cn(
+                      "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+                      isActive("/profile") 
+                        ? "bg-blue-500 text-white shadow-md" 
+                        : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
+                    )}
+                    onClick={() => handleLinkClick()}
+                  >
+                    {isActive("/profile") && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
+                    )}
+                    <UserCircle className={cn(
+                      "h-5 w-5 mr-3 transition-transform duration-200",
+                      isActive("/profile") ? "text-white" : "text-gray-600 group-hover:scale-110"
+                    )} strokeWidth={2} />
+                    <span className="font-medium text-nav-item">Profile</span>
+                  </div>
+                </Link>
               )}
             </div>
             
-            {/* Settings link */}
-            <Link href="/settings">
-              <div
-                className={`sidebar-item ${isActive("/settings") ? "active" : ""}`}
-                onClick={() => handleLinkClick()}
-              >
-                {settingsAction.icon}
-                {!sidebarCollapsed && <span className="text-nav-item">{settingsAction.label}</span>}
-              </div>
-            </Link>
+            {/* Gradient divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent mb-3"></div>
             
-            {/* Profile link */}
-            <Link href="/profile">
-              <div
-                className={`sidebar-item ${isActive("/profile") ? "active" : ""}`}
-                onClick={() => handleLinkClick()}
-              >
-                <UserCircle className="sidebar-item-icon" />
-                {!sidebarCollapsed && <span className="text-nav-item">Profile</span>}
-              </div>
-            </Link>
-          </div>
-          
-          {/* Second divider */}
-          <div className="border-t border-gray-200 mb-2"></div>
-          
-          {/* Sidebar collapse button only */}
-          {!sidebarCollapsed ? (
-            <div className="flex items-center justify-end px-2">
-              <button 
-                onClick={toggleSidebar}
-                className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-                title="Collapse sidebar"
-              >
-                <ChevronLeft className="h-5 w-5 text-gray-900" />
-              </button>
+            {/* Sidebar collapse button */}
+            <div className={cn(
+              "flex items-center",
+              sidebarCollapsed ? "justify-center" : "justify-end px-2"
+            )}>
+              {!sidebarCollapsed ? (
+                <button 
+                  onClick={toggleSidebar}
+                  className="p-2.5 rounded-lg hover:bg-white/60 transition-all duration-200 group hover:scale-105"
+                  title="Collapse sidebar"
+                >
+                  <PanelLeftClose className="h-5 w-5 text-gray-600 group-hover:text-gray-900" strokeWidth={2} />
+                </button>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      onClick={toggleSidebar}
+                      className="p-2.5 rounded-lg hover:bg-white/60 transition-all duration-200 group hover:scale-105"
+                      title="Expand sidebar"
+                    >
+                      <PanelLeftOpen className="h-5 w-5 text-gray-600 group-hover:text-gray-900" strokeWidth={2} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
+                    <p>Expand sidebar</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
-          ) : (
-            <button 
-              onClick={toggleSidebar}
-              className="p-2 rounded-md hover:bg-gray-200 transition-colors mx-auto block"
-              title="Expand sidebar"
-            >
-              <ChevronRight className="h-5 w-5 text-gray-900" />
-            </button>
-          )}
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </TooltipProvider>
   );
 };
 
