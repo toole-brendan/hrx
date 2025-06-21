@@ -12,10 +12,20 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Clock8,
+  Filter,
+  AlertTriangle,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  History,
+  Package,
+  Users,
+  ArrowLeftRight
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 // Import the extracted components
 import {
@@ -95,43 +105,83 @@ function transfersReducer(state: TransfersState, action: TransfersAction): Trans
   }
 }
 
-// Tab Button Component (iOS style)
+// Enhanced Tab Button Component with better styling
 interface TabButtonProps {
   title: string;
+  icon: React.ReactNode;
   isSelected: boolean;
   onClick: () => void;
   badge?: number;
+  description?: string;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ title, isSelected, onClick, badge }) => (
+const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick, badge, description }) => (
   <button
     onClick={onClick}
-    className="relative pb-4 transition-all duration-200"
+    className={cn(
+      "relative p-4 transition-all duration-300 rounded-xl group",
+      isSelected 
+        ? "bg-white shadow-lg border-2 border-ios-accent/20 scale-[1.02]" 
+        : "bg-ios-tertiary-background/30 hover:bg-ios-tertiary-background/50 border-2 border-transparent hover:border-ios-border"
+    )}
   >
-    <div className="flex items-center space-x-2">
-      <span 
-        className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
-          isSelected ? 'text-ios-accent' : 'text-tertiary-text'
-        }`}
-      >
-        {title}
-      </span>
-      {badge !== undefined && badge > 0 && (
-        <span className="bg-ios-destructive text-white text-[11px] font-medium px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-          {badge}
-        </span>
-      )}
+    <div className="flex flex-col items-center gap-3">
+      <div className={cn(
+        "p-3 rounded-full transition-all duration-300",
+        isSelected 
+          ? "bg-ios-accent text-white shadow-md" 
+          : "bg-ios-secondary-background text-ios-secondary-text group-hover:bg-white group-hover:shadow-sm"
+      )}>
+        {icon}
+      </div>
+      
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-2">
+          <span 
+            className={cn(
+              "text-sm font-bold uppercase tracking-wider transition-colors duration-300",
+              isSelected ? "text-ios-primary-text" : "text-ios-secondary-text",
+              "font-['Courier_New',_monospace]"
+            )}
+          >
+            {title}
+          </span>
+          {badge !== undefined && badge > 0 && (
+            <span className={cn(
+              "text-xs font-bold px-2 py-0.5 rounded-full transition-all duration-300",
+              isSelected 
+                ? "bg-ios-accent text-white" 
+                : "bg-ios-accent/10 text-ios-accent",
+              "font-['Courier_New',_monospace]"
+            )}>
+              {badge}
+            </span>
+          )}
+        </div>
+        
+        {description && (
+          <p className={cn(
+            "text-xs mt-1 transition-colors duration-300",
+            isSelected ? "text-ios-secondary-text" : "text-ios-tertiary-text"
+          )}>
+            {description}
+          </p>
+        )}
+      </div>
     </div>
-    <div 
-      className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-200 ${
-        isSelected ? 'bg-ios-accent' : 'bg-transparent'
-      }`}
-    />
+    
+    {/* Active indicator */}
+    <div className={cn(
+      "absolute bottom-0 left-1/2 transform -translate-x-1/2 h-1 rounded-full transition-all duration-300",
+      isSelected 
+        ? "w-12 bg-ios-accent" 
+        : "w-0 bg-transparent"
+    )} />
   </button>
 );
 
-// Elegant Transfer Card Component (iOS style)
-interface ElegantTransferCardProps {
+// Enhanced Transfer Card Component with modern design
+interface TransferCardProps {
   transfer: Transfer;
   isIncoming: boolean;
   onTap: () => void;
@@ -141,7 +191,7 @@ interface ElegantTransferCardProps {
   isLoadingReject?: boolean;
 }
 
-const ElegantTransferCard: React.FC<ElegantTransferCardProps> = ({
+const TransferCard: React.FC<TransferCardProps> = ({
   transfer,
   isIncoming,
   onTap,
@@ -152,16 +202,32 @@ const ElegantTransferCard: React.FC<ElegantTransferCardProps> = ({
 }) => {
   const [isPressed, setIsPressed] = useState(false);
 
-  const statusColor = {
-    pending: 'text-ios-warning',
-    approved: 'text-ios-success',
-    rejected: 'text-ios-destructive'
-  }[transfer.status] || 'text-secondary-text';
+  const statusStyles = {
+    pending: {
+      bg: 'bg-orange-500/10',
+      text: 'text-orange-500',
+      border: 'border-orange-500/20'
+    },
+    approved: {
+      bg: 'bg-green-500/10',
+      text: 'text-green-500',
+      border: 'border-green-500/20'
+    },
+    rejected: {
+      bg: 'bg-red-500/10',
+      text: 'text-red-500',
+      border: 'border-red-500/20'
+    }
+  }[transfer.status] || {
+    bg: 'bg-ios-tertiary-background',
+    text: 'text-ios-secondary-text',
+    border: 'border-ios-border'
+  };
 
   const formatDate = (dateString: string) => {
     try {
       const date = parseISO(dateString);
-      return format(date, 'dd MMM HH:mm').toUpperCase();
+      return format(date, 'dd MMM yyyy').toUpperCase();
     } catch {
       return 'UNKNOWN DATE';
     }
@@ -169,58 +235,86 @@ const ElegantTransferCard: React.FC<ElegantTransferCardProps> = ({
 
   return (
     <div
-      className={`transition-transform duration-150 ${isPressed ? 'scale-[0.98]' : 'scale-100'}`}
+      className={cn(
+        "transition-all duration-300 group",
+        isPressed ? "scale-[0.98]" : "scale-100 hover:scale-[1.01]"
+      )}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
     >
       <CleanCard 
-        className="cursor-pointer hover:shadow-md transition-shadow duration-200 overflow-hidden"
+        className={cn(
+          "cursor-pointer border transition-all duration-300 overflow-hidden",
+          "hover:shadow-lg hover:border-ios-accent/30",
+          statusStyles.border
+        )}
         onClick={onTap}
         padding="none"
       >
         <div className="p-6">
-          <div className="space-y-5">
-            {/* Property header with serif font */}
-            <div>
-              <h3 className="text-lg font-medium text-primary-text" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-                {transfer.name || 'Unknown Item'}
-              </h3>
-              <p className="text-sm text-secondary-text mt-1 font-mono">
-                SN: {transfer.serialNumber || 'Unknown'}
-              </p>
-            </div>
-
-            {/* Transfer participants */}
-            <div className="flex items-center space-x-8">
+          <div className="space-y-4">
+            {/* Header with item details */}
+            <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs uppercase tracking-wide text-tertiary-text mb-1">FROM</p>
-                <p className="text-sm font-medium text-primary-text">{transfer.from}</p>
+                <h3 className="text-lg font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
+                  {transfer.name || 'Unknown Item'}
+                </h3>
+                <p className="text-sm text-ios-secondary-text mt-1 font-['Courier_New',_monospace]">
+                  SN: {transfer.serialNumber || 'N/A'}
+                </p>
               </div>
-              
-              <ArrowRight className="h-4 w-4 text-tertiary-text flex-shrink-0" />
-              
-              <div className="flex-1">
-                <p className="text-xs uppercase tracking-wide text-tertiary-text mb-1">TO</p>
-                <p className="text-sm font-medium text-primary-text">{transfer.to}</p>
-              </div>
-            </div>
-
-            {/* Status and timestamp */}
-            <div className="flex items-center justify-between">
-              <span className={`text-xs font-medium uppercase tracking-wider ${statusColor}`}>
+              <div className={cn(
+                "px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider",
+                statusStyles.bg,
+                statusStyles.text,
+                "font-['Courier_New',_monospace]"
+              )}>
                 {transfer.status}
-              </span>
-              <span className="text-xs text-tertiary-text font-mono">
-                {formatDate(transfer.date)}
-              </span>
+              </div>
+            </div>
+
+            {/* Transfer flow visualization */}
+            <div className="bg-ios-tertiary-background/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-['Courier_New',_monospace]">
+                    FROM
+                  </p>
+                  <p className="text-sm font-semibold text-ios-primary-text">
+                    {transfer.from}
+                  </p>
+                </div>
+                
+                <div className="px-4">
+                  <ArrowRight className="h-5 w-5 text-ios-accent" />
+                </div>
+                
+                <div className="flex-1 text-right">
+                  <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-['Courier_New',_monospace]">
+                    TO
+                  </p>
+                  <p className="text-sm font-semibold text-ios-primary-text">
+                    {transfer.to}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Date and additional info */}
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-2 text-xs text-ios-tertiary-text">
+                <Clock8 className="h-3 w-3" />
+                <span className="font-['Courier_New',_monospace]">{formatDate(transfer.date)}</span>
+              </div>
+              <ArrowRight className="h-4 w-4 text-ios-tertiary-text opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
           </div>
         </div>
 
         {/* Quick actions for pending incoming transfers */}
         {isIncoming && transfer.status === 'pending' && (
-          <div className="border-t border-ios-border bg-gray-50/50">
+          <div className="border-t border-ios-border bg-gradient-to-r from-ios-tertiary-background/50 to-ios-tertiary-background/30">
             <div className="flex divide-x divide-ios-border">
               <button
                 onClick={(e) => {
@@ -228,14 +322,19 @@ const ElegantTransferCard: React.FC<ElegantTransferCardProps> = ({
                   onQuickReject();
                 }}
                 disabled={isLoadingReject}
-                className="flex-1 flex items-center justify-center space-x-2 py-3 text-ios-destructive hover:bg-gray-100 transition-colors duration-150 disabled:opacity-50"
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-4",
+                  "text-ios-destructive hover:bg-ios-destructive/10",
+                  "transition-all duration-200 disabled:opacity-50",
+                  "font-['Courier_New',_monospace] text-xs font-semibold uppercase tracking-wider"
+                )}
               >
                 {isLoadingReject ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
                     <XCircle className="h-4 w-4" />
-                    <span className="text-xs font-medium uppercase tracking-wider">Reject</span>
+                    <span>Reject</span>
                   </>
                 )}
               </button>
@@ -246,14 +345,19 @@ const ElegantTransferCard: React.FC<ElegantTransferCardProps> = ({
                   onQuickApprove();
                 }}
                 disabled={isLoadingApprove}
-                className="flex-1 flex items-center justify-center space-x-2 py-3 text-ios-success hover:bg-gray-100 transition-colors duration-150 disabled:opacity-50"
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-4",
+                  "text-ios-success hover:bg-ios-success/10",
+                  "transition-all duration-200 disabled:opacity-50",
+                  "font-['Courier_New',_monospace] text-xs font-semibold uppercase tracking-wider"
+                )}
               >
                 {isLoadingApprove ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4" />
-                    <span className="text-xs font-medium uppercase tracking-wider">Approve</span>
+                    <span>Approve</span>
                   </>
                 )}
               </button>
@@ -447,108 +551,163 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
 
   // --- Render Logic ---
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header - iOS style */}
-        <div className="mb-10">
-          {/* Top navigation bar */}
-          <div className="flex items-center justify-between mb-6">
-            <div></div>
+    <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Enhanced Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
+                <ArrowLeftRight className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-ios-primary-text">
+                  Transfers
+                </h1>
+                <p className="text-sm text-ios-secondary-text mt-1">
+                  {getPageDescription()}
+                </p>
+              </div>
+            </div>
             <Button
               onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
+              className="text-ios-accent hover:text-ios-accent/80 font-['Courier_New',_monospace] font-semibold uppercase tracking-wider text-xs flex items-center gap-2 transition-colors"
               variant="ghost"
               size="sm"
-              className="text-sm font-medium text-ios-accent hover:bg-transparent px-0"
             >
-              New
+              <Plus className="h-4 w-4" />
+              New Transfer
             </Button>
-          </div>
-          
-          {/* Divider */}
-          <div className="border-b border-ios-divider mb-6" />
-          
-          {/* Title section */}
-          <div className="mb-8">
-            <h1 className="text-5xl font-bold text-primary-text leading-tight" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-              Transfers
-            </h1>
           </div>
         </div>
 
-        {/* Tab selector - iOS style */}
-        <div className="mb-6">
-          <div className="border-b border-ios-border">
-            <div className="flex justify-between items-center">
+        {/* Enhanced Tab selector with modern styling */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-ios-secondary-background to-ios-tertiary-background/50 rounded-2xl p-4 shadow-inner">
+            <div className="grid grid-cols-3 gap-4">
               <TabButton
-                title="incoming"
+                title="Incoming"
+                icon={<ArrowDownCircle className="h-6 w-6" />}
                 isSelected={activeView === 'incoming'}
                 onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'incoming' })}
                 badge={incomingPendingCount}
+                description="Requests to you"
               />
               <TabButton
-                title="outgoing"
+                title="Outgoing"
+                icon={<ArrowUpCircle className="h-6 w-6" />}
                 isSelected={activeView === 'outgoing'}
                 onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'outgoing' })}
+                description="Your requests"
               />
               <TabButton
-                title="history"
+                title="History"
+                icon={<History className="h-6 w-6" />}
                 isSelected={activeView === 'history'}
                 onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'history' })}
+                description="All transfers"
               />
             </div>
           </div>
         </div>
 
-        {/* Search and Filter - iOS style */}
+        {/* Enhanced Search and Filter Section */}
         {sortedTransfers.length > 0 && (
-          <div className="mb-6 space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-tertiary-text" />
-              <Input
-                placeholder={`Search ${activeView} transfers...`}
-                value={searchTerm}
-                onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-10 border-0 bg-white rounded-lg h-10 text-base placeholder:text-quaternary-text focus-visible:ring-1 focus-visible:ring-ios-accent shadow-sm"
-              />
-            </div>
+          <div className="mb-8">
+            <CleanCard className="p-4 shadow-sm">
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
+                  <Input
+                    placeholder={`Search ${activeView.toLowerCase()} transfers...`}
+                    value={searchTerm}
+                    onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
+                    className="pl-12 pr-4 border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
+                  />
+                </div>
+                
+                {/* Filter chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs text-ios-secondary-text">
+                    <Filter className="h-3 w-3" />
+                    <span className="font-['Courier_New',_monospace] uppercase tracking-wider">Filter:</span>
+                  </div>
+                  {['all', 'pending', 'approved', 'rejected'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => dispatch({ type: 'SET_FILTER_STATUS', payload: status as TransferStatusFilter })}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200",
+                        "font-['Courier_New',_monospace]",
+                        filterStatus === status
+                          ? "bg-ios-accent text-white shadow-sm"
+                          : "bg-ios-tertiary-background text-ios-secondary-text hover:bg-ios-secondary-background"
+                      )}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CleanCard>
           </div>
         )}
 
         {/* Main content */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {/* Loading State */}
           {isLoadingTransfers && (
-            <CleanCard className="py-16">
-              <MinimalLoadingView text="Loading transfers..." />
+            <CleanCard className="py-24 shadow-sm">
+              <MinimalLoadingView text="LOADING TRANSFERS" />
             </CleanCard>
           )}
 
           {/* Error State */}
           {!isLoadingTransfers && transfersError && (
-            <CleanCard className="py-16 text-center">
-              <p className="text-ios-destructive mb-2">Error loading transfers</p>
-              <p className="text-sm text-secondary-text">{transfersError.message}</p>
+            <CleanCard className="py-24 shadow-sm">
+              <div className="text-center space-y-4">
+                <div className="inline-flex p-4 bg-ios-destructive/10 rounded-full">
+                  <AlertTriangle className="h-8 w-8 text-ios-destructive" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-ios-destructive mb-2">Error Loading Transfers</p>
+                  <p className="text-sm text-ios-secondary-text">{transfersError.message}</p>
+                </div>
+                <Button
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['transfers'] })}
+                  className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                >
+                  Try Again
+                </Button>
+              </div>
             </CleanCard>
           )}
 
           {/* Empty State */}
           {!isLoadingTransfers && !transfersError && sortedTransfers.length === 0 && (
-            <CleanCard className="py-16">
+            <CleanCard className="py-24 shadow-sm">
               <MinimalEmptyState
-                icon={activeView === 'incoming' ? 'arrow.down.circle' : 'arrow.up.circle'}
-                title={`No ${activeView} transfers`}
+                icon={
+                  activeView === 'incoming' 
+                    ? <ArrowDownCircle className="h-12 w-12" /> 
+                    : activeView === 'outgoing'
+                    ? <ArrowUpCircle className="h-12 w-12" />
+                    : <History className="h-12 w-12" />
+                }
+                title={`NO ${activeView.toUpperCase()} TRANSFERS`}
                 description={
                   activeView === 'incoming' 
-                    ? "Transfer requests from your connections will appear here."
+                    ? "Transfer requests from your connections will appear here"
                     : activeView === 'outgoing'
-                    ? "Your outgoing transfer requests will appear here."
-                    : "Your complete transfer history will appear here."
+                    ? "Your outgoing transfer requests will appear here"
+                    : "Your complete transfer history will appear here"
                 }
                 action={activeView !== 'incoming' ? (
                   <Button
                     onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
-                    className="bg-ios-accent hover:bg-accent-hover text-white px-6 py-2 rounded-none"
+                    className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
                   >
+                    <Plus className="h-4 w-4" />
                     Create Transfer
                   </Button>
                 ) : undefined}
@@ -556,25 +715,60 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
             </CleanCard>
           )}
 
-          {/* Transfer List */}
-          {!isLoadingTransfers && !transfersError && sortedTransfers.map((transfer) => (
-            <ElegantTransferCard
-              key={transfer.id}
-              transfer={transfer}
-              isIncoming={activeView === 'incoming'}
-              onTap={() => dispatch({ type: 'SHOW_DETAILS', payload: transfer })}
-              onQuickApprove={() => {
-                dispatch({ type: 'CONFIRM_ACTION', payload: { id: transfer.id, action: 'approve' } });
-                handleApprove(transfer.id);
-              }}
-              onQuickReject={() => {
-                dispatch({ type: 'CONFIRM_ACTION', payload: { id: transfer.id, action: 'reject' } });
-                handleReject(transfer.id);
-              }}
-              isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
-              isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
-            />
-          ))}
+          {/* Transfer List with stats */}
+          {!isLoadingTransfers && !transfersError && sortedTransfers.length > 0 && (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-4 border border-ios-border shadow-sm">
+                  <div className="text-2xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                    {sortedTransfers.length}
+                  </div>
+                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    Total
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-4 border border-ios-border shadow-sm">
+                  <div className="text-2xl font-bold text-orange-500 font-['Courier_New',_monospace]">
+                    {sortedTransfers.filter(t => t.status === 'pending').length}
+                  </div>
+                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    Pending
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-4 border border-ios-border shadow-sm">
+                  <div className="text-2xl font-bold text-green-500 font-['Courier_New',_monospace]">
+                    {sortedTransfers.filter(t => t.status === 'approved').length}
+                  </div>
+                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                    Approved
+                  </div>
+                </div>
+              </div>
+
+              {/* Transfer Cards */}
+              <div className="space-y-4">
+                {sortedTransfers.map((transfer) => (
+                  <TransferCard
+                    key={transfer.id}
+                    transfer={transfer}
+                    isIncoming={activeView === 'incoming'}
+                    onTap={() => dispatch({ type: 'SHOW_DETAILS', payload: transfer })}
+                    onQuickApprove={() => {
+                      dispatch({ type: 'CONFIRM_ACTION', payload: { id: transfer.id, action: 'approve' } });
+                      handleApprove(transfer.id);
+                    }}
+                    onQuickReject={() => {
+                      dispatch({ type: 'CONFIRM_ACTION', payload: { id: transfer.id, action: 'reject' } });
+                      handleReject(transfer.id);
+                    }}
+                    isLoadingApprove={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'approved'}
+                    isLoadingReject={updateStatusMutation.isPending && updateStatusMutation.variables?.id === transfer.id && updateStatusMutation.variables?.status === 'rejected'}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Bottom padding for mobile navigation */}
