@@ -5,7 +5,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, UserPlus, Users, Clock, CheckCircle, XCircle, Globe, Filter, ArrowRight } from 'lucide-react';
+import { 
+  Search, 
+  UserPlus, 
+  Users, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  Globe, 
+  Filter, 
+  ArrowRight,
+  Network,
+  Link2,
+  UserCheck,
+  UserX,
+  Shield,
+  Building2,
+  Mail,
+  Phone,
+  Hash,
+  Activity
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // iOS Components
@@ -55,6 +75,7 @@ export const Connections: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<ConnectionFilter>(ConnectionFilter.ALL);
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [showUserDetails, setShowUserDetails] = useState<User | null>(null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -186,87 +207,127 @@ export const Connections: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
       <div className="max-w-6xl mx-auto px-6 py-8">
         
-        {/* Enhanced Header */}
+        {/* Enhanced Header with Network theme */}
         <div className="mb-12">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-xl shadow-sm">
-                <Globe className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-ios-primary-text">
-                  Network
-                </h1>
-                <p className="text-sm text-ios-secondary-text mt-1">
-                  Connect with other users for secure transfers
-                </p>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-8 shadow-xl">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg">
+                    <Network className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold text-white">
+                      Network
+                    </h1>
+                    <p className="text-blue-100 mt-1">
+                      Build your trusted network for secure property transfers
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden md:flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-white font-['Courier_New',_monospace]">
+                      {acceptedConnections.length}
+                    </p>
+                    <p className="text-xs text-blue-100 uppercase tracking-wider">Connections</p>
+                  </div>
+                  <div className="h-12 w-px bg-white/20" />
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-white font-['Courier_New',_monospace]">
+                      {pendingRequests.length}
+                    </p>
+                    <p className="text-xs text-blue-100 uppercase tracking-wider">Pending</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Tab selector with modern styling */}
+        {/* Network Stats */}
+        <NetworkStats connections={connections} />
+        
+        {/* Enhanced Filter Pills with network theme */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-ios-secondary-background to-ios-tertiary-background/50 rounded-2xl p-4 shadow-inner">
-            <div className="grid grid-cols-3 gap-4">
-              <TabButton
-                title="All"
-                icon={<Users className="h-6 w-6" />}
-                isSelected={selectedFilter === ConnectionFilter.ALL}
-                onClick={() => setSelectedFilter(ConnectionFilter.ALL)}
-                badge={connections.length}
-                description="All connections"
-              />
-              <TabButton
-                title="Connected"
-                icon={<CheckCircle className="h-6 w-6" />}
-                isSelected={selectedFilter === ConnectionFilter.CONNECTED}
-                onClick={() => setSelectedFilter(ConnectionFilter.CONNECTED)}
-                badge={acceptedConnections.length}
-                description="Active network"
-              />
-              <TabButton
-                title="Pending"
-                icon={<Clock className="h-6 w-6" />}
-                isSelected={selectedFilter === ConnectionFilter.PENDING}
-                onClick={() => setSelectedFilter(ConnectionFilter.PENDING)}
-                badge={pendingRequests.length}
-                description="Awaiting response"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Search Section */}
-        <div className="mb-8">
-          <CleanCard className="p-4 shadow-sm">
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
-                <Input
-                  placeholder="Search for users to connect with..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-12 pr-4 border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200"
-                />
-                {searchQuery && (
-                  <Button
-                    onClick={handleSearchUsers}
-                    disabled={isSearching}
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ios-accent hover:bg-ios-accent/90 h-8 px-4 rounded-lg shadow-sm transition-all duration-200"
-                  >
-                    {isSearching ? (
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                    ) : (
-                      "Search"
-                    )}
-                  </Button>
+          <div className="flex items-center gap-3 p-2 bg-white rounded-xl shadow-sm border border-ios-border">
+            {[
+              { id: ConnectionFilter.ALL, label: 'All', icon: <Users className="h-4 w-4" />, count: connections.length },
+              { id: ConnectionFilter.CONNECTED, label: 'Connected', icon: <Link2 className="h-4 w-4" />, count: acceptedConnections.length },
+              { id: ConnectionFilter.PENDING, label: 'Pending', icon: <Clock className="h-4 w-4" />, count: pendingRequests.length }
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setSelectedFilter(filter.id)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200",
+                  selectedFilter === filter.id
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+                    : "bg-transparent text-ios-secondary-text hover:bg-ios-tertiary-background"
                 )}
+              >
+                {filter.icon}
+                <span>{filter.label}</span>
+                {filter.count > 0 && (
+                  <span className={cn(
+                    "ml-1 px-2 py-0.5 rounded-full text-xs font-bold font-['Courier_New',_monospace]",
+                    selectedFilter === filter.id
+                      ? "bg-white/20 text-white"
+                      : "bg-ios-tertiary-background text-ios-secondary-text"
+                  )}>
+                    {filter.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Enhanced Search Section with network branding */}
+        <div className="mb-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl" />
+            <CleanCard className="relative p-6 shadow-lg border-2 border-blue-500/20">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                      FIND NEW CONNECTIONS
+                    </h3>
+                    <p className="text-xs text-ios-secondary-text mt-0.5">Search by name, rank, or unit</p>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-500" />
+                  <Input
+                    placeholder="Search for users to connect with..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="pl-12 pr-4 border-2 border-ios-border hover:border-blue-500/30 focus:border-blue-500/50 bg-white rounded-xl h-14 text-base placeholder:text-ios-tertiary-text focus-visible:ring-0 transition-all duration-200"
+                  />
+                  {searchQuery && (
+                    <Button
+                      onClick={handleSearchUsers}
+                      disabled={isSearching}
+                      size="sm"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white h-10 px-6 rounded-lg shadow-md transition-all duration-200"
+                    >
+                      {isSearching ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      ) : (
+                        "Search"
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </CleanCard>
+            </CleanCard>
+          </div>
           
           {/* Search Results */}
           {searchResults.length > 0 && (
@@ -391,6 +452,52 @@ export const Connections: React.FC = () => {
 
 // Supporting Components
 
+// Network Stats Component
+const NetworkStats: React.FC<{ connections: UserConnection[] }> = ({ connections }) => {
+  const stats = useMemo(() => {
+    const total = connections.length;
+    const active = connections.filter(c => c.connectionStatus === 'accepted').length;
+    const pending = connections.filter(c => c.connectionStatus === 'pending').length;
+    const recentDays = 7;
+    const recent = connections.filter(c => {
+      const createdAt = new Date(c.createdAt);
+      const daysSince = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince <= recentDays;
+    }).length;
+    
+    return { total, active, pending, recent };
+  }, [connections]);
+  
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      {[
+        { label: 'Total Network', value: stats.total, icon: <Users className="h-5 w-5" />, color: 'blue' },
+        { label: 'Active', value: stats.active, icon: <UserCheck className="h-5 w-5" />, color: 'green' },
+        { label: 'Pending', value: stats.pending, icon: <Clock className="h-5 w-5" />, color: 'orange' },
+        { label: 'Recent (7d)', value: stats.recent, icon: <Activity className="h-5 w-5" />, color: 'purple' }
+      ].map((stat, idx) => (
+        <div key={idx} className="bg-white rounded-xl p-4 border border-ios-border shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className={cn(
+              "p-2 rounded-lg",
+              stat.color === 'blue' && "bg-blue-500/10 text-blue-500",
+              stat.color === 'green' && "bg-green-500/10 text-green-500",
+              stat.color === 'orange' && "bg-orange-500/10 text-orange-500",
+              stat.color === 'purple' && "bg-purple-500/10 text-purple-500"
+            )}>
+              {stat.icon}
+            </div>
+            <span className="text-2xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+              {stat.value}
+            </span>
+          </div>
+          <p className="text-xs text-ios-secondary-text">{stat.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 
 // Enhanced Tab Button Component with better styling
 interface TabButtonProps {
@@ -474,28 +581,44 @@ interface UserSearchResultCardProps {
 }
 
 const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onConnect, isLoading }) => (
-  <CleanCard className="p-5 border border-ios-border hover:border-ios-accent/30 transition-all duration-200 shadow-sm hover:shadow-md">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-ios-accent/20 to-ios-accent/10 flex items-center justify-center shadow-sm">
-          <span className="text-ios-accent font-semibold font-['Courier_New',_monospace]">
-            {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-          </span>
-        </div>
-        <div>
-          <div className="font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
-            {user.name}
+  <div className="group relative overflow-hidden rounded-xl border-2 border-transparent hover:border-blue-500/30 transition-all duration-300">
+    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+    <CleanCard className="relative p-6 shadow-sm hover:shadow-lg transition-all duration-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg font-['Courier_New',_monospace]">
+                {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+              </span>
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
           </div>
-          <div className="text-sm text-ios-secondary-text mt-0.5">
-            {user.rank && user.unit ? `${user.rank} • ${user.unit}` : user.rank || user.unit || user.email}
+          <div>
+            <div className="font-semibold text-lg text-ios-primary-text">
+              {user.name}
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              {user.rank && (
+                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                  <Shield className="h-3 w-3" />
+                  {user.rank}
+                </span>
+              )}
+              {user.unit && (
+                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                  <Building2 className="h-3 w-3" />
+                  {user.unit}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      <Button
-        size="sm"
-        onClick={onConnect}
-        disabled={isLoading}
-        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-4 py-2 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+        <Button
+          size="sm"
+          onClick={onConnect}
+          disabled={isLoading}
+          className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg px-6 py-2.5 font-medium shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
       >
         {isLoading ? (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
@@ -579,32 +702,48 @@ interface ConnectionCardProps {
 }
 
 const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
-  <CleanCard className="p-5 border border-ios-border hover:border-ios-accent/30 transition-all duration-200 shadow-sm hover:shadow-md group">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500/20 to-green-500/10 flex items-center justify-center shadow-sm">
-          <span className="text-green-500 font-semibold font-['Courier_New',_monospace]">
-            {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-          </span>
-        </div>
-        <div className="flex-1">
-          <div className="font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
-            {connection.connectedUser?.name || 'Unknown User'}
+  <div className="group relative">
+    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl opacity-0 group-hover:opacity-20 blur transition duration-300" />
+    <CleanCard className="relative p-6 border-2 border-transparent hover:border-blue-500/20 transition-all duration-200 shadow-sm hover:shadow-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg font-['Courier_New',_monospace]">
+                {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+              </span>
+            </div>
+            <div className="absolute -top-1 -right-1 flex items-center justify-center w-6 h-6 bg-emerald-500 rounded-full border-2 border-white">
+              <CheckCircle className="h-3 w-3 text-white" />
+            </div>
           </div>
-          <div className="text-sm text-ios-secondary-text mt-0.5">
-            {connection.connectedUser?.rank && connection.connectedUser?.unit 
-              ? `${connection.connectedUser.rank} • ${connection.connectedUser.unit}`
-              : connection.connectedUser?.email || 'No additional info'
-            }
+          <div className="flex-1">
+            <div className="font-semibold text-lg text-ios-primary-text">
+              {connection.connectedUser?.name || 'Unknown User'}
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              {connection.connectedUser?.rank && (
+                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                  <Shield className="h-3 w-3" />
+                  {connection.connectedUser.rank}
+                </span>
+              )}
+              {connection.connectedUser?.unit && (
+                <span className="flex items-center gap-1 text-sm text-ios-secondary-text">
+                  <Building2 className="h-3 w-3" />
+                  {connection.connectedUser.unit}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-emerald-400/10 text-emerald-600 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace] flex items-center gap-2">
+            <Link2 className="h-3 w-3" />
+            Connected
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="px-3 py-1 bg-green-500/10 text-green-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
-          Connected
-        </div>
-        <ArrowRight className="h-4 w-4 text-ios-tertiary-text opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
-    </div>
-  </CleanCard>
+    </CleanCard>
+  </div>
 ); 
