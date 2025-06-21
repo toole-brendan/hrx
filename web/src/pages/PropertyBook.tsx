@@ -43,6 +43,54 @@ interface PropertyBookProps {
   id?: string;
 }
 
+// Custom hook for drag-to-scroll functionality
+const useDragToScroll = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Multiply by 2 for faster scrolling
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  }, [isDragging, startX, scrollLeft]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseUpGlobal = () => setIsDragging(false);
+    window.addEventListener('mouseup', handleMouseUpGlobal);
+    return () => window.removeEventListener('mouseup', handleMouseUpGlobal);
+  }, []);
+
+  return {
+    scrollRef,
+    handlers: {
+      onMouseDown: handleMouseDown,
+      onMouseUp: handleMouseUp,
+      onMouseMove: handleMouseMove,
+      onMouseLeave: handleMouseLeave,
+    },
+    isDragging
+  };
+};
+
 const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   console.log("PropertyBook component rendering...", { id });
 
@@ -72,6 +120,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [bulkActionProgress, setBulkActionProgress] = useState<{active: boolean; current: number; total: number}>({active: false, current: 0, total: 0});
   const headerRef = useRef<HTMLDivElement>(null);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  
+  // Drag-to-scroll for filter containers
+  const mainFilterScroll = useDragToScroll();
+  const subFilterScroll = useDragToScroll();
   
   const { toast } = useToast();
   
@@ -624,7 +676,20 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           <div className="space-y-3">
             {/* Main filter type selector */}
             <div className="w-full overflow-hidden">
-              <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div 
+                ref={mainFilterScroll.scrollRef}
+                className={cn(
+                  "filter-scroll-container overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0",
+                  mainFilterScroll.isDragging && "cursor-grabbing"
+                )}
+                style={{ 
+                  WebkitOverflowScrolling: 'touch',
+                  overflowX: 'auto',
+                  overscrollBehavior: 'contain',
+                  userSelect: mainFilterScroll.isDragging ? 'none' : 'auto'
+                }}
+                {...mainFilterScroll.handlers}
+              >
                 <div className="flex gap-2 w-max pb-1">
                   <FilterTypeChip
                     label="ALL"
@@ -657,7 +722,20 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             {/* Sub-filter chips */}
             {(selectedFilterType === 'category' || selectedFilterType === 'status') && (
               <div className="w-full overflow-hidden">
-                <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div 
+                  ref={subFilterScroll.scrollRef}
+                  className={cn(
+                    "filter-scroll-container overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0",
+                    subFilterScroll.isDragging && "cursor-grabbing"
+                  )}
+                  style={{ 
+                    WebkitOverflowScrolling: 'touch',
+                    overflowX: 'auto',
+                    overscrollBehavior: 'contain',
+                    userSelect: subFilterScroll.isDragging ? 'none' : 'auto'
+                  }}
+                  {...subFilterScroll.handlers}
+                >
                   <div className="flex gap-2 w-max pb-1">
                     {selectedFilterType === 'category' && (
                       <>

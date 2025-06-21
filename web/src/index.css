@@ -840,6 +840,73 @@
     width: max-content !important;
   }
   
+  /* Improved horizontal scrolling for filter chips */
+  .filter-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    cursor: grab;
+  }
+  
+  .filter-scroll-container:active {
+    cursor: grabbing;
+  }
+  
+  /* For mobile devices - ensure scrolling works */
+  @media (max-width: 768px) {
+    .filter-scroll-container {
+      /* Add some padding for better touch targets on mobile */
+      padding-bottom: 8px;
+    }
+  }
+  
+  /* Smooth scroll snap for filter chips */
+  .filter-scroll-container > div {
+    scroll-snap-type: x proximity;
+    scroll-padding: 0 16px;
+  }
+  
+  .filter-scroll-container .filter-chip {
+    scroll-snap-align: start;
+  }
+  
+  /* Visual indicators for scrollable content */
+  .filter-scroll-wrapper {
+    position: relative;
+  }
+  
+  .filter-scroll-wrapper::before,
+  .filter-scroll-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    z-index: 10;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  
+  .filter-scroll-wrapper::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(250, 250, 250, 1), rgba(250, 250, 250, 0));
+  }
+  
+  .filter-scroll-wrapper::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(250, 250, 250, 1), rgba(250, 250, 250, 0));
+  }
+  
+  .filter-scroll-wrapper.no-scroll-left::before {
+    opacity: 0;
+  }
+  
+  .filter-scroll-wrapper.no-scroll-right::after {
+    opacity: 0;
+  }
+  
   /* Header and section styles */
   .section-header {
     @apply text-lg font-medium mb-3 pb-2 border-b border-border text-ios-accent;
