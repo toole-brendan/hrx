@@ -182,13 +182,17 @@ func (h *AttachmentsHandler) UploadAttachment(c *gin.Context) {
 	filename := fmt.Sprintf("property_%d_%s%s", propertyID, uuid.New().String(), ext)
 	
 	// Upload to storage service
-	fileURL, err := h.storageService.UploadFile(c.Request.Context(), file, filename, mimeType)
+	err = h.storageService.UploadFile(c.Request.Context(), filename, file, header.Size, mimeType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to upload file",
 		})
 		return
 	}
+	
+	// Generate file URL (assumes MinIO/S3 public access)
+	// You may want to use GetPresignedURL for private access
+	fileURL := fmt.Sprintf("/api/attachments/download/%s", filename)
 
 	// Get description from form
 	description := c.PostForm("description")
@@ -308,7 +312,7 @@ func (h *AttachmentsHandler) DeleteAttachment(c *gin.Context) {
 	var property domain.Property
 	h.db.First(&property, attachment.PropertyID)
 	
-	if attachment.UploadedByUserID != userID.(uint) && property.AssignedUserID != nil && *property.AssignedUserID != userID.(uint) {
+	if attachment.UploadedByUserID != userID.(uint) && property.AssignedToUserID != nil && *property.AssignedToUserID != userID.(uint) {
 		c.JSON(http.StatusForbidden, gin.H{
 			"error": "You don't have permission to delete this attachment",
 		})

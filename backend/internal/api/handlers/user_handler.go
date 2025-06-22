@@ -15,7 +15,6 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
-	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,11 +23,11 @@ import (
 type UserHandler struct {
 	repo                repository.Repository
 	StorageService      storage.StorageService
-	NotificationService *notification.Service
+	NotificationService domain.NotificationService
 }
 
 // NewUserHandler creates a new UserHandler
-func NewUserHandler(repo repository.Repository, storageService storage.StorageService, notificationService *notification.Service) *UserHandler {
+func NewUserHandler(repo repository.Repository, storageService storage.StorageService, notificationService domain.NotificationService) *UserHandler {
 	return &UserHandler{
 		repo:                repo,
 		StorageService:      storageService,
@@ -220,19 +219,7 @@ func (h *UserHandler) SendConnectionRequest(c *gin.Context) {
 
 	// Send notification to target user
 	if h.NotificationService != nil {
-		// Get sender's name for the notification
-		sender, _ := h.repo.GetUserByID(userID)
-		senderName := "A user"
-		if sender != nil {
-			senderName = fmt.Sprintf("%s %s", sender.FirstName, sender.LastName)
-		}
-		
-		h.NotificationService.NotifyConnectionRequest(
-			int(connection.ID),
-			int(userID),
-			senderName,
-			int(req.TargetUserID),
-		)
+		h.NotificationService.NotifyConnectionRequest(int(userID), int(req.TargetUserID))
 	}
 
 	c.JSON(http.StatusCreated, connection)
@@ -299,19 +286,7 @@ func (h *UserHandler) UpdateConnectionStatus(c *gin.Context) {
 
 	// Send notification when connection is accepted
 	if h.NotificationService != nil && req.Status == domain.ConnectionStatusAccepted {
-		// Get accepter's name for the notification
-		accepter, _ := h.repo.GetUserByID(userID)
-		accepterName := "A user"
-		if accepter != nil {
-			accepterName = fmt.Sprintf("%s %s", accepter.FirstName, accepter.LastName)
-		}
-		
-		h.NotificationService.NotifyConnectionAccepted(
-			int(connection.ID),
-			int(connection.UserID), // Original requester
-			accepterName,
-			int(userID), // Person who accepted
-		)
+		h.NotificationService.NotifyConnectionAccepted(int(userID), int(connection.UserID))
 	}
 
 	c.JSON(http.StatusOK, connection)

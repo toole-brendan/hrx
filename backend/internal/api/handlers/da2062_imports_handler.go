@@ -110,8 +110,8 @@ func (h *DA2062ImportsHandler) GetImport(c *gin.Context) {
 		return
 	}
 
-	var import DA2062Import
-	if err := h.db.First(&import, id).Error; err != nil {
+	var importRecord DA2062Import
+	if err := h.db.First(&importRecord, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "Import not found",
@@ -124,7 +124,7 @@ func (h *DA2062ImportsHandler) GetImport(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, import)
+	c.JSON(http.StatusOK, importRecord)
 }
 
 // GetImportItems returns all items for a specific import
@@ -170,8 +170,8 @@ func (h *DA2062ImportsHandler) CreateImport(c *gin.Context) {
 		return
 	}
 
-	var import DA2062Import
-	if err := c.ShouldBindJSON(&import); err != nil {
+	var importRecord DA2062Import
+	if err := c.ShouldBindJSON(&importRecord); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
 		})
@@ -179,7 +179,7 @@ func (h *DA2062ImportsHandler) CreateImport(c *gin.Context) {
 	}
 
 	// Validate required fields
-	if import.FileName == "" {
+	if importRecord.FileName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "fileName is required",
 		})
@@ -187,19 +187,19 @@ func (h *DA2062ImportsHandler) CreateImport(c *gin.Context) {
 	}
 
 	// Set user ID and defaults
-	import.ImportedByUser = int64(userID.(uint))
-	if import.Status == "" {
-		import.Status = "pending"
+	importRecord.ImportedByUser = int64(userID.(uint))
+	if importRecord.Status == "" {
+		importRecord.Status = "pending"
 	}
 
-	if err := h.db.Create(&import).Error; err != nil {
+	if err := h.db.Create(&importRecord).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create import",
 		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, import)
+	c.JSON(http.StatusCreated, importRecord)
 }
 
 // UpdateImportStatus updates the status of an import
@@ -303,8 +303,8 @@ func (h *DA2062ImportsHandler) AddImportItem(c *gin.Context) {
 	}
 
 	// Check if import exists
-	var import DA2062Import
-	if err := h.db.First(&import, importID).Error; err != nil {
+	var importRecord DA2062Import
+	if err := h.db.First(&importRecord, importID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "Import not found",

@@ -34,7 +34,7 @@ const FormSection: React.FC<{
   <div className="mb-8">
     <div className="flex items-center gap-3 mb-4">
       {icon && (
-        <div className="p-2 bg-ios-accent/10 rounded-lg">
+        <div className="p-2 bg-ios-accent/10 rounded-lg shadow-sm">
           {icon}
         </div>
       )}
@@ -42,7 +42,7 @@ const FormSection: React.FC<{
         {title}
       </h2>
     </div>
-    <CleanCard className="p-0 shadow-sm overflow-hidden">
+    <CleanCard className="p-0 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
       {children}
     </CleanCard>
   </div>
@@ -160,7 +160,7 @@ export default function EditProfile() {
                 Update your personal and military information
               </p>
             </div>
-            <div className="p-3 bg-ios-accent/10 rounded-xl">
+            <div className="p-3 bg-ios-accent/10 rounded-xl shadow-md">
               <UserCheck className="h-6 w-6 text-ios-accent" />
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function EditProfile() {
 
           {/* Error Message */}
           {errorMessage && (
-            <div className="bg-ios-destructive/10 border border-ios-destructive/20 rounded-lg p-4">
+            <div className="bg-ios-destructive/10 border border-ios-destructive/20 rounded-lg p-4 shadow-md">
               <p className="text-sm text-ios-destructive font-medium">{errorMessage}</p>
             </div>
           )}
@@ -255,10 +255,10 @@ export default function EditProfile() {
               onClick={handleSaveProfile}
               disabled={!formIsValid || isLoading}
               className={cn(
-                "flex-1 font-mono uppercase tracking-wider text-sm font-semibold shadow-sm transition-all duration-200",
+                "flex-1 font-mono uppercase tracking-wider text-sm font-semibold shadow-sm transition-all duration-200 border-0",
                 formIsValid && !isLoading
-                  ? "bg-ios-accent hover:bg-ios-accent/90 text-white"
-                  : "bg-ios-tertiary-background text-ios-quaternary-text cursor-not-allowed"
+                  ? "bg-blue-500 hover:bg-blue-600 text-white"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
               )}
             >
               {isLoading ? (
@@ -311,7 +311,7 @@ const EnhancedFormField: React.FC<EnhancedFormFieldProps> = ({
       isFocused && "bg-ios-tertiary-background/30"
     )}>
       <div className={cn(
-        "p-2 rounded-lg transition-colors duration-200 mt-0.5",
+        "p-2 rounded-lg transition-colors duration-200 mt-0.5 shadow-sm",
         isFocused ? "bg-ios-accent/10 text-ios-accent" : "bg-ios-tertiary-background text-ios-secondary-text"
       )}>
         {icon}

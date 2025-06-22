@@ -144,12 +144,13 @@ func (s *DBService) NotifyConnectionRequest(requesterID, targetUserID int) error
 	}
 
 	// Send real-time notification
-	s.Service.NotifyConnectionRequest(0, requesterID, requester.Name, targetUserID)
+	requesterName := fmt.Sprintf("%s %s", requester.FirstName, requester.LastName)
+	s.Service.NotifyConnectionRequest(0, requesterID, requesterName, targetUserID)
 
 	// Create persistent notification
 	data := map[string]interface{}{
 		"requesterID": requesterID,
-		"requesterName": requester.Name,
+		"requesterName": requesterName,
 	}
 	dataJSON, _ := json.Marshal(data)
 
@@ -157,7 +158,7 @@ func (s *DBService) NotifyConnectionRequest(requesterID, targetUserID int) error
 		UserID:   uint(targetUserID),
 		Type:     domain.NotificationTypeConnectionRequest,
 		Title:    "New Connection Request",
-		Message:  fmt.Sprintf("%s wants to connect with you", requester.Name),
+		Message:  fmt.Sprintf("%s wants to connect with you", requesterName),
 		Data:     dataJSON,
 		Priority: domain.NotificationPriorityNormal,
 	}
@@ -173,12 +174,13 @@ func (s *DBService) NotifyConnectionAccepted(acceptorID, requesterID int) error 
 	}
 
 	// Send real-time notification
-	s.Service.NotifyConnectionAccepted(0, acceptorID, acceptor.Name, requesterID)
+	acceptorName := fmt.Sprintf("%s %s", acceptor.FirstName, acceptor.LastName)
+	s.Service.NotifyConnectionAccepted(0, acceptorID, acceptorName, requesterID)
 
 	// Create persistent notification
 	data := map[string]interface{}{
 		"acceptorID": acceptorID,
-		"acceptorName": acceptor.Name,
+		"acceptorName": acceptorName,
 	}
 	dataJSON, _ := json.Marshal(data)
 
@@ -186,7 +188,7 @@ func (s *DBService) NotifyConnectionAccepted(acceptorID, requesterID int) error 
 		UserID:   uint(requesterID),
 		Type:     domain.NotificationTypeConnectionAccepted,
 		Title:    "Connection Accepted",
-		Message:  fmt.Sprintf("%s accepted your connection request", acceptor.Name),
+		Message:  fmt.Sprintf("%s accepted your connection request", acceptorName),
 		Data:     dataJSON,
 		Priority: domain.NotificationPriorityNormal,
 	}
@@ -215,7 +217,7 @@ func (s *DBService) NotifyDocumentReceived(document *domain.Document) error {
 		"documentId": document.ID,
 		"documentType": document.Type,
 		"senderID": document.SenderUserID,
-		"senderName": sender.Name,
+		"senderName": fmt.Sprintf("%s %s", sender.FirstName, sender.LastName),
 	}
 	dataJSON, _ := json.Marshal(data)
 
@@ -223,7 +225,7 @@ func (s *DBService) NotifyDocumentReceived(document *domain.Document) error {
 		UserID:   document.RecipientUserID,
 		Type:     domain.NotificationTypeDocumentReceived,
 		Title:    "New Document Received",
-		Message:  fmt.Sprintf("You received a %s from %s", document.Title, sender.Name),
+		Message:  fmt.Sprintf("You received a %s from %s", document.Title, fmt.Sprintf("%s %s", sender.FirstName, sender.LastName)),
 		Data:     dataJSON,
 		Priority: domain.NotificationPriorityNormal,
 	}

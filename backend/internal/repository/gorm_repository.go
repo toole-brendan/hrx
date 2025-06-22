@@ -19,6 +19,11 @@ func NewGormRepository(db *gorm.DB) Repository {
 	return &gormRepository{db: db}
 }
 
+// DB returns the underlying database connection
+func (r *gormRepository) DB() interface{} {
+	return r.db
+}
+
 // --- User Operations ---
 
 func (r *gormRepository) CreateUser(user *domain.User) error {
@@ -280,10 +285,8 @@ func (r *gormRepository) SearchUsersWithFilters(filters domain.UserSearchFilters
 	}
 
 	// Apply location filter if provided
-	if filters.Location != "" {
-		locationPattern := "%" + filters.Location + "%"
-		query = query.Where("LOWER(location) LIKE LOWER(?)", locationPattern)
-	}
+	// Note: Location is not a field in the User model, so we skip this filter
+	// TODO: Add location field to User model if needed
 
 	err := query.Limit(50).Find(&users).Error
 	return users, err

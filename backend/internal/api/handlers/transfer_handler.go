@@ -16,7 +16,6 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
-	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
@@ -30,7 +29,7 @@ type TransferHandler struct {
 	PDFGenerator         *pdf.DA2062Generator
 	EmailService         *email.DA2062EmailService
 	StorageService       storage.StorageService
-	NotificationService  *notification.Service
+	NotificationService  domain.NotificationService
 }
 
 // NewTransferHandler creates a new transfer handler
@@ -41,7 +40,7 @@ func NewTransferHandler(
 	pdfGenerator *pdf.DA2062Generator,
 	emailService *email.DA2062EmailService,
 	storageService storage.StorageService,
-	notificationService *notification.Service,
+	notificationService domain.NotificationService,
 ) *TransferHandler {
 	return &TransferHandler{
 		Ledger:              ledgerService,
@@ -119,13 +118,8 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 
 	// Send WebSocket notification for new transfer
 	if h.NotificationService != nil {
-		h.NotificationService.NotifyTransferCreated(
-			int(transfer.ID),
-			int(transfer.FromUserID),
-			int(transfer.ToUserID),
-			item.SerialNumber,
-			item.Name,
-		)
+		transfer.Property = item // Add property to transfer for notification
+		h.NotificationService.NotifyTransferCreated(transfer)
 	}
 
 	c.JSON(http.StatusCreated, transfer)
@@ -323,14 +317,8 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 
 	// Send WebSocket notification for transfer status update
 	if h.NotificationService != nil {
-		h.NotificationService.NotifyTransferUpdate(
-			int(transfer.ID),
-			int(transfer.FromUserID),
-			int(transfer.ToUserID),
-			transfer.Status,
-			item.SerialNumber,
-			item.Name,
-		)
+		transfer.Property = item // Add property to transfer for notification
+		h.NotificationService.NotifyTransferUpdate(transfer)
 	}
 
 	c.JSON(http.StatusOK, transfer)

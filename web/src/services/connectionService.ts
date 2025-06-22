@@ -139,16 +139,16 @@ export async function exportConnections(): Promise<void> {
   const blob = await response.blob();
   
   // Create a temporary URL for the blob
-  const url = window.URL.createObjectURL(blob);
+  const blobUrl = window.URL.createObjectURL(blob);
   
   // Create a temporary anchor element and click it to trigger the download
   const a = document.createElement('a');
-  a.href = url;
+  a.href = blobUrl;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   
   // Clean up
   document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
+  window.URL.revokeObjectURL(blobUrl);
 }

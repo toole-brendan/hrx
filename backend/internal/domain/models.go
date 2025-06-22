@@ -51,7 +51,7 @@ func (jsa *JSONStringArray) Scan(value interface{}) error {
 type User struct {
 	ID uint `json:"id" gorm:"primaryKey"`
 	// Username     string    `json:"username" gorm:"uniqueIndex;not null"` // REMOVED: Username field
-	Email        string    `json:"email" gorm:"uniqueIndex;not null"`
+	Email        string    `json:"email" gorm:"not null"`
 	PasswordHash string    `json:"-" gorm:"not null"` // Updated field name for consistency
 	FirstName    string    `json:"first_name" gorm:"not null"`
 	LastName     string    `json:"last_name" gorm:"not null"`

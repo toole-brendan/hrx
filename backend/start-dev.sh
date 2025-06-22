@@ -33,11 +33,14 @@ cd ../backend
 echo "🔨 Building Go application..."
 go build -o bin/server cmd/server/main.go
 
+# Use local config file
+export HANDRECEIPT_CONFIG_NAME=config.local
+
 # Export environment variables for local development
 export HANDRECEIPT_DATABASE_HOST=localhost
 export HANDRECEIPT_DATABASE_PORT=5432
 export HANDRECEIPT_DATABASE_USER=handreceipt
-export HANDRECEIPT_DATABASE_PASSWORD=handreceipt_password
+export HANDRECEIPT_DATABASE_PASSWORD=cvOrf7fVpmyxvnkqeKOo5g==
 export HANDRECEIPT_DATABASE_NAME=handreceipt
 export HANDRECEIPT_SERVER_PORT=8080
 export HANDRECEIPT_SERVER_ENVIRONMENT=development

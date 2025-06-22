@@ -100,13 +100,15 @@ const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick,
   <button
     onClick={onClick}
     className={cn(
-      "relative p-4 transition-all duration-300 flex flex-col items-center gap-2 rounded-lg hover:bg-ios-tertiary-background/50",
-      isSelected && "bg-white shadow-sm"
+      "relative p-6 transition-all duration-300 flex flex-col items-center gap-3 rounded-xl",
+      isSelected 
+        ? "bg-white shadow-xl border-2 border-ios-accent/30 scale-[1.02]" 
+        : "bg-white shadow-lg hover:shadow-xl border border-ios-border hover:border-ios-accent/20"
     )}
   >
     <div className={cn(
       "p-3 rounded-full transition-all duration-300",
-      isSelected ? "bg-ios-accent text-white" : "bg-ios-tertiary-background text-ios-secondary-text"
+      isSelected ? "bg-ios-accent text-white shadow-md" : "bg-ios-tertiary-background text-ios-secondary-text group-hover:shadow-sm"
     )}>
       {icon}
     </div>
@@ -330,9 +332,9 @@ const Settings: React.FC = () => {
           </p>
         </div>
         
-        {/* Enhanced Tab selector */}
+        {/* Enhanced Tab selector - Cards directly on background */}
         <div className="mb-8">
-          <div className="grid grid-cols-3 gap-4 p-2 bg-ios-secondary-background rounded-xl">
+          <div className="grid grid-cols-3 gap-4">
             <TabButton
               title="Security"
               description="Access & Protection"
@@ -361,7 +363,7 @@ const Settings: React.FC = () => {
         <div className="space-y-6">
           {selectedTab === 'security' && (
             <div className="animate-in fade-in-50 duration-300">
-              <CleanCard className="p-6 shadow-sm">
+              <CleanCard className="p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <Form {...securityForm}>
                   <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)} className="space-y-6">
                     <FormSection 
@@ -492,7 +494,7 @@ const Settings: React.FC = () => {
           
           {selectedTab === 'notifications' && (
             <div className="animate-in fade-in-50 duration-300">
-              <CleanCard className="p-6 shadow-sm">
+              <CleanCard className="p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <Form {...notificationForm}>
                   <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
                     <FormSection 
@@ -609,14 +611,14 @@ const Settings: React.FC = () => {
           
           {selectedTab === 'sync' && (
             <div className="animate-in fade-in-50 duration-300">
-              <CleanCard className="p-6 shadow-sm">
+              <CleanCard className="p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <Form {...syncForm}>
                   <form onSubmit={syncForm.handleSubmit(onSyncSubmit)} className="space-y-6">
                     {/* Sync Status Card */}
-                    <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-lg p-4 border border-ios-accent/20">
+                    <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-lg p-4 border border-ios-accent/20 shadow-md">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-3 bg-white rounded-lg shadow-sm">
+                          <div className="p-3 bg-white rounded-lg shadow-md">
                             <Cloud className="h-6 w-6 text-ios-accent" />
                           </div>
                           <div>

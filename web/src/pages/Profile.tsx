@@ -6,14 +6,11 @@ import {
   User, 
   Mail, 
   Star, 
-  Settings, 
   Edit, 
-  Inbox, 
   Info, 
   HelpCircle, 
   AlertTriangle, 
-  Lock, 
-  LogOut,
+  Lock,
   ChevronRight,
   Shield,
   Building,
@@ -52,14 +49,14 @@ const ProfileSection: React.FC<{
         {title}
       </h2>
     </div>
-    <CleanCard className="p-0 shadow-sm overflow-hidden">
+    <CleanCard className="p-0 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
       {children}
     </CleanCard>
   </div>
 );
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const { data: unreadDocumentCount = 0 } = useUnreadDocumentCount();
 
@@ -85,13 +82,6 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-ios-background to-ios-tertiary-background">
@@ -104,8 +94,8 @@ export default function Profile() {
               Profile
             </h1>
             <Link href="/profile/edit">
-              <button className="text-ios-accent hover:text-ios-accent/80 font-mono font-semibold uppercase tracking-wider text-xs flex items-center gap-2 transition-colors">
-                <Edit className="h-4 w-4" />
+              <button className="text-sm font-medium text-ios-accent border border-ios-accent hover:bg-blue-500 hover:border-blue-500 hover:text-white px-4 py-2 uppercase transition-all duration-200 rounded-md hover:scale-105 [&:hover_svg]:text-white flex items-center">
+                <Edit className="h-4 w-4 mr-1.5" />
                 Edit Profile
               </button>
             </Link>
@@ -117,10 +107,10 @@ export default function Profile() {
 
         {/* User Info Card - Premium Style */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-6 border border-ios-accent/20">
+          <div className="bg-gradient-to-r from-ios-accent/10 to-ios-accent/5 rounded-xl p-6 border border-ios-accent/20 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-4 bg-white rounded-xl shadow-sm">
+                <div className="p-4 bg-white rounded-xl shadow-md">
                   <User className="h-8 w-8 text-ios-accent" />
                 </div>
                 <div>
@@ -188,37 +178,16 @@ export default function Profile() {
             </div>
           </ProfileSection>
 
-          {/* Quick Actions Section */}
+          {/* Change Password Section */}
           <ProfileSection 
-            title="QUICK ACTIONS" 
-            icon={<Settings className="h-5 w-5 text-ios-accent" />}
+            title="CHANGE PASSWORD" 
+            icon={<Lock className="h-5 w-5 text-ios-accent" />}
           >
-            <div className="divide-y divide-ios-divider">
-              <Link href="/settings">
-                <ProfileActionRow
-                  label="Settings"
-                  description="App preferences and configuration"
-                  icon={<Settings className="h-4 w-4" />}
-                  iconBg="bg-ios-accent/10"
-                  iconColor="text-ios-accent"
-                />
-              </Link>
-              
-              <Link href="/documents">
-                <ProfileActionRow
-                  label="Documents"
-                  description={unreadDocumentCount > 0 ? `${unreadDocumentCount} unread documents` : "View your inbox"}
-                  icon={<Inbox className="h-4 w-4" />}
-                  badge={unreadDocumentCount > 0 ? unreadDocumentCount.toString() : undefined}
-                  iconBg="bg-blue-500/10"
-                  iconColor="text-blue-500"
-                />
-              </Link>
-              
+            <div>
               <Link href="/change-password">
                 <ProfileActionRow
-                  label="Security"
-                  description="Change password and security settings"
+                  label="Update Password"
+                  description="Change your account password for enhanced security"
                   icon={<Lock className="h-4 w-4" />}
                   iconBg="bg-green-500/10"
                   iconColor="text-green-500"
@@ -265,16 +234,6 @@ export default function Profile() {
             </div>
           </ProfileSection>
 
-          {/* Account Actions */}
-          <div className="pt-4">
-            <button
-              onClick={handleLogout}
-              className="w-full bg-ios-destructive hover:bg-ios-destructive/90 text-white rounded-lg px-6 py-3 font-semibold shadow-sm transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider text-sm font-mono"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
-          </div>
 
           {/* Bottom padding */}
           <div className="h-24" />

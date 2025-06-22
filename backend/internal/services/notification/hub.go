@@ -136,3 +136,13 @@ func (h *Hub) GetConnectedUsers() []int {
 	}
 	return users
 }
+
+// RegisterClient registers a new client with the hub
+func (h *Hub) RegisterClient(client *Client) {
+	h.register <- client
+}
+
+// UnregisterClient unregisters a client from the hub
+func (h *Hub) UnregisterClient(client *Client) {
+	h.unregister <- client
+}

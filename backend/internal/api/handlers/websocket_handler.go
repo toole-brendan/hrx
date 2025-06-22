@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -70,7 +68,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 		Hub:    h.hub,
 	}
 
-	h.hub.Register <- client
+	h.hub.RegisterClient(client)
 
 	// Start goroutines for reading and writing
 	go client.WritePump()

@@ -248,6 +248,39 @@ func (r *PostgresRepository) SearchUsers(query string, excludeUserID uint) ([]do
 	return users, err
 }
 
+// SearchUsersWithFilters searches for users with advanced filters
+func (r *PostgresRepository) SearchUsersWithFilters(filters domain.UserSearchFilters, excludeUserID uint) ([]domain.User, error) {
+	var users []domain.User
+	query := r.db.Where("id != ?", excludeUserID)
+
+	// Apply query filter if provided
+	if filters.Query != "" {
+		searchPattern := "%" + filters.Query + "%"
+		query = query.Where(
+			"LOWER(CONCAT(first_name, ' ', last_name)) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?",
+			searchPattern, searchPattern, searchPattern,
+		)
+	}
+
+	// Apply organization/unit filter if provided
+	if filters.Organization != "" {
+		orgPattern := "%" + filters.Organization + "%"
+		query = query.Where("LOWER(unit) LIKE LOWER(?)", orgPattern)
+	}
+
+	// Apply rank filter if provided
+	if filters.Rank != "" {
+		query = query.Where("rank = ?", filters.Rank)
+	}
+
+	// Apply location filter if provided
+	// Note: Location is not a field in the User model, so we skip this filter
+	// TODO: Add location field to User model if needed
+
+	err := query.Limit(50).Find(&users).Error
+	return users, err
+}
+
 // Additional Property Operations
 func (r *PostgresRepository) GetPropertyBySerial(serialNumber string) (*domain.Property, error) {
 	var property domain.Property
@@ -494,4 +527,24 @@ func (r *PostgresRepository) GetUnreadDocumentCount(userID uint) (int64, error) 
 		Where("recipient_user_id = ? AND status = ?", userID, domain.DocumentStatusUnread).
 		Count(&count).Error
 	return count, err
+}
+
+func (r *PostgresRepository) DeleteDocument(id uint) error {
+	return r.db.Delete(&domain.Document{}, id).Error
+}
+
+func (r *PostgresRepository) SearchDocuments(userID uint, query string) ([]domain.Document, error) {
+	var documents []domain.Document
+	searchPattern := "%" + query + "%"
+	
+	err := r.db.Where(
+		"(sender_user_id = ? OR recipient_user_id = ?) AND (document_type LIKE ? OR content LIKE ?)",
+		userID, userID, searchPattern, searchPattern,
+	).Preload("Sender").
+		Preload("Recipient").
+		Preload("Property").
+		Order("sent_at DESC").
+		Find(&documents).Error
+	
+	return documents, err
 }

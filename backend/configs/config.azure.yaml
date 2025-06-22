@@ -1,3 +1,5 @@
+# config.azure.yaml
+
 # HandReceipt Azure Configuration Override
 # This file overrides settings in config.yaml for Azure deployment
 
