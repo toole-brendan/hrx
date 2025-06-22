@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getConnections, searchUsers, sendConnectionRequest, updateConnectionStatus } from '@/services/connectionService';
+import { getConnections, searchUsers, sendConnectionRequest, updateConnectionStatus, exportConnections } from '@/services/connectionService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -378,6 +378,18 @@ export const Connections: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={async () => {
+                  try {
+                    await exportConnections();
+                    toast({ title: 'Connections exported successfully' });
+                  } catch (error) {
+                    toast({ 
+                      title: 'Failed to export connections', 
+                      description: error instanceof Error ? error.message : 'Unknown error',
+                      variant: 'destructive' 
+                    });
+                  }
+                }}
                 className="text-sm font-medium text-ios-accent border border-ios-accent hover:bg-blue-500 hover:border-blue-500 hover:text-white px-4 py-2 uppercase transition-all duration-200 rounded-md hover:scale-105 [&:hover_svg]:text-white"
               >
                 <Download className="h-4 w-4 mr-1.5" />

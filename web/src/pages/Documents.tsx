@@ -1,8 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { DocumentsInbox } from '@/components/documents/DocumentsInbox';
-import { useQuery } from '@tanstack/react-query';
-import { getDocuments } from '@/services/documentService';
+import { DocumentUploadDialog } from '@/components/documents/DocumentUploadDialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getDocuments, searchDocuments, bulkUpdateDocuments } from '@/services/documentService';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/hooks/useDebounce';
 import { 
   FileText, 
   Search, 
@@ -109,14 +112,20 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle
 export default function Documents() {
   const [, navigate] = useLocation();
   const { unreadCount } = useNotifications();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showingDA2062Export, setShowingDA2062Export] = useState(false);
   const [showingDA2062Import, setShowingDA2062Import] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<number>>(new Set());
+  
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Fetch document stats
   const { data: inboxData } = useQuery({
@@ -134,17 +143,66 @@ export default function Documents() {
     queryFn: () => getDocuments('all'),
   });
 
+  // Search documents
+  const { data: searchResults, isLoading: isSearching } = useQuery({
+    queryKey: ['documents', 'search', debouncedSearchQuery],
+    queryFn: () => searchDocuments(debouncedSearchQuery),
+    enabled: debouncedSearchQuery.length > 0,
+  });
+
   const unreadDocuments = inboxData?.unread_count || 0;
   const totalInbox = inboxData?.documents.length || 0;
   const totalSent = sentData?.documents.length || 0;
   const totalDocuments = allData?.documents.length || 0;
+  
+  // Bulk update mutation
+  const bulkUpdateMutation = useMutation({
+    mutationFn: ({ documentIds, operation }: { documentIds: number[]; operation: 'read' | 'archive' | 'delete' }) => 
+      bulkUpdateDocuments(documentIds, operation),
+    onSuccess: (data) => {
+      toast({ 
+        title: 'Bulk operation completed',
+        description: data.message,
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      setSelectedDocuments(new Set());
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: 'Operation failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Handle bulk actions
-  const handleBulkAction = (action: 'download' | 'archive' | 'delete') => {
-    console.log(`Bulk ${action} for:`, Array.from(selectedDocuments));
-    // Implement bulk actions here
-    setSelectedDocuments(new Set());
-  };
+  const handleBulkAction = useCallback((action: 'download' | 'archive' | 'delete') => {
+    const documentIds = Array.from(selectedDocuments);
+    
+    if (documentIds.length === 0) {
+      toast({ 
+        title: 'No documents selected',
+        description: 'Please select documents to perform this action',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (action === 'download') {
+      // TODO: Implement bulk download
+      toast({ 
+        title: 'Coming soon',
+        description: 'Bulk download functionality is not yet available',
+      });
+    } else {
+      bulkUpdateMutation.mutate({ 
+        documentIds, 
+        operation: action as 'archive' | 'delete' 
+      });
+    }
+  }, [selectedDocuments, bulkUpdateMutation, toast]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
@@ -181,6 +239,7 @@ export default function Documents() {
               {/* Left side - Create actions */}
               <div className="flex items-center gap-2">
                 <Button
+                  onClick={() => setShowUploadDialog(true)}
                   className="bg-blue-500 text-white hover:bg-blue-600 rounded-lg px-4 py-2 font-medium transition-all duration-200 flex items-center gap-2 border-0"
                 >
                   <Plus className="h-4 w-4" />
@@ -407,8 +466,35 @@ export default function Documents() {
               />
             </div>
             
-            {/* Documents list/grid will go here */}
-            <DocumentsInbox viewMode={viewMode} selectedCategory={selectedCategory} searchQuery={searchQuery} />
+            {/* Search results display */}
+            {searchQuery && searchResults && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-ios-primary-text">
+                    Search Results ({searchResults.count} found)
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchQuery('')}
+                    className="text-ios-secondary-text hover:text-ios-primary-text"
+                  >
+                    Clear search
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Documents list/grid */}
+            <DocumentsInbox 
+              viewMode={viewMode} 
+              selectedCategory={selectedCategory} 
+              searchQuery={searchQuery}
+              searchResults={searchResults?.documents}
+              isSearching={isSearching}
+              selectedDocuments={selectedDocuments}
+              onSelectionChange={setSelectedDocuments}
+            />
           </div>
         </div>
         
@@ -434,6 +520,12 @@ export default function Documents() {
       <DA2062ImportDialog
         isOpen={showingDA2062Import}
         onClose={() => setShowingDA2062Import(false)}
+      />
+      
+      {/* Document Upload Dialog */}
+      <DocumentUploadDialog
+        isOpen={showUploadDialog}
+        onClose={() => setShowUploadDialog(false)}
       />
     </div>
   );

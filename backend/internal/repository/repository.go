@@ -71,7 +71,9 @@ type Repository interface {
 	GetDocumentsBySender(userID uint, status, docType *string) ([]domain.Document, error)
 	GetDocumentsForUser(userID uint, status, docType *string) ([]domain.Document, error)
 	UpdateDocument(document *domain.Document) error
+	DeleteDocument(id uint) error
 	GetUnreadDocumentCount(userID uint) (int64, error)
+	SearchDocuments(userID uint, query string) ([]domain.Document, error)
 	CheckUserConnection(userID1, userID2 uint) (bool, error)
 
 	// Add other data access methods as required

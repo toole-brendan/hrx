@@ -269,9 +269,9 @@ DELETE /api/attachments/:id
 
 ### 2. Implement Missing Core Features
 - [x] Dashboard statistics aggregation (frontend) ✅ (Completed: Created useDashboardStats hook and integrated with Dashboard page)
-- [ ] Export functionality for connections
-- [ ] Document search and bulk operations
-- [ ] General document upload
+- [x] Export functionality for connections ✅ (Completed: Added CSV export endpoint and frontend integration)
+- [x] Document search and bulk operations ✅ (Completed: Added search, bulk update endpoints and UI with debouncing)
+- [x] General document upload ✅ (Completed: Added file upload endpoint and upload dialog component)
 
 ### 3. Add Real-Time Infrastructure
 - [ ] WebSocket server implementation
@@ -281,7 +281,7 @@ DELETE /api/attachments/:id
 
 ### 4. Performance Optimizations
 - [ ] Virtual scrolling for property lists
-- [ ] Search debouncing (300ms delay)
+- [x] Search debouncing (300ms delay) ✅ (Completed: Added useDebounce hook and implemented in Documents search)
 - [ ] Code splitting by route
 - [ ] Progressive image loading
 

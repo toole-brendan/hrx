@@ -523,6 +523,27 @@ func (r *gormRepository) GetUnreadDocumentCount(userID uint) (int64, error) {
 	return count, err
 }
 
+// DeleteDocument deletes a document by ID
+func (r *gormRepository) DeleteDocument(id uint) error {
+	return r.db.Delete(&domain.Document{}, id).Error
+}
+
+// SearchDocuments searches documents by query string for a specific user
+func (r *gormRepository) SearchDocuments(userID uint, query string) ([]domain.Document, error) {
+	var documents []domain.Document
+	searchPattern := "%" + query + "%"
+	
+	err := r.db.Where("(recipient_user_id = ? OR sender_user_id = ?) AND (LOWER(title) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))",
+		userID, userID, searchPattern, searchPattern).
+		Preload("Sender").
+		Preload("Recipient").
+		Preload("Property").
+		Order("sent_at desc").
+		Find(&documents).Error
+		
+	return documents, err
+}
+
 // CheckUserConnection checks if two users are connected
 func (r *gormRepository) CheckUserConnection(userID1, userID2 uint) (bool, error) {
 	var count int64

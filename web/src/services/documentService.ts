@@ -145,4 +145,60 @@ export async function getDocument(id: number): Promise<{ document: Document }> {
   if (!response.ok) throw new Error('Failed to fetch document');
   return response.json();
 }
+
+export async function searchDocuments(query: string): Promise<{ documents: Document[]; count: number }> {
+  const response = await fetch(`${API_BASE_URL}/documents/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+  });
+
+  if (!response.ok) throw new Error('Failed to search documents');
+  return response.json();
+}
+
+export type BulkOperation = 'read' | 'archive' | 'delete';
+
+export async function bulkUpdateDocuments(
+  documentIds: number[], 
+  operation: BulkOperation
+): Promise<{ successCount: number; failedCount: number; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/documents/bulk`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ documentIds, operation })
+  });
+
+  if (!response.ok) throw new Error('Failed to perform bulk operation');
+  return response.json();
+}
+
+export interface UploadDocumentData {
+  file: File;
+  title: string;
+  type?: string;
+  description?: string;
+}
+
+export async function uploadDocument(data: UploadDocumentData): Promise<{ document: Document; message: string }> {
+  const formData = new FormData();
+  formData.append('file', data.file);
+  formData.append('title', data.title);
+  if (data.type) formData.append('type', data.type);
+  if (data.description) formData.append('description', data.description);
+  
+  const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData
+  });
+
+  if (!response.ok) throw new Error('Failed to upload document');
+  return response.json();
+}
  

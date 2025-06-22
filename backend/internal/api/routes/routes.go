@@ -192,6 +192,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			connections := users.Group("/connections")
 			{
 				connections.GET("", userHandler.GetConnections)
+				connections.GET("/export", userHandler.ExportConnections)
 				connections.POST("", userHandler.SendConnectionRequest)
 				connections.PATCH("/:connectionId", userHandler.UpdateConnectionStatus)
 			}
@@ -210,6 +211,9 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 		documents := protected.Group("/documents")
 		{
 			documents.GET("", documentHandler.GetDocuments)
+			documents.GET("/search", documentHandler.SearchDocuments)
+			documents.POST("/bulk", documentHandler.BulkUpdateDocuments)
+			documents.POST("/upload", documentHandler.UploadDocument)
 			documents.POST("/maintenance-form", documentHandler.CreateMaintenanceForm)
 			documents.GET("/:id", documentHandler.GetDocument)
 			documents.PUT("/:id/read", documentHandler.MarkDocumentRead)

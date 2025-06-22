@@ -85,3 +85,33 @@ export async function updateConnectionStatus(
   
   return response.json();
 }
+
+export async function exportConnections(): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/connections/export`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) throw new Error('Failed to export connections');
+  
+  // Get the filename from the Content-Disposition header or use a default
+  const contentDisposition = response.headers.get('Content-Disposition');
+  const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 'connections.csv';
+  
+  // Create a blob from the response
+  const blob = await response.blob();
+  
+  // Create a temporary URL for the blob
+  const url = window.URL.createObjectURL(blob);
+  
+  // Create a temporary anchor element and click it to trigger the download
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  
+  // Clean up
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}

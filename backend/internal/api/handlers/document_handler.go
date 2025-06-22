@@ -316,6 +316,239 @@ func (h *DocumentHandler) EmailDocument(c *gin.Context) {
 	})
 }
 
+// SearchDocuments searches documents by query string
+// @Summary Search documents
+// @Description Search documents by title, description, or sender name
+// @Tags Documents
+// @Produce json
+// @Param q query string true "Search query"
+// @Success 200 {object} map[string]interface{} "documents"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /documents/search [get]
+// @Security BearerAuth
+func (h *DocumentHandler) SearchDocuments(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	query := c.Query("q")
+	
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query is required"})
+		return
+	}
+
+	// Search documents that the user has access to
+	documents, err := h.Repo.SearchDocuments(userID, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search documents"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"documents": documents,
+		"count":     len(documents),
+		"query":     query,
+	})
+}
+
+// UploadDocument handles general document uploads
+// @Summary Upload a document
+// @Description Upload a general document (PDF, image, etc.)
+// @Tags Documents
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Document file"
+// @Param title formData string true "Document title"
+// @Param type formData string false "Document type"
+// @Param description formData string false "Document description"
+// @Success 201 {object} map[string]interface{} "document"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /documents/upload [post]
+// @Security BearerAuth
+func (h *DocumentHandler) UploadDocument(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	
+	// Parse form data
+	title := c.PostForm("title")
+	docType := c.DefaultPostForm("type", "general")
+	description := c.PostForm("description")
+	
+	if title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Document title is required"})
+		return
+	}
+	
+	// Get uploaded file
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+	defer file.Close()
+	
+	// Validate file type
+	contentType := header.Header.Get("Content-Type")
+	allowedTypes := map[string]bool{
+		"application/pdf":  true,
+		"image/jpeg":       true,
+		"image/png":        true,
+		"image/gif":        true,
+		"application/msword": true,
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+	}
+	
+	if !allowedTypes[contentType] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File type not allowed"})
+		return
+	}
+	
+	// Read file data
+	fileData := &bytes.Buffer{}
+	if _, err := io.Copy(fileData, file); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+	
+	// Generate unique file key
+	timestamp := time.Now().Unix()
+	fileKey := fmt.Sprintf("documents/%d/%d-%s", userID, timestamp, header.Filename)
+	
+	// Upload to storage
+	err = h.StorageService.UploadFile(c.Request.Context(), fileKey, bytes.NewReader(fileData.Bytes()), int64(fileData.Len()), contentType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload file"})
+		return
+	}
+	
+	// Get presigned URL
+	fileURL, err := h.StorageService.GetPresignedURL(c.Request.Context(), fileKey, 7*24*time.Hour)
+	if err != nil {
+		fileURL = fmt.Sprintf("/storage/%s", fileKey)
+	}
+	
+	// Create document record
+	document := &domain.Document{
+		Type:            docType,
+		Title:           title,
+		SenderUserID:    userID,
+		RecipientUserID: userID, // Self-uploaded documents
+		Description:     &description,
+		Attachments:     domain.JSONStringArray{fileURL},
+		Status:          domain.DocumentStatusRead,
+		SentAt:          time.Now(),
+		FormData:        "{}",
+	}
+	
+	if err := h.Repo.CreateDocument(document); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save document"})
+		return
+	}
+	
+	// Log to ImmuDB
+	h.Ledger.LogDocumentEvent(document.ID, "DOCUMENT_UPLOADED", userID, 0)
+	
+	c.JSON(http.StatusCreated, gin.H{
+		"document": document,
+		"message":  "Document uploaded successfully",
+	})
+}
+
+// BulkUpdateDocuments performs bulk operations on multiple documents
+// @Summary Bulk update documents
+// @Description Perform bulk operations on multiple documents (mark as read, archive, delete)
+// @Tags Documents
+// @Accept json
+// @Produce json
+// @Param request body domain.BulkDocumentOperationRequest true "Bulk operation request"
+// @Success 200 {object} map[string]interface{} "result"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /documents/bulk [post]
+// @Security BearerAuth
+func (h *DocumentHandler) BulkUpdateDocuments(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	
+	var req domain.BulkDocumentOperationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.DocumentIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No documents selected"})
+		return
+	}
+
+	successCount := 0
+	failedCount := 0
+	
+	for _, docID := range req.DocumentIDs {
+		document, err := h.Repo.GetDocumentByID(docID)
+		if err != nil {
+			failedCount++
+			continue
+		}
+
+		// Verify user has access
+		if document.RecipientUserID != userID && document.SenderUserID != userID {
+			failedCount++
+			continue
+		}
+
+		switch req.Operation {
+		case "read":
+			if document.RecipientUserID == userID && document.Status == domain.DocumentStatusUnread {
+				now := time.Now()
+				document.Status = domain.DocumentStatusRead
+				document.ReadAt = &now
+				if err := h.Repo.UpdateDocument(document); err == nil {
+					h.Ledger.LogDocumentEvent(document.ID, "DOCUMENT_READ", userID, document.SenderUserID)
+					successCount++
+				} else {
+					failedCount++
+				}
+			} else {
+				failedCount++
+			}
+			
+		case "archive":
+			if document.RecipientUserID == userID {
+				document.Status = domain.DocumentStatusArchived
+				if err := h.Repo.UpdateDocument(document); err == nil {
+					h.Ledger.LogDocumentEvent(document.ID, "DOCUMENT_ARCHIVED", userID, 0)
+					successCount++
+				} else {
+					failedCount++
+				}
+			} else {
+				failedCount++
+			}
+			
+		case "delete":
+			if document.RecipientUserID == userID || document.SenderUserID == userID {
+				if err := h.Repo.DeleteDocument(docID); err == nil {
+					h.Ledger.LogDocumentEvent(document.ID, "DOCUMENT_DELETED", userID, 0)
+					successCount++
+				} else {
+					failedCount++
+				}
+			} else {
+				failedCount++
+			}
+			
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid operation"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      fmt.Sprintf("Operation completed: %d succeeded, %d failed", successCount, failedCount),
+		"successCount": successCount,
+		"failedCount":  failedCount,
+	})
+}
+
 // Helper method to generate form data
 func (h *DocumentHandler) generateMaintenanceFormData(
 	formType string,

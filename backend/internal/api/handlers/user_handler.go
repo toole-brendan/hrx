@@ -552,3 +552,58 @@ func (h *UserHandler) GetSignature(c *gin.Context) {
 		"signatureUrl": *user.SignatureURL,
 	})
 }
+
+// ExportConnections exports user connections to CSV format
+// @Summary Export user connections
+// @Description Export all user connections to CSV format
+// @Tags Users
+// @Produce text/csv
+// @Success 200 {string} string "CSV file"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /users/connections/export [get]
+// @Security BearerAuth
+func (h *UserHandler) ExportConnections(c *gin.Context) {
+	userID := getUserIDFromSession(c)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	connections, err := h.repo.GetUserConnections(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch connections"})
+		return
+	}
+
+	// Create CSV content
+	var csvBuffer bytes.Buffer
+	csvBuffer.WriteString("Name,Email,Rank,Unit,Status,Connected Since\n")
+
+	for _, conn := range connections {
+		// Get connected user details
+		var connectedUser *domain.User
+		if conn.UserID == userID {
+			connectedUser, _ = h.repo.GetUserByID(conn.ConnectedUserID)
+		} else {
+			connectedUser, _ = h.repo.GetUserByID(conn.UserID)
+		}
+
+		if connectedUser != nil {
+			csvBuffer.WriteString(fmt.Sprintf("%s %s,%s,%s,%s,%s,%s\n",
+				connectedUser.FirstName,
+				connectedUser.LastName,
+				connectedUser.Email,
+				connectedUser.Rank,
+				connectedUser.Unit,
+				conn.ConnectionStatus,
+				conn.CreatedAt.Format("2006-01-02"),
+			))
+		}
+	}
+
+	// Set headers for CSV download
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", "attachment; filename=\"connections.csv\"")
+	c.String(http.StatusOK, csvBuffer.String())
+}
