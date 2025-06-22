@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
 import { Transfer } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { recordToBlockchain, isBlockchainEnabled } from "@/lib/blockchain";
 import { sensitiveItems } from "@/lib/sensitiveItemsData";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -453,7 +452,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         description: `Transfer of ${updatedTransfer.name} ${updatedTransfer.status}.`,
         variant: updatedTransfer.status === 'rejected' ? "destructive" : "default"
       });
-      handleBlockchainRecord(updatedTransfer);
     },
     onError: (error, variables) => {
       toast({
@@ -465,35 +463,6 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
     }
   });
 
-  // Helper for Blockchain recording
-  const handleBlockchainRecord = (transfer: Transfer) => {
-    if (!user) {
-      console.error("User not found for blockchain recording.");
-      return;
-    }
-
-    const sensitiveItem = sensitiveItems.find(item => item.serialNumber === transfer.serialNumber);
-    if (sensitiveItem && transfer.status === 'approved') {
-      try {
-        if (isBlockchainEnabled(sensitiveItem)) {
-          const blockchainRecord = recordToBlockchain(
-            sensitiveItem,
-            'transfer',
-            {
-              from: transfer.from,
-              to: transfer.to,
-              transferId: transfer.id,
-              date: new Date().toISOString()
-            },
-            user.name || currentUser || 'Unknown User'
-          );
-          console.log(`Blockchain record created: ${blockchainRecord.txId}`);
-        }
-      } catch (error) {
-        console.error("Failed to record transfer to blockchain:", error);
-      }
-    }
-  };
 
   // Use the actual authenticated user
   const currentUser = user?.name || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || 'Unknown User';

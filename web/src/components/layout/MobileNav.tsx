@@ -1,13 +1,12 @@
 import { useLocation } from "wouter";
 import { Link } from "wouter";
-import { LayoutDashboard, Package, Send, Wrench } from "lucide-react";
+import { LayoutDashboard, Package, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 
 interface MobileNavProps {
-  // QR Scanner functionality removed
-}
+  }
 
 const MobileNav: React.FC<MobileNavProps> = () => {
   const [location] = useLocation();
@@ -32,12 +31,6 @@ const MobileNav: React.FC<MobileNavProps> = () => {
         </div>
       </Link>
       
-      <Link href="/maintenance">
-        <div className={`flex flex-col items-center justify-center ${isActive('/maintenance') ? 'text-purple-600' : 'text-gray-500'}`}>
-          <Wrench className="h-5 w-5" />
-          <span className="text-xs uppercase tracking-wider font-light mt-1">Maintenance</span>
-        </div>
-      </Link>
     </nav>
   );
 };

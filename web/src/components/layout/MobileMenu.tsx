@@ -7,8 +7,7 @@ import { Link } from "wouter";
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  // QR Scanner functionality removed
-  openNotificationPanel?: () => void;
+    openNotificationPanel?: () => void;
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ 

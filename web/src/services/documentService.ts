@@ -12,8 +12,8 @@ export interface DocumentSender {
 
 export interface Document {
   id: number;
-  type: 'maintenance_form' | 'transfer_document' | 'property_receipt' | 'other';
-  subtype?: 'DA_2404' | 'DA_5988E' | string;
+  type: 'transfer_document' | 'property_receipt' | 'other';
+  subtype?: string;
   title: string;
   description?: string;
   sender?: DocumentSender;
@@ -127,15 +127,6 @@ export async function deleteDocument(documentId: number): Promise<void> {
   }
 }
 
-export interface CreateMaintenanceFormRequest {
-  propertyId: number;
-  recipientUserId: number;
-  formType: 'DA2404' | 'DA5988E';
-  description: string;
-  faultDescription?: string;
-  attachments?: string[];
-}
-
 export interface DocumentsResponse {
   documents: Document[];
   count: number;
@@ -154,19 +145,4 @@ export async function getDocument(id: number): Promise<{ document: Document }> {
   if (!response.ok) throw new Error('Failed to fetch document');
   return response.json();
 }
-
-export async function sendMaintenanceForm(
-  data: CreateMaintenanceFormRequest
-): Promise<{ document: Document; message: string }> {
-  const response = await fetch(`${API_BASE_URL}/documents/maintenance-form`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) throw new Error('Failed to send maintenance form');
-  return response.json();
-} 
+ 

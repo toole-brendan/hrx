@@ -47,7 +47,6 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
 
   const category = getCategoryFromName(property.name);
   const categoryIcon = getCategoryIcon(property.name);
-  const needsVerification = !property.verified;
   const lastInventoryDate = property.lastInventoryDate;
 
   // Swipe threshold for triggering actions
@@ -137,15 +136,6 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
     }
   };
 
-  const getVerificationStatus = (date: string | null) => {
-    if (!date) return { status: 'never', label: 'Never verified', color: 'text-ios-destructive' };
-    const daysSince = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSince > 90) return { status: 'overdue', label: `${daysSince} days ago`, color: 'text-ios-destructive' };
-    if (daysSince > 30) return { status: 'due', label: `${daysSince} days ago`, color: 'text-ios-warning' };
-    if (daysSince === 0) return { status: 'recent', label: 'Today', color: 'text-green-500' };
-    if (daysSince === 1) return { status: 'recent', label: 'Yesterday', color: 'text-green-500' };
-    return { status: 'ok', label: `${daysSince} days ago`, color: 'text-ios-secondary-text' };
-  };
 
   return (
     <div className="relative">
@@ -275,18 +265,6 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
               {/* Additional info and actions */}
               <div className="flex items-center justify-between pt-2 border-t border-ios-divider">
                 <div className="flex items-center gap-4">
-                  {/* Verification status */}
-                  {lastInventoryDate && (() => {
-                    const verificationStatus = getVerificationStatus(lastInventoryDate);
-                    return (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className={cn("h-3.5 w-3.5", verificationStatus.color)} />
-                        <span className={cn("text-xs", verificationStatus.color)}>
-                          Verified {verificationStatus.label}
-                        </span>
-                      </div>
-                    );
-                  })()}
                   
                   {/* Component count if any */}
                   {property.components && property.components.length > 0 && (

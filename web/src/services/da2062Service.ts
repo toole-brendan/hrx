@@ -29,7 +29,6 @@ export interface EditableDA2062Item extends Omit<DA2062Item, 'quantity'> {
   serialNumber: string;
   unit?: string;
   isSelected: boolean;
-  needsVerification: boolean;
 }
 
 export interface BatchImportItem {
@@ -45,7 +44,6 @@ export interface BatchImportItem {
     confidence?: number;
     ocrConfidence?: number;
     serialSource?: string;
-    verificationNeeded?: boolean;
     extractedAt?: string;
     pageNumber?: number;
   };
@@ -57,7 +55,6 @@ export interface BatchImportResponse {
   failed_count: number;
   total_attempted: number;
   verified_count: number;
-  verification_needed: unknown[];
   failed_items: Array<{
     item: BatchImportItem;
     error: string;

@@ -26,8 +26,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import BlockchainLedger from '@/components/blockchain/BlockchainLedger';
-import { recordToBlockchain } from '@/lib/blockchain';
 
 import {
   Search,
@@ -58,18 +56,14 @@ import {
   ArrowRightLeft,
   Headphones,
   Package,
-  QrCode,
   ShieldCheck,
 } from 'lucide-react';
 
 import {
   sensitiveItems,
   sensitiveItemCategories,
-  verificationLogs,
-  verificationSchedule,
   sensitiveItemsStats,
   SensitiveItem,
-  VerificationLog
 } from '@/lib/sensitiveItemsData';
 import { cn } from '@/lib/utils';
 
@@ -184,8 +178,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedItem, setSelectedItem] = useState<SensitiveItem | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [assignmentTab, setAssignmentTab] = useState<'me' | 'others' | 'unassigned'>('me');
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -228,36 +220,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
     });
   }, [searchTerm, filterCategory, filterStatus, assignmentTab, currentUserName]);
 
-  const getItemVerificationLogs = (itemId: string): VerificationLog[] => {
-    return verificationLogs.filter(log => log.itemId === itemId);
-  };
-
-  const handleStartVerification = () => {
-    setVerificationModalOpen(true);
-    toast({
-      title: 'Verification Mode',
-      description: 'Ready to scan QR codes for verification.',
-    });
-  };
-
-  const handleVerifyItem = (item: SensitiveItem) => {
-    // Record the verification to the simulated blockchain
-    const user = currentUserFormattedName;
-
-    // Record verification to blockchain (if item is blockchain-enabled)
-    recordToBlockchain(
-      item,
-      'verification',
-      { status: 'verified', location: item.location },
-      user
-    );
-
-    toast({
-      title: 'Item Verified',
-      description: `${item.name} (SN: ${item.serialNumber}) has been verified and recorded to the secure ledger.`,
-      variant: 'default',
-    });
-  };
 
   const handleViewDetails = (item: SensitiveItem) => {
     setSelectedItem(item);
@@ -315,35 +277,13 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
     }
   };
 
-  // Helper to find the latest verification time from logs
-  const findLatestVerificationTime = (itemId: string): string => {
-    const logsForItem = verificationLogs
-      .filter(log => log.itemId === itemId && log.status === 'verified') // Only consider successful verifications
-      .sort((a, b) => {
-        // Combine date and time for proper sorting - assumes YYYY-MM-DD format for date
-        const dateTimeA = new Date(`${a.date}T${a.time}:00`);
-        const dateTimeB = new Date(`${b.date}T${b.time}:00`);
-
-        // Handle potential invalid dates during sorting
-        if (isNaN(dateTimeA.getTime()) || isNaN(dateTimeB.getTime())) return 0;
-
-        return dateTimeB.getTime() - dateTimeA.getTime(); // Sort descending
-      });
-
-    if (logsForItem.length > 0) {
-      // Format time as HHMM
-      return logsForItem[0].time.replace(':', '');
-    }
-
-    return 'N/A'; // Return N/A if no verified log found
-  };
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
       <Button
         size="sm"
         variant="blue"
-        onClick={() => setShowVerifyDialog(true)}
+        onClick={() => {}}
         className="h-9 px-3 flex items-center gap-1.5"
       >
         <ClipboardCheck className="h-4 w-4" />
@@ -356,7 +296,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
   const renderDetailsModal = () => {
     if (!selectedItem) return null;
 
-    const verificationHistory = getItemVerificationLogs(selectedItem.id);
 
     return (
       <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
@@ -392,14 +331,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                   <span>{selectedItem.assignedDate || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last Verified:</span>
-                  <span>{selectedItem.lastVerified}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Next Verification:</span>
-                  <span>{selectedItem.nextVerification}</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-muted-foreground">Security Level:</span>
                   <span className="capitalize">{selectedItem.securityLevel}</span>
                 </div>
@@ -412,46 +343,10 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
               </div>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium mb-2">Verification History</h3>
-              {verificationHistory.length > 0 ? (
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                  {verificationHistory.map((log, index) => (
-                    <div key={index} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{log.date}</span>
-                        <StatusBadgeComponent status={log.status} />
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Verified by {log.verifiedBy} at {log.time}
-                      </div>
-                      {log.notes && <div className="text-xs mt-1">{log.notes}</div>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">No verification history available.</div>
-              )}
-            </div>
           </div>
 
-          {/* Add the Blockchain Ledger component here */}
-          <BlockchainLedger item={selectedItem} />
 
           <DialogFooter className="flex flex-wrap gap-2 justify-end">
-            {selectedItem.assignedTo === currentUserName && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  handleVerifyItem(selectedItem);
-                  setDetailsModalOpen(false);
-                }}
-                className="flex items-center"
-              >
-                <ShieldCheck className="w-4 h-4 mr-2" />
-                Verify Now
-              </Button>
-            )}
             <Button
               variant="default"
               onClick={() => setDetailsModalOpen(false)}
@@ -483,62 +378,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        <Card className="border-border shadow-sm bg-card transition-colors">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="uppercase text-xs tracking-wider font-medium text-muted-foreground">
-                VERIFIED TODAY
-              </div>
-              <div className="p-1.5 bg-green-100 rounded-md">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-            <div className="text-2xl font-light tracking-tight text-black">
-              {sensitiveItemsStats.verifiedToday}/{sensitiveItemsStats.totalItems}
-            </div>
-            <p className="text-xs tracking-wide text-muted-foreground mt-0.5">
-              Last full check: {sensitiveItemsStats.lastFullVerification}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-sm bg-card transition-colors">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="uppercase text-xs tracking-wider font-medium text-muted-foreground">
-                PENDING VERIFICATION
-              </div>
-              <div className="p-1.5 bg-yellow-100 rounded-md">
-                <Clock className="h-4 w-4 text-yellow-600" />
-              </div>
-            </div>
-            <div className="text-2xl font-light tracking-tight text-black">
-              {sensitiveItemsStats.pendingVerification}
-            </div>
-            <p className="text-xs tracking-wide text-muted-foreground mt-0.5">
-              Requires attention
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-sm bg-card transition-colors">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="uppercase text-xs tracking-wider font-medium text-muted-foreground">
-                NEXT SCHEDULED CHECK
-              </div>
-              <div className="p-1.5 bg-blue-100 rounded-md">
-                <CalendarClock className="h-4 w-4 text-blue-600" />
-              </div>
-            </div>
-            <div className="text-2xl font-light tracking-tight text-black">
-              {verificationSchedule.length > 0 ? formatMilitaryDateOnly(verificationSchedule[0].date) : 'N/A'}
-            </div>
-            <p className="text-xs tracking-wide text-muted-foreground mt-0.5">
-              Check schedule for details
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="mb-8 border-border shadow-sm bg-card">
@@ -621,9 +460,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
           <div className="space-y-4">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => {
-                // Get date and time separately for the cell
-                const lastVerifiedDateStr = formatMilitaryDateOnly(item.lastVerified);
-                const lastVerifiedTimeStr = findLatestVerificationTime(item.id);
 
                 // Determine display name for the Assigned To column
                 const displayAssignedTo = item.assignedTo === currentUserName
@@ -649,12 +485,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                         <Label className="text-xs text-muted-foreground">Assigned To</Label>
                         <div className="mt-1 truncate">{displayAssignedTo}</div>
                       </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Last Verified</Label>
-                        <div className="mt-1">
-                          {lastVerifiedDateStr}{lastVerifiedTimeStr !== 'N/A' ? ` ${lastVerifiedTimeStr}` : ''}
-                        </div>
-                      </div>
                     </CardContent>
                     <CardFooter className="p-4 pt-0 flex justify-end gap-1 bg-muted/30">
                       <Tooltip>
@@ -676,7 +506,7 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 transition-colors"
-                            onClick={() => handleVerifyItem(item)}
+                            onClick={() => {}}
                           >
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           </Button>
@@ -706,16 +536,12 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                     <TableHead className="py-3 px-4 w-[180px] min-w-[180px] text-black">Category</TableHead>
                     <TableHead className="py-3 px-4 w-[200px] min-w-[200px] text-black">Status</TableHead>
                     <TableHead className="py-3 px-4 w-[200px] min-w-[200px] text-black">Assigned To</TableHead>
-                    <TableHead className="py-3 px-4 w-[200px] min-w-[200px] text-black">Last Verified</TableHead>
                     <TableHead className="text-right py-3 px-4 w-[120px] text-black">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredItems.length > 0 ? (
                     filteredItems.map((item) => {
-                      // Get date and time separately for the cell
-                      const lastVerifiedDateStr = formatMilitaryDateOnly(item.lastVerified);
-                      const lastVerifiedTimeStr = findLatestVerificationTime(item.id);
 
                       // Determine display name for the Assigned To column
                       const displayAssignedTo = item.assignedTo === currentUserName
@@ -768,10 +594,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
-                          <TableCell className="py-3 px-4 text-black">
-                            {/* Display Date and Time */}
-                            {lastVerifiedDateStr}{lastVerifiedTimeStr !== 'N/A' ? ` ${lastVerifiedTimeStr}` : ''}
-                          </TableCell>
                           <TableCell className="text-right py-3 px-4">
                             <div className="flex items-center justify-end gap-0.5">
                               <Tooltip>
@@ -798,7 +620,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                                     className="h-8 w-8 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleVerifyItem(item);
                                     }}
                                   >
                                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -813,7 +634,7 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         No sensitive items match your filters.
                       </TableCell>
                     </TableRow>
@@ -827,54 +648,6 @@ const SensitiveItems: React.FC<SensitiveItemsProps> = ({ id }) => {
 
       {renderDetailsModal()}
 
-      {showVerifyDialog && (
-        <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
-          <DialogContent className="p-6 bg-card">
-            <DialogHeader>
-              <DialogTitle>Start Verification</DialogTitle>
-              <DialogDescription>Scan items or manually verify them below.</DialogDescription>
-            </DialogHeader>
-            <p className="text-center py-8">Verification UI / Scanner Placeholder</p>
-            <DialogFooter className="sm:justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowVerifyDialog(false)}
-                className="transition-colors"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => {}}
-                className="transition-colors"
-              >
-                Submit Verification
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {verificationModalOpen && (
-        <Dialog open={verificationModalOpen} onOpenChange={setVerificationModalOpen}>
-          <DialogContent className="p-6 bg-card">
-            <DialogHeader>
-              <DialogTitle>Verification Mode Active</DialogTitle>
-              <DialogDescription>Ready to scan or verify items.</DialogDescription>
-            </DialogHeader>
-            <p className="text-center py-8">Verification UI Placeholder</p>
-            <DialogFooter className="sm:justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setVerificationModalOpen(false)}
-                className="transition-colors"
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </PageWrapper>
   );
 };

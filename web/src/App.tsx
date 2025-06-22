@@ -17,14 +17,12 @@ import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import ChangePassword from "./pages/ChangePassword";
 import SensitiveItems from "./pages/SensitiveItems";
-import Maintenance from "./pages/Maintenance";
 import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { Connections } from "./pages/Connections";
 import UserManagement from "./pages/UserManagement";
 import CorrectionLogPage from './pages/CorrectionLogPage';
-import LedgerVerificationPage from './pages/LedgerVerificationPage';
 import { queryClient } from "./lib/queryClient";
 import { startPeriodicSync, stopPeriodicSync, setupConnectivityListeners } from "./services/syncService";
 
@@ -33,9 +31,6 @@ interface ItemPageProps {
   id?: string;
 }
 
-interface QRPageProps {
-  code?: string;
-}
 
 // Add TransfersProps to fix the TypeScript error
 interface TransfersProps {
@@ -53,13 +48,11 @@ function Router() {
         <Route path="/transfers" component={() => <Transfers />} />
         <Route path="/property-book" component={() => <PropertyBook />} />
         <Route path="/sensitive-items" component={() => <SensitiveItems />} />
-        <Route path="/maintenance" component={() => <Maintenance />} />
         <Route path="/network" component={() => <Connections />} />
         <Route path="/documents" component={() => <Documents />} />
         <Route path="/user-management" component={() => <UserManagement />} />
         <Route path="/audit-log" component={() => <AuditLog />} />
         <Route path="/correction-log" component={() => <CorrectionLogPage />} />
-        <Route path="/ledger-verification" component={() => <LedgerVerificationPage />} />
         <Route path="/settings" component={() => <Settings />} />
         <Route path="/profile" component={() => <Profile />} />
         <Route path="/profile/edit" component={() => <EditProfile />} />

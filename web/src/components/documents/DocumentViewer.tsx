@@ -122,32 +122,28 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, 
             </CardContent>
           </Card>
 
-          {/* Request Details */}
+          {/* Document Details */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Maintenance Request Details</CardTitle>
+              <CardTitle className="text-sm font-medium">Document Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <span className="text-muted-foreground text-sm block mb-2">Description</span>
-                <div className="bg-muted/50 p-3 rounded-md">
-                  <p className="text-sm leading-relaxed">{formData.description}</p>
-                </div>
-              </div>
-              {formData.faultDescription && (
+              {formData.description && (
                 <div>
-                  <span className="text-muted-foreground text-sm block mb-2">Fault Description</span>
+                  <span className="text-muted-foreground text-sm block mb-2">Description</span>
                   <div className="bg-muted/50 p-3 rounded-md">
-                    <p className="text-sm leading-relaxed">{formData.faultDescription}</p>
+                    <p className="text-sm leading-relaxed">{formData.description}</p>
                   </div>
                 </div>
               )}
-              <div>
-                <span className="text-muted-foreground text-sm block mb-2">Request Date</span>
-                <span className="text-sm">
-                  {format(new Date(formData.requestDate), 'EEEE, MMMM d, yyyy')}
-                </span>
-              </div>
+              {formData.requestDate && (
+                <div>
+                  <span className="text-muted-foreground text-sm block mb-2">Date</span>
+                  <span className="text-sm">
+                    {format(new Date(formData.requestDate), 'EEEE, MMMM d, yyyy')}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
 

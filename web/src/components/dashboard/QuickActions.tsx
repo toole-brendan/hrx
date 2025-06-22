@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { ArrowRightLeft, Search, QrCode, Package } from "lucide-react";
+import { ArrowRightLeft, Search, Package } from "lucide-react";
 import { QuickActionButton } from "@/components/ios";
 
 interface QuickActionsProps {
@@ -20,14 +20,6 @@ const QuickActions: React.FC<QuickActionsProps> = () => {
       icon: <Search className="h-4 w-4" />,
       label: "Find Item",
       onClick: () => navigate("/property-book")
-    },
-    {
-      icon: <QrCode className="h-4 w-4" />,
-      label: "Scan QR Code",
-      onClick: () => {
-        // TODO: Implement QR scanner
-        console.log("QR Scanner not yet implemented");
-      }
     },
     {
       icon: <Package className="h-4 w-4" />,

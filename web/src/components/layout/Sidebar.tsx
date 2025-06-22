@@ -35,8 +35,7 @@ import {
 interface SidebarProps {
   isMobile?: boolean;
   closeMobileMenu?: () => void;
-  // QR Scanner functionality removed
-  toggleSidebar?: () => void;
+    toggleSidebar?: () => void;
   openNotificationPanel?: () => void;
 }
 

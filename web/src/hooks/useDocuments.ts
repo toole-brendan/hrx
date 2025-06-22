@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getDocuments, markAsRead, sendMaintenanceForm, Document, CreateMaintenanceFormRequest } from '@/services/documentService';
+import { getDocuments, markAsRead, Document } from '@/services/documentService';
 
 export const useDocuments = (box?: 'inbox' | 'sent' | 'all', status?: string, type?: string) => {
   return useQuery({
@@ -31,17 +31,6 @@ export const useMarkDocumentRead = () => {
   });
 };
 
-export const useSendMaintenanceForm = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: sendMaintenanceForm,
-    onSuccess: () => {
-      // Invalidate documents queries to refresh sent documents
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
-    },
-  });
-};
 
 // Export individual document query
 export const useDocument = (id: number) => {

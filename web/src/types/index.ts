@@ -128,17 +128,12 @@ export interface Property {
   acquisitionDate?: string; // ISO 8601 date string
   value?: number;
   isSensitive?: boolean;
-  lastVerificationDate?: string; // For sensitive items
-  verificationIntervalDays?: number; // e.g., 30
-  verificationStatus?: 'current' | 'due-soon' | 'overdue';
-  qrCode?: string; // Could be data URL or identifier
   position?: LatLngExpression; // For map display
   requiresCalibration?: boolean;
   calibrationInfo?: CalibrationInfo;
   components?: Component[];
   isComponent?: boolean; // Flag if the item itself is a component
   parentItemId?: string; // Link to parent if it's a component
-  verified?: boolean; // Whether the item has been verified
   lin?: string; // Line Item Number
 }
 
@@ -174,26 +169,6 @@ export interface Notification {
   message: string;
   timeAgo: string;
   read: boolean;
-}
-
-// QR Code Types
-export interface QRCode {
-  id: string;
-  inventoryItemId: string;
-  qrCodeData: string;
-  qrCodeHash: string;
-  generatedByUserId: string;
-  isActive: boolean;
-  createdAt: string;
-  deactivatedAt?: string;
-}
-
-// Extended QR Code with item info for UI
-export interface QRCodeWithItem extends QRCode {
-  inventoryItem?: Property;
-  qrCodeStatus: "active" | "damaged" | "missing" | "replaced";
-  lastPrinted?: string;
-  lastUpdated?: string;
 }
 
 // -----------

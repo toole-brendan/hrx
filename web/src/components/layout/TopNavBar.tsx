@@ -11,8 +11,7 @@ import { Link } from "wouter";
 
 interface TopNavBarProps {
   toggleMobileMenu: () => void;
-  // QR Scanner functionality removed
-  openNotifications: () => void;
+    openNotifications: () => void;
 }
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ 

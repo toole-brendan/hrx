@@ -3,8 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ios';
-import BlockchainLedger from '@/components/blockchain/BlockchainLedger';
-import { isBlockchainEnabled } from '@/lib/blockchain';
 import { Transfer } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -98,15 +96,6 @@ const TransferDetailsModal: React.FC<TransferDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Blockchain ledger if this is a sensitive item */}
-        {relatedSensitiveItem && isBlockchainEnabled(relatedSensitiveItem) && (
-          <div className="py-4 border-t mt-4">
-            {/* Added border-t and margin */}
-            <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Secure Ledger History</h3>
-            {/* Styling update */}
-            <BlockchainLedger item={relatedSensitiveItem} />
-          </div>
-        )}
 
         <DialogFooter className="mt-4">
           {/* Added margin */}

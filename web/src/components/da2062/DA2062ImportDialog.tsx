@@ -122,7 +122,6 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
         serialNumber: item.serialNumber || generateSerialNumber(item.itemDescription, index + 1),
         unit: item.unitOfIssue,
         isSelected: true,
-        needsVerification: item.confidence < 0.7 || !item.hasExplicitSerial || item.quantityConfidence < 0.7
       }));
       
       setEditableItems(editable);
@@ -213,7 +212,6 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
               confidence: item.confidence,
               ocrConfidence: item.confidence,
               serialSource: item.hasExplicitSerial ? 'explicit' : 'generated',
-              verificationNeeded: item.needsVerification,
               extractedAt: new Date().toISOString(),
             }
           });
@@ -534,20 +532,6 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                         </button>
                       </div>
                       
-                      {/* Warnings */}
-                      {item.needsVerification && (
-                        <div className="flex items-start gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
-                          <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                          <div className="text-xs text-orange-700">
-                            <p className="font-medium mb-1">Verification Required</p>
-                            <ul className="space-y-0.5">
-                              {!item.hasExplicitSerial && <li>• Serial number will be auto-generated</li>}
-                              {item.confidence < 0.7 && <li>• Low OCR confidence - please verify details</li>}
-                              {item.quantityConfidence < 0.7 && <li>• Quantity needs verification</li>}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                   

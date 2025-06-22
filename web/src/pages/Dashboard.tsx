@@ -26,6 +26,7 @@ import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
 import { getConnections } from '@/services/connectionService';
 import { cn } from '@/lib/utils';
+import { useDashboardStats, useReadinessPercentage } from '@/hooks/useDashboardStats';
 
 // iOS Components
 import { CleanCard, ElegantSectionHeader, StatusBadge } from '@/components/ios';
@@ -223,36 +224,45 @@ export default function Dashboard() {
   const { unreadCount } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
   
-  // Fetch connections data
+  // Fetch dashboard statistics
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const readinessPercentage = useReadinessPercentage(stats);
+  
+  // Fetch connections data separately (already included in stats)
   const { data: connections = [] } = useQuery({
     queryKey: ['connections'],
     queryFn: getConnections,
   });
   
-  // Alert counts - Using real data from API or default values
-  const pendingTransfersCount = 0; // TODO: Fetch from API
-  const pendingMaintenanceCount = 0; // TODO: Fetch from API
-  const sensitiveItemVerifications = 0; // TODO: Fetch from API
-  const totalProperties = 0; // TODO: Fetch from API
-  const documentsCount = 0; // TODO: Fetch from API
-  
-  // Calculate verification percentage
-  const verificationPercentage = 0; // TODO: Calculate from API data
-  
-  // Calculate network stats
-  const connectedUsersCount = connections.filter(c => c.connectionStatus === 'accepted').length;
-  const pendingConnectionsCount = connections.filter(c => c.connectionStatus === 'pending').length;
-  
-  // Calculate dynamic readiness stats - TODO: Replace with API data
+  // Calculate dynamic readiness stats
   const readinessStats = useMemo(() => {
-    // Default values until API integration
-    return {
+    if (!stats) return {
       operational: { count: 0, percentage: 0 },
       maintenance: { count: 0, percentage: 0 },
       nonOperational: { count: 0, percentage: 0 },
       other: { count: 0, percentage: 0 },
     };
-  }, []);
+    
+    const total = stats.totalProperties || 1; // Avoid division by zero
+    return {
+      operational: { 
+        count: stats.operationalCount, 
+        percentage: Math.round((stats.operationalCount / total) * 100) 
+      },
+      maintenance: { 
+        count: stats.deadlineMaintenanceCount + stats.inRepairCount, 
+        percentage: Math.round(((stats.deadlineMaintenanceCount + stats.inRepairCount) / total) * 100) 
+      },
+      nonOperational: { 
+        count: stats.nonOperationalCount + stats.damagedCount, 
+        percentage: Math.round(((stats.nonOperationalCount + stats.damagedCount) / total) * 100) 
+      },
+      other: { 
+        count: stats.lostCount + stats.deadlineSupplyCount, 
+        percentage: Math.round(((stats.lostCount + stats.deadlineSupplyCount) / total) * 100) 
+      },
+    };
+  }, [stats]);
   
   // Helper function to format welcome message - iOS style
   const getWelcomeMessage = () => {
@@ -382,25 +392,25 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <StatCard
               title="Total Properties"
-              value={totalProperties}
+              value={stats?.totalProperties || 0}
               icon={<Package className="h-5 w-5 text-ios-accent" />}
               trend={{ value: 12, label: "vs last month" }}
             />
             <StatCard
               title="Pending Transfers"
-              value={pendingTransfersCount}
+              value={stats?.pendingTransfers || 0}
               icon={<Activity className="h-5 w-5 text-orange-500" />}
               subtitle="Requires action"
             />
             <StatCard
               title="Connected Users"
-              value={connectedUsersCount}
+              value={stats?.totalConnections || 0}
               icon={<Users className="h-5 w-5 text-blue-500" />}
               trend={{ value: 5, label: "new this week" }}
             />
             <StatCard
               title="Documents"
-              value={documentsCount}
+              value={stats?.unreadDocuments || 0}
               icon={<FileText className="h-5 w-5 text-purple-500" />}
               subtitle="In your inbox"
             />
@@ -421,12 +431,12 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <QuickActionCard
               title="Property Book"
-              value={totalProperties}
+              value={stats?.totalProperties || 0}
               icon={<Package className="h-5 w-5" />}
               description="View and manage all assigned equipment"
               onClick={() => navigate('/property-book')}
               color="accent"
-              badge={totalProperties > 0 ? { text: "Active", variant: "success" } : undefined}
+              badge={(stats?.totalProperties || 0) > 0 ? { text: "Active", variant: "success" } : undefined}
             />
             
             <QuickActionCard
@@ -439,13 +449,13 @@ export default function Dashboard() {
             
             <QuickActionCard
               title="Documents"
-              value={documentsCount}
+              value={stats?.unreadDocuments || 0}
               icon={<Inbox className="h-5 w-5" />}
               description="View receipts, forms, and reports"
               onClick={() => navigate('/documents')}
               color="purple"
-              badge={documentsCount > 0 ? { text: `${documentsCount} New`, variant: "warning" } : undefined}
-              isUrgent={documentsCount > 5}
+              badge={(stats?.unreadDocuments || 0) > 0 ? { text: `${stats?.unreadDocuments || 0} New`, variant: "warning" } : undefined}
+              isUrgent={(stats?.unreadDocuments || 0) > 5}
             />
           </div>
         </div>
@@ -486,7 +496,7 @@ export default function Dashboard() {
                 ) : (
                   <>
                     <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
-                      {connectedUsersCount}
+                      {stats?.totalConnections || 0}
                     </div>
                     <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Connected</div>
                   </>
@@ -501,7 +511,7 @@ export default function Dashboard() {
                 ) : (
                   <>
                     <div className="text-3xl font-bold text-orange-500 mb-1 font-['Courier_New',_monospace]">
-                      {pendingConnectionsCount}
+                      {stats?.pendingConnectionRequests || 0}
                     </div>
                     <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Pending</div>
                   </>

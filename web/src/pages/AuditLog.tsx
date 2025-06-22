@@ -53,7 +53,7 @@ const AuditLog: React.FC = () => {
     <>
       <Button variant="outline" className="flex items-center gap-1">
         <DatabaseZap className="h-4 w-4" />
-        <span>Verify Ledger</span>
+        <span>Verify Logs</span>
       </Button>
       <Button variant="outline" className="flex items-center gap-1">
         <FileDown className="h-4 w-4" />
@@ -65,8 +65,8 @@ const AuditLog: React.FC = () => {
   return (
     <PageWrapper withPadding={true}>
       <PageHeader
-        title="Ledger History & Verification"
-        description="Explore and verify the immutable equipment transaction history"
+        title="Audit Log History"
+        description="Explore the immutable equipment transaction history"
         actions={actions}
         className="mb-4 sm:mb-5 md:mb-6"
       />
@@ -75,7 +75,7 @@ const AuditLog: React.FC = () => {
         <CardHeader>
           <CardTitle>Transaction History</CardTitle>
           <CardDescription>
-            Immutable log of all equipment actions recorded in the secure ledger
+            Immutable log of all equipment actions
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -109,7 +109,7 @@ const AuditLog: React.FC = () => {
 
           <div className="divide-y divide-gray-200">
             {filteredActivities.length === 0 ? (
-              <div className="py-4 text-center text-gray-500">No ledger entries found</div>
+              <div className="py-4 text-center text-gray-500">No audit log entries found</div>
             ) : (
               filteredActivities.map((activity) => (
                 <div key={activity.id} className="py-4 flex items-start">

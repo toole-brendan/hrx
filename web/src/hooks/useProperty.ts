@@ -20,7 +20,6 @@ function mapPropertyToProperty(property: any): Property {
     parentItemId: property.parent_item_id,
     nsn: property.nsn,
     assignedTo: property.assigned_to_user_id?.toString(),
-    verified: property.verified || false,
     lastInventoryDate: property.last_inventory_date || property.last_verified_at,
     isSensitive: property.is_sensitive_item || false,
   };
@@ -116,7 +115,7 @@ async function updatePropertyStatus(id: string, status: string): Promise<Propert
   return mapPropertyToProperty(data.property);
 }
 
-/** * Get property history from the ledger */
+/** * Get property history */
 async function fetchPropertyHistory(serialNumber: string): Promise<any[]> {
   const response = await fetch(`${API_BASE_URL}/property/history/${serialNumber}`, {
     method: 'GET',
@@ -130,18 +129,6 @@ async function fetchPropertyHistory(serialNumber: string): Promise<any[]> {
   return data.history || [];
 }
 
-/** * Verify a property */
-async function verifyProperty(id: string, verificationType: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/property/${id}/verify`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify({ verificationType }),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to verify property: ${response.statusText}`);
-  }
-}
 
 /** * Get components attached to a property */
 async function fetchPropertyComponents(propertyId: string): Promise<any[]> {
@@ -252,9 +239,6 @@ async function processOfflineQueue() {
           break;
         case 'update':
           await updatePropertyStatus(operation.data.id, operation.data.status);
-          break;
-        case 'verify':
-          await verifyProperty(operation.data.id, operation.data.verificationType);
           break;
       }
       processed.push(operation.id);
@@ -403,28 +387,6 @@ export function useUpdatePropertyComponents() {
   });
 }
 
-// Verify property mutation
-export function useVerifyProperty() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  return useMutation({
-    mutationFn: ({ id, verificationType }: { id: string; verificationType: string }) => verifyProperty(id, verificationType),
-    onSuccess: (_, variables) => {
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: propertyKeys.detail(variables.id) });
-      toast({ title: 'Verification Logged', description: 'Property verification has been recorded in the ledger', });
-    },
-    onError: (error: any, variables) => {
-      // Queue for offline sync if network error
-      if (!navigator.onLine || error?.message?.includes('network')) {
-        queueOfflineOperation({ type: 'verify', data: variables });
-        toast({ title: 'Queued for sync', description: 'Verification will be logged when connection is restored', });
-      } else {
-        toast({ title: 'Error', description: error?.message || 'Failed to verify property', variant: 'destructive', });
-      }
-    },
-  });
-}
 
 // Process offline queue
 export function useProcessOfflineQueue() {
