@@ -490,10 +490,6 @@ export default function Documents() {
               viewMode={viewMode} 
               selectedCategory={selectedCategory} 
               searchQuery={searchQuery}
-              searchResults={searchResults?.documents}
-              isSearching={isSearching}
-              selectedDocuments={selectedDocuments}
-              onSelectionChange={setSelectedDocuments}
             />
           </div>
         </div>

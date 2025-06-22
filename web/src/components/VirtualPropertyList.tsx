@@ -51,9 +51,9 @@ const PropertyRow: React.FC<{
   const StatusIcon = config.icon;
 
   return (
-    <div className="px-4 py-2">
+    <div className="px-4 py-3">
       <CleanCard
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className="cursor-pointer hover:shadow-md transition-shadow min-h-[120px]"
         onClick={onClick}
       >
         <div className="flex items-center justify-between">
@@ -99,7 +99,12 @@ const PropertyRow: React.FC<{
         )}
         
         <div className="mt-2 flex items-center justify-between text-xs text-ios-tertiary-text">
-          <span>Updated: {format(new Date(property.updatedAt), 'MMM d, yyyy')}</span>
+          <span>
+            Updated: {property.updatedAt 
+              ? format(new Date(property.updatedAt), 'MMM d, yyyy')
+              : 'N/A'
+            }
+          </span>
           {property.value && (
             <span className="font-medium">${property.value.toLocaleString()}</span>
           )}
@@ -120,8 +125,9 @@ export const VirtualPropertyList: React.FC<VirtualPropertyListProps> = ({
   const virtualizer = useVirtualizer({
     count: properties.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 120, // Estimated height of each row
+    estimateSize: () => 150, // Increased height to prevent overlapping
     overscan: 5, // Number of items to render outside visible area
+    gap: 8, // Add gap between items
   });
 
   if (isLoading) {

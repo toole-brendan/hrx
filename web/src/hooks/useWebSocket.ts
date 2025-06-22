@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import webSocketService, { WebSocketEvent, WebSocketEventType } from '@/services/websocket';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface UseWebSocketOptions {
   onTransferUpdate?: (data: any) => void;

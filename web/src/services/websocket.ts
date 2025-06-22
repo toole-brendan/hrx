@@ -1,5 +1,3 @@
-import { EventEmitter } from 'events';
-
 export type WebSocketEventType = 
   | 'transfer:update'
   | 'transfer:created'
@@ -49,6 +47,46 @@ export interface DocumentReceivedData {
   title: string;
 }
 
+// Simple EventEmitter implementation for browser
+class EventEmitter {
+  private events: { [key: string]: Array<(...args: any[]) => void> } = {};
+
+  on(event: string, listener: (...args: any[]) => void): void {
+    if (!this.events[event]) {
+      this.events[event] = [];
+    }
+    this.events[event].push(listener);
+  }
+
+  off(event: string, listenerToRemove: (...args: any[]) => void): void {
+    if (!this.events[event]) return;
+    
+    this.events[event] = this.events[event].filter(
+      listener => listener !== listenerToRemove
+    );
+  }
+
+  emit(event: string, ...args: any[]): void {
+    if (!this.events[event]) return;
+    
+    this.events[event].forEach(listener => {
+      try {
+        listener(...args);
+      } catch (error) {
+        console.error(`Error in event listener for ${event}:`, error);
+      }
+    });
+  }
+
+  removeAllListeners(event?: string): void {
+    if (event) {
+      delete this.events[event];
+    } else {
+      this.events = {};
+    }
+  }
+}
+
 class WebSocketService extends EventEmitter {
   private ws: WebSocket | null = null;
   private reconnectInterval: number = 5000;
@@ -56,7 +94,7 @@ class WebSocketService extends EventEmitter {
   private maxReconnectAttempts: number = 10;
   private isConnected: boolean = false;
   private shouldReconnect: boolean = true;
-  private pingInterval: NodeJS.Timeout | null = null;
+  private pingInterval: number | null = null;
 
   constructor() {
     super();
@@ -136,7 +174,7 @@ class WebSocketService extends EventEmitter {
 
   private startPing(): void {
     this.stopPing(); // Clear any existing interval
-    this.pingInterval = setInterval(() => {
+    this.pingInterval = window.setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send('ping');
       }

@@ -71,11 +71,15 @@ export const DragDropTransferInterface: React.FC<DragDropTransferInterfaceProps>
   );
 
   // Filter connections based on search
-  const filteredConnections = acceptedConnections.filter(c => 
-    c.connectedUser?.name.toLowerCase().includes(connectionSearch.toLowerCase()) ||
-    c.connectedUser?.rank.toLowerCase().includes(connectionSearch.toLowerCase()) ||
-    c.connectedUser?.unit.toLowerCase().includes(connectionSearch.toLowerCase())
-  );
+  const filteredConnections = acceptedConnections.filter(c => {
+    if (!c.connectedUser) return false;
+    const searchLower = connectionSearch.toLowerCase();
+    return (
+      (c.connectedUser.name?.toLowerCase() || '').includes(searchLower) ||
+      (c.connectedUser.rank?.toLowerCase() || '').includes(searchLower) ||
+      (c.connectedUser.unit?.toLowerCase() || '').includes(searchLower)
+    );
+  });
 
   // Handle drag start
   const handleDragStart = useCallback((e: React.DragEvent, property: Property) => {

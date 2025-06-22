@@ -357,15 +357,15 @@ The HandReceipt system has been significantly enhanced with real-time capabiliti
 ### Remaining Priorities 🎯
 
 1. **High Priority**:
-   - Create notification service and database table for persistent notifications
+   - Create notification service and database table for persistent notifications (not sure if complete?)
 
 2. **Medium Priority**:
-   - Implement progressive image loading for better performance
-   - Create drag-and-drop interface for transfers
-   - Add missing CRUD endpoints for database tables:
-     - offline_sync_queue
-     - da2062_imports
-     - component_events
-     - attachments
+   - Implement progressive image loading for better performance (complete)
+   - Create drag-and-drop interface for transfers (complete)
+   - Add missing CRUD endpoints for database tables: (complete)
+     - offline_sync_queue (complete)
+     - da2062_imports (complete)
+     - component_events (complete)
+     - attachments (complete)
 
 The application is now cleaner and more maintainable, with the frontend properly aligned to the backend's actual capabilities. The database schema fully supports future enhancements, and the architecture is well-positioned for real-time features.

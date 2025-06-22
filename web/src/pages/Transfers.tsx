@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
-import { Transfer } from "@/types";
+import { Transfer, Property } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { sensitiveItems } from "@/lib/sensitiveItemsData";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ import {
   updateTransferStatus
 } from '@/services/transferService';
 import { fetchProperties } from '@/services/propertyService';
-import { getConnections } from '@/services/connectionService';
+import { getConnections, UserConnection } from '@/services/connectionService';
 
 // iOS Components
 import {
@@ -458,7 +458,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const {
     data: properties = [],
     isLoading: isLoadingProperties
-  } = useQuery({
+  } = useQuery<Property[], Error>({
     queryKey: ['properties'],
     queryFn: fetchProperties,
     enabled: activeView === 'dragdrop'
@@ -468,7 +468,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const {
     data: connections = [],
     isLoading: isLoadingConnections
-  } = useQuery({
+  } = useQuery<UserConnection[], Error>({
     queryKey: ['connections'],
     queryFn: getConnections,
     enabled: activeView === 'dragdrop'

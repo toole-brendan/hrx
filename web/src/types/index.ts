@@ -135,6 +135,7 @@ export interface Property {
   isComponent?: boolean; // Flag if the item itself is a component
   parentItemId?: string; // Link to parent if it's a component
   lin?: string; // Line Item Number
+  updatedAt?: string; // ISO 8601 date string for last update
 }
 
 // Transfer Types
