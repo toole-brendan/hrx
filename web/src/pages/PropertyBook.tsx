@@ -49,7 +49,8 @@ import {
   Zap,
   ArrowRight,
   Activity,
-  AlertTriangle
+  AlertTriangle,
+  FileScan
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkActionMenu from "@/components/shared/BulkActionMenu";
@@ -141,7 +142,6 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const [createItemModalOpen, setCreateItemModalOpen] = useState(false);
   const [showingDA2062Export, setShowingDA2062Export] = useState(false);
   const [showingDA2062Import, setShowingDA2062Import] = useState(false);
-  const [showingSortOptions, setShowingSortOptions] = useState(false);
   const [showingAddMenu, setShowingAddMenu] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [selectedFilterType, setSelectedFilterType] = useState<PropertyFilterType>('all');
@@ -707,7 +707,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 placeholder="Search by name, serial number, or NSN..."
                 value={state.searchTerm}
                 onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })}
-                className="pl-10 pr-10 border border-gray-200/50 bg-gradient-to-r from-white to-gray-50 rounded-lg h-11 text-base placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-ios-accent shadow-md hover:shadow-lg transition-all duration-200 font-['SF_Pro_Text',_-apple-system,_BlinkMacSystemFont,_sans-serif]"
+                className="w-full pl-10 pr-10 border border-gray-200/50 bg-gradient-to-r from-white to-gray-50 rounded-lg h-11 text-base placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-ios-accent shadow-md hover:shadow-lg transition-all duration-200 font-['SF_Pro_Text',_-apple-system,_BlinkMacSystemFont,_sans-serif]"
               />
               {state.searchTerm && (
                 <button
@@ -719,16 +719,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               )}
             </div>
             
-            {/* Action buttons */}
-            <Button
-              onClick={() => setShowingSortOptions(true)}
-              className="bg-gradient-to-r from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 text-ios-primary-text border border-gray-200/50 rounded-lg px-4 h-11 font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-            >
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              <span className="hidden md:inline">Filter & Sort</span>
-              <span className="md:hidden">Filter</span>
-            </Button>
-            
+            {/* Add Item button */}
             <Button
               onClick={() => setShowingAddMenu(true)}
               className="bg-blue-500 text-white hover:bg-blue-600 rounded-lg px-4 h-11 font-semibold transition-all duration-200 border-0"
@@ -1215,75 +1206,82 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
         }}
       />
       
-      {/* Sort Options Action Sheet */}
-      <Dialog open={showingSortOptions} onOpenChange={setShowingSortOptions}>
-        <DialogContent className="max-w-sm bg-gradient-to-b from-white to-gray-50 backdrop-blur-xl shadow-2xl border border-gray-200/50">
-          <DialogHeader>
-            <DialogTitle>Sort Properties</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                // Sort by name logic
-                setShowingSortOptions(false);
-              }}
-            >
-              By Name
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                // Sort by serial number logic
-                setShowingSortOptions(false);
-              }}
-            >
-              By Serial Number
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                // Sort by status logic
-                setShowingSortOptions(false);
-              }}
-            >
-              By Status
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Add Menu Action Sheet */}
+      {/* Add Property Method Selection Modal */}
       <Dialog open={showingAddMenu} onOpenChange={setShowingAddMenu}>
-        <DialogContent className="max-w-sm bg-gradient-to-b from-white to-gray-50 backdrop-blur-xl shadow-2xl border border-gray-200/50">
-          <DialogHeader>
-            <DialogTitle>Add Property</DialogTitle>
+        <DialogContent className="sm:max-w-md bg-gradient-to-b from-white to-ios-tertiary-background/30 rounded-xl border-ios-border shadow-xl">
+          <DialogHeader className="border-b border-ios-divider pb-4">
+            <DialogTitle className="flex items-center gap-3">
+              <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-500/80 rounded-lg shadow-sm">
+                <Plus className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-ios-primary-text">
+                  Add Property
+                </h2>
+                <p className="text-xs text-ios-secondary-text mt-0.5">
+                  Choose how you'd like to add a new item
+                </p>
+              </div>
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
+          
+          <div className="py-4 space-y-3">
+            <button
               onClick={() => {
                 setShowingAddMenu(false);
                 setCreateItemModalOpen(true);
               }}
+              className="w-full group"
             >
-              Create New Property
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
+              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-ios-tertiary-background/30 to-ios-tertiary-background/10 rounded-lg border border-ios-border hover:border-blue-500/50 hover:bg-ios-tertiary-background/50 transition-all duration-200">
+                <div className="p-2.5 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                  <Package className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="text-sm font-semibold text-ios-primary-text">
+                    Create New Property
+                  </h3>
+                  <p className="text-xs text-ios-secondary-text mt-0.5">
+                    Manually enter item details
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-ios-tertiary-text group-hover:text-blue-500 transition-colors" />
+              </div>
+            </button>
+            
+            <button
               onClick={() => {
                 setShowingAddMenu(false);
                 setShowingDA2062Import(true);
               }}
+              className="w-full group"
             >
-              Import from DA-2062
-            </Button>
+              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-ios-tertiary-background/30 to-ios-tertiary-background/10 rounded-lg border border-ios-border hover:border-blue-500/50 hover:bg-ios-tertiary-background/50 transition-all duration-200">
+                <div className="p-2.5 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
+                  <FileScan className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="text-sm font-semibold text-ios-primary-text">
+                    Import from DA-2062
+                  </h3>
+                  <p className="text-xs text-ios-secondary-text mt-0.5">
+                    Scan or upload a hand receipt form
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-ios-tertiary-text group-hover:text-green-500 transition-colors" />
+              </div>
+            </button>
           </div>
+          
+          <DialogFooter className="border-t border-ios-divider pt-4">
+            <Button
+              variant="ghost"
+              className="text-ios-tertiary-text hover:text-ios-secondary-text hover:bg-ios-tertiary-background rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+              onClick={() => setShowingAddMenu(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

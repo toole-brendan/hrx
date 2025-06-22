@@ -5,10 +5,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Plus, Package, AlertCircle } from 'lucide-react';
+import { Loader2, Plus, Package, AlertCircle, Hash, FileText, Tag, ScanLine, StickyNote, UserCheck } from 'lucide-react';
 import { categoryOptions } from '@/lib/propertyUtils';
 import { useToast } from '@/hooks/use-toast';
 import { checkSerialExists, syncProperties } from '@/services/syncService';
+import { cn } from '@/lib/utils';
+import { CleanCard } from '@/components/ios';
+
+// Enhanced form field component
+const FormField: React.FC<{
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  required?: boolean;
+  error?: string | null;
+}> = ({ label, icon, children, required, error }) => (
+  <div className="space-y-2">
+    <div className="flex items-center gap-2">
+      <div className="p-1.5 bg-blue-500/10 rounded-md">
+        {icon}
+      </div>
+      <Label className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-mono">
+        {label}
+        {required && <span className="text-ios-destructive ml-1">*</span>}
+      </Label>
+    </div>
+    {children}
+    {error && (
+      <div className="flex items-center gap-2 text-sm text-destructive mt-1">
+        <AlertCircle className="h-4 w-4" />
+        {error}
+      </div>
+    )}
+  </div>
+);
 
 interface CreatePropertyDialogProps {
   isOpen: boolean;
@@ -133,139 +163,191 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
-      <DialogContent className="sm:max-w-lg bg-card rounded-none">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Create Digital Twin
+      <DialogContent className="sm:max-w-lg bg-gradient-to-b from-white to-ios-tertiary-background/30 rounded-xl border-ios-border shadow-xl">
+        <DialogHeader className="border-b border-ios-divider pb-4">
+          <DialogTitle className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-500/80 rounded-lg shadow-sm">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-ios-primary-text">
+                Add New Item
+              </h2>
+              <p className="text-xs text-ios-secondary-text mt-0.5">
+                Register a new equipment item with a unique serial number
+              </p>
+            </div>
           </DialogTitle>
-          <DialogDescription>
-            Register a new equipment item. Each item must have a unique serial number.
-          </DialogDescription>
         </DialogHeader>
 
         <form id="create-item-form" onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="serial-number">Serial Number*</Label>
-              <div className="relative">
+          <div className="grid gap-6 py-6">
+            {/* Item Identification Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono flex items-center gap-2">
+                <div className="h-px flex-1 bg-ios-border" />
+                <span>Item Identification</span>
+                <div className="h-px flex-1 bg-ios-border" />
+              </h3>
+              
+              <FormField
+                label="Serial Number"
+                icon={<Hash className="h-4 w-4 text-blue-500" />}
+                required
+                error={serialError}
+              >
+                <div className="relative">
+                  <Input
+                    id="serial-number"
+                    value={formData.serialNumber}
+                    onChange={(e) => handleChange('serialNumber', e.target.value.toUpperCase())}
+                    placeholder="e.g., W123456 or 12345678"
+                    className={cn(
+                      "border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200 font-mono pr-10",
+                      serialError && "border-destructive focus-visible:ring-destructive"
+                    )}
+                    required
+                    disabled={isSubmitting}
+                  />
+                  {isValidatingSerial && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {!serialError && (
+                  <p className="text-xs text-ios-tertiary-text mt-1">
+                    This must match the physical serial number on the equipment
+                  </p>
+                )}
+              </FormField>
+
+              <FormField
+                label="Item Name"
+                icon={<Package className="h-4 w-4 text-blue-500" />}
+                required
+              >
                 <Input
-                  id="serial-number"
-                  value={formData.serialNumber}
-                  onChange={(e) => handleChange('serialNumber', e.target.value.toUpperCase())}
-                  placeholder="e.g., W123456 or 12345678"
-                  className={`rounded-none font-mono ${serialError ? 'border-destructive' : ''}`}
+                  id="item-name"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  placeholder="e.g., M4A1 Carbine, PRC-152 Radio"
+                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200"
                   required
                   disabled={isSubmitting}
                 />
-                {isValidatingSerial && (
-                  <div className="absolute right-3 top-3">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              {serialError && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {serialError}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                This must match the physical serial number on the equipment
-              </p>
-            </div>
+              </FormField>
 
-            <div className="grid gap-2">
-              <Label htmlFor="item-name">Item Name*</Label>
-              <Input
-                id="item-name"
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="e.g., M4A1 Carbine, PRC-152 Radio"
-                className="rounded-none"
+              <FormField
+                label="Category"
+                icon={<Tag className="h-4 w-4 text-blue-500" />}
                 required
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="category">Category*</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => handleChange('category', value)}
-                disabled={isSubmitting}
               >
-                <SelectTrigger id="category" className="rounded-none">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => handleChange('category', value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="category" className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="nsn">NSN (Optional)</Label>
-                <Input
-                  id="nsn"
-                  value={formData.nsn}
-                  onChange={(e) => handleChange('nsn', e.target.value)}
-                  placeholder="1234-56-789-0123"
-                  className="rounded-none font-mono"
+            {/* Additional Details Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono flex items-center gap-2">
+                <div className="h-px flex-1 bg-ios-border" />
+                <span>Additional Details</span>
+                <div className="h-px flex-1 bg-ios-border" />
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  label="NSN"
+                  icon={<ScanLine className="h-4 w-4 text-blue-500" />}
+                >
+                  <Input
+                    id="nsn"
+                    value={formData.nsn}
+                    onChange={(e) => handleChange('nsn', e.target.value)}
+                    placeholder="1234-56-789-0123"
+                    className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200 font-mono"
+                    disabled={isSubmitting}
+                  />
+                </FormField>
+                
+                <FormField
+                  label="LIN"
+                  icon={<FileText className="h-4 w-4 text-blue-500" />}
+                >
+                  <Input
+                    id="lin"
+                    value={formData.lin}
+                    onChange={(e) => handleChange('lin', e.target.value.toUpperCase())}
+                    placeholder="A12345"
+                    className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200 font-mono"
+                    disabled={isSubmitting}
+                  />
+                </FormField>
+              </div>
+
+              <FormField
+                label="Description"
+                icon={<StickyNote className="h-4 w-4 text-blue-500" />}
+              >
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  placeholder="Additional details about the item..."
+                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200 resize-none"
+                  rows={3}
                   disabled={isSubmitting}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="lin">LIN (Optional)</Label>
-                <Input
-                  id="lin"
-                  value={formData.lin}
-                  onChange={(e) => handleChange('lin', e.target.value.toUpperCase())}
-                  placeholder="A12345"
-                  className="rounded-none font-mono"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
+              </FormField>
 
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Additional details about the item..."
-                className="rounded-none resize-none"
-                rows={3}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="assign-to-self"
-                checked={formData.assignToSelf}
-                onChange={(e) => handleChange('assignToSelf', e.target.checked)}
-                className="rounded-none"
-                disabled={isSubmitting}
-              />
-              <Label htmlFor="assign-to-self" className="text-sm font-normal cursor-pointer">
-                Assign this item to myself
-              </Label>
+              <CleanCard className="p-4 bg-gradient-to-r from-ios-tertiary-background/30 to-ios-tertiary-background/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 bg-green-500/10 rounded-md">
+                      <UserCheck className="h-4 w-4 text-green-500" />
+                    </div>
+                    <div>
+                      <Label htmlFor="assign-to-self" className="text-sm font-medium text-ios-primary-text cursor-pointer">
+                        Auto-assign to me
+                      </Label>
+                      <p className="text-xs text-ios-secondary-text mt-0.5">
+                        I will be the initial custodian of this item
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="assign-to-self"
+                    checked={formData.assignToSelf}
+                    onChange={(e) => handleChange('assignToSelf', e.target.checked)}
+                    className="h-5 w-5 rounded border-ios-border text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 transition-all duration-200"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </CleanCard>
             </div>
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="gap-3 sm:gap-3">
             <Button
               type="button"
               variant="outline"
-              className="rounded-none"
+              className="border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text rounded-lg px-6 py-2.5 font-medium transition-all duration-200"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -273,19 +355,18 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
             </Button>
             <Button
               type="submit"
-              variant="default"
-              className="rounded-none"
+              className="bg-blue-500 hover:bg-blue-500/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
               disabled={isSubmitting || isValidatingSerial || !!serialError}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Creating...</span>
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Digital Twin
+                  <Plus className="h-4 w-4" />
+                  <span>Add Item</span>
                 </>
               )}
             </Button>

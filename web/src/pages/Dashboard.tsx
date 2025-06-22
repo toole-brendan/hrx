@@ -223,6 +223,22 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
   const { unreadCount } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
+  // Keyboard shortcut for search (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
@@ -372,20 +388,91 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/search')}
-                className="p-2.5 hover:bg-ios-tertiary-background/80 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 transform-gpu"
-              >
-                <Search className="h-5 w-5 text-ios-secondary-text" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
                 onClick={() => navigate('/profile')}
                 className="p-2.5 hover:bg-ios-tertiary-background/80 rounded-lg transition-all duration-300 hover:scale-110 active:scale-95 transform-gpu"
               >
                 <UserCircle className="h-5 w-5 text-ios-secondary-text" />
               </Button>
             </div>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="w-full">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-ios-tertiary-text pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                  }
+                }}
+                placeholder="Search properties, users, transfers..."
+                className="w-full pl-12 pr-20 h-12 border border-gray-200/50 bg-gradient-to-r from-white to-gray-50 rounded-lg text-base placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ios-accent shadow-md hover:shadow-lg transition-all duration-200"
+              />
+              {!searchQuery && (
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 hidden sm:flex items-center gap-1 text-xs text-ios-tertiary-text">
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-xs font-mono">⌘K</kbd>
+                </div>
+              )}
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="h-4 w-4 text-ios-tertiary-text" />
+                </button>
+              )}
+            </div>
+            
+            {/* Search Suggestions Dropdown */}
+            {isSearchFocused && !searchQuery && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-10">
+                <div className="p-3 border-b border-gray-100">
+                  <p className="text-xs font-medium text-ios-tertiary-text uppercase">Quick Searches</p>
+                </div>
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setSearchQuery('operational');
+                      navigate('/search?q=operational');
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                  >
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span className="text-sm">Operational items</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('maintenance');
+                      navigate('/search?q=maintenance');
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                  >
+                    <Clock8 className="h-4 w-4 text-orange-500" />
+                    <span className="text-sm">Items in maintenance</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('pending transfer');
+                      navigate('/search?q=pending%20transfer');
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                  >
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm">Pending transfers</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Key Metrics Cards */}

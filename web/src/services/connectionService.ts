@@ -89,10 +89,17 @@ export async function updateConnectionStatus(
 export async function exportConnections(): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/users/connections/export`, {
     method: 'GET',
+    headers: {
+      'Accept': 'text/csv, application/octet-stream, */*'
+    },
     credentials: 'include',
   });
 
-  if (!response.ok) throw new Error('Failed to export connections');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Export failed:', response.status, errorText);
+    throw new Error(`Failed to export connections: ${response.status} ${response.statusText}`);
+  }
   
   // Get the filename from the Content-Disposition header or use a default
   const contentDisposition = response.headers.get('Content-Disposition');
