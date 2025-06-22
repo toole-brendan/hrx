@@ -49,7 +49,7 @@ This document outlines the remaining development tasks for the HandReceipt appli
 - Update the backend `/api/users/search` endpoint to accept and process these filters
 - Ensure filters are properly combined with the main search query
 
-### 6. Update Remaining Pages for Consistency
+### 6. Update Remaining Pages for Consistency (Look at other pages and modals besides this.... these 3 files are actually pretty good overall but can be brought a bit more in line with the other pages styling)
 **Pages to Update:**
 - `/web/src/pages/Notifications.tsx`
 - `/web/src/pages/Settings.tsx`
@@ -63,6 +63,12 @@ This document outlines the remaining development tasks for the HandReceipt appli
 - Update form inputs to match app-wide patterns
 - Add iOS-style components where appropriate
 - Ensure responsive design works properly
+
+- All styling updates should maintain consistency with the existing design system
+
+
+
+
 
 ## 🔴 Complex Features (4+ hours each)
 
