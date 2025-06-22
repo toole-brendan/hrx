@@ -16,6 +16,7 @@ type Repository interface {
 	GetAllUsers() ([]domain.User, error)
 	UpdateUser(user *domain.User) error
 	SearchUsers(query string, excludeUserID uint) ([]domain.User, error)
+	SearchUsersWithFilters(filters domain.UserSearchFilters, excludeUserID uint) ([]domain.User, error)
 	// Add other user methods as needed (Update, Delete, List)
 
 	// User Connection operations

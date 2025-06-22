@@ -596,3 +596,11 @@ type NotificationService interface {
 	DeleteNotification(userID, notificationID int) error
 	ClearOldNotifications(userID int, days int) (int64, error)
 }
+
+// UserSearchFilters represents filters for searching users
+type UserSearchFilters struct {
+	Query        string `json:"query"`
+	Organization string `json:"organization"`
+	Rank         string `json:"rank"`
+	Location     string `json:"location"`
+}

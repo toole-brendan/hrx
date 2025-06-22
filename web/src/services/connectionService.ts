@@ -38,8 +38,27 @@ export async function getConnections(): Promise<UserConnection[]> {
   return data.connections || [];
 }
 
-export async function searchUsers(query: string): Promise<SearchUserResult[]> {
-  const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+export interface SearchFilters {
+  organization?: string;
+  rank?: string;
+  location?: string;
+}
+
+export async function searchUsers(query: string, filters?: SearchFilters): Promise<SearchUserResult[]> {
+  const params = new URLSearchParams();
+  params.append('q', query);
+  
+  if (filters?.organization) {
+    params.append('organization', filters.organization);
+  }
+  if (filters?.rank) {
+    params.append('rank', filters.rank);
+  }
+  if (filters?.location) {
+    params.append('location', filters.location);
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/users/search?${params.toString()}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -87,7 +106,10 @@ export async function updateConnectionStatus(
 }
 
 export async function exportConnections(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/users/connections/export`, {
+  const url = `${API_BASE_URL}/users/connections/export`;
+  console.log('Attempting to export from:', url);
+  
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Accept': 'text/csv, application/octet-stream, */*'
@@ -96,9 +118,17 @@ export async function exportConnections(): Promise<void> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Export failed:', response.status, errorText);
-    throw new Error(`Failed to export connections: ${response.status} ${response.statusText}`);
+    let errorMessage = `${response.status} ${response.statusText}`;
+    try {
+      const errorText = await response.text();
+      console.error('Export failed:', response.status, errorText);
+      if (errorText) {
+        errorMessage += `: ${errorText}`;
+      }
+    } catch (e) {
+      console.error('Could not read error response:', e);
+    }
+    throw new Error(`Failed to export connections: ${errorMessage}`);
   }
   
   // Get the filename from the Content-Disposition header or use a default

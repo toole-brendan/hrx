@@ -131,14 +131,20 @@ func (h *UserHandler) GetConnections(c *gin.Context) {
 // @Description Search for users by name, phone, or DODID to send connection requests
 // @Tags Users
 // @Produce json
-// @Param q query string true "Search query (name, phone, or DODID)"
+// @Param q query string false "Search query (name, phone, or DODID)"
+// @Param organization query string false "Filter by organization/unit"
+// @Param rank query string false "Filter by rank"
+// @Param location query string false "Filter by location"
 // @Success 200 {object} map[string]interface{} "users"
-// @Failure 400 {object} map[string]string "Missing search query"
+// @Failure 400 {object} map[string]string "Missing search criteria"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /users/search [get]
 // @Security BearerAuth
 func (h *UserHandler) SearchUsers(c *gin.Context) {
 	query := strings.TrimSpace(c.Query("q"))
+	organization := strings.TrimSpace(c.Query("organization"))
+	rank := strings.TrimSpace(c.Query("rank"))
+	location := strings.TrimSpace(c.Query("location"))
 	userID := getUserIDFromSession(c)
 
 	if userID == 0 {
@@ -146,13 +152,22 @@ func (h *UserHandler) SearchUsers(c *gin.Context) {
 		return
 	}
 
-	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query is required"})
+	// Require at least one search criteria
+	if query == "" && organization == "" && rank == "" && location == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least one search criteria is required"})
 		return
 	}
 
-	// Search by name, phone, or DODID
-	users, err := h.repo.SearchUsers(query, userID)
+	// Create search filters
+	filters := domain.UserSearchFilters{
+		Query:        query,
+		Organization: organization,
+		Rank:         rank,
+		Location:     location,
+	}
+
+	// Search with filters
+	users, err := h.repo.SearchUsersWithFilters(filters, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
 		return

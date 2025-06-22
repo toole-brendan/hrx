@@ -254,6 +254,41 @@ func (r *gormRepository) SearchUsers(query string, excludeUserID uint) ([]domain
 	return users, err
 }
 
+// SearchUsersWithFilters searches for users with advanced filters
+func (r *gormRepository) SearchUsersWithFilters(filters domain.UserSearchFilters, excludeUserID uint) ([]domain.User, error) {
+	var users []domain.User
+	query := r.db.Where("id != ?", excludeUserID)
+
+	// Apply query filter if provided
+	if filters.Query != "" {
+		searchPattern := "%" + filters.Query + "%"
+		query = query.Where(
+			"LOWER(CONCAT(first_name, ' ', last_name)) LIKE LOWER(?) OR phone LIKE ? OR dodid LIKE ?",
+			searchPattern, searchPattern, searchPattern,
+		)
+	}
+
+	// Apply organization/unit filter if provided
+	if filters.Organization != "" {
+		orgPattern := "%" + filters.Organization + "%"
+		query = query.Where("LOWER(unit) LIKE LOWER(?)", orgPattern)
+	}
+
+	// Apply rank filter if provided
+	if filters.Rank != "" {
+		query = query.Where("rank = ?", filters.Rank)
+	}
+
+	// Apply location filter if provided
+	if filters.Location != "" {
+		locationPattern := "%" + filters.Location + "%"
+		query = query.Where("LOWER(location) LIKE LOWER(?)", locationPattern)
+	}
+
+	err := query.Limit(50).Find(&users).Error
+	return users, err
+}
+
 // --- Additional Property Operations ---
 
 // GetPropertyBySerial retrieves a property by its serial number

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getConnections, searchUsers, sendConnectionRequest, updateConnectionStatus, exportConnections } from '@/services/connectionService';
+import { getConnections, searchUsers, sendConnectionRequest, updateConnectionStatus, exportConnections, type SearchFilters as ServiceSearchFilters } from '@/services/connectionService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -232,14 +232,30 @@ export const Connections: React.FC = () => {
     return { pendingRequests: pending, acceptedConnections: accepted, filteredConnections: filtered };
   }, [connections, selectedFilter, searchQuery, user?.id]);
 
-  // Handle search users
+  // Handle search users with filters
   const handleSearchUsers = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim() && !searchFilters.organization && !searchFilters.rank && !searchFilters.location) {
+      toast({ 
+        title: 'Search criteria required', 
+        description: 'Please enter a search term or select filters',
+        variant: 'destructive' 
+      });
+      return;
+    }
     
     setIsSearching(true);
     try {
-      const results = await searchUsers(searchQuery);
+      const results = await searchUsers(searchQuery || '', searchFilters);
       setSearchResults(results);
+      
+      // Save to recent searches if there's a query
+      if (searchQuery.trim()) {
+        const newSearch = searchQuery.trim();
+        setRecentSearches(prev => {
+          const filtered = prev.filter(s => s !== newSearch);
+          return [newSearch, ...filtered].slice(0, 5);
+        });
+      }
     } catch (error) {
       toast({ 
         title: 'Search failed', 
@@ -327,7 +343,14 @@ export const Connections: React.FC = () => {
 
   // Handle advanced search
   const handleAdvancedSearch = async () => {
-    if (!searchQuery.trim() && !Object.values(searchFilters).some(v => v)) return;
+    if (!searchQuery.trim() && !Object.values(searchFilters).some(v => v)) {
+      toast({ 
+        title: 'Search criteria required', 
+        description: 'Please enter a search term or select filters',
+        variant: 'destructive' 
+      });
+      return;
+    }
     
     // Add to recent searches
     if (searchQuery.trim() && !recentSearches.includes(searchQuery)) {
@@ -336,8 +359,7 @@ export const Connections: React.FC = () => {
     
     setIsSearching(true);
     try {
-      const results = await searchUsers(searchQuery);
-      // In real app, would filter by searchFilters here
+      const results = await searchUsers(searchQuery || '', searchFilters);
       setSearchResults(results);
     } catch (error) {
       toast({ 
@@ -855,7 +877,7 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
     
     const term = searchTerm.toLowerCase();
     return connections.filter(conn => 
-      conn.connectedUser?.name.toLowerCase().includes(term) ||
+      conn.connectedUser?.name?.toLowerCase().includes(term) ||
       conn.connectedUser?.rank?.toLowerCase().includes(term) ||
       conn.connectedUser?.unit?.toLowerCase().includes(term)
     );
@@ -1345,10 +1367,13 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className="text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/5 rounded-xl px-4 py-2 font-bold transition-all duration-300 hover:scale-105 active:scale-95"
+              className="text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/5 rounded-xl px-4 py-2 font-bold transition-all duration-300 hover:scale-105 active:scale-95 relative"
             >
               <Filter className="h-4 w-4 mr-2 transition-transform duration-300" />
               Advanced
+              {(searchFilters.organization || searchFilters.rank || searchFilters.location) && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-ios-accent rounded-full animate-pulse" />
+              )}
               <ChevronDown className={cn(
                 "h-4 w-4 ml-1 transition-transform duration-300",
                 showAdvancedSearch && "rotate-180"
@@ -1384,62 +1409,83 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
           
           {/* Advanced Filters */}
           {showAdvancedSearch && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-ios-border">
-              <div>
-                <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
-                  Organization/Unit
-                </label>
-                <Input
-                  placeholder="e.g., 1st Battalion"
-                  value={searchFilters.organization || ''}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, organization: e.target.value })}
-                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text"
-                />
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-ios-border">
+                <div>
+                  <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
+                    Organization/Unit
+                  </label>
+                  <Input
+                    placeholder="e.g., 1st Battalion"
+                    value={searchFilters.organization || ''}
+                    onChange={(e) => setSearchFilters({ ...searchFilters, organization: e.target.value })}
+                    className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
+                    Rank
+                  </label>
+                  <Select
+                    value={searchFilters.rank || ''}
+                    onValueChange={(value) => setSearchFilters({ ...searchFilters, rank: value })}
+                  >
+                    <SelectTrigger className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm">
+                      <SelectValue placeholder="Select rank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Ranks</SelectItem>
+                      <SelectItem value="PVT">Private (PVT)</SelectItem>
+                      <SelectItem value="PFC">Private First Class (PFC)</SelectItem>
+                      <SelectItem value="SPC">Specialist (SPC)</SelectItem>
+                      <SelectItem value="CPL">Corporal (CPL)</SelectItem>
+                      <SelectItem value="SGT">Sergeant (SGT)</SelectItem>
+                      <SelectItem value="SSG">Staff Sergeant (SSG)</SelectItem>
+                      <SelectItem value="SFC">Sergeant First Class (SFC)</SelectItem>
+                      <SelectItem value="MSG">Master Sergeant (MSG)</SelectItem>
+                      <SelectItem value="1SG">First Sergeant (1SG)</SelectItem>
+                      <SelectItem value="SGM">Sergeant Major (SGM)</SelectItem>
+                      <SelectItem value="2LT">Second Lieutenant (2LT)</SelectItem>
+                      <SelectItem value="1LT">First Lieutenant (1LT)</SelectItem>
+                      <SelectItem value="CPT">Captain (CPT)</SelectItem>
+                      <SelectItem value="MAJ">Major (MAJ)</SelectItem>
+                      <SelectItem value="LTC">Lieutenant Colonel (LTC)</SelectItem>
+                      <SelectItem value="COL">Colonel (COL)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
+                    Location
+                  </label>
+                  <Input
+                    placeholder="e.g., Fort Bragg"
+                    value={searchFilters.location || ''}
+                    onChange={(e) => setSearchFilters({ ...searchFilters, location: e.target.value })}
+                    className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
-                  Rank
-                </label>
-                <Select
-                  value={searchFilters.rank || ''}
-                  onValueChange={(value) => setSearchFilters({ ...searchFilters, rank: value })}
-                >
-                  <SelectTrigger className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm">
-                    <SelectValue placeholder="Select rank" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Ranks</SelectItem>
-                    <SelectItem value="PVT">Private (PVT)</SelectItem>
-                    <SelectItem value="PFC">Private First Class (PFC)</SelectItem>
-                    <SelectItem value="SPC">Specialist (SPC)</SelectItem>
-                    <SelectItem value="CPL">Corporal (CPL)</SelectItem>
-                    <SelectItem value="SGT">Sergeant (SGT)</SelectItem>
-                    <SelectItem value="SSG">Staff Sergeant (SSG)</SelectItem>
-                    <SelectItem value="SFC">Sergeant First Class (SFC)</SelectItem>
-                    <SelectItem value="MSG">Master Sergeant (MSG)</SelectItem>
-                    <SelectItem value="1SG">First Sergeant (1SG)</SelectItem>
-                    <SelectItem value="SGM">Sergeant Major (SGM)</SelectItem>
-                    <SelectItem value="2LT">Second Lieutenant (2LT)</SelectItem>
-                    <SelectItem value="1LT">First Lieutenant (1LT)</SelectItem>
-                    <SelectItem value="CPT">Captain (CPT)</SelectItem>
-                    <SelectItem value="MAJ">Major (MAJ)</SelectItem>
-                    <SelectItem value="LTC">Lieutenant Colonel (LTC)</SelectItem>
-                    <SelectItem value="COL">Colonel (COL)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-ios-secondary-text uppercase tracking-wider mb-2 block">
-                  Location
-                </label>
-                <Input
-                  placeholder="e.g., Fort Bragg"
-                  value={searchFilters.location || ''}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, location: e.target.value })}
-                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm placeholder:text-ios-tertiary-text"
-                />
-              </div>
-            </div>
+              
+              {(searchFilters.organization || searchFilters.rank || searchFilters.location) && (
+                <div className="flex justify-end mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchFilters({ organization: '', rank: '', location: '' });
+                      if (searchQuery) {
+                        onSearch();
+                      }
+                    }}
+                    className="text-ios-destructive hover:text-ios-destructive/80 hover:bg-ios-destructive/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
+            </>
           )}
           
           {/* Recent Searches */}

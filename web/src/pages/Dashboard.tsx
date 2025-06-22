@@ -19,7 +19,8 @@ import {
   Bell,
   BarChart3,
   FileText,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
