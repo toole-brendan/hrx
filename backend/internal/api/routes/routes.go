@@ -34,8 +34,8 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Initialize session middleware
 	middleware.SetupSession(router)
 
-	// Create notification service
-	notificationService := notification.NewService(notificationHub)
+	// Create notification service with database support
+	notificationService := notification.NewDBService(notificationHub, repo.DB().(*gorm.DB))
 
 	// Add component service first (needed by transfer handler)
 	componentService := services.NewComponentService(repo)
@@ -90,6 +90,9 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	
 	// Add WebSocket handler
 	webSocketHandler := handlers.NewWebSocketHandler(notificationHub)
+	
+	// Add notification handler
+	notificationHandler := handlers.NewNotificationHandlers(notificationService)
 
 	// TODO: Update other handlers to use repository when needed
 
@@ -289,6 +292,17 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			attachments.DELETE("/:id", attachmentsHandler.DeleteAttachment)
 			attachments.GET("/property/:propertyId", attachmentsHandler.GetAttachments)
 			attachments.POST("/property/:propertyId", attachmentsHandler.UploadAttachment)
+		}
+
+		// Notification routes
+		notifications := protected.Group("/notifications")
+		{
+			notifications.GET("", notificationHandler.GetNotifications)
+			notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
+			notifications.PATCH("/:id/read", notificationHandler.MarkAsRead)
+			notifications.POST("/mark-all-read", notificationHandler.MarkAllAsRead)
+			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
+			notifications.DELETE("/clear-old", notificationHandler.ClearOldNotifications)
 		}
 
 		// Register NSN routes

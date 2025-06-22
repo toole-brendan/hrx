@@ -109,6 +109,7 @@ func Migrate(db *gorm.DB) error {
 		&domain.ImmuDBReference{},
 		&domain.Document{},
 		&domain.CorrectionEvent{},
+		&domain.Notification{},
 	)
 }
 

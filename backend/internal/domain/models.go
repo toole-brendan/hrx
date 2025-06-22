@@ -538,3 +538,61 @@ type BulkDocumentOperationRequest struct {
 	DocumentIDs []uint `json:"documentIds" binding:"required"`
 	Operation   string `json:"operation" binding:"required,oneof=read archive delete"`
 }
+
+// Notification represents a persistent notification
+type Notification struct {
+	ID        uint            `json:"id" gorm:"primaryKey"`
+	UserID    uint            `json:"userId" gorm:"column:user_id;not null"`
+	Type      string          `json:"type" gorm:"column:type;not null"`
+	Title     string          `json:"title" gorm:"column:title;not null"`
+	Message   string          `json:"message" gorm:"column:message;not null"`
+	Data      json.RawMessage `json:"data,omitempty" gorm:"column:data;type:jsonb"`
+	Read      bool            `json:"read" gorm:"column:read;default:false;not null"`
+	ReadAt    *time.Time      `json:"readAt,omitempty" gorm:"column:read_at"`
+	Priority  string          `json:"priority" gorm:"column:priority;default:'normal';not null"`
+	ExpiresAt *time.Time      `json:"expiresAt,omitempty" gorm:"column:expires_at"`
+	CreatedAt time.Time       `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time       `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+}
+
+// Constants for notification types
+const (
+	NotificationTypeTransferUpdate     = "transfer_update"
+	NotificationTypeTransferCreated    = "transfer_created"
+	NotificationTypePropertyUpdate     = "property_update"
+	NotificationTypeConnectionRequest  = "connection_request"
+	NotificationTypeConnectionAccepted = "connection_accepted"
+	NotificationTypeDocumentReceived   = "document_received"
+	NotificationTypeGeneral            = "general"
+)
+
+// Constants for notification priority
+const (
+	NotificationPriorityLow    = "low"
+	NotificationPriorityNormal = "normal"
+	NotificationPriorityHigh   = "high"
+	NotificationPriorityUrgent = "urgent"
+)
+
+// NotificationService defines the interface for notification operations
+type NotificationService interface {
+	// Existing real-time methods
+	NotifyTransferUpdate(transfer *Transfer) error
+	NotifyTransferCreated(transfer *Transfer) error
+	NotifyPropertyUpdate(property *Property) error
+	NotifyConnectionRequest(requesterID, targetUserID int) error
+	NotifyConnectionAccepted(acceptorID, requesterID int) error
+	NotifyDocumentReceived(document *Document) error
+	SendGeneralNotification(userID int, title, message string) error
+	IsUserOnline(userID int) bool
+	GetOnlineUsers() []int
+
+	// New persistent notification methods
+	CreateNotification(notification *Notification) error
+	GetUserNotifications(userID int, limit, offset int, unreadOnly bool) ([]*Notification, error)
+	GetUnreadCount(userID int) (int64, error)
+	MarkAsRead(userID, notificationID int) error
+	MarkAllAsRead(userID int) error
+	DeleteNotification(userID, notificationID int) error
+	ClearOldNotifications(userID int, days int) (int64, error)
+}

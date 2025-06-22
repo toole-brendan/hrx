@@ -168,8 +168,80 @@ class WebSocketService extends EventEmitter {
     // Also emit a general 'message' event
     this.emit('message', message);
 
+    // Emit a custom DOM event that NotificationContext can listen to
+    // This is needed because NotificationContext uses window events
+    const notificationEvent = new CustomEvent('ws:notification', {
+      detail: {
+        type: message.type,
+        data: message.data,
+        timestamp: message.timestamp,
+        userId: message.userId,
+        // Map WebSocket event types to notification properties
+        title: this.getNotificationTitle(message.type, message.data),
+        message: this.getNotificationMessage(message.type, message.data),
+        priority: this.getNotificationPriority(message.type),
+      }
+    });
+    window.dispatchEvent(notificationEvent);
+
     // Log for debugging
     console.log('WebSocket message received:', message);
+  }
+
+  private getNotificationTitle(type: WebSocketEventType, data: any): string {
+    switch (type) {
+      case 'transfer:update':
+        return `Transfer ${data.status}`;
+      case 'transfer:created':
+        return 'New Transfer Request';
+      case 'property:update':
+        return 'Property Updated';
+      case 'connection:request':
+        return 'New Connection Request';
+      case 'connection:accepted':
+        return 'Connection Accepted';
+      case 'document:received':
+        return 'New Document Received';
+      case 'notification:general':
+        return data.title || 'Notification';
+      default:
+        return 'Notification';
+    }
+  }
+
+  private getNotificationMessage(type: WebSocketEventType, data: any): string {
+    switch (type) {
+      case 'transfer:update':
+        return `Transfer of ${data.itemName} (${data.serialNumber}) has been ${data.status}`;
+      case 'transfer:created':
+        return `You have a new transfer request for ${data.itemName} (${data.serialNumber})`;
+      case 'property:update':
+        return `Property ${data.serialNumber} has been ${data.action}`;
+      case 'connection:request':
+        return `${data.fromUserName} wants to connect with you`;
+      case 'connection:accepted':
+        return `${data.fromUserName} accepted your connection request`;
+      case 'document:received':
+        return `You received a ${data.documentType}: ${data.title}`;
+      case 'notification:general':
+        return data.message || '';
+      default:
+        return '';
+    }
+  }
+
+  private getNotificationPriority(type: WebSocketEventType): 'low' | 'normal' | 'high' | 'urgent' {
+    switch (type) {
+      case 'transfer:created':
+      case 'connection:request':
+        return 'high';
+      case 'transfer:update':
+      case 'property:update':
+      case 'document:received':
+        return 'normal';
+      default:
+        return 'normal';
+    }
   }
 
   private startPing(): void {

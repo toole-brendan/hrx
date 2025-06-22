@@ -298,6 +298,22 @@ export const documents = pgTable("documents", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Notifications Table - For persistent notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: text("type").notNull(), // 'transfer_update', 'transfer_created', 'property_update', 'connection_request', 'connection_accepted', 'document_received', 'general'
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  data: jsonb("data"), // Additional data for the notification (e.g., transferId, propertyId, etc.)
+  read: boolean("read").default(false).notNull(),
+  readAt: timestamp("read_at"),
+  priority: text("priority").default("normal").notNull(), // 'low', 'normal', 'high', 'urgent'
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Property Components Table - For component associations
 export const propertyComponents = pgTable("property_components", {
   id: serial("id").primaryKey(),
