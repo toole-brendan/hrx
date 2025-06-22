@@ -60,6 +60,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
+import { MessageModal } from '@/components/modals/MessageModal';
 
 // iOS Components
 import { 
@@ -846,6 +847,8 @@ interface MyNetworkContentProps {
 const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefresh }) => {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [messageRecipient, setMessageRecipient] = useState<{ id: number; name: string; rank?: string; unit?: string } | null>(null);
   
   const filteredConnections = useMemo(() => {
     if (!searchTerm) return connections;
@@ -874,6 +877,11 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
     } else {
       setSelectedRows(new Set(filteredConnections.map(c => c.id)));
     }
+  };
+
+  const handleSendMessage = (user: { id: number; name: string; rank?: string; unit?: string }) => {
+    setMessageRecipient(user);
+    setMessageModalOpen(true);
   };
   
   if (connections.length === 0) {
@@ -1028,20 +1036,28 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl border-ios-border/50 bg-white/95 backdrop-blur-xl">
-                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                      <DropdownMenuItem 
+                        className="py-3 px-4 hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-all duration-200 cursor-pointer group text-gray-700 hover:text-gray-900 focus:text-gray-900"
+                        onClick={() => connection.connectedUser && handleSendMessage({
+                          id: connection.connectedUser.id,
+                          name: connection.connectedUser.name,
+                          rank: connection.connectedUser.rank,
+                          unit: connection.connectedUser.unit
+                        })}
+                      >
                         <MessageSquare className="h-4 w-4 mr-3 text-blue-500 transition-transform duration-300 group-hover:scale-110" />
                         <span className="font-medium">Message</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-purple-50 focus:bg-purple-50 rounded-lg transition-all duration-200 cursor-pointer group text-gray-700 hover:text-gray-900 focus:text-gray-900">
                         <ArrowLeftRight className="h-4 w-4 mr-3 text-purple-500 transition-transform duration-300 group-hover:scale-110" />
                         <span className="font-medium">Transfer Property</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 rounded-lg transition-all duration-200 cursor-pointer group">
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-emerald-50 focus:bg-emerald-50 rounded-lg transition-all duration-200 cursor-pointer group text-gray-700 hover:text-gray-900 focus:text-gray-900">
                         <Eye className="h-4 w-4 mr-3 text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
                         <span className="font-medium">View Profile</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="my-2 bg-ios-border/30" />
-                      <DropdownMenuItem className="py-3 px-4 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 rounded-lg transition-all duration-200 cursor-pointer group text-red-600">
+                      <DropdownMenuItem className="py-3 px-4 hover:bg-red-50 focus:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer group text-red-600 hover:text-red-700 focus:text-red-700">
                         <UserX className="h-4 w-4 mr-3 transition-transform duration-300 group-hover:scale-110" />
                         <span className="font-medium">Remove Connection</span>
                       </DropdownMenuItem>
@@ -1053,6 +1069,18 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
           </TableBody>
         </Table>
       </CleanCard>
+
+      {/* Message Modal */}
+      {messageRecipient && (
+        <MessageModal
+          isOpen={messageModalOpen}
+          onClose={() => {
+            setMessageModalOpen(false);
+            setMessageRecipient(null);
+          }}
+          recipient={messageRecipient}
+        />
+      )}
     </div>
   );
 };

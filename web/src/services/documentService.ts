@@ -12,7 +12,7 @@ export interface DocumentSender {
 
 export interface Document {
   id: number;
-  type: 'transfer_document' | 'property_receipt' | 'other';
+  type: 'transfer_document' | 'property_receipt' | 'message' | 'other';
   subtype?: string;
   title: string;
   description?: string;
@@ -24,6 +24,16 @@ export interface Document {
   formData: string; // JSON string of form-specific data
   attachments?: string; // JSON string of attachment URLs
   box: 'inbox' | 'sent' | 'archive';
+}
+
+export interface CreateDocumentInput {
+  type: string;
+  subtype?: string;
+  title: string;
+  recipientUserId: number;
+  formData: any;
+  description?: string;
+  attachments?: string[];
 }
 
 // For use in React components with hooks
@@ -56,11 +66,28 @@ export const useDocumentService = () => {
     });
   };
 
+  const createDocument = async (input: CreateDocumentInput): Promise<{ document: Document; message: string }> => {
+    const { data } = await authedFetch<{ document: Document; message: string }>('/api/documents', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: input.type,
+        subtype: input.subtype,
+        title: input.title,
+        recipientUserId: input.recipientUserId,
+        formData: JSON.stringify(input.formData),
+        description: input.description,
+        attachments: input.attachments ? JSON.stringify(input.attachments) : undefined
+      })
+    });
+    return data;
+  };
+
   return {
     getDocuments,
     markAsRead,
     archiveDocument,
-    deleteDocument
+    deleteDocument,
+    createDocument
   };
 };
 
@@ -199,6 +226,32 @@ export async function uploadDocument(data: UploadDocumentData): Promise<{ docume
   });
 
   if (!response.ok) throw new Error('Failed to upload document');
+  return response.json();
+}
+
+export async function createDocument(input: CreateDocumentInput): Promise<{ document: Document; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/documents`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      type: input.type,
+      subtype: input.subtype,
+      title: input.title,
+      recipientUserId: input.recipientUserId,
+      formData: JSON.stringify(input.formData),
+      description: input.description,
+      attachments: input.attachments ? JSON.stringify(input.attachments) : undefined
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to create document');
+  }
+  
   return response.json();
 }
  

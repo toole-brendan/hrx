@@ -334,7 +334,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
             {selectedFile && (
               <Button
                 onClick={processFile}
-                className="w-full h-11 bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200"
+                className="w-full h-11 bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-sm transition-all duration-200 border-0"
                 disabled={isProcessing}
               >
                 {isProcessing ? (
@@ -609,7 +609,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-b from-white to-ios-tertiary-background/30">
         <DialogHeader className="border-b border-ios-divider pb-4">
           <DialogTitle className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-lg shadow-sm">
+            <div className="p-2.5 bg-blue-500 rounded-lg shadow-sm">
               <Package className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -656,7 +656,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
               <Button
                 onClick={importItems}
                 disabled={isImporting || editableItems.filter(i => i.isSelected).length === 0}
-                className="bg-ios-accent hover:bg-ios-accent/90 text-white font-medium shadow-sm transition-all duration-200"
+                className="bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-sm transition-all duration-200 border-0"
               >
                 <Package className="h-4 w-4 mr-2" />
                 Import {editableItems.filter(i => i.isSelected).length} Items
