@@ -225,12 +225,12 @@ export const SwipeablePropertyCard: React.FC<SwipeablePropertyCardProps> = ({
                         <div className="flex items-center gap-3 text-xs">
                           <span className="flex items-center gap-1 text-ios-secondary-text">
                             <FileText className="h-3 w-3" />
-                            <span className="font-['Courier_New',_monospace]">SN: {property.serialNumber}</span>
+                            <span className="font-mono">SN: {property.serialNumber}</span>
                           </span>
                           {property.nsn && (
                             <span className="flex items-center gap-1 text-ios-tertiary-text">
                               <Package className="h-3 w-3" />
-                              <span className="font-['Courier_New',_monospace]">NSN: {property.nsn}</span>
+                              <span className="font-mono">NSN: {property.nsn}</span>
                             </span>
                           )}
                         </div>

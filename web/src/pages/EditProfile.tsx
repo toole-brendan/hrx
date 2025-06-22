@@ -38,7 +38,7 @@ const FormSection: React.FC<{
           {icon}
         </div>
       )}
-      <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+      <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
         {title}
       </h2>
     </div>
@@ -246,7 +246,7 @@ export default function EditProfile() {
             <Button
               variant="outline"
               onClick={handleBack}
-              className="flex-1 border-ios-border hover:bg-ios-tertiary-background font-['Courier_New',_monospace] uppercase tracking-wider text-sm font-semibold"
+              className="flex-1 border-ios-border hover:bg-ios-tertiary-background font-mono uppercase tracking-wider text-sm font-semibold"
             >
               Cancel
             </Button>
@@ -255,7 +255,7 @@ export default function EditProfile() {
               onClick={handleSaveProfile}
               disabled={!formIsValid || isLoading}
               className={cn(
-                "flex-1 font-['Courier_New',_monospace] uppercase tracking-wider text-sm font-semibold shadow-sm transition-all duration-200",
+                "flex-1 font-mono uppercase tracking-wider text-sm font-semibold shadow-sm transition-all duration-200",
                 formIsValid && !isLoading
                   ? "bg-ios-accent hover:bg-ios-accent/90 text-white"
                   : "bg-ios-tertiary-background text-ios-quaternary-text cursor-not-allowed"
@@ -318,7 +318,7 @@ const EnhancedFormField: React.FC<EnhancedFormFieldProps> = ({
       </div>
       
       <div className="flex-1 space-y-2">
-        <label className="block text-xs font-medium text-ios-tertiary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+        <label className="block text-xs font-medium text-ios-tertiary-text uppercase tracking-wider font-mono">
           {label}
           {required && <span className="text-ios-destructive ml-1">*</span>}
         </label>

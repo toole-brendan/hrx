@@ -114,7 +114,7 @@ const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick,
       <span className={cn(
         "text-sm font-semibold block transition-colors duration-300 uppercase tracking-wider",
         isSelected ? "text-ios-primary-text" : "text-ios-secondary-text",
-        "font-['Courier_New',_monospace]"
+        "font-mono"
       )}>
         {title}
       </span>
@@ -142,7 +142,7 @@ const FormSection: React.FC<{
         </div>
       )}
       <div>
-        <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">{title}</h3>
+        <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">{title}</h3>
         {description && (
           <p className="text-sm text-ios-secondary-text mt-0.5">{description}</p>
         )}
@@ -319,7 +319,7 @@ const Settings: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={logout}
-              className="bg-red-500 text-white hover:bg-red-600 font-['Courier_New',_monospace] uppercase tracking-wider text-xs font-bold px-4 py-2 rounded-lg transition-all duration-200 border-0"
+              className="bg-red-500 text-white hover:bg-red-600 font-mono uppercase tracking-wider text-xs font-bold px-4 py-2 rounded-lg transition-all duration-200 border-0"
             >
               <LogOut className="h-4 w-4 mr-2 text-white" />
               Sign Out
@@ -411,7 +411,7 @@ const Settings: React.FC = () => {
                           name="autoLogout"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-mono">
                                 AUTO LOGOUT TIMER
                               </FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -440,7 +440,7 @@ const Settings: React.FC = () => {
                           name="pinTimeout"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-mono">
                                 PIN RE-ENTRY TIMER
                               </FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -620,10 +620,10 @@ const Settings: React.FC = () => {
                             <Cloud className="h-6 w-6 text-ios-accent" />
                           </div>
                           <div>
-                            <h4 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                            <h4 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
                               SYNC STATUS
                             </h4>
-                            <p className="text-xs text-ios-secondary-text mt-0.5 font-['Courier_New',_monospace]">
+                            <p className="text-xs text-ios-secondary-text mt-0.5 font-mono">
                               Last synced: {formatLastSynced(syncForm.watch('lastSynced'))}
                             </p>
                           </div>
@@ -677,7 +677,7 @@ const Settings: React.FC = () => {
                           name="syncInterval"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                              <FormLabel className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-mono">
                                 SYNC FREQUENCY
                               </FormLabel>
                               <Select 

@@ -62,7 +62,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs hover:bg-ios-tertiary-background font-['Courier_New',_monospace] font-semibold uppercase tracking-wider"
+                  className="text-xs hover:bg-ios-tertiary-background font-mono font-semibold uppercase tracking-wider"
                   onClick={markAllAsRead}
                   disabled={notifications.every(n => n.read)}
                 >
@@ -91,19 +91,19 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
               <TabsList className="grid grid-cols-3 bg-ios-tertiary-background/50 p-1 rounded-lg">
                 <TabsTrigger 
                   value="all" 
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all duration-200 font-['Courier_New',_monospace] font-semibold uppercase text-xs tracking-wider"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all duration-200 font-mono font-semibold uppercase text-xs tracking-wider"
                 >
                   All ({notifications.length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="transfers"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all duration-200 font-['Courier_New',_monospace] font-semibold uppercase text-xs tracking-wider"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all duration-200 font-mono font-semibold uppercase text-xs tracking-wider"
                 >
                   Transfers ({transferNotifications.length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="system"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all duration-200 font-['Courier_New',_monospace] font-semibold uppercase text-xs tracking-wider"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md transition-all duration-200 font-mono font-semibold uppercase text-xs tracking-wider"
                 >
                   System ({systemNotifications.length})
                 </TabsTrigger>
@@ -252,7 +252,7 @@ const NotificationItem = ({
             )}>
               {notification.title}
             </h4>
-            <span className="text-xs text-ios-tertiary-text flex-shrink-0 flex items-center gap-1 font-['Courier_New',_monospace]">
+            <span className="text-xs text-ios-tertiary-text flex-shrink-0 flex items-center gap-1 font-mono">
               <Clock className="h-3 w-3" />
               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
             </span>
@@ -314,7 +314,7 @@ const EmptyState = ({ type = 'all' }: { type?: string }) => {
       <div className="p-4 rounded-full bg-ios-tertiary-background mb-4">
         {emptyConfig.icon}
       </div>
-      <h3 className="font-medium text-ios-primary-text mb-1 font-['Courier_New',_monospace] uppercase tracking-wider text-sm">
+      <h3 className="font-medium text-ios-primary-text mb-1 font-mono uppercase tracking-wider text-sm">
         {emptyConfig.title}
       </h3>
       <p className="text-sm text-ios-tertiary-text">

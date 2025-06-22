@@ -98,7 +98,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle
       )}
     </div>
     <div>
-      <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+      <div className="text-3xl font-bold text-ios-primary-text mb-1 font-mono">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
       <h3 className="text-sm font-medium text-ios-secondary-text">{title}</h3>
@@ -364,7 +364,7 @@ export default function Documents() {
           {/* Sidebar - Document Categories */}
           <div className="w-64 flex-shrink-0">
             <CleanCard className="p-4 shadow-lg bg-gradient-to-br from-white to-ios-secondary-background/30">
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider mb-4 font-['Courier_New',_monospace]">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider mb-4 font-mono">
                 CATEGORIES
               </h3>
               <div className="space-y-1">
@@ -391,7 +391,7 @@ export default function Documents() {
                         <span className="text-sm font-medium">{type.label}</span>
                       </div>
                       <span className={cn(
-                        "text-xs font-bold font-['Courier_New',_monospace]",
+                        "text-xs font-bold font-mono",
                         isSelected ? "text-white/80" : "text-ios-tertiary-text"
                       )}>
                         {type.count || 0}

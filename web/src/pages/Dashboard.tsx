@@ -126,7 +126,7 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
                 {title}
               </h3>
               {value !== undefined && (
-                <div className="text-3xl font-bold text-ios-primary-text font-['SF_Mono',_'Courier_New',_monospace]">
+                <div className="text-3xl font-bold text-ios-primary-text font-mono">
                   {typeof value === 'number' ? (
                     <span className="tabular-nums">{value.toLocaleString()}</span>
                   ) : (
@@ -204,7 +204,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle
         </>
       ) : (
         <>
-          <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+          <div className="text-3xl font-bold text-ios-primary-text mb-1 font-mono">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </div>
           <h3 className="text-sm font-medium text-ios-secondary-text">{title}</h3>
@@ -423,7 +423,7 @@ export default function Dashboard() {
             <div className="p-2 bg-ios-accent/10 rounded-lg">
               <Zap className="h-5 w-5 text-ios-accent" />
             </div>
-            <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
+            <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-mono">
               QUICK ACTIONS
             </h2>
           </div>
@@ -468,7 +468,7 @@ export default function Dashboard() {
                 <Users className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
+                <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-mono">
                   NETWORK
                 </h2>
                 <p className="text-xs font-medium text-ios-secondary-text mt-0.5">Connected users and transfer partners</p>
@@ -478,7 +478,7 @@ export default function Dashboard() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/network')}
-              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-300 hover:scale-105 active:scale-95"
+              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-mono transition-all duration-300 hover:scale-105 active:scale-95"
             >
               View All
               <ArrowRight className="h-3 w-3 ml-1" />
@@ -495,7 +495,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                    <div className="text-3xl font-bold text-ios-primary-text mb-1 font-mono">
                       {stats?.totalConnections || 0}
                     </div>
                     <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Connected</div>
@@ -510,7 +510,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="text-3xl font-bold text-orange-500 mb-1 font-['Courier_New',_monospace]">
+                    <div className="text-3xl font-bold text-orange-500 mb-1 font-mono">
                       {stats?.pendingConnectionRequests || 0}
                     </div>
                     <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Pending</div>
@@ -518,13 +518,13 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-mono">
                   0
                 </div>
                 <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Recent</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-bold text-ios-primary-text mb-1 font-mono">
                   0
                 </div>
                 <div className="text-xs text-ios-secondary-text uppercase tracking-wider">Blocked</div>
@@ -541,7 +541,7 @@ export default function Dashboard() {
                 <Activity className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
+                <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-mono">
                   RECENT ACTIVITY
                 </h2>
                 <p className="text-xs font-medium text-ios-secondary-text mt-0.5">Latest transfers and updates</p>
@@ -551,7 +551,7 @@ export default function Dashboard() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/transfers')}
-              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-300 hover:scale-105 active:scale-95"
+              className="text-xs font-semibold text-ios-accent hover:text-ios-accent/80 hover:bg-transparent px-3 py-1 uppercase tracking-wider font-mono transition-all duration-300 hover:scale-105 active:scale-95"
             >
               See All
               <ArrowRight className="h-3 w-3 ml-1" />
@@ -569,7 +569,7 @@ export default function Dashboard() {
               <BarChart3 className="h-5 w-5 text-orange-500" />
             </div>
             <div>
-              <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
+              <h2 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-mono">
                 PROPERTY STATUS
               </h2>
               <p className="text-xs font-medium text-ios-secondary-text mt-0.5">Equipment operational readiness</p>
@@ -589,7 +589,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                  <span className="text-sm font-bold text-ios-primary-text font-mono">
                     {readinessStats.operational.percentage}%
                   </span>
                   <div className="w-32">
@@ -612,7 +612,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                  <span className="text-sm font-bold text-ios-primary-text font-mono">
                     {readinessStats.maintenance.percentage}%
                   </span>
                   <div className="w-32">
@@ -635,7 +635,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                  <span className="text-sm font-bold text-ios-primary-text font-mono">
                     {readinessStats.nonOperational.percentage}%
                   </span>
                   <div className="w-32">

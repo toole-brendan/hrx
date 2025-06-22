@@ -18,6 +18,11 @@ func NewPostgresRepository(db *gorm.DB) Repository {
 	return &PostgresRepository{db: db}
 }
 
+// DB returns the underlying database connection
+func (r *PostgresRepository) DB() interface{} {
+	return r.db
+}
+
 // User operations
 func (r *PostgresRepository) CreateUser(user *domain.User) error {
 	return r.db.Create(user).Error

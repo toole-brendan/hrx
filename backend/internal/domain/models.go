@@ -532,15 +532,6 @@ type GeneralLedgerEvent struct {
 	LedgerSequenceNumber *int64    `json:"ledgerSequenceNumber,omitempty"`
 }
 
-// CreateConnectionRequest represents a request to create a connection
-type CreateConnectionRequest struct {
-	TargetUserID uint `json:"targetUserId" binding:"required"`
-}
-
-// UpdateConnectionRequest represents a request to update a connection status
-type UpdateConnectionRequest struct {
-	Status string `json:"status" binding:"required,oneof=accepted blocked"`
-}
 
 // BulkDocumentOperationRequest represents a request to perform bulk operations on documents
 type BulkDocumentOperationRequest struct {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -109,10 +110,11 @@ const Register: React.FC = () => {
       <div className="w-full max-w-[375px]">
         {/* Logo section */}
         <div className="text-center mb-10">
-          <img
+          <ProgressiveImage
             src="/hr_logo4.png"
             alt="HandReceipt Logo"
             className="h-[200px] w-auto mx-auto"
+            loading="eager"
           />
           <p className="text-[#4A4A4A] text-base font-normal -mt-6">
             Property Management System

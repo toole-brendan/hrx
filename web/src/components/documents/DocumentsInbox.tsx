@@ -96,7 +96,7 @@ export const DocumentsInbox: React.FC<DocumentsInboxProps> = ({
             <TabsList className="grid grid-cols-3 w-full gap-1 bg-transparent h-auto">
               <TabsTrigger
                 value="inbox"
-                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text relative"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text relative"
               >
                 INBOX
                 {(data?.unread_count ?? 0) > 0 && (
@@ -107,13 +107,13 @@ export const DocumentsInbox: React.FC<DocumentsInboxProps> = ({
               </TabsTrigger>
               <TabsTrigger
                 value="sent"
-                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
               >
                 SENT
               </TabsTrigger>
               <TabsTrigger
                 value="all"
-                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
+                className="px-4 py-2.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:bg-transparent data-[state=inactive]:text-ios-secondary-text hover:bg-ios-tertiary-background hover:text-ios-primary-text"
               >
                 ALL DOCUMENTS
               </TabsTrigger>
@@ -526,7 +526,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, selectedTab, onVi
                     NEW
                   </span>
                 )}
-                <span className="text-xs uppercase tracking-wider text-ios-tertiary-text font-semibold font-['Courier_New',_monospace]">
+                <span className="text-xs uppercase tracking-wider text-ios-tertiary-text font-semibold font-mono">
                   {document.subtype || document.type}
                 </span>
               </div>

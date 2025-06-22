@@ -5,6 +5,7 @@ import { useTransfers } from "@/hooks/useTransfers";
 import { Property, Transfer, Component } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
 import { Input } from "@/components/ui/input";
+import { VirtualPropertyList } from "@/components/VirtualPropertyList";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -570,7 +571,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">Property Book</h2>
+            <h2 className="text-lg font-bold text-ios-primary-text font-mono uppercase tracking-wider">Property Book</h2>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ios-tertiary-text" />
@@ -625,7 +626,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 font-mono">
                   {properties.length}
                 </div>
                 <h3 className="text-sm font-semibold text-ios-secondary-text">Total Items</h3>
@@ -639,7 +640,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-green-500 mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-green-500 mb-1 font-mono">
                   {properties.filter(p => normalizeItemStatus(p.status) === 'operational').length}
                 </div>
                 <h3 className="text-sm font-semibold text-ios-secondary-text">Operational</h3>
@@ -653,7 +654,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-700 to-orange-500 mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-700 to-orange-500 mb-1 font-mono">
                   {properties.filter(p => normalizeItemStatus(p.status) === 'maintenance').length}
                 </div>
                 <h3 className="text-sm font-semibold text-ios-secondary-text">In Maintenance</h3>
@@ -667,7 +668,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500 mb-1 font-['Courier_New',_monospace]">
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500 mb-1 font-mono">
                   {transfers.filter(t => t.status === 'pending').length}
                 </div>
                 <h3 className="text-sm font-semibold text-ios-secondary-text">Pending Transfers</h3>
@@ -744,7 +745,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               <Package className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
+              <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-mono">
                 ASSIGNED ITEMS
               </h2>
               <p className="text-xs font-medium text-gray-600 mt-0.5">{getCurrentItems().length} items match your filters</p>
@@ -937,22 +938,17 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
               }
             />
           ) : (
-            <div className="space-y-4 py-2">
-              {currentItems.map((item) => (
-                <div key={item.id} className="px-1">
-                  <SwipeablePropertyCard
-                    property={item}
-                    isSelected={false}
-                    isSelectMode={false}
-                    onTap={() => handleViewDetails(item)}
-                    onTransfer={() => {
-                      setSelectedItem(item);
-                      setTransferModalOpen(true);
-                    }}
-                    onViewDetails={() => handleViewDetails(item)}
-                  />
-                </div>
-              ))}
+            <div className="h-[calc(100vh-300px)] min-h-[400px]">
+              <VirtualPropertyList
+                properties={currentItems}
+                onPropertyClick={(property) => {
+                  handleViewDetails(property);
+                }}
+                onTransfer={(property) => {
+                  setSelectedItem(property);
+                  setTransferModalOpen(true);
+                }}
+              />
             </div>
           )}
           </div>
@@ -994,18 +990,18 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 <div className="flex flex-wrap items-center gap-3 text-sm">
                   <span className="flex items-center gap-1.5 text-ios-secondary-text">
                     <FileText className="h-4 w-4" />
-                    <span className="font-['Courier_New',_monospace]">SN: {selectedItem?.serialNumber}</span>
+                    <span className="font-mono">SN: {selectedItem?.serialNumber}</span>
                   </span>
                   {selectedItem?.nsn && (
                     <span className="flex items-center gap-1.5 text-ios-secondary-text">
                       <Package className="h-4 w-4" />
-                      <span className="font-['Courier_New',_monospace]">NSN: {selectedItem?.nsn}</span>
+                      <span className="font-mono">NSN: {selectedItem?.nsn}</span>
                     </span>
                   )}
                   {selectedItem?.lin && (
                     <span className="flex items-center gap-1.5 text-ios-secondary-text">
                       <Shield className="h-4 w-4" />
-                      <span className="font-['Courier_New',_monospace]">LIN: {selectedItem?.lin}</span>
+                      <span className="font-mono">LIN: {selectedItem?.lin}</span>
                     </span>
                   )}
                 </div>
@@ -1028,7 +1024,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     <div className="p-2 bg-gradient-to-br from-blue-500/10 to-blue-500/20 rounded-lg">
                       <Info className="h-4 w-4 text-blue-500" />
                     </div>
-                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-mono">
                       CLASSIFICATION
                     </h3>
                   </div>
@@ -1056,14 +1052,14 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     <div className="p-2 bg-gradient-to-br from-purple-500/10 to-purple-500/20 rounded-lg">
                       <Calendar className="h-4 w-4 text-purple-500" />
                     </div>
-                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-mono">
                       ASSIGNMENT INFO
                     </h3>
                   </div>
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-semibold">Assigned Date</p>
-                      <p className="text-sm font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                      <p className="text-sm font-bold text-ios-primary-text font-mono">
                         {selectedItem?.assignedDate ? 
                           (() => {
                             const date = new Date(selectedItem.assignedDate);
@@ -1086,7 +1082,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   <div className="p-2 bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-md">
                     <ArrowLeftRight className="h-4 w-4 text-ios-accent" />
                   </div>
-                  <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  <h3 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
                     TRANSFER HISTORY
                   </h3>
                 </div>
@@ -1108,7 +1104,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                           </p>
                           <span className="text-xs text-green-500 font-medium uppercase">Completed</span>
                         </div>
-                        <p className="text-xs text-ios-tertiary-text font-['Courier_New',_monospace]">
+                        <p className="text-xs text-ios-tertiary-text font-mono">
                           {(() => {
                             const date = new Date(transfer.date);
                             const day = date.getDate().toString().padStart(2, '0');
@@ -1141,7 +1137,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     <div className="p-2 bg-purple-500/10 rounded-lg">
                       <FileText className="h-4 w-4 text-purple-500" />
                     </div>
-                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-mono">
                       DESCRIPTION
                     </h3>
                   </div>
@@ -1158,7 +1154,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                     <div className="p-2 bg-orange-500/10 rounded-lg">
                       <Package className="h-4 w-4 text-orange-500" />
                     </div>
-                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-['Courier_New',_monospace]">
+                    <h3 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider font-mono">
                       COMPONENTS ({selectedItem.components.length})
                     </h3>
                   </div>
@@ -1306,7 +1302,7 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
     <button
       onClick={onClick}
       className={cn(
-        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
+        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono",
         active
           ? "bg-blue-500 text-white"
           : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -1329,7 +1325,7 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
     <button
       onClick={onClick}
       className={cn(
-        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
+        "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono",
         active
           ? "bg-blue-500 text-white"
           : "bg-white text-gray-600 border border-gray-200/50 hover:text-gray-900"

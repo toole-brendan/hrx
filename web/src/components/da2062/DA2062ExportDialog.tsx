@@ -441,7 +441,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
               <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-300">
                 <div className="p-6">
                   <div className="mb-4">
-                    <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-['Courier_New',_monospace]">UNIT INFORMATION</h3>
+                    <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-mono">UNIT INFORMATION</h3>
                     <p className="text-xs font-medium text-gray-600">Organization details for the form</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -487,13 +487,13 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
 
               {/* Form Details */}
               <div className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-lg p-4 mb-6 shadow-md border border-gray-200/30 animate-in slide-in-from-bottom duration-300">
-                <h4 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider mb-3 font-['Courier_New',_monospace]">
+                <h4 className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 uppercase tracking-wider mb-3 font-mono">
                   FORM DETAILS
                 </h4>
                 <div className="space-y-2 text-xs text-gray-600 font-medium">
                   <div className="flex items-start gap-2">
                     <span className="text-gray-400">•</span>
-                    <span>Form Number: <span className="font-['Courier_New',_monospace] font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">{generateFormNumber()}</span></span>
+                    <span>Form Number: <span className="font-mono font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">{generateFormNumber()}</span></span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-gray-400">•</span>
@@ -510,7 +510,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
               <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-300">
                 <div className="p-6">
                   <div className="mb-4">
-                    <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-['Courier_New',_monospace]">DIGITAL SIGNATURE</h3>
+                    <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-mono">DIGITAL SIGNATURE</h3>
                     <p className="text-xs font-medium text-gray-600">Required for generating hand receipts</p>
                   </div>
                   <div className="space-y-4">
@@ -568,10 +568,10 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-['Courier_New',_monospace]">SELECT PROPERTIES</h3>
+                        <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-mono">SELECT PROPERTIES</h3>
                         <p className="text-xs font-medium text-gray-600">Choose items to include in the export</p>
                       </div>
-                      <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-ios-accent to-ios-accent/80 uppercase tracking-wider font-['Courier_New',_monospace]">
+                      <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-ios-accent to-ios-accent/80 uppercase tracking-wider font-mono">
                         {selectedCount} SELECTED
                       </span>
                     </div>
@@ -636,7 +636,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-ios-primary-text">{property.name}</div>
-                            <div className="text-xs text-gray-600 font-['Courier_New',_monospace] font-medium">
+                            <div className="text-xs text-gray-600 font-mono font-medium">
                               SN: {property.serialNumber}
                               {property.nsn && ` • NSN: ${property.nsn}`}
                             </div>
@@ -659,7 +659,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
               <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-300">
                 <div className="p-6">
                   <div className="mb-4">
-                    <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-['Courier_New',_monospace]">EXPORT OPTIONS</h3>
+                    <h3 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 mb-1 uppercase tracking-wider font-mono">EXPORT OPTIONS</h3>
                     <p className="text-xs font-medium text-gray-600">Configure output format and delivery method</p>
                   </div>
               <div className="space-y-4">
@@ -682,7 +682,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                     
                     {/* Export Mode */}
                     <div className="space-y-3">
-                      <Label className="text-xs text-gray-500 font-bold uppercase tracking-wider font-['Courier_New',_monospace]">
+                      <Label className="text-xs text-gray-500 font-bold uppercase tracking-wider font-mono">
                         DELIVERY METHOD
                       </Label>
                       <div className="grid grid-cols-3 gap-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-lg">
@@ -779,7 +779,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                                     <p className="font-semibold text-sm text-gray-900">
                                       {connection.connectedUser?.name}
                                     </p>
-                                    <p className="text-xs text-gray-600 font-['Courier_New',_monospace] font-medium">
+                                    <p className="text-xs text-gray-600 font-mono font-medium">
                                       {connection.connectedUser?.rank} • {connection.connectedUser?.unit}
                                     </p>
                                   </div>

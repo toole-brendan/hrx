@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { sensitiveItems } from "@/lib/sensitiveItemsData";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -30,7 +31,8 @@ import { cn } from "@/lib/utils";
 // Import the extracted components
 import {
   TransferDetailsModal,
-  NewTransferDialog
+  NewTransferDialog,
+  DragDropTransferInterface
 } from '@/components/transfers';
 import TransferConfirmationDialog from '@/components/transfers/TransferConfirmationDialog';
 
@@ -40,6 +42,8 @@ import {
   createTransfer,
   updateTransferStatus
 } from '@/services/transferService';
+import { fetchProperties } from '@/services/propertyService';
+import { getConnections } from '@/services/connectionService';
 
 // iOS Components
 import {
@@ -50,7 +54,7 @@ import {
 } from "@/components/ios";
 
 // --- State Management with useReducer ---
-type TransferView = 'incoming' | 'outgoing' | 'history';
+type TransferView = 'incoming' | 'outgoing' | 'history' | 'dragdrop';
 type TransferStatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
 interface TransfersState {
@@ -141,7 +145,7 @@ const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick,
             className={cn(
               "text-sm font-bold uppercase tracking-wider transition-colors duration-300",
               isSelected ? "text-ios-primary-text" : "text-ios-secondary-text",
-              "font-['Courier_New',_monospace]"
+              "font-mono"
             )}
           >
             {title}
@@ -152,7 +156,7 @@ const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick,
               isSelected 
                 ? "bg-ios-accent text-white" 
                 : "bg-ios-accent/10 text-ios-accent",
-              "font-['Courier_New',_monospace]"
+              "font-mono"
             )}>
               {badge}
             </span>
@@ -268,10 +272,10 @@ const TransferCard: React.FC<TransferCardProps> = ({
             {/* Header with item details */}
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
+                <h3 className="text-lg font-semibold text-ios-primary-text font-mono uppercase tracking-wider">
                   {transfer.name || 'Unknown Item'}
                 </h3>
-                <p className="text-sm text-ios-secondary-text mt-1 font-['Courier_New',_monospace]">
+                <p className="text-sm text-ios-secondary-text mt-1 font-mono">
                   SN: {transfer.serialNumber || 'N/A'}
                 </p>
               </div>
@@ -279,7 +283,7 @@ const TransferCard: React.FC<TransferCardProps> = ({
                 "px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider",
                 statusStyles.bg,
                 statusStyles.text,
-                "font-['Courier_New',_monospace]"
+                "font-mono"
               )}>
                 {transfer.status}
               </div>
@@ -294,7 +298,7 @@ const TransferCard: React.FC<TransferCardProps> = ({
             )}>
               <div className="relative z-10 flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-['Courier_New',_monospace]">
+                  <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-mono">
                     FROM
                   </p>
                   <p className="text-sm font-semibold text-ios-primary-text">
@@ -322,7 +326,7 @@ const TransferCard: React.FC<TransferCardProps> = ({
                 </div>
                 
                 <div className="flex-1 text-right">
-                  <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-['Courier_New',_monospace]">
+                  <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider mb-1 font-mono">
                     TO
                   </p>
                   <p className="text-sm font-semibold text-ios-primary-text">
@@ -336,7 +340,7 @@ const TransferCard: React.FC<TransferCardProps> = ({
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2 text-xs text-ios-tertiary-text">
                 <Clock8 className="h-3 w-3" />
-                <span className="font-['Courier_New',_monospace]">{formatDate(transfer.date)}</span>
+                <span className="font-mono">{formatDate(transfer.date)}</span>
               </div>
               <ArrowRight className="h-4 w-4 text-ios-tertiary-text opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
@@ -357,7 +361,7 @@ const TransferCard: React.FC<TransferCardProps> = ({
                   "flex-1 flex items-center justify-center gap-2 py-4",
                   "text-ios-destructive hover:bg-ios-destructive/10",
                   "transition-all duration-200 disabled:opacity-50",
-                  "font-['Courier_New',_monospace] text-xs font-semibold uppercase tracking-wider"
+                  "font-mono text-xs font-semibold uppercase tracking-wider"
                 )}
               >
                 {isLoadingReject ? (
@@ -380,7 +384,7 @@ const TransferCard: React.FC<TransferCardProps> = ({
                   "flex-1 flex items-center justify-center gap-2 py-4",
                   "text-ios-success hover:bg-ios-success/10",
                   "transition-all duration-200 disabled:opacity-50",
-                  "font-['Courier_New',_monospace] text-xs font-semibold uppercase tracking-wider"
+                  "font-mono text-xs font-semibold uppercase tracking-wider"
                 )}
               >
                 {isLoadingApprove ? (
@@ -412,6 +416,34 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   const [state, dispatch] = useReducer(transfersReducer, initialState);
   const { searchTerm, filterStatus, activeView, showNewTransfer, showTransferDetails, transferToConfirm } = state;
 
+  // Set up WebSocket for real-time updates
+  useWebSocket({
+    onTransferUpdate: (data) => {
+      // Invalidate queries to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      
+      // Show toast if the transfer involves the current user
+      if (user && (data.toUserId === user.id || data.fromUserId === user.id)) {
+        toast({
+          title: "Transfer Updated",
+          description: `Transfer of ${data.itemName} is now ${data.status}`,
+        });
+      }
+    },
+    onTransferCreated: (data) => {
+      // Invalidate queries to refetch with the new transfer
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      
+      // Show toast if the transfer is for the current user
+      if (user && data.toUserId === user.id) {
+        toast({
+          title: "New Transfer Request",
+          description: `You have a new transfer request for ${data.itemName}`,
+        });
+      }
+    }
+  });
+
   // Fetch transfers using useQuery
   const {
     data: transfers = [],
@@ -420,6 +452,26 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
   } = useQuery<Transfer[], Error>({
     queryKey: ['transfers'],
     queryFn: fetchTransfers,
+  });
+
+  // Fetch properties for drag-and-drop
+  const {
+    data: properties = [],
+    isLoading: isLoadingProperties
+  } = useQuery({
+    queryKey: ['properties'],
+    queryFn: fetchProperties,
+    enabled: activeView === 'dragdrop'
+  });
+
+  // Fetch connections for drag-and-drop
+  const {
+    data: connections = [],
+    isLoading: isLoadingConnections
+  } = useQuery({
+    queryKey: ['connections'],
+    queryFn: getConnections,
+    enabled: activeView === 'dragdrop'
   });
 
   // --- Mutations ---
@@ -506,7 +558,8 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
       const matchesView =
         (activeView === 'incoming' && transfer.to === currentUser) ||
         (activeView === 'outgoing' && transfer.from === currentUser) ||
-        (activeView === 'history' && (transfer.to === currentUser || transfer.from === currentUser));
+        (activeView === 'history' && (transfer.to === currentUser || transfer.from === currentUser)) ||
+        (activeView === 'dragdrop');
 
       const matchesSearch = !searchTerm ||
         transfer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -559,6 +612,8 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         return "Track transfer requests you've initiated";
       case 'history':
         return "View your complete transfer history";
+      case 'dragdrop':
+        return "Drag properties onto connections to create transfers";
       default:
         return "Manage equipment transfer requests and assignments";
     }
@@ -604,7 +659,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         </div>
 
         {/* Transfer Stats */}
-        <TransferStats transfers={transfers || []} />
+        {activeView !== 'dragdrop' && <TransferStats transfers={transfers || []} />}
         
         {/* Tab selector with Property Book styling */}
         <div className="space-y-3">
@@ -614,13 +669,14 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 {[
                 { id: 'incoming' as TransferView, label: 'INCOMING', icon: <ArrowDownCircle className="h-5 w-5" />, count: incomingPendingCount },
                 { id: 'outgoing' as TransferView, label: 'OUTGOING', icon: <ArrowUpCircle className="h-5 w-5" />, count: outgoingPendingCount },
-                { id: 'history' as TransferView, label: 'HISTORY', icon: <History className="h-5 w-5" />, count: historyTransfers.length }
+                { id: 'history' as TransferView, label: 'HISTORY', icon: <History className="h-5 w-5" />, count: historyTransfers.length },
+                { id: 'dragdrop' as TransferView, label: 'DRAG & DROP', icon: <Package className="h-5 w-5" />, count: 0 }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: tab.id })}
                   className={cn(
-                    "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
+                    "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono flex items-center justify-center gap-2 relative",
                     activeView === tab.id
                       ? "bg-blue-500 text-white"
                       : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -648,7 +704,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
         </div>
 
         {/* Enhanced Search and Filter Section */}
-        {sortedTransfers.length > 0 && (
+        {sortedTransfers.length > 0 && activeView !== 'dragdrop' && (
           <div>
             <CleanCard className="p-4 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="space-y-4">
@@ -666,7 +722,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center gap-2 text-xs text-ios-secondary-text">
                     <Filter className="h-3 w-3" />
-                    <span className="font-['Courier_New',_monospace] uppercase tracking-wider">Filter:</span>
+                    <span className="font-mono uppercase tracking-wider">Filter:</span>
                   </div>
                   {['all', 'pending', 'approved', 'rejected'].map((status) => (
                     <button
@@ -674,7 +730,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                       onClick={() => dispatch({ type: 'SET_FILTER_STATUS', payload: status as TransferStatusFilter })}
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200",
-                        "font-['Courier_New',_monospace]",
+                        "font-mono",
                         filterStatus === status
                           ? "bg-ios-accent text-white shadow-sm"
                           : "bg-ios-tertiary-background text-ios-secondary-text hover:bg-ios-secondary-background"
@@ -757,26 +813,26 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
               {/* Summary Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-4 border border-ios-border shadow-sm">
-                  <div className="text-2xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+                  <div className="text-2xl font-bold text-ios-primary-text font-mono">
                     {sortedTransfers.length}
                   </div>
-                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-mono">
                     Total
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-4 border border-ios-border shadow-sm">
-                  <div className="text-2xl font-bold text-orange-500 font-['Courier_New',_monospace]">
+                  <div className="text-2xl font-bold text-orange-500 font-mono">
                     {sortedTransfers.filter(t => t.status === 'pending').length}
                   </div>
-                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-mono">
                     Pending
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-white to-ios-secondary-background rounded-xl p-4 border border-ios-border shadow-sm">
-                  <div className="text-2xl font-bold text-green-500 font-['Courier_New',_monospace]">
+                  <div className="text-2xl font-bold text-green-500 font-mono">
                     {sortedTransfers.filter(t => t.status === 'approved').length}
                   </div>
-                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                  <div className="text-xs text-ios-secondary-text uppercase tracking-wider font-mono">
                     Approved
                   </div>
                 </div>
@@ -803,6 +859,32 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                   />
                 ))}
               </div>
+            </>
+          )}
+
+          {/* Drag and Drop Interface */}
+          {activeView === 'dragdrop' && (
+            <>
+              {(isLoadingProperties || isLoadingConnections) ? (
+                <CleanCard className="py-24 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg">
+                  <MinimalLoadingView text="LOADING RESOURCES" />
+                </CleanCard>
+              ) : (
+                <DragDropTransferInterface
+                  properties={properties}
+                  connections={connections}
+                  onCreateTransfer={async (data) => {
+                    const newTransferData = {
+                      name: data.itemName,
+                      serialNumber: data.serialNumber,
+                      from: currentUser,
+                      to: data.to,
+                    };
+                    await createTransferMutation.mutateAsync(newTransferData as any);
+                  }}
+                  isLoading={createTransferMutation.isPending}
+                />
+              )}
             </>
           )}
         </div>
@@ -887,7 +969,7 @@ const TransferStats: React.FC<{ transfers: Transfer[] }> = ({ transfers }) => {
             )}>
               {stat.icon}
             </div>
-            <span className="text-3xl font-bold text-ios-primary-text font-['Courier_New',_monospace]">
+            <span className="text-3xl font-bold text-ios-primary-text font-mono">
               {stat.value}
             </span>
           </div>

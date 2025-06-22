@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { FileText, User, Calendar, Paperclip, Download, Forward, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { Document } from '@/services/documentService';
+import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 
 interface DocumentViewerProps {
   document: Document;
@@ -180,11 +181,13 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, open, 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {attachments.map((url: string, index: number) => (
                     <div key={index} className="relative group">
-                      <img
+                      <ProgressiveImage
                         src={url}
                         alt={`Attachment ${index + 1}`}
                         className="w-full h-32 object-cover rounded-md border cursor-pointer hover:opacity-75 transition-opacity"
+                        containerClassName="w-full h-32"
                         onClick={() => window.open(url, '_blank')}
+                        placeholderSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3C/svg%3E"
                       />
                       <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                         Photo {index + 1}

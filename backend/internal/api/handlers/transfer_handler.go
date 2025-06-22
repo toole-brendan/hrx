@@ -16,6 +16,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
+	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
@@ -23,12 +24,13 @@ import (
 
 // TransferHandler handles transfer operations
 type TransferHandler struct {
-	Ledger           ledger.LedgerService
-	Repo             repository.Repository
-	ComponentService services.ComponentService
-	PDFGenerator     *pdf.DA2062Generator
-	EmailService     *email.DA2062EmailService
-	StorageService   storage.StorageService
+	Ledger               ledger.LedgerService
+	Repo                 repository.Repository
+	ComponentService     services.ComponentService
+	PDFGenerator         *pdf.DA2062Generator
+	EmailService         *email.DA2062EmailService
+	StorageService       storage.StorageService
+	NotificationService  *notification.Service
 }
 
 // NewTransferHandler creates a new transfer handler
@@ -39,14 +41,16 @@ func NewTransferHandler(
 	pdfGenerator *pdf.DA2062Generator,
 	emailService *email.DA2062EmailService,
 	storageService storage.StorageService,
+	notificationService *notification.Service,
 ) *TransferHandler {
 	return &TransferHandler{
-		Ledger:           ledgerService,
-		Repo:             repo,
-		ComponentService: componentService,
-		PDFGenerator:     pdfGenerator,
-		EmailService:     emailService,
-		StorageService:   storageService,
+		Ledger:              ledgerService,
+		Repo:                repo,
+		ComponentService:    componentService,
+		PDFGenerator:        pdfGenerator,
+		EmailService:        emailService,
+		StorageService:      storageService,
+		NotificationService: notificationService,
 	}
 }
 
@@ -111,6 +115,17 @@ func (h *TransferHandler) CreateTransfer(c *gin.Context) {
 		// Consider compensation logic here if ledger write fails, or at least alert
 	} else {
 		log.Printf("Successfully logged transfer creation (ID: %d, ItemID: %d) to Ledger", transfer.ID, transfer.PropertyID)
+	}
+
+	// Send WebSocket notification for new transfer
+	if h.NotificationService != nil {
+		h.NotificationService.NotifyTransferCreated(
+			int(transfer.ID),
+			int(transfer.FromUserID),
+			int(transfer.ToUserID),
+			item.SerialNumber,
+			item.Name,
+		)
 	}
 
 	c.JSON(http.StatusCreated, transfer)
@@ -304,6 +319,18 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
 		} else {
 			log.Printf("Successfully logged transfer status update (ID: %d, NewStatus: %s) to Ledger", transfer.ID, transfer.Status)
 		}
+	}
+
+	// Send WebSocket notification for transfer status update
+	if h.NotificationService != nil {
+		h.NotificationService.NotifyTransferUpdate(
+			int(transfer.ID),
+			int(transfer.FromUserID),
+			int(transfer.ToUserID),
+			transfer.Status,
+			item.SerialNumber,
+			item.Name,
+		)
 	}
 
 	c.JSON(http.StatusOK, transfer)

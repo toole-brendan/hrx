@@ -15,21 +15,24 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserHandler handles user-related API requests
 type UserHandler struct {
-	repo           repository.Repository
-	StorageService storage.StorageService
+	repo                repository.Repository
+	StorageService      storage.StorageService
+	NotificationService *notification.Service
 }
 
 // NewUserHandler creates a new UserHandler
-func NewUserHandler(repo repository.Repository, storageService storage.StorageService) *UserHandler {
+func NewUserHandler(repo repository.Repository, storageService storage.StorageService, notificationService *notification.Service) *UserHandler {
 	return &UserHandler{
-		repo:           repo,
-		StorageService: storageService,
+		repo:                repo,
+		StorageService:      storageService,
+		NotificationService: notificationService,
 	}
 }
 
@@ -200,8 +203,22 @@ func (h *UserHandler) SendConnectionRequest(c *gin.Context) {
 		return
 	}
 
-	// TODO: Send notification to target user
-	// h.notificationService.SendConnectionRequest(userID, req.TargetUserID)
+	// Send notification to target user
+	if h.NotificationService != nil {
+		// Get sender's name for the notification
+		sender, _ := h.repo.GetUserByID(userID)
+		senderName := "A user"
+		if sender != nil {
+			senderName = fmt.Sprintf("%s %s", sender.FirstName, sender.LastName)
+		}
+		
+		h.NotificationService.NotifyConnectionRequest(
+			int(connection.ID),
+			int(userID),
+			senderName,
+			int(req.TargetUserID),
+		)
+	}
 
 	c.JSON(http.StatusCreated, connection)
 }
@@ -263,6 +280,23 @@ func (h *UserHandler) UpdateConnectionStatus(c *gin.Context) {
 	if err := h.repo.UpdateConnection(connection); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update connection"})
 		return
+	}
+
+	// Send notification when connection is accepted
+	if h.NotificationService != nil && req.Status == domain.ConnectionStatusAccepted {
+		// Get accepter's name for the notification
+		accepter, _ := h.repo.GetUserByID(userID)
+		accepterName := "A user"
+		if accepter != nil {
+			accepterName = fmt.Sprintf("%s %s", accepter.FirstName, accepter.LastName)
+		}
+		
+		h.NotificationService.NotifyConnectionAccepted(
+			int(connection.ID),
+			int(connection.UserID), // Original requester
+			accepterName,
+			int(userID), // Person who accepted
+		)
 	}
 
 	c.JSON(http.StatusOK, connection)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"github.com/toole-brendan/handreceipt-go/internal/api/handlers"
 	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
@@ -13,13 +14,14 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
+	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
 // SetupRoutes configures all the API routes for the application
-func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService storage.StorageService, nsnService *nsn.NSNService) {
+func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService storage.StorageService, nsnService *nsn.NSNService, notificationHub *notification.Hub) {
 	// Health check endpoint (no authentication required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -32,6 +34,9 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Initialize session middleware
 	middleware.SetupSession(router)
 
+	// Create notification service
+	notificationService := notification.NewService(notificationHub)
+
 	// Add component service first (needed by transfer handler)
 	componentService := services.NewComponentService(repo)
 
@@ -42,13 +47,13 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(repo)
 	propertyHandler := handlers.NewPropertyHandler(ledgerService, repo)
-	transferHandler := handlers.NewTransferHandler(ledgerService, repo, componentService, pdfGenerator, emailService, storageService)
+	transferHandler := handlers.NewTransferHandler(ledgerService, repo, componentService, pdfGenerator, emailService, storageService, notificationService)
 	activityHandler := handlers.NewActivityHandler() // No ledger needed
 	verificationHandler := handlers.NewVerificationHandler(ledgerService)
 	correctionHandler := handlers.NewCorrectionHandler(ledgerService)
 	ledgerHandler := handlers.NewLedgerHandler(ledgerService)                     // Create ledger handler
 	referenceDBHandler := handlers.NewReferenceDBHandler(repo)                    // Add ReferenceDB handler
-	userHandler := handlers.NewUserHandler(repo, storageService)                  // Added User handler with storage service
+	userHandler := handlers.NewUserHandler(repo, storageService, notificationService)  // Added User handler with storage and notification service
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
 
 	// Initialize Azure OCR service
@@ -66,11 +71,25 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 
 	// Add document handler for maintenance forms
 	documentHandler := handlers.NewDocumentHandler(repo, ledgerService, emailService, storageService)
+	
+	// Add offline sync handler
+	offlineSyncHandler := handlers.NewOfflineSyncHandler(repo.DB().(*gorm.DB))
+	
+	// Add DA2062 imports handler
+	da2062ImportsHandler := handlers.NewDA2062ImportsHandler(repo.DB().(*gorm.DB))
+	
+	// Add component events handler
+	componentEventsHandler := handlers.NewComponentEventsHandler(repo.DB().(*gorm.DB))
+	
+	// Add attachments handler
+	attachmentsHandler := handlers.NewAttachmentsHandler(repo.DB().(*gorm.DB), storageService)
 
 	// Add NSN handler
 	logger := logrus.New()
 	nsnHandler := handlers.NewNSNHandler(nsnService, logger)
-	// ... more handlers will be added in the future
+	
+	// Add WebSocket handler
+	webSocketHandler := handlers.NewWebSocketHandler(notificationHub)
 
 	// TODO: Update other handlers to use repository when needed
 
@@ -93,6 +112,9 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	protected := router.Group("/api")
 	protected.Use(middleware.SessionAuthMiddleware())
 	{
+		// WebSocket route
+		protected.GET("/ws", webSocketHandler.HandleWebSocket)
+		
 		// Current user route can now be removed as it's handled above
 
 		// Property routes
@@ -218,6 +240,55 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			documents.GET("/:id", documentHandler.GetDocument)
 			documents.PUT("/:id/read", documentHandler.MarkDocumentRead)
 			documents.POST("/:id/email", documentHandler.EmailDocument) // Email DA 2062 documents
+		}
+
+		// Offline sync routes
+		sync := protected.Group("/sync")
+		{
+			sync.GET("/queue", offlineSyncHandler.GetSyncQueue)
+			sync.GET("/queue/:id", offlineSyncHandler.GetSyncEntry)
+			sync.POST("/queue", offlineSyncHandler.CreateSyncEntry)
+			sync.POST("/process", offlineSyncHandler.ProcessSyncQueue)
+			sync.PATCH("/queue/:id", offlineSyncHandler.UpdateSyncEntry)
+			sync.DELETE("/queue/:id", offlineSyncHandler.DeleteSyncEntry)
+			sync.DELETE("/clear", offlineSyncHandler.ClearSyncQueue)
+		}
+
+		// DA2062 imports routes
+		da2062Imports := protected.Group("/da2062/imports")
+		{
+			da2062Imports.GET("", da2062ImportsHandler.GetImports)
+			da2062Imports.GET("/:id", da2062ImportsHandler.GetImport)
+			da2062Imports.GET("/:id/items", da2062ImportsHandler.GetImportItems)
+			da2062Imports.POST("", da2062ImportsHandler.CreateImport)
+			da2062Imports.PATCH("/:id", da2062ImportsHandler.UpdateImportStatus)
+			da2062Imports.POST("/:id/items", da2062ImportsHandler.AddImportItem)
+			da2062Imports.PATCH("/items/:itemId", da2062ImportsHandler.UpdateImportItem)
+			da2062Imports.DELETE("/:id", da2062ImportsHandler.DeleteImport)
+		}
+
+		// Component events routes
+		componentEvents := protected.Group("/components/events")
+		{
+			componentEvents.GET("", componentEventsHandler.GetComponentEvents)
+			componentEvents.GET("/summary", componentEventsHandler.GetComponentEventSummary)
+			componentEvents.GET("/export", componentEventsHandler.ExportComponentEvents)
+			componentEvents.GET("/:id", componentEventsHandler.GetComponentEvent)
+			componentEvents.GET("/property/:propertyId", componentEventsHandler.GetPropertyComponentHistory)
+			componentEvents.POST("", componentEventsHandler.CreateComponentEvent)
+		}
+
+		// Attachments routes
+		attachments := protected.Group("/attachments")
+		{
+			attachments.GET("", attachmentsHandler.GetAllAttachments)
+			attachments.GET("/stats", attachmentsHandler.GetAttachmentStats)
+			attachments.GET("/:id", attachmentsHandler.GetAttachment)
+			attachments.GET("/:id/download", attachmentsHandler.DownloadAttachment)
+			attachments.PATCH("/:id", attachmentsHandler.UpdateAttachment)
+			attachments.DELETE("/:id", attachmentsHandler.DeleteAttachment)
+			attachments.GET("/property/:propertyId", attachmentsHandler.GetAttachments)
+			attachments.POST("/property/:propertyId", attachmentsHandler.UploadAttachment)
 		}
 
 		// Register NSN routes

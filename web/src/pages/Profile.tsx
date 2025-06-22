@@ -48,7 +48,7 @@ const ProfileSection: React.FC<{
           {icon}
         </div>
       )}
-      <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+      <h2 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
         {title}
       </h2>
     </div>
@@ -104,7 +104,7 @@ export default function Profile() {
               Profile
             </h1>
             <Link href="/profile/edit">
-              <button className="text-ios-accent hover:text-ios-accent/80 font-['Courier_New',_monospace] font-semibold uppercase tracking-wider text-xs flex items-center gap-2 transition-colors">
+              <button className="text-ios-accent hover:text-ios-accent/80 font-mono font-semibold uppercase tracking-wider text-xs flex items-center gap-2 transition-colors">
                 <Edit className="h-4 w-4" />
                 Edit Profile
               </button>
@@ -124,7 +124,7 @@ export default function Profile() {
                   <User className="h-8 w-8 text-ios-accent" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-ios-primary-text font-['Courier_New',_monospace] uppercase tracking-wider">
+                  <h2 className="text-xl font-semibold text-ios-primary-text font-mono uppercase tracking-wider">
                     {user.rank} {formatUserName()}
                   </h2>
                   <p className="text-sm text-ios-secondary-text mt-1">
@@ -143,7 +143,7 @@ export default function Profile() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-ios-tertiary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+                <p className="text-xs text-ios-tertiary-text uppercase tracking-wider font-mono">
                   USER ID
                 </p>
                 <p className="text-sm font-mono text-ios-secondary-text">
@@ -269,7 +269,7 @@ export default function Profile() {
           <div className="pt-4">
             <button
               onClick={handleLogout}
-              className="w-full bg-ios-destructive hover:bg-ios-destructive/90 text-white rounded-lg px-6 py-3 font-semibold shadow-sm transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider text-sm font-['Courier_New',_monospace]"
+              className="w-full bg-ios-destructive hover:bg-ios-destructive/90 text-white rounded-lg px-6 py-3 font-semibold shadow-sm transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider text-sm font-mono"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
@@ -303,7 +303,7 @@ const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({
     </div>
     
     <div className="flex-1">
-      <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider font-['Courier_New',_monospace] mb-1">
+      <p className="text-xs font-medium text-ios-tertiary-text uppercase tracking-wider font-mono mb-1">
         {label}
       </p>
       <p className="text-sm text-ios-primary-text font-medium">
@@ -356,7 +356,7 @@ const ProfileActionRow: React.FC<ProfileActionRowProps> = ({
     </div>
     
     {badge && (
-      <div className="bg-ios-accent text-white text-xs font-semibold px-2.5 py-1 rounded-full font-['Courier_New',_monospace]">
+      <div className="bg-ios-accent text-white text-xs font-semibold px-2.5 py-1 rounded-full font-mono">
         {badge}
       </div>
     )}

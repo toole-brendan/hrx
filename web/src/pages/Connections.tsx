@@ -411,7 +411,7 @@ export const Connections: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('my-network')}
                     className={cn(
-                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
+                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono flex items-center justify-center gap-2 relative",
                       activeTab === 'my-network'
                         ? "bg-blue-500 text-white"
                         : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -435,7 +435,7 @@ export const Connections: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('requests')}
                     className={cn(
-                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
+                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono flex items-center justify-center gap-2 relative",
                       activeTab === 'requests'
                         ? "bg-blue-500 text-white"
                         : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -459,7 +459,7 @@ export const Connections: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('directory')}
                     className={cn(
-                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
+                      "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-mono flex items-center justify-center gap-2 relative",
                       activeTab === 'directory'
                         ? "bg-blue-500 text-white"
                         : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -563,7 +563,7 @@ const NetworkStats: React.FC<{ connections: UserConnection[] }> = ({ connections
                   {stat.icon}
                 </div>
               </div>
-              <span className="text-3xl font-black text-ios-primary-text font-['Courier_New',_monospace] tabular-nums">
+              <span className="text-3xl font-black text-ios-primary-text font-mono tabular-nums">
                 {stat.value}
               </span>
             </div>
@@ -612,7 +612,7 @@ const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick,
             className={cn(
               "text-sm font-bold uppercase tracking-wider transition-colors duration-300",
               isSelected ? "text-ios-primary-text" : "text-ios-secondary-text",
-              "font-['Courier_New',_monospace]"
+              "font-mono"
             )}
           >
             {title}
@@ -623,7 +623,7 @@ const TabButton: React.FC<TabButtonProps> = ({ title, icon, isSelected, onClick,
               isSelected 
                 ? "bg-ios-accent text-white" 
                 : "bg-ios-accent/10 text-ios-accent",
-              "font-['Courier_New',_monospace]"
+              "font-mono"
             )}>
               {badge}
             </span>
@@ -665,7 +665,7 @@ const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onCon
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <span className="text-white font-black text-xl font-['Courier_New',_monospace]">
+              <span className="text-white font-black text-xl font-mono">
                 {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
               </span>
             </div>
@@ -703,7 +703,7 @@ const UserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ user, onCon
           ) : (
             <>
               <UserPlus className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-              <span className="font-['Courier_New',_monospace] uppercase tracking-widest text-xs">Connect</span>
+              <span className="font-mono uppercase tracking-widest text-xs">Connect</span>
             </>
           )}
         </Button>
@@ -728,7 +728,7 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                <span className="text-white font-black text-lg font-['Courier_New',_monospace]">
+                <span className="text-white font-black text-lg font-mono">
                   {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
                 </span>
               </div>
@@ -753,7 +753,7 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="px-4 py-2 bg-gradient-to-r from-orange-500/10 to-amber-500/10 text-orange-600 rounded-xl text-xs font-black uppercase tracking-widest font-['Courier_New',_monospace] shadow-sm">
+            <div className="px-4 py-2 bg-gradient-to-r from-orange-500/10 to-amber-500/10 text-orange-600 rounded-xl text-xs font-black uppercase tracking-widest font-mono shadow-sm">
               Pending
             </div>
           </div>
@@ -768,7 +768,7 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
             className="flex-1 border-2 border-ios-border hover:border-red-500/30 hover:bg-red-500/5 text-ios-secondary-text hover:text-red-600 rounded-xl px-5 py-3 font-bold transition-all duration-300 hover:scale-105 active:scale-95 group"
           >
             <XCircle className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
-            <span className="font-['Courier_New',_monospace] uppercase tracking-widest text-xs">Decline</span>
+            <span className="font-mono uppercase tracking-widest text-xs">Decline</span>
           </Button>
           <Button
             size="sm"
@@ -778,7 +778,7 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
             <CheckCircle className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:scale-110 relative z-10" />
-            <span className="font-['Courier_New',_monospace] uppercase tracking-widest text-xs relative z-10">Accept</span>
+            <span className="font-mono uppercase tracking-widest text-xs relative z-10">Accept</span>
           </Button>
         </div>
       </div>
@@ -798,7 +798,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 via-green-500 to-teal-500 flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <span className="text-white font-black text-xl font-['Courier_New',_monospace]">
+              <span className="text-white font-black text-xl font-mono">
                 {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
               </span>
             </div>
@@ -827,7 +827,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection }) => (
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest font-['Courier_New',_monospace] flex items-center gap-2.5 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
+          <div className="px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest font-mono flex items-center gap-2.5 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
             <Link2 className="h-3.5 w-3.5 animate-pulse" />
             Connected
           </div>
@@ -972,7 +972,7 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                        <span className="text-white font-black text-sm font-['Courier_New',_monospace]">
+                        <span className="text-white font-black text-sm font-mono">
                           {connection.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
                         </span>
                       </div>
@@ -1012,7 +1012,7 @@ const MyNetworkContent: React.FC<MyNetworkContentProps> = ({ connections, onRefr
                   </div>
                 </TableCell>
                 <TableCell className="py-4">
-                  <span className="text-sm text-ios-secondary-text font-['Courier_New',_monospace]">
+                  <span className="text-sm text-ios-secondary-text font-mono">
                     {format(new Date(connection.createdAt), 'ddMMMyyyy').toUpperCase()}
                   </span>
                 </TableCell>
@@ -1083,7 +1083,7 @@ const RequestsContent: React.FC<RequestsContentProps> = ({
               <Inbox className="h-5 w-5 text-orange-500" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
                 INCOMING REQUESTS
               </h3>
               <p className="text-xs text-ios-secondary-text mt-0.5">{pendingRequests.length} awaiting your response</p>
@@ -1112,7 +1112,7 @@ const RequestsContent: React.FC<RequestsContentProps> = ({
               <SendIcon className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
                 OUTGOING REQUESTS
               </h3>
               <p className="text-xs text-ios-secondary-text mt-0.5">{outgoingRequests.length} pending approval</p>
@@ -1151,7 +1151,7 @@ const EnhancedPendingRequestCard: React.FC<PendingRequestCardProps> = ({ request
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/10 flex items-center justify-center shadow-sm">
-            <span className="text-orange-500 font-semibold text-lg font-['Courier_New',_monospace]">
+            <span className="text-orange-500 font-semibold text-lg font-mono">
               {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
             </span>
           </div>
@@ -1181,7 +1181,7 @@ const EnhancedPendingRequestCard: React.FC<PendingRequestCardProps> = ({ request
             </div>
           </div>
         </div>
-        <div className="px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-['Courier_New',_monospace]">
+        <div className="px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg text-xs font-semibold uppercase tracking-wider font-mono">
           Pending
         </div>
       </div>
@@ -1224,7 +1224,7 @@ const OutgoingRequestCard: React.FC<OutgoingRequestCardProps> = ({ request }) =>
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <span className="text-white font-black text-lg font-['Courier_New',_monospace]">
+              <span className="text-white font-black text-lg font-mono">
                 {request.connectedUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
               </span>
             </div>
@@ -1256,7 +1256,7 @@ const OutgoingRequestCard: React.FC<OutgoingRequestCardProps> = ({ request }) =>
             </div>
           </div>
         </div>
-        <div className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest font-['Courier_New',_monospace] shadow-sm animate-pulse">
+        <div className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest font-mono shadow-sm animate-pulse">
           Awaiting Response
         </div>
       </div>
@@ -1307,7 +1307,7 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
                 <Search className="h-6 w-6 text-ios-accent" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-['Courier_New',_monospace]">
+                <h3 className="text-sm font-black text-ios-primary-text uppercase tracking-widest font-mono">
                   SEARCH DIRECTORY
                 </h3>
                 <p className="text-xs text-ios-secondary-text mt-1 font-medium">Find users by name, rank, or organization</p>
@@ -1447,7 +1447,7 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
             <div className="p-2 bg-purple-500/10 rounded-lg">
               <UserPlus className="h-5 w-5 text-purple-500" />
             </div>
-            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
               SUGGESTED CONNECTIONS
             </h3>
           </div>
@@ -1468,10 +1468,10 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
       {searchResults.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+            <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
               SEARCH RESULTS
             </h3>
-            <span className="text-xs text-ios-secondary-text font-['Courier_New',_monospace]">
+            <span className="text-xs text-ios-secondary-text font-mono">
               {searchResults.length} FOUND
             </span>
           </div>
@@ -1508,7 +1508,7 @@ const EnhancedUserSearchResultCard: React.FC<UserSearchResultCardProps> = ({ use
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
         <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm">
-          <span className="text-white font-bold text-lg font-['Courier_New',_monospace]">
+          <span className="text-white font-bold text-lg font-mono">
             {user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
           </span>
         </div>

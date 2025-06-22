@@ -28,7 +28,7 @@ const FormField: React.FC<{
       <div className="p-1.5 bg-ios-accent/10 rounded-md">
         {icon}
       </div>
-      <Label className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+      <Label className="text-xs font-medium text-ios-primary-text uppercase tracking-wider font-mono">
         {label}
         {required && <span className="text-ios-destructive ml-1">*</span>}
       </Label>
@@ -87,7 +87,7 @@ const NewTransferDialog: React.FC<NewTransferDialogProps> = ({
           <div className="grid gap-6 py-6">
             {/* Item Information Section */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace] flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono flex items-center gap-2">
                 <div className="h-px flex-1 bg-ios-border" />
                 <span>Item Details</span>
                 <div className="h-px flex-1 bg-ios-border" />
@@ -120,7 +120,7 @@ const NewTransferDialog: React.FC<NewTransferDialogProps> = ({
                   value={formData.serialNumber}
                   onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
                   placeholder="e.g., W123456"
-                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200 font-['Courier_New',_monospace]"
+                  className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-12 text-base placeholder:text-ios-tertiary-text focus-visible:ring-2 focus-visible:ring-ios-accent transition-all duration-200 font-mono"
                   required
                 />
               </FormField>
@@ -128,7 +128,7 @@ const NewTransferDialog: React.FC<NewTransferDialogProps> = ({
             
             {/* Transfer Flow Section */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace] flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono flex items-center gap-2">
                 <div className="h-px flex-1 bg-ios-border" />
                 <span>Transfer Details</span>
                 <div className="h-px flex-1 bg-ios-border" />

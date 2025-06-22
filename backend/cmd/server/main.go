@@ -15,6 +15,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/platform/database"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
@@ -232,14 +233,19 @@ func main() {
 		log.Println("NSN service initialized successfully")
 	}
 
+	// Create notification hub and start it
+	notificationHub := notification.NewHub()
+	go notificationHub.Run()
+	log.Println("WebSocket notification hub started")
+
 	// Create Gin router
 	router := gin.Default()
 
 	// CORS middleware
 	router.Use(corsMiddleware())
 
-	// Setup routes, passing the LedgerService interface, Repository, Storage Service, and NSN Service
-	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService)
+	// Setup routes, passing the LedgerService interface, Repository, Storage Service, NSN Service, and Notification Hub
+	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService, notificationHub)
 
 	// Get server port, prioritizing environment variable, then config, then default
 	var port int

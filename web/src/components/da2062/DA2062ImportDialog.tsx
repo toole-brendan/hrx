@@ -297,7 +297,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium text-ios-primary-text">{selectedFile.name}</p>
-                    <p className="text-xs text-ios-secondary-text font-['Courier_New',_monospace]">
+                    <p className="text-xs text-ios-secondary-text font-mono">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
@@ -375,7 +375,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
       
       {/* Instructions Card */}
       <div className="bg-ios-tertiary-background/50 rounded-lg p-4">
-        <h4 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider mb-3 font-['Courier_New',_monospace]">
+        <h4 className="text-xs font-semibold text-ios-primary-text uppercase tracking-wider mb-3 font-mono">
           UPLOAD GUIDELINES
         </h4>
         <div className="space-y-2">
@@ -414,7 +414,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
               <div className="p-2.5 bg-white rounded-lg shadow-sm">
                 <FileText className="h-5 w-5 text-ios-accent" />
               </div>
-              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-['Courier_New',_monospace]">
+              <h3 className="text-sm font-semibold text-ios-primary-text uppercase tracking-wider font-mono">
                 FORM DETAILS
               </h3>
             </div>
@@ -443,13 +443,13 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
               {parsedForm.unitName && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-ios-secondary-text uppercase tracking-wider">Unit</span>
-                  <span className="text-sm font-medium text-ios-primary-text font-['Courier_New',_monospace]">{parsedForm.unitName}</span>
+                  <span className="text-sm font-medium text-ios-primary-text font-mono">{parsedForm.unitName}</span>
                 </div>
               )}
               {parsedForm.formNumber && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-ios-secondary-text uppercase tracking-wider">Form Number</span>
-                  <span className="text-sm font-medium text-ios-primary-text font-['Courier_New',_monospace]">{parsedForm.formNumber}</span>
+                  <span className="text-sm font-medium text-ios-primary-text font-mono">{parsedForm.formNumber}</span>
                 </div>
               )}
             </div>

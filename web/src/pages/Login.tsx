@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, Link } from "wouter";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -137,10 +138,11 @@ const Login: React.FC = () => {
             className="relative inline-block cursor-pointer"
             onClick={handleLogoTap}
           >
-            <img 
+            <ProgressiveImage 
               src="/hr_logo4.png" 
               alt="HandReceipt Logo" 
               className="h-[200px] w-auto mx-auto"
+              loading="eager"
             />
             {/* Dev login progress indicator */}
             {logoTapCount > 0 && logoTapCount < 5 && (

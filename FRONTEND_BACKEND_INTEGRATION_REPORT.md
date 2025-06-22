@@ -274,19 +274,20 @@ DELETE /api/attachments/:id
 - [x] General document upload ✅ (Completed: Added file upload endpoint and upload dialog component)
 
 ### 3. Add Real-Time Infrastructure
-- [ ] WebSocket server implementation
-- [ ] Frontend WebSocket client
-- [ ] Event broadcasting system
-- [ ] Notification service and table
+- [x] WebSocket server implementation ✅ (Completed: Added gorilla/websocket, created notification service and hub)
+- [x] Frontend WebSocket client ✅ (Completed: Created WebSocket service, hook, and context provider)
+- [x] Event broadcasting system ✅ (Completed: Hub broadcasts events to relevant connected users)
+- [ ] Notification service and table (Backend database table for persistent notifications)
 
 ### 4. Performance Optimizations
-- [ ] Virtual scrolling for property lists
+- [x] Virtual scrolling for property lists ✅ (Completed: Added @tanstack/react-virtual and VirtualPropertyList component)
 - [x] Search debouncing (300ms delay) ✅ (Completed: Added useDebounce hook and implemented in Documents search)
-- [ ] Code splitting by route
+- [x] Code splitting by route ✅ (Completed: Implemented lazy loading for all route components)
 - [ ] Progressive image loading
 
 ### 5. User Experience
 - [ ] Drag-and-drop transfers interface
+- [x] Replace Courier New with IBM Plex Mono ✅ (Completed: Added IBM Plex Mono to Google Fonts, updated Tailwind config, replaced 118 instances across 15 files)
 
 ## Future Enhancements
 
@@ -308,20 +309,63 @@ DELETE /api/attachments/:id
 3. Bulk operations optimization
 4. Offline sync improvements
 
+## WebSocket Implementation Details
+
+### Backend WebSocket Architecture ✅
+1. **Hub Pattern**: Central hub manages all client connections
+2. **Event Types**: 
+   - `transfer:update` - Transfer status changes
+   - `transfer:created` - New transfer requests
+   - `property:update` - Property ownership changes
+   - `connection:request` - New connection requests
+   - `connection:accepted` - Connection acceptances
+   - `document:received` - New document notifications
+3. **Authentication**: Session-based auth required for WebSocket connections
+4. **Event Routing**: Events are only sent to relevant users based on their involvement
+
+### Frontend WebSocket Integration ✅
+1. **Service Layer**: Singleton WebSocket service with auto-reconnection
+2. **React Context**: WebSocketProvider for app-wide connection management
+3. **Custom Hook**: `useWebSocket` for component-level event handling
+4. **Query Invalidation**: Real-time events trigger React Query cache updates
+5. **Toast Notifications**: Users receive instant notifications for relevant events
+
+### WebSocket Features Implemented ✅
+- Auto-reconnection with exponential backoff
+- Ping/pong keep-alive mechanism
+- Event-based message routing
+- Session-based authentication
+- Real-time transfer updates
+- Connection request notifications
+- Query cache invalidation on events
+
 ## Conclusion
 
 ### Completed Work ✅
-The HandReceipt frontend has been successfully cleaned up to focus on its core features (transfers and DA-2062/hand receipts):
+The HandReceipt system has been significantly enhanced with real-time capabilities and performance optimizations:
 
 1. **Frontend cleanup** ✅ - All deprecated features removed (QR codes, verification, blockchain, maintenance forms)
 2. **Dashboard statistics** ✅ - Implemented using frontend aggregation with `useDashboardStats` hook
 3. **Navigation cleanup** ✅ - Removed all routes and links to deprecated features
+4. **WebSocket implementation** ✅ - Full real-time communication between frontend and backend
+5. **Virtual scrolling** ✅ - Implemented for property lists to handle large datasets efficiently
+6. **Code splitting** ✅ - All routes now lazy load for faster initial page load
+7. **Font standardization** ✅ - Replaced Courier New with IBM Plex Mono throughout the application
+8. **Export functionality** ✅ - Added CSV export for connections
+9. **Document operations** ✅ - Added search with debouncing, bulk operations, and file upload
 
-### Remaining Priorities 🎢
+### Remaining Priorities 🎯
 
-1. **Backend API enhancements** - Add missing CRUD endpoints for all tables
-2. **Real-time updates** - Implement WebSocket for enhanced user experience
-3. **Document management** - Add search, bulk operations, and general upload functionality
-4. **Connection exports** - Add export functionality for network connections
+1. **High Priority**:
+   - Create notification service and database table for persistent notifications
+
+2. **Medium Priority**:
+   - Implement progressive image loading for better performance
+   - Create drag-and-drop interface for transfers
+   - Add missing CRUD endpoints for database tables:
+     - offline_sync_queue
+     - da2062_imports
+     - component_events
+     - attachments
 
 The application is now cleaner and more maintainable, with the frontend properly aligned to the backend's actual capabilities. The database schema fully supports future enhancements, and the architecture is well-positioned for real-time features.

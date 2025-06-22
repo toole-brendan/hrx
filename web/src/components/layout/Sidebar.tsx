@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApp } from "@/contexts/AppContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import {
   Home,
   Package,
@@ -177,10 +178,11 @@ const Sidebar = ({
             className="flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
             onClick={handleLogoClick}
           >
-            <img 
+            <ProgressiveImage 
               src="/hr_logo.png" 
               alt="HandReceipt"
               className="h-8 w-auto"
+              loading="eager"
             />
           </div>
         </div>
@@ -395,10 +397,11 @@ const Sidebar = ({
               className="cursor-pointer hover:opacity-90 transition-opacity"
               onClick={handleLogoClick}
             >
-              <img 
+              <ProgressiveImage 
                 src="/hr_logo.png" 
                 alt="HandReceipt"
                 className="h-8 w-auto"
+                loading="eager"
               />
             </div>
           ) : (

@@ -5,24 +5,28 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import NotFound from "@/pages/not-found";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
+import { lazyLoad } from "@/utils/lazyLoad";
 import AppShell from "./components/layout/AppShell";
-import Dashboard from "./pages/Dashboard";
-import Transfers from "./pages/Transfers";
-import Search from "./pages/Search";
-import AuditLog from "./pages/AuditLog";
-import Settings from "./pages/Settings";
-import PropertyBook from "./pages/PropertyBook";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-import ChangePassword from "./pages/ChangePassword";
-import SensitiveItems from "./pages/SensitiveItems";
-import Documents from "./pages/Documents";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import { Connections } from "./pages/Connections";
-import UserManagement from "./pages/UserManagement";
-import CorrectionLogPage from './pages/CorrectionLogPage';
+
+// Lazy load all route components for code splitting
+const NotFound = lazyLoad(() => import("@/pages/not-found"));
+const Dashboard = lazyLoad(() => import("./pages/Dashboard"));
+const Transfers = lazyLoad(() => import("./pages/Transfers"));
+const Search = lazyLoad(() => import("./pages/Search"));
+const AuditLog = lazyLoad(() => import("./pages/AuditLog"));
+const Settings = lazyLoad(() => import("./pages/Settings"));
+const PropertyBook = lazyLoad(() => import("./pages/PropertyBook"));
+const Profile = lazyLoad(() => import("./pages/Profile"));
+const EditProfile = lazyLoad(() => import("./pages/EditProfile"));
+const ChangePassword = lazyLoad(() => import("./pages/ChangePassword"));
+const SensitiveItems = lazyLoad(() => import("./pages/SensitiveItems"));
+const Documents = lazyLoad(() => import("./pages/Documents"));
+const Login = lazyLoad(() => import("./pages/Login"));
+const Register = lazyLoad(() => import("./pages/Register"));
+const Connections = lazyLoad(() => import("./pages/Connections").then(m => ({ default: m.Connections })));
+const UserManagement = lazyLoad(() => import("./pages/UserManagement"));
+const CorrectionLogPage = lazyLoad(() => import('./pages/CorrectionLogPage'));
 import { queryClient } from "./lib/queryClient";
 import { startPeriodicSync, stopPeriodicSync, setupConnectivityListeners } from "./services/syncService";
 
@@ -83,10 +87,12 @@ const App: React.FC = () => {
       <AuthProvider>
         <AppProvider>
           <NotificationProvider>
-            <WouterRouter>
-              <Router />
-            </WouterRouter>
-            <Toaster />
+            <WebSocketProvider>
+              <WouterRouter>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </WebSocketProvider>
           </NotificationProvider>
         </AppProvider>
       </AuthProvider>

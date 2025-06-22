@@ -6,6 +6,9 @@ import (
 
 // Repository defines the interface for data access operations.
 type Repository interface {
+	// Database access
+	DB() interface{} // Returns the underlying database connection
+	
 	// User operations
 	CreateUser(user *domain.User) error
 	GetUserByID(id uint) (*domain.User, error)
