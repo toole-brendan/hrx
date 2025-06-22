@@ -378,7 +378,7 @@ export const Connections: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
+                className="text-sm font-medium text-ios-accent border border-ios-accent hover:bg-blue-500 hover:border-blue-500 hover:text-white px-4 py-2 uppercase transition-all duration-200 rounded-md hover:scale-105 [&:hover_svg]:text-white"
               >
                 <Download className="h-4 w-4 mr-1.5" />
                 Export
@@ -401,7 +401,7 @@ export const Connections: React.FC = () => {
                     className={cn(
                       "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                       activeTab === 'my-network'
-                        ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                        ? "bg-blue-500 text-white"
                         : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     )}
                   >
@@ -425,7 +425,7 @@ export const Connections: React.FC = () => {
                     className={cn(
                       "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                       activeTab === 'requests'
-                        ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                        ? "bg-blue-500 text-white"
                         : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     )}
                   >
@@ -449,7 +449,7 @@ export const Connections: React.FC = () => {
                     className={cn(
                       "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                       activeTab === 'directory'
-                        ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                        ? "bg-blue-500 text-white"
                         : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     )}
                   >
@@ -536,11 +536,11 @@ const NetworkStats: React.FC<{ connections: UserConnection[] }> = ({ connections
         { label: 'Recent (7d)', value: stats.recent, icon: <Activity className="h-5 w-5" />, color: 'purple', gradient: 'from-purple-500 to-pink-500' }
       ].map((stat, idx) => (
         <div key={idx} className="group relative">
-          <div className="absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-20 blur transition duration-300" 
-               style={{ backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))` }}
-               className={cn(
+          <div className={cn(
+                 "absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-20 blur transition duration-300",
                  stat.gradient
-               )}></div>
+               )}
+               style={{ backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))` }}></div>
           <div className="relative bg-gradient-to-br from-white to-ios-secondary-background/50 rounded-xl p-5 border border-ios-border/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-transparent transform-gpu">
             <div className="flex items-center justify-between mb-3">
               <div className={cn(

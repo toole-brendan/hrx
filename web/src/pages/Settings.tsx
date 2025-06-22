@@ -319,9 +319,9 @@ const Settings: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={logout}
-              className="text-ios-destructive hover:text-ios-destructive hover:bg-ios-destructive/10 font-['Courier_New',_monospace] uppercase tracking-wider text-xs"
+              className="bg-red-500 text-white hover:bg-red-600 font-['Courier_New',_monospace] uppercase tracking-wider text-xs font-bold px-4 py-2 rounded-lg transition-all duration-200 border-0"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-4 w-4 mr-2 text-white" />
               Sign Out
             </Button>
           </div>
@@ -469,7 +469,7 @@ const Settings: React.FC = () => {
                       <Button 
                         type="submit"
                         disabled={isSaving}
-                        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 border-0"
                       >
                         {isSaving ? (
                           <>
@@ -586,7 +586,7 @@ const Settings: React.FC = () => {
                       <Button 
                         type="submit"
                         disabled={isSaving}
-                        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 border-0"
                       >
                         {isSaving ? (
                           <>
@@ -726,7 +726,7 @@ const Settings: React.FC = () => {
                       <Button 
                         type="submit"
                         disabled={isSaving}
-                        className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 border-0"
                       >
                         {isSaving ? (
                           <>

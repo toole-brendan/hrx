@@ -607,7 +607,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                   onClick={() => setShowingDA2062Export(true)}
                   variant="ghost"
                   size="sm"
-                  className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
+                  className="text-sm font-medium text-ios-accent border border-ios-accent hover:bg-blue-500 hover:border-blue-500 hover:text-white px-4 py-2 uppercase transition-all duration-200 rounded-md hover:scale-105 [&:hover_svg]:text-white"
                 >
                   <FileText className="h-4 w-4 mr-1.5" />
                   Generate DA 2062
@@ -730,7 +730,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
             
             <Button
               onClick={() => setShowingAddMenu(true)}
-              className="bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg rounded-lg px-4 h-11 font-semibold transition-all duration-200 border-0"
+              className="bg-blue-500 text-white hover:bg-blue-600 rounded-lg px-4 h-11 font-semibold transition-all duration-200 border-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden md:inline">Add Item</span>
@@ -929,7 +929,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
                 state.searchTerm || state.filterCategory !== "all" ? null : (
                   <Button
                     onClick={() => setShowingAddMenu(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-500 hover:bg-blue-600 text-white border-0"
                   >
                     Add Property
                   </Button>
@@ -1308,7 +1308,7 @@ const FilterTypeChip: React.FC<FilterTypeChipProps> = ({ label, active, onClick 
       className={cn(
         "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+          ? "bg-blue-500 text-white"
           : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
       )}
     >
@@ -1331,7 +1331,7 @@ const FilterChip: React.FC<FilterChipProps> = ({ label, active, onClick }) => {
       className={cn(
         "px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace]",
         active
-          ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+          ? "bg-blue-500 text-white"
           : "bg-white text-gray-600 border border-gray-200/50 hover:text-gray-900"
       )}
     >

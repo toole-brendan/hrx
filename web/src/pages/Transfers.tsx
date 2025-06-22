@@ -625,7 +625,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 onClick={() => dispatch({ type: 'TOGGLE_NEW_TRANSFER', payload: true })}
                 variant="ghost"
                 size="sm"
-                className="text-sm font-bold text-ios-accent hover:text-ios-accent/80 hover:bg-ios-accent/10 px-4 py-2 uppercase tracking-wider font-['Courier_New',_monospace] transition-all duration-200 rounded-md hover:scale-105"
+                className="text-sm font-medium text-ios-accent border border-ios-accent hover:bg-blue-500 hover:border-blue-500 hover:text-white px-4 py-2 uppercase transition-all duration-200 rounded-md hover:scale-105 [&:hover_svg]:text-white"
               >
                 <Plus className="h-4 w-4 mr-1.5" />
                 New Transfer
@@ -653,7 +653,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                   className={cn(
                     "flex-1 px-5 py-2.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all duration-300 uppercase tracking-wider font-['Courier_New',_monospace] flex items-center justify-center gap-2 relative",
                     activeView === tab.id
-                      ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                      ? "bg-blue-500 text-white"
                       : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   )}
                 >

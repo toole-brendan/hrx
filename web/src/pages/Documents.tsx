@@ -181,7 +181,7 @@ export default function Documents() {
               {/* Left side - Create actions */}
               <div className="flex items-center gap-2">
                 <Button
-                  className="bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg rounded-lg px-4 py-2 font-medium transition-all duration-200 flex items-center gap-2 border-0"
+                  className="bg-blue-500 text-white hover:bg-blue-600 rounded-lg px-4 py-2 font-medium transition-all duration-200 flex items-center gap-2 border-0"
                 >
                   <Plus className="h-4 w-4" />
                   New Document
@@ -318,7 +318,7 @@ export default function Documents() {
                       className={cn(
                         "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group",
                         isSelected
-                          ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-lg ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/20 after:to-transparent after:pointer-events-none after:rounded-lg"
+                          ? "bg-blue-500 text-white"
                           : "hover:bg-ios-tertiary-background text-ios-secondary-text hover:text-ios-primary-text"
                       )}
                     >
@@ -351,7 +351,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-gradient-to-b hover:from-blue-600 hover:to-blue-700 hover:text-white hover:border-blue-600 hover:shadow-lg hover:ring-1 hover:ring-white/10 hover:ring-inset text-ios-secondary-text font-normal transition-all duration-200"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Last 7 days
@@ -359,7 +359,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-gradient-to-b hover:from-blue-600 hover:to-blue-700 hover:text-white hover:border-blue-600 hover:shadow-lg hover:ring-1 hover:ring-white/10 hover:ring-inset text-ios-secondary-text font-normal transition-all duration-200"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Last 30 days
@@ -367,7 +367,7 @@ export default function Documents() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start border-ios-border hover:bg-gradient-to-b hover:from-blue-600 hover:to-blue-700 hover:text-white hover:border-blue-600 hover:shadow-lg hover:ring-1 hover:ring-white/10 hover:ring-inset text-ios-secondary-text font-normal transition-all duration-200"
+                    className="w-full justify-start border-ios-border hover:bg-blue-500 hover:text-white hover:border-blue-500 text-ios-secondary-text font-normal transition-all duration-200"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Custom range

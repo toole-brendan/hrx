@@ -198,7 +198,7 @@ const Sidebar = ({
         >
           {!sidebarCollapsed ? (
             <div className="flex items-center w-full">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-600 to-blue-700 flex items-center justify-center text-white text-sm font-semibold ring-1 ring-white/10 ring-inset mr-3 shadow-md transition-shadow duration-200">
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md transition-shadow duration-200">
                 {getUserInitials()}
               </div>
               <div className="flex-1">
@@ -209,7 +209,7 @@ const Sidebar = ({
             </div>
           ) : (
             <div className="flex justify-center w-full">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-600 to-blue-700 flex items-center justify-center text-white text-sm font-semibold ring-1 ring-white/10 ring-inset shadow-md group-hover:shadow-lg transition-shadow duration-200">
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold shadow-md group-hover:shadow-lg transition-shadow duration-200">
                 {getUserInitials()}
               </div>
             </div>
@@ -232,7 +232,7 @@ const Sidebar = ({
                 className={cn(
                   "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                   isActive(item.path) 
-                    ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-md ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/15 after:to-transparent after:pointer-events-none after:rounded-lg" 
+                    ? "bg-blue-500 text-white" 
                     : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
                 )}
               >
@@ -270,7 +270,7 @@ const Sidebar = ({
                   className={cn(
                     "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                     isActive(item.path) 
-                      ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-md ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/15 after:to-transparent after:pointer-events-none after:rounded-lg" 
+                      ? "bg-blue-500 text-white" 
                       : "text-gray-700 hover:bg-white/60"
                   )}
                 >
@@ -335,7 +335,7 @@ const Sidebar = ({
               className={cn(
                 "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                 isActive("/settings") 
-                  ? "bg-blue-500 text-white shadow-md" 
+                  ? "bg-blue-500 text-white" 
                   : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
               )}
             >
@@ -356,7 +356,7 @@ const Sidebar = ({
               className={cn(
                 "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                 isActive("/profile") 
-                  ? "bg-blue-500 text-white shadow-md" 
+                  ? "bg-blue-500 text-white" 
                   : "text-gray-700 hover:bg-white/60 hover:scale-[1.02]"
               )}
               onClick={() => handleLinkClick()}
@@ -431,7 +431,7 @@ const Sidebar = ({
         >
           {!sidebarCollapsed ? (
             <div className="flex items-center w-full">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-600 to-blue-700 flex items-center justify-center text-white text-sm font-semibold ring-1 ring-white/10 ring-inset mr-3 shadow-md transition-shadow duration-200">
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold mr-3 shadow-md transition-shadow duration-200">
                 {getUserInitials()}
               </div>
               <div className="flex-1">
@@ -444,7 +444,7 @@ const Sidebar = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex justify-center w-full">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-b from-blue-600 to-blue-700 flex items-center justify-center text-white text-sm font-semibold ring-1 ring-white/10 ring-inset shadow-md transition-shadow duration-200">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold shadow-md transition-shadow duration-200">
                     {getUserInitials()}
                   </div>
                 </div>
@@ -470,7 +470,7 @@ const Sidebar = ({
                   className={cn(
                     "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                     isActive(item.path) 
-                      ? "bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-md ring-1 ring-white/10 ring-inset relative after:absolute after:inset-0 after:bg-gradient-to-b after:from-white/15 after:to-transparent after:pointer-events-none after:rounded-lg" 
+                      ? "bg-blue-500 text-white" 
                       : "text-gray-700 hover:bg-white/60"
                   )}
                   onClick={() => item.onClick ? handleLinkClick(item.onClick) : undefined}
@@ -598,7 +598,7 @@ const Sidebar = ({
                         className={cn(
                           "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                           isActive("/settings") 
-                            ? "bg-ios-accent text-white shadow-md" 
+                            ? "bg-blue-500 text-white" 
                             : "text-gray-700 hover:bg-white/60"
                         )}
                         onClick={() => handleLinkClick()}
@@ -623,7 +623,7 @@ const Sidebar = ({
                     className={cn(
                       "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                       isActive("/settings") 
-                        ? "bg-ios-accent text-white shadow-md" 
+                        ? "bg-blue-500 text-white" 
                         : "text-gray-700 hover:bg-white/60"
                     )}
                     onClick={() => handleLinkClick()}
@@ -649,7 +649,7 @@ const Sidebar = ({
                         className={cn(
                           "relative flex items-center justify-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                           isActive("/profile") 
-                            ? "bg-ios-accent text-white shadow-md" 
+                            ? "bg-blue-500 text-white" 
                             : "text-gray-700 hover:bg-white/60"
                         )}
                         onClick={() => handleLinkClick()}
@@ -674,7 +674,7 @@ const Sidebar = ({
                     className={cn(
                       "relative flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
                       isActive("/profile") 
-                        ? "bg-ios-accent text-white shadow-md" 
+                        ? "bg-blue-500 text-white" 
                         : "text-gray-700 hover:bg-white/60"
                     )}
                     onClick={() => handleLinkClick()}
