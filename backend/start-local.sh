@@ -17,7 +17,7 @@ fi
 cd "$(dirname "$0")"
 
 # Create local data directories
-mkdir -p data/{postgres,immudb,minio}
+mkdir -p data/{postgres,minio}
 
 # Stop any existing containers
 echo "🛑 Stopping existing containers..."
@@ -25,7 +25,7 @@ docker-compose down
 
 # Start infrastructure services
 echo "🏗️  Starting infrastructure services..."
-docker-compose up -d postgres immudb minio
+docker-compose up -d postgres minio
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
@@ -55,11 +55,9 @@ export HANDRECEIPT_DATABASE_PORT=5432
 export HANDRECEIPT_DATABASE_USER=handreceipt
 export HANDRECEIPT_DATABASE_PASSWORD=handreceipt_password
 export HANDRECEIPT_DATABASE_NAME=handreceipt
-export HANDRECEIPT_IMMUDB_HOST=localhost
-export HANDRECEIPT_IMMUDB_PORT=3322
-export HANDRECEIPT_IMMUDB_USERNAME=immudb
-export HANDRECEIPT_IMMUDB_PASSWORD=immudb
-export HANDRECEIPT_IMMUDB_DATABASE=defaultdb
+# Ledger configuration (using PostgreSQL ledger tables)
+export HANDRECEIPT_LEDGER_TYPE=postgres
+export HANDRECEIPT_LEDGER_ENABLED=true
 export HANDRECEIPT_MINIO_ENDPOINT=localhost:9000
 export HANDRECEIPT_MINIO_ACCESS_KEY_ID=minioadmin
 export HANDRECEIPT_MINIO_SECRET_ACCESS_KEY=minioadmin123
@@ -92,7 +90,6 @@ echo ""
 echo "🌐 API Server: http://localhost:8080"
 echo "📊 MinIO Console: http://localhost:9001 (minioadmin/minioadmin123)"
 echo "🗄️  PostgreSQL: localhost:5432 (handreceipt/handreceipt_password)"
-echo "🔒 ImmuDB: localhost:3322"
 echo ""
 echo "📱 Test Endpoints:"
 echo "   - Health Check: curl http://localhost:8080/health"

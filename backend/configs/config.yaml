@@ -39,13 +39,9 @@ jwt:
 auth:
   session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
 
-# ImmuDB configuration - Using as immutable ledger instead of QLDB
-immudb:
-  host: "immudb"  # Using Docker service name
-  port: 3322
-  username: "immudb"
-  password: "IoSzNPyRqFueVGhN/4rSgg=="
-  database: "defaultdb"
+# Ledger configuration - Using Azure SQL Database ledger tables in production
+ledger:
+  type: "postgres"  # Can be "postgres" or "azure_sql"
   enabled: true
 
 # MinIO configuration for document storage

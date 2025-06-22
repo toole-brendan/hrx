@@ -40,14 +40,19 @@ jwt:
 auth:
   session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
 
-# ImmuDB configuration - Using as immutable ledger instead of AWS QLDB
-immudb:
-  host: "immudb"  # Docker service name
-  port: 3322
-  username: "immudb"
-  password: "IoSzNPyRqFueVGhN/4rSgg=="
-  database: "defaultdb"
+# Ledger configuration - Using PostgreSQL for immutable ledger
+ledger:
+  type: "postgres"
   enabled: true
+
+# ImmuDB configuration - DEPRECATED (replaced by ledger)
+# immudb:
+#   host: "immudb"  # Docker service name
+#   port: 3322
+#   username: "immudb"
+#   password: "IoSzNPyRqFueVGhN/4rSgg=="
+#   database: "defaultdb"
+#   enabled: true
 
 # MinIO configuration for document/photo storage
 minio:

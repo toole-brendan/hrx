@@ -19,7 +19,7 @@ Sprint 1-2 focused on completing the core end-to-end flow for property creation,
   - Returns created property with server-assigned ID
 
 #### Backend Support
-- Property creation endpoint properly logs to immutable ledger
+- Property creation endpoint properly logs to Azure SQL ledger tables
 - Returns transaction ID in response headers for audit trail
 
 ### 2. Wire React Admin to Live API ✅
@@ -67,7 +67,7 @@ Sprint 1-2 focused on completing the core end-to-end flow for property creation,
   - Full end-to-end test suite
   - Tests complete property lifecycle
   - Mock implementations for testing:
-    - `MockLedgerService` for in-memory ledger
+    - `MockLedgerService` for in-memory ledger simulation
     - Test database utilities
     - Test configuration
 
@@ -82,7 +82,7 @@ Sprint 1-2 focused on completing the core end-to-end flow for property creation,
 
 1. **Offline-First Architecture**: iOS app can create items offline and sync when connected
 2. **Real-time Updates**: React admin UI reflects changes immediately
-3. **Immutable Audit Trail**: All actions logged to ledger with verification
+3. **Immutable Audit Trail**: All actions logged to Azure SQL ledger tables with cryptographic verification
 4. **Comprehensive Testing**: Multiple test layers ensure reliability
 
 ## Technical Debt & Future Improvements

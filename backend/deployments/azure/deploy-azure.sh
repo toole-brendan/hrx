@@ -203,15 +203,7 @@ update_container_apps_configs() {
 deploy_container_apps() {
     print_status "Deploying Container Apps..."
     
-    # Deploy ImmuDB first (as it's a dependency)
-    print_status "Deploying ImmuDB..."
-    az containerapp create \
-        --resource-group "$RESOURCE_GROUP" \
-        --yaml container-apps/immudb.yml
-    
-    # Wait for ImmuDB to be ready
-    print_status "Waiting for ImmuDB to be ready..."
-    sleep 30
+    # No need to deploy ImmuDB - using Azure SQL Database ledger tables instead
     
     # Deploy backend API
     print_status "Deploying backend API..."

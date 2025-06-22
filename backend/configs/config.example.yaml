@@ -19,13 +19,19 @@ jwt:
   access_expiry: "24h"
   refresh_expiry: "168h"
 
-immudb:
-  host: "localhost"
-  port: 3322
-  username: "immudb"
-  password: "immudb"
-  database: "defaultdb"
+# Ledger configuration - Choose postgres or azure_sql
+ledger:
+  type: "postgres"  # or "azure_sql" for Azure deployment
   enabled: true
+
+# ImmuDB configuration - DEPRECATED (replaced by ledger)
+# immudb:
+#   host: "localhost"
+#   port: 3322
+#   username: "immudb"
+#   password: "immudb"
+#   database: "defaultdb"
+#   enabled: true
 
 minio:
   endpoint: "localhost:9000"

@@ -43,19 +43,11 @@ properties:
           - name: HANDRECEIPT_DATABASE_PASSWORD
             secretRef: postgres-password
           
-          # ImmuDB Configuration
-          - name: HANDRECEIPT_IMMUDB_HOST
-            value: "immudb"
-          - name: HANDRECEIPT_IMMUDB_PORT
-            value: "3322"
-          - name: HANDRECEIPT_IMMUDB_USERNAME
-            value: "immudb"
-          - name: HANDRECEIPT_IMMUDB_DATABASE
-            value: "defaultdb"
-          - name: HANDRECEIPT_IMMUDB_ENABLED
+          # Ledger Configuration - Using Azure SQL Database ledger tables
+          - name: HANDRECEIPT_LEDGER_TYPE
+            value: "azure_sql"
+          - name: HANDRECEIPT_LEDGER_ENABLED
             value: "true"
-          - name: HANDRECEIPT_IMMUDB_PASSWORD
-            secretRef: immudb-password
           
           # Storage Configuration
           - name: HANDRECEIPT_STORAGE_TYPE

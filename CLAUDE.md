@@ -9,8 +9,8 @@ HandReceipt is a military-grade property accountability system for tracking equi
 - React web frontend (TypeScript, Vite, Tailwind CSS)
 - Native iOS app (SwiftUI)
 - Native Android app (Kotlin, Jetpack Compose)
-- PostgreSQL database with ImmuDB for immutable audit trails
-- MinIO for S3-compatible object storage
+- PostgreSQL database with Azure SQL Database ledger tables for immutable audit trails
+- MinIO for S3-compatible object storage (Azure Blob Storage in production)
 
 ## Essential Commands
 
@@ -58,13 +58,13 @@ The Go backend follows a clean architecture pattern:
 - `internal/api/` - HTTP handlers and routes
 - `internal/domain/` - Core domain models
 - `internal/services/` - Business logic services
-- `internal/ledger/` - ImmuDB integration for immutable records
+- `internal/ledger/` - Azure SQL Database ledger integration for immutable records
 - `internal/publog/` - NSN (National Stock Number) integration
 
 ### Key Services
 - **Auth Service**: JWT-based authentication with session management
 - **Transfer Service**: Manages property transfers between users with approval workflow
-- **Ledger Service**: Immutable audit trail using ImmuDB
+- **Ledger Service**: Immutable audit trail using Azure SQL Database ledger tables
 - **PDF Service**: DA Form 2062 generation and export
 - **OCR Service**: Document scanning and text extraction
 - **QR Service**: QR code generation for items
@@ -120,7 +120,7 @@ Main entities managed by Drizzle ORM:
 
 ## Important Considerations
 
-- **Immutability**: All property records and transfers are recorded in ImmuDB for audit compliance
+- **Immutability**: All property records and transfers are recorded in Azure SQL Database ledger tables for audit compliance
 - **Security**: JWT authentication, user connections for transfers, role-based access
 - **Military Standards**: Follows DA Form 2062 standards for hand receipts
 - **NSN Integration**: Requires PUBLOG data files for equipment lookup

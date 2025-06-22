@@ -1,7 +1,7 @@
 # DA2062 Import Feature - Enhancement Summary
 
 ## Overview
-The DA2062 import feature has been fully fleshed out with comprehensive Azure Computer Vision integration and Azure Immutable Ledger logging. This document outlines all the enhancements made to ensure robust property import with full audit trail compliance.
+The DA2062 import feature has been fully fleshed out with comprehensive Azure Computer Vision integration and Azure SQL Database ledger table logging. This document outlines all the enhancements made to ensure robust property import with full audit trail compliance.
 
 ## 🚀 Key Features Implemented
 
@@ -10,7 +10,7 @@ The DA2062 import feature has been fully fleshed out with comprehensive Azure Co
 - **Local Vision Framework**: Fallback option for offline or network-constrained scenarios
 - **Toggle Switch**: Users can switch between OCR modes based on preference/connectivity
 
-### 2. **Azure Immutable Ledger Integration**
+### 2. **Azure SQL Database Ledger Integration**
 - **Individual Property Logging**: Each property creation is logged separately to the ledger
 - **Batch Import Events**: Comprehensive import events logged with metadata
 - **Audit Trail**: Complete chain of custody from scan to property creation
@@ -158,7 +158,7 @@ type ImportMetadata struct {
 - 🟠 **Local Vision Framework**: On-device processing (Fallback)
 
 ### Ledger Status
-- ✅ **Logged**: Successfully logged to Azure Immutable Ledger
+- ✅ **Logged**: Successfully logged to Azure SQL ledger tables
 - ⚠️ **Warning**: Logged with warnings (check details)
 - ❌ **Failed**: Ledger logging failed (manual intervention required)
 
@@ -230,6 +230,6 @@ AZURE_COMPUTER_VISION_KEY=your_key_here
 
 ## 🏁 Conclusion
 
-The DA2062 import feature is now fully fleshed out with enterprise-grade Azure integration and comprehensive audit trail logging. The implementation provides a robust, scalable, and compliant solution for military property management with full traceability and error recovery capabilities.
+The DA2062 import feature is now fully fleshed out with enterprise-grade Azure integration and comprehensive audit trail logging via Azure SQL ledger tables. The implementation provides a robust, scalable, and compliant solution for military property management with full traceability and error recovery capabilities.
 
 **Status**: ✅ **COMPLETE** - Ready for production deployment

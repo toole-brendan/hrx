@@ -22,23 +22,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # ImmuDB Ledger Database
-  immudb:
-    image: codenotary/immudb:latest
-    container_name: handreceipt-immudb
-    environment:
-      IMMUDB_ADMIN_PASSWORD: immudb_admin
-    ports:
-      - "3322:3322"
-    volumes:
-      - immudb_data:/var/lib/immudb
-    networks:
-      - handreceipt-network
-    healthcheck:
-      test: ["CMD", "immuadmin", "status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # ImmuDB service removed - using PostgreSQL/Azure SQL Database ledger tables instead
 
   # MinIO Object Storage
   minio:
@@ -79,13 +63,9 @@ services:
       HANDRECEIPT_SERVER_PORT: 8080
       HANDRECEIPT_SERVER_ENVIRONMENT: development
       
-      # ImmuDB Configuration
-      HANDRECEIPT_IMMUDB_HOST: immudb
-      HANDRECEIPT_IMMUDB_PORT: 3322
-      HANDRECEIPT_IMMUDB_USERNAME: immudb
-      HANDRECEIPT_IMMUDB_PASSWORD: immudb
-      HANDRECEIPT_IMMUDB_DATABASE: defaultdb
-      HANDRECEIPT_IMMUDB_ENABLED: true
+      # Ledger Configuration
+      HANDRECEIPT_LEDGER_TYPE: postgres
+      HANDRECEIPT_LEDGER_ENABLED: true
       
       # MinIO Configuration
       HANDRECEIPT_MINIO_ENDPOINT: minio:9000
@@ -101,8 +81,6 @@ services:
       - "8080:8080"
     depends_on:
       postgres:
-        condition: service_healthy
-      immudb:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -125,17 +103,11 @@ services:
       HANDRECEIPT_DATABASE_PASSWORD: cvOrf7fVpmyxvnkqeKOo5g==
       HANDRECEIPT_DATABASE_NAME: handreceipt
       
-      # ImmuDB Configuration
-      HANDRECEIPT_IMMUDB_HOST: immudb
-      HANDRECEIPT_IMMUDB_PORT: 3322
-      HANDRECEIPT_IMMUDB_USERNAME: immudb
-      HANDRECEIPT_IMMUDB_PASSWORD: immudb
-      HANDRECEIPT_IMMUDB_DATABASE: defaultdb
-      HANDRECEIPT_IMMUDB_ENABLED: true
+      # Ledger Configuration
+      HANDRECEIPT_LEDGER_TYPE: postgres
+      HANDRECEIPT_LEDGER_ENABLED: true
     depends_on:
       postgres:
-        condition: service_healthy
-      immudb:
         condition: service_healthy
     networks:
       - handreceipt-network
@@ -144,8 +116,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
-  immudb_data:
     driver: local
   minio_data:
     driver: local

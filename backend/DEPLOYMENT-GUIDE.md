@@ -59,7 +59,7 @@ After the setup completes, verify everything is running:
 docker-compose ps
 ```
 
-You should see all services (app, postgres, immudb, minio, nginx) running.
+You should see all services (app, postgres, minio, nginx) running.
 
 ### Step 5: Test the API
 

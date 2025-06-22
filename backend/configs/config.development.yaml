@@ -44,9 +44,9 @@ auth:
 ledger:
   enabled: false
 
-# ImmuDB configuration - Disabled for local development
-immudb:
-  enabled: false
+# ImmuDB configuration - DEPRECATED (replaced by ledger)
+# immudb:
+#   enabled: false
 
 # MinIO configuration - Local development
 minio:

@@ -39,8 +39,9 @@ jwt:
 auth:
   session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
 
-# ImmuDB configuration - Disabled for local development
-immudb:
+# Ledger configuration - Disabled for local development
+ledger:
+  type: "postgres"
   enabled: false
 
 # MinIO configuration - Disabled for local development

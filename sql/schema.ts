@@ -141,13 +141,13 @@ export const offlineSyncQueue = pgTable("offline_sync_queue", {
   syncedAt: timestamp("synced_at"),
 });
 
-// ImmuDB References Table - For audit trail integration
-export const immudbReferences = pgTable("immudb_references", {
+// Ledger References Table - For audit trail integration with Azure SQL Database ledger tables
+export const ledgerReferences = pgTable("ledger_references", {
   id: serial("id").primaryKey(),
   entityType: text("entity_type").notNull(),
   entityId: integer("entity_id").notNull(),
-  immudbKey: text("immudb_key").notNull(),
-  immudbIndex: bigint("immudb_index", { mode: "number" }).notNull(),
+  ledgerTransactionId: text("ledger_transaction_id").notNull(),
+  ledgerSequenceNumber: bigint("ledger_sequence_number", { mode: "number" }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -249,8 +249,8 @@ export type InsertAttachment = typeof attachments.$inferInsert;
 export type OfflineSyncQueue = typeof offlineSyncQueue.$inferSelect;
 export type InsertOfflineSyncQueue = typeof offlineSyncQueue.$inferInsert;
 
-export type ImmudbReference = typeof immudbReferences.$inferSelect;
-export type InsertImmudbReference = typeof immudbReferences.$inferInsert;
+export type LedgerReference = typeof ledgerReferences.$inferSelect;
+export type InsertLedgerReference = typeof ledgerReferences.$inferInsert;
 
 // Catalog Update Types
 

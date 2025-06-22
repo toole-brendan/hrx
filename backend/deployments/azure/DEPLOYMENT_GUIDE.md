@@ -9,7 +9,7 @@ The migration involves moving from a single Lightsail VM running Docker Compose 
 - **AWS Lightsail VM** → **Azure Container Apps**
 - **PostgreSQL (container)** → **Azure Database for PostgreSQL Flexible Server**
 - **MinIO (container)** → **Azure Blob Storage**
-- **ImmuDB (container)** → **ImmuDB on Azure Container Apps** (with persistent storage)
+- **ImmuDB (container)** → **Azure SQL Database ledger tables** (immutable audit trail)
 - **Nginx (container)** → **Azure Container Apps ingress** (built-in SSL/TLS)
 - **Prometheus/Grafana** → **Azure Monitor + Application Insights**
 
@@ -151,7 +151,7 @@ chmod +x migrate-data.sh
 This script will:
 - Backup PostgreSQL database from Lightsail
 - Restore database to Azure PostgreSQL
-- Backup ImmuDB data from Lightsail
+- Migrate audit data to Azure SQL ledger tables
 - Migrate MinIO files to Azure Blob Storage
 - Generate a migration report
 
@@ -186,18 +186,23 @@ The deployment script should have already configured Key Vault secrets, but veri
 az keyvault secret list --vault-name handreceipt-prod-kv --output table
 ```
 
-### 4.2 Restore ImmuDB Data (Manual Step)
+### 4.2 Verify Ledger Tables
 
-ImmuDB data needs to be manually restored to the Azure Container Apps instance:
+Verify that Azure SQL ledger tables are properly configured:
 
 ```bash
-# Get the ImmuDB backup file from migration
-IMMUDB_BACKUP=$(ls immudb_backup_*.tar.gz | head -1)
+# Connect to Azure SQL Database
+PGPASSWORD=$AZURE_POSTGRES_PASSWORD psql \
+  -h $AZURE_POSTGRES_HOST \
+  -U $AZURE_POSTGRES_USER \
+  -d $AZURE_POSTGRES_DB \
+  -c "SELECT * FROM sys.database_ledger_transactions LIMIT 5;"
 
-# Copy to Azure Container Apps (this requires additional setup)
-# For now, you may need to manually restore ImmuDB data
-echo "ImmuDB backup file: $IMMUDB_BACKUP"
-echo "Manual restoration required - see ImmuDB documentation"
+# Verify ledger digest
+az sql db ledger-digest-uploads show \
+  --resource-group $RESOURCE_GROUP \
+  --server handreceipt-prod-sql \
+  --database handreceipt
 ```
 
 ## Step 5: Configure DNS and SSL
@@ -258,7 +263,7 @@ Expected response:
 1. **Authentication**: Test login/register endpoints
 2. **Database**: Verify property and user data
 3. **File Storage**: Test photo upload/download
-4. **ImmuDB**: Verify ledger functionality
+4. **Ledger Tables**: Verify Azure SQL ledger functionality
 5. **Mobile Apps**: Update API endpoints in mobile apps
 
 ### 6.3 Performance Testing
@@ -394,10 +399,10 @@ Once everything is verified working on Azure:
    - Check container permissions
    - Test blob operations
 
-4. **ImmuDB connection issues**
-   - Check internal networking
-   - Verify ImmuDB container is running
-   - Check persistent storage mount
+4. **Ledger table issues**
+   - Verify ledger tables are enabled
+   - Check Azure SQL permissions
+   - Review ledger transaction logs
 
 ### Getting Help
 

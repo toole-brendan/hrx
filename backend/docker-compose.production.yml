@@ -15,12 +15,8 @@ services:
       - HANDRECEIPT_DATABASE_USER=handreceipt
       - HANDRECEIPT_DATABASE_PASSWORD=cvOrf7fVpmyxvnkqeKOo5g==
       - HANDRECEIPT_DATABASE_NAME=handreceipt
-      - HANDRECEIPT_IMMUDB_HOST=immudb
-      - HANDRECEIPT_IMMUDB_PORT=3322
-      - HANDRECEIPT_IMMUDB_USERNAME=immudb
-      - HANDRECEIPT_IMMUDB_PASSWORD=IoSzNPyRqFueVGhN/4rSgg==
-      - HANDRECEIPT_IMMUDB_DATABASE=defaultdb
-      - HANDRECEIPT_IMMUDB_ENABLED=true
+      - HANDRECEIPT_LEDGER_TYPE=postgres
+      - HANDRECEIPT_LEDGER_ENABLED=true
       - HANDRECEIPT_MINIO_ENDPOINT=minio:9000
       - HANDRECEIPT_MINIO_ACCESS_KEY_ID=handreceipt-minio
       - HANDRECEIPT_MINIO_SECRET_ACCESS_KEY=XQ/rycTvT6EbYfVLNQKEU1wk+GE=
@@ -32,7 +28,6 @@ services:
       - HANDRECEIPT_SERVER_ENVIRONMENT=production
     depends_on:
       - postgres
-      - immudb
       - minio
     restart: unless-stopped
     networks:
@@ -53,21 +48,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
-    networks:
-      - handreceipt-network
-
-  immudb:
-    image: codenotary/immudb:1.4.1
-    ports:
-      - "3322:3322"
-      - "9497:9497"
-    volumes:
-      - immudb_data:/var/lib/immudb
-    environment:
-      IMMUDB_ADDRESS: "0.0.0.0"
-      IMMUDB_PORT: "3322"
-      IMMUDB_ADMIN_PASSWORD: "IoSzNPyRqFueVGhN/4rSgg=="
     restart: unless-stopped
     networks:
       - handreceipt-network
@@ -103,12 +83,8 @@ services:
       - HANDRECEIPT_DATABASE_USER=handreceipt
       - HANDRECEIPT_DATABASE_PASSWORD=cvOrf7fVpmyxvnkqeKOo5g==
       - HANDRECEIPT_DATABASE_NAME=handreceipt
-      - HANDRECEIPT_IMMUDB_HOST=immudb
-      - HANDRECEIPT_IMMUDB_PORT=3322
-      - HANDRECEIPT_IMMUDB_USERNAME=immudb
-      - HANDRECEIPT_IMMUDB_PASSWORD=IoSzNPyRqFueVGhN/4rSgg==
-      - HANDRECEIPT_IMMUDB_DATABASE=defaultdb
-      - HANDRECEIPT_IMMUDB_ENABLED=true
+      - HANDRECEIPT_LEDGER_TYPE=postgres
+      - HANDRECEIPT_LEDGER_ENABLED=true
       - HANDRECEIPT_MINIO_ENDPOINT=minio:9000
       - HANDRECEIPT_MINIO_ACCESS_KEY_ID=handreceipt-minio
       - HANDRECEIPT_MINIO_SECRET_ACCESS_KEY=XQ/rycTvT6EbYfVLNQKEU1wk+GE=
@@ -119,7 +95,6 @@ services:
       - HANDRECEIPT_SERVER_ENVIRONMENT=production
     depends_on:
       - postgres
-      - immudb
       - minio
     restart: unless-stopped
     networks:
@@ -127,7 +102,6 @@ services:
 
 volumes:
   postgres_data:
-  immudb_data:
   minio_data:
 
 networks:

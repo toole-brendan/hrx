@@ -17,7 +17,7 @@ cd "$(dirname "$0")"
 
 # Start only the essential services with docker-compose
 echo "🏗️  Starting database and storage services..."
-docker-compose up -d postgres immudb minio
+docker-compose up -d postgres minio
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
@@ -47,7 +47,8 @@ export HANDRECEIPT_SERVER_ENVIRONMENT=development
 export HANDRECEIPT_JWT_SECRET_KEY=dev-secret-key-change-in-production
 
 # Optional services (can be disabled for minimal setup)
-export HANDRECEIPT_IMMUDB_ENABLED=false
+export HANDRECEIPT_LEDGER_TYPE=postgres
+export HANDRECEIPT_LEDGER_ENABLED=false
 export HANDRECEIPT_MINIO_ENABLED=false
 
 # CORS settings for local development

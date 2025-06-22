@@ -197,7 +197,7 @@ GET /api/dashboard/summary
 - ✅ Removed verification features and API calls
 - ✅ Removed blockchain integration code
 - ✅ Removed maintenance form components
-- ⚠️ ImmuDB references (Note: ImmuDB is used on backend for audit trail, not frontend)
+- ⚠️ Ledger references (Note: Azure SQL Database ledger tables are used on backend for audit trail, not frontend)
 
 ### 5. Real-Time Updates Implementation
 **Short-term**: Polling

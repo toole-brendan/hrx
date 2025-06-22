@@ -26,14 +26,10 @@ storage:
 minio:
   enabled: false
 
-# Enable ImmuDB for immutable audit trail
-immudb:
+# Ledger configuration - Using Azure SQL Database ledger tables
+ledger:
+  type: "azure_sql"
   enabled: true
-  host: ""  # Uses HANDRECEIPT_IMMUDB_HOST env var
-  port: 3322
-  username: "immudb"
-  password: ""  # Uses HANDRECEIPT_IMMUDB_PASSWORD env var
-  database: "defaultdb"
 
 # Azure OCR Configuration
 ocr:

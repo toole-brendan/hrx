@@ -1,13 +1,13 @@
 # HandReceipt Go Backend
 
-This is the Go backend for the HandReceipt application, providing API services for military property accountability and supply chain management with ImmuDB integration for immutable record-keeping.
+This is the Go backend for the HandReceipt application, providing API services for military property accountability and supply chain management with Azure SQL Database ledger tables for immutable record-keeping.
 
 ## Features
 
 - RESTful API for users, inventory items, transfers, and activities
 - Secure authentication with JWT and session management
 - PostgreSQL database for storing relational data
-- ImmuDB integration for immutable audit trail of all transactions
+- Azure SQL Database ledger tables for immutable audit trail of all transactions
 - MinIO for S3-compatible document and photo storage
 - Docker and Docker Compose configuration for easy development and deployment
 - NSN (National Stock Number) lookup service integration
@@ -18,7 +18,7 @@ The backend uses a microservices architecture with the following components:
 
 - **Backend API** (Go/Gin) - Main application server on port 8080
 - **PostgreSQL** - Primary relational database for current state
-- **ImmuDB** - Immutable ledger for audit trail (replaces AWS QLDB)
+- **Azure SQL Database** - Primary database with ledger tables for immutable audit trail
 - **MinIO** - S3-compatible object storage for photos and documents
 - **Nginx** - Reverse proxy with SSL termination
 
@@ -47,7 +47,7 @@ The backend uses a microservices architecture with the following components:
 
    This will start:
    - PostgreSQL database on port 5432
-   - ImmuDB on ports 3322 (gRPC) and 9497 (metrics)
+   - Azure SQL Database connection (via configuration)
    - MinIO on ports 9000 (API) and 9001 (console)
    - Go API server on port 8080
    - Nginx proxy on ports 80/443
@@ -71,7 +71,7 @@ The backend uses a microservices architecture with the following components:
 
 3. **Set up services**
 
-   You'll need to run PostgreSQL, ImmuDB, and MinIO locally or update the config to point to external instances.
+   You'll need to run PostgreSQL and MinIO locally or update the config to point to external instances. For Azure SQL Database, configure the connection string.
 
 4. **Configure the application**
 
@@ -85,12 +85,9 @@ The backend uses a microservices architecture with the following components:
      password: "your_db_password"
      name: "handreceipt"
    
-   immudb:
-     host: "localhost"
-     port: 3322
-     username: "immudb"
-     password: "immudb"
-     enabled: true
+   azure_sql:
+     connection_string: "your_azure_sql_connection_string"
+     ledger_enabled: true
    
    minio:
      endpoint: "localhost:9000"
@@ -139,7 +136,7 @@ The application is deployed on AWS Lightsail with the following configuration:
 - **GET /api/inventory/:id/qrcodes** - Get QR codes for item
 - **GET /api/inventory/user/:userId** - Get items by user
 - **GET /api/inventory/serial/:serialNumber** - Get item by serial number
-- **GET /api/inventory/history/:serialNumber** - Get item history from ImmuDB
+- **GET /api/inventory/history/:serialNumber** - Get item history from ledger tables
 
 ### Transfers
 
@@ -187,12 +184,9 @@ HANDRECEIPT_DATABASE_USER=handreceipt
 HANDRECEIPT_DATABASE_PASSWORD=your_password
 HANDRECEIPT_DATABASE_NAME=handreceipt
 
-# ImmuDB
-HANDRECEIPT_IMMUDB_HOST=immudb
-HANDRECEIPT_IMMUDB_PORT=3322
-HANDRECEIPT_IMMUDB_USERNAME=immudb
-HANDRECEIPT_IMMUDB_PASSWORD=your_password
-HANDRECEIPT_IMMUDB_ENABLED=true
+# Azure SQL Database
+HANDRECEIPT_AZURE_SQL_CONNECTION_STRING=your_connection_string
+HANDRECEIPT_AZURE_SQL_LEDGER_ENABLED=true
 
 # MinIO
 HANDRECEIPT_MINIO_ENDPOINT=minio:9000
@@ -222,7 +216,7 @@ go test ./... -tags=integration
 ## Monitoring
 
 The application exposes metrics for Prometheus at:
-- ImmuDB metrics: http://localhost:9497/metrics
+- Azure SQL Database metrics: Available through Azure Monitor
 - Application metrics: (coming soon)
 
 ## Contributing

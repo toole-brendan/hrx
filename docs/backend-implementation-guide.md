@@ -132,7 +132,7 @@ func (h *TransferHandler) InitiateTransferByQR(c *gin.Context) {
         return
     }
     
-    // 5. Log to immutable ledger
+    // 5. Log to Azure SQL ledger table
     h.ledger.LogTransferEvent(transfer, property.SerialNumber)
     
     // 6. Send notification to current holder
@@ -197,7 +197,7 @@ func (h *TransferHandler) UpdateTransferStatus(c *gin.Context) {
         h.repo.DeactivateQRCodesForProperty(property.ID)
     }
     
-    // Log to ledger
+    // Log to Azure SQL ledger table
     h.ledger.LogTransferEvent(transfer, property.SerialNumber)
     
     c.JSON(200, transfer)

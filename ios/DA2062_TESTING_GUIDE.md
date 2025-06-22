@@ -24,7 +24,7 @@ This guide covers how to test the fully enhanced DA2062 import feature with Azur
 ### 4. **Comprehensive Ledger Logging**
 - **Individual Property Logging**: Each property creation logged separately
 - **Import Event Logging**: Batch imports logged with full metadata
-- **Audit Trail**: Complete chain of custody from scan to database
+- **Audit Trail**: Complete chain of custody from scan to database via Azure SQL ledger tables
 
 ## 📱 **Testing in iOS Simulator**
 
@@ -54,7 +54,7 @@ Watch for these progress phases:
 3. **Parsing Items** → Converting OCR to structured data
 4. **Validating** → Checking data quality
 5. **Enriching** → NSN lookups and metadata enhancement
-6. **Creating & Logging** → Property creation with ledger logging
+6. **Creating & Logging** → Property creation with Azure SQL ledger logging
 7. **Complete** → Success summary with statistics
 
 ## 🔄 **Testing Scenarios**
@@ -180,7 +180,7 @@ Watch for these progress phases:
 ✅ Converting OCR results...
 ✅ Creating property records with ledger logging...
 ✅ Import completed! 5 items created
-✅ Logged to Azure Immutable Ledger
+✅ Logged to Azure SQL ledger tables
 ```
 
 ### **Successful Local OCR Test**
@@ -200,7 +200,7 @@ Watch for these progress phases:
 ❌ 2 items failed due to errors:
    - Duplicate serial number: W123456789
    - Invalid NSN format: 1005-01-XXX-0973
-✅ Logged to Azure Immutable Ledger
+✅ Logged to Azure SQL ledger tables
 ```
 
 ## 🔧 **Troubleshooting**
@@ -217,7 +217,7 @@ Watch for these progress phases:
    - Solution: Expected behavior, check existing inventory
 
 4. **"Failed to log to ledger"**
-   - Solution: Check backend connectivity and Azure configuration
+   - Solution: Check backend connectivity and Azure SQL configuration
 
 ### **Debug Information**
 
@@ -225,7 +225,7 @@ The app logs detailed information to the Xcode console:
 ```
 DEBUG: [DA2062ImportViewModel] Azure OCR processing started
 DEBUG: [APIService] Uploading to /api/da2062/upload
-DEBUG: [DA2062ImportViewModel] ✅ Logged DA2062 property creation to immutable ledger
+DEBUG: [DA2062ImportViewModel] ✅ Logged DA2062 property creation to Azure SQL ledger tables
 ```
 
 ## 📝 **Test Checklist**
@@ -250,7 +250,7 @@ The feature is working correctly when:
 1. **Flexibility**: Both Azure and local OCR modes functional
 2. **Reliability**: Automatic fallback and error recovery
 3. **Transparency**: Clear progress and status reporting
-4. **Compliance**: All actions logged to Azure Immutable Ledger
+4. **Compliance**: All actions logged to Azure SQL ledger tables
 5. **Usability**: Intuitive testing and import workflow
 
 ## 📞 **Support**

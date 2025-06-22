@@ -30,12 +30,7 @@ This directory contains integration tests for the HandReceipt application, cover
      postgres:14
    ```
 
-2. Ensure ImmuDB is running (optional for mock tests):
-   ```bash
-   docker run -d --name immudb \
-     -p 3322:3322 \
-     codenotary/immudb:latest
-   ```
+2. Ensure Azure SQL Database connection is configured (or use local SQL Server with ledger tables enabled)
 
 ### Running Go Integration Tests
 ```bash

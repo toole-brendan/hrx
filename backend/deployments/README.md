@@ -7,7 +7,7 @@ HandReceipt uses a microservices architecture with the following components:
 ### Core Services
 - **Backend API** (Go/Gin) - Main application server on port 8080
 - **PostgreSQL** - Primary relational database for user data, properties, and transfers
-- **ImmuDB** - Immutable ledger for audit trail (replaces AWS QLDB)
+- **Azure SQL Database** - Primary database with ledger tables for immutable audit trail
 - **MinIO** - S3-compatible object storage for photos and documents
 - **Nginx** - Reverse proxy and load balancer
 
@@ -17,17 +17,17 @@ HandReceipt uses a microservices architecture with the following components:
 
 ## Key Architecture Decisions
 
-### Why ImmuDB instead of AWS QLDB?
-- **Self-hosted**: Complete control over data and infrastructure
-- **Cost-effective**: No AWS service charges
-- **Open source**: Community support and transparency
-- **Immutable ledger**: Cryptographic proof of data integrity
-- **Performance**: Lower latency for on-premise deployments
+### Why Azure SQL Database Ledger Tables?
+- **Native Azure integration**: Seamless integration with Azure services
+- **Immutable ledger**: Built-in cryptographic proof of data integrity
+- **Simplified architecture**: Single database for both relational data and audit trail
+- **Enterprise support**: Full Microsoft support and compliance certifications
+- **Performance**: Optimized for cloud deployments with global scale
 
 ### Database Strategy
-- **PostgreSQL**: Primary data store for current state
-- **ImmuDB**: Immutable audit trail for all changes
-- **Dual-write pattern**: Write to both databases for consistency
+- **Azure SQL Database**: Primary data store with ledger tables
+- **Ledger tables**: Immutable audit trail integrated within the same database
+- **Simplified pattern**: Single write operation with automatic audit trail
 
 ## Deployment Environments
 
@@ -62,15 +62,13 @@ jwt:
   refresh_expiry: "168h"
 ```
 
-#### ImmuDB Configuration
+#### Azure SQL Database Configuration
 ```yaml
-immudb:
-  host: "immudb"  # Docker service name
-  port: 3322
-  username: "immudb"
-  password: "SECURE_PASSWORD"
-  database: "defaultdb"
-  enabled: true
+azure_sql:
+  connection_string: "Server=tcp:your-server.database.windows.net,1433;Database=handreceipt;Authentication=Active Directory Default;"
+  ledger_enabled: true
+  max_retries: 3
+  retry_delay: "5s"
 ```
 
 #### Database Configuration
@@ -121,7 +119,7 @@ docker-compose up -d
 ### Health Checks
 - API Health: `https://api.handreceipt.com/health`
 - Database: `docker exec backend_postgres_1 pg_isready`
-- ImmuDB: Check port 3322 connectivity
+- Azure SQL: Monitor through Azure Portal metrics
 - MinIO: Console at port 9001
 
 ### Logs
@@ -131,12 +129,12 @@ docker-compose logs -f
 
 # Specific service logs
 docker-compose logs -f app
-docker-compose logs -f immudb
+# Azure SQL logs available through Azure Monitor
 ```
 
 ### Backup Strategy
 1. **PostgreSQL**: Daily pg_dump backups
-2. **ImmuDB**: Immutable by design, replicate for DR
+2. **Azure SQL Ledger**: Automatic geo-replication and point-in-time restore
 3. **MinIO**: Bucket replication to S3
 
 ## Troubleshooting
@@ -154,7 +152,7 @@ docker-compose logs -f immudb
 3. **Port Conflicts**
    - App: 8080
    - PostgreSQL: 5432
-   - ImmuDB: 3322, 9497
+   - Azure SQL: 1433 (managed by Azure)
    - MinIO: 9000, 9001
 
 ### Emergency Recovery
@@ -175,7 +173,7 @@ docker-compose up -d
 2. **Enable SSL/TLS** for all external connections
 3. **Configure firewall** to restrict access
 4. **Regular security updates** for base images
-5. **Audit logs** via ImmuDB for compliance
+5. **Audit logs** via Azure SQL ledger tables for compliance
 
 ## Future Enhancements
 

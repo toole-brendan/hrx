@@ -7,7 +7,7 @@ This guide walks through migrating the HandReceipt application from AWS Lightsai
 ### Current Lightsail Stack
 - Docker Compose on single VM
 - PostgreSQL (containerized)
-- ImmuDB (containerized) 
+- Azure SQL Database with ledger tables 
 - MinIO (containerized)
 - Nginx (containerized)
 - Go Backend + Worker (containerized)
@@ -17,7 +17,7 @@ This guide walks through migrating the HandReceipt application from AWS Lightsai
 - **Azure Container Apps** - Host application containers
 - **Azure Database for PostgreSQL Flexible Server** - Managed PostgreSQL
 - **Azure Blob Storage** - Replace MinIO object storage
-- **ImmuDB** - Continue in container (no Azure equivalent)
+- **Azure SQL Database** - Ledger tables for immutable audit trail
 - **Azure Application Gateway** - Replace Nginx (optional)
 - **Azure Monitor + Application Insights** - Replace Prometheus/Grafana
 
@@ -53,10 +53,9 @@ This guide walks through migrating the HandReceipt application from AWS Lightsai
 │  │ │ Backend API │ │  │ │              │ │                 │
 │  │ └─────────────┘ │  │ └──────────────┘ │                 │
 │  │                 │  └──────────────────┘                 │
-│  │ ┌─────────────┐ │                                       │
-│  │ │   ImmuDB    │ │  ┌──────────────────┐                 │
-│  │ │  Container  │ │  │   Blob Storage   │                 │
-│  │ └─────────────┘ │  │                  │                 │
+│  │                 │  ┌──────────────────┐                 │
+│  │                 │  │   Blob Storage   │                 │
+│  │                 │  │                  │                 │
 │  │                 │  │ ┌──────────────┐ │                 │
 │  │ ┌─────────────┐ │  │ │  Documents   │ │                 │
 │  │ │   Worker    │ │  │ │  Container   │ │                 │
@@ -65,9 +64,11 @@ This guide walks through migrating the HandReceipt application from AWS Lightsai
 │  └─────────────────┘                                       │
 │                                                             │
 │  ┌─────────────────┐  ┌──────────────────┐                 │
-│  │   Key Vault     │  │  File Share      │                 │
-│  │    (Secrets)    │  │ (ImmuDB data)    │                 │
-│  └─────────────────┘  └──────────────────┘                 │
+│  │   Key Vault     │  │  Azure Monitor   │                 │
+│  │    (Secrets)    │  │  (Logging/APM)   │                 │
+│  └─────────────────┘  │  (Azure SQL      │                 │
+│                       │   Ledger Tables)  │                 │
+│                       └──────────────────┘                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 

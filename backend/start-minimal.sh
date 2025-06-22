@@ -23,9 +23,9 @@ export HANDRECEIPT_SERVER_ENVIRONMENT=development
 export HANDRECEIPT_JWT_SECRET_KEY=dev-secret-key
 
 # Disable optional services
-export HANDRECEIPT_IMMUDB_ENABLED=false
-export HANDRECEIPT_MINIO_ENABLED=false
+export HANDRECEIPT_LEDGER_TYPE=postgres
 export HANDRECEIPT_LEDGER_ENABLED=false
+export HANDRECEIPT_MINIO_ENABLED=false
 
 # CORS settings for local development
 export CORS_ORIGINS="http://localhost:5001,http://localhost:5173,http://localhost:3000"

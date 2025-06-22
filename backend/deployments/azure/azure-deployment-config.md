@@ -36,7 +36,7 @@ Using dedicated resources for HandReceipt to ensure clean separation and avoid c
 - **Redundancy**: Standard LRS (development/staging), Standard GRS (production)
 - **Containers**: 
   - documents (for file storage)
-  - immudb-data (for ImmuDB persistence via File Share)
+  - backups (for database backups)
 
 ### Key Vault
 - **Name Pattern**: handreceipt-{env}-kv
@@ -45,7 +45,7 @@ Using dedicated resources for HandReceipt to ensure clean separation and avoid c
 ### Container Apps
 - **Backend API**: handreceipt-backend-api
 - **Worker**: handreceipt-worker  
-- **ImmuDB**: immudb
+- **Azure SQL Database**: With ledger tables for immutable audit trail
 
 ## Migration Strategy
 

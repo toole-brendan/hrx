@@ -186,7 +186,7 @@ func cancelImport() {
 - Accessibility and dark mode support
 
 ### 2. **🔐 Enhanced Ledger Integration**
-- Individual property creation logging to Azure Immutable Ledger
+- Individual property creation logging to Azure SQL ledger tables
 - Comprehensive import event logging with metadata
 - Full audit trail compliance
 - Detailed ledger status confirmation in UI
@@ -218,7 +218,7 @@ func cancelImport() {
 - 🧪 **Simulator Testing**: Complete testing without device camera
 - 📊 **Partial Success Handling**: Detailed import result reporting
 - ⚡ **Task Cancellation**: Proper async task management
-- 🔐 **Comprehensive Logging**: Full ledger integration
+- 🔐 **Comprehensive Logging**: Full Azure SQL ledger integration
 - 🎯 **Enhanced Validation**: Military-specific data cleaning
 - 📱 **Modern UI**: SwiftUI-based design with real-time updates
 
@@ -252,7 +252,7 @@ Following your plan's testing strategy:
    - Debug mode controls
 
 3. **Full Workflow Testing** ✅
-   - Complete OCR → Import → Ledger pipeline
+   - Complete OCR → Import → Azure SQL Ledger pipeline
    - Error handling and recovery testing
    - Performance and accuracy validation
 
