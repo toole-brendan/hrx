@@ -44,8 +44,14 @@ export const useDocumentService = () => {
     const params = new URLSearchParams({ box });
     if (status) params.append('status', status);
     
-    const { data } = await authedFetch<{ documents: Document[]; unread_count: number }>(`/api/documents?${params}`);
-    return data;
+    try {
+      const { data } = await authedFetch<{ documents: Document[]; unread_count: number }>(`/api/documents?${params}`);
+      return data || { documents: [], unread_count: 0 };
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      // Return empty data to prevent crashes
+      return { documents: [], unread_count: 0 };
+    }
   };
 
   const markAsRead = async (documentId: number): Promise<void> => {
@@ -97,29 +103,51 @@ export async function getDocuments(box: 'inbox' | 'sent' | 'all' = 'inbox', stat
   const params = new URLSearchParams({ box });
   if (status) params.append('status', status);
   
-  const response = await fetch(`${API_BASE_URL}/documents?${params}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch documents');
-  }
-
-  const text = await response.text();
-  if (!text) {
-    // Return empty result if no content
-    return { documents: [], unread_count: 0 };
-  }
-  
   try {
-    return JSON.parse(text);
-  } catch (e) {
-    console.error('Failed to parse documents response:', text);
-    throw new Error('Invalid response from server');
+    const response = await fetch(`${API_BASE_URL}/documents?${params}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+
+    // Log the response details for debugging
+    console.log('Documents API response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers.get('content-type'),
+      url: response.url
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Documents API error:', errorText);
+      throw new Error(`Failed to fetch documents: ${response.status} ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      console.warn('Documents API returned empty response');
+      // Return empty result if no content
+      return { documents: [], unread_count: 0 };
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error('Failed to parse documents response:', text);
+      // Check if it's HTML (error page)
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        console.error('Received HTML instead of JSON - possible CORS or routing issue');
+        throw new Error('Server returned HTML instead of JSON - possible configuration issue');
+      }
+      throw new Error('Invalid JSON response from server');
+    }
+  } catch (error) {
+    console.error('Documents fetch error:', error);
+    // Return empty data to prevent app crash
+    return { documents: [], unread_count: 0 };
   }
 }
 
@@ -185,27 +213,38 @@ export async function getDocument(id: number): Promise<{ document: Document }> {
 }
 
 export async function searchDocuments(query: string): Promise<{ documents: Document[]; count: number }> {
-  const response = await fetch(`${API_BASE_URL}/documents/search?q=${encodeURIComponent(query)}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include',
-  });
-
-  if (!response.ok) throw new Error('Failed to search documents');
-  
-  const text = await response.text();
-  if (!text) {
-    // Return empty result if no content
-    return { documents: [], count: 0 };
-  }
-  
   try {
-    return JSON.parse(text);
-  } catch (e) {
-    console.error('Failed to parse search response:', text);
-    throw new Error('Invalid response from server');
+    const response = await fetch(`${API_BASE_URL}/documents/search?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) throw new Error('Failed to search documents');
+    
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      // Return empty result if no content
+      return { documents: [], count: 0 };
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error('Failed to parse search response:', text);
+      // Check if it's HTML (error page)
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        console.error('Received HTML instead of JSON - possible CORS or routing issue');
+        return { documents: [], count: 0 };
+      }
+      throw new Error('Invalid response from server');
+    }
+  } catch (error) {
+    console.error('Search documents error:', error);
+    // Return empty data to prevent app crash
+    return { documents: [], count: 0 };
   }
 }
 
