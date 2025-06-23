@@ -106,9 +106,21 @@ class WebSocketService extends EventEmitter {
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/ws`;
+    // Get API URL from environment or use current host for local development
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    let wsUrl: string;
+    
+    if (apiUrl) {
+      // Convert HTTP(S) URL to WebSocket URL
+      const url = new URL(apiUrl);
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${url.host}/api/ws`;
+    } else {
+      // Fallback to current host for local development
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      wsUrl = `${protocol}//${host}/api/ws`;
+    }
 
     try {
       this.ws = new WebSocket(wsUrl);

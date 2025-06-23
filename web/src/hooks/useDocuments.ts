@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getDocuments, markAsRead, Document } from '@/services/documentService';
+import { getDocuments, Document, useDocumentService } from '@/services/documentService';
 
 export const useDocuments = (box?: 'inbox' | 'sent' | 'all', status?: string, type?: string) => {
   return useQuery({
@@ -21,6 +21,7 @@ export const useUnreadDocumentCount = () => {
 
 export const useMarkDocumentRead = () => {
   const queryClient = useQueryClient();
+  const { markAsRead } = useDocumentService();
   
   return useMutation({
     mutationFn: markAsRead,

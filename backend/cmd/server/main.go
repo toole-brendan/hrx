@@ -302,7 +302,13 @@ func main() {
 
 	// Initialize Demo Refresh Service (only in production)
 	if environment == "production" {
-		demoRefreshService := services.NewDemoRefreshService(db)
+		// Get the underlying *sql.DB from GORM
+		sqlDB, err := db.DB()
+		if err != nil {
+			log.Fatalf("Failed to get underlying SQL database: %v", err)
+		}
+		
+		demoRefreshService := services.NewDemoRefreshService(sqlDB)
 		// Refresh demo data every 4 hours
 		demoRefreshService.Start(4 * time.Hour)
 		defer demoRefreshService.Stop()

@@ -37,7 +37,12 @@ interface NotificationListParams {
 }
 
 class NotificationService {
-  private baseUrl = '/api/notifications';
+  private baseUrl: string;
+
+  constructor() {
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    this.baseUrl = apiUrl ? `${apiUrl}/api/notifications` : '/api/notifications';
+  }
 
   async getNotifications(params?: NotificationListParams): Promise<Notification[]> {
     const queryParams = new URLSearchParams();

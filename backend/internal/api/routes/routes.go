@@ -241,7 +241,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			documents.POST("/upload", documentHandler.UploadDocument)
 			documents.POST("/maintenance-form", documentHandler.CreateMaintenanceForm)
 			documents.GET("/:id", documentHandler.GetDocument)
-			documents.PUT("/:id/read", documentHandler.MarkDocumentRead)
+			documents.PATCH("/:id/read", documentHandler.MarkDocumentRead)
 			documents.POST("/:id/email", documentHandler.EmailDocument) // Email DA 2062 documents
 		}
 
