@@ -22,6 +22,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"github.com/toole-brendan/handreceipt-go/internal/services/ai"
 	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
+	"github.com/toole-brendan/handreceipt-go/internal/services"
 )
 
 // min returns the smaller of two integers (helper function for older Go versions)
@@ -297,6 +298,15 @@ func main() {
 		} else {
 			log.Println("Azure OpenAI not configured - DA2062 AI features will be disabled")
 		}
+	}
+
+	// Initialize Demo Refresh Service (only in production)
+	if environment == "production" {
+		demoRefreshService := services.NewDemoRefreshService(db)
+		// Refresh demo data every 4 hours
+		demoRefreshService.Start(4 * time.Hour)
+		defer demoRefreshService.Stop()
+		log.Println("Demo refresh service started (4-hour interval)")
 	}
 
 	// Create Gin router

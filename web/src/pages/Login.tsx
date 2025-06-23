@@ -129,6 +129,47 @@ const Login: React.FC = () => {
     }
   };
 
+  // Handle demo login
+  const handleDemoLogin = async () => {
+    console.log("Demo login initiated...");
+    
+    // Set demo credentials
+    form.setValue("email", "john.smith@example.mil");
+    form.setValue("password", "password123");
+    
+    // Show loading state
+    setIsLoading(true);
+    
+    try {
+      // Perform login with demo credentials
+      await login("john.smith@example.mil", "password123");
+      console.log("✅ Demo login successful!");
+      
+      toast({
+        title: "Welcome to HandReceipt Demo",
+        description: "Logged in as SSG John Smith",
+      });
+      
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("❌ Demo login failed:", error);
+      
+      const errorMessage = error instanceof Error ? error.message : "Demo login failed";
+      
+      toast({
+        title: "Demo Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      // Reset form if demo login fails
+      form.setValue("email", "");
+      form.setValue("password", "");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4">
       <div className="w-full max-w-[375px]">
@@ -218,10 +259,10 @@ const Login: React.FC = () => {
 
               <Button
                 type="submit"
-                className="w-full bg-black hover:bg-black/90 text-white font-medium py-6 rounded-md mt-6"
+                className="w-full bg-blue-500 text-white hover:bg-blue-600 rounded-md px-4 py-2 text-sm font-medium uppercase transition-all duration-200 border-0 mt-6"
                 disabled={isLoading}
               >
-                <span className="flex items-center justify-center gap-3">
+                <span className="flex items-center justify-center gap-2">
                   {isLoading ? (
                     <div className="flex gap-1">
                       {[...Array(3)].map((_, i) => (
@@ -234,14 +275,40 @@ const Login: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <span>Sign In</span>
-                      <i className="fas fa-arrow-right text-sm"></i>
+                      <i className="fas fa-sign-in-alt text-sm"></i>
+                      <span>SIGN IN</span>
                     </>
                   )}
                 </span>
               </Button>
             </form>
           </Form>
+
+          {/* Demo Login Button */}
+          <button
+            onClick={handleDemoLogin}
+            className="w-full text-sm font-medium text-ios-accent bg-transparent border border-ios-accent hover:bg-blue-500 hover:border-blue-500 hover:text-white px-4 py-2 uppercase transition-all duration-200 rounded-md [&:hover_svg]:text-white mt-3 flex items-center justify-center"
+            disabled={isLoading}
+          >
+            <span className="flex items-center justify-center gap-2">
+              {isLoading ? (
+                <div className="flex gap-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 h-1.5 bg-current rounded-full animate-pulse"
+                      style={{ animationDelay: `${i * 0.2}s` }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <i className="fas fa-user-astronaut text-sm"></i>
+                  <span>DEMO</span>
+                </>
+              )}
+            </span>
+          </button>
         </div>
       </div>
     </div>
