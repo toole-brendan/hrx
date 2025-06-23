@@ -6,10 +6,10 @@ import (
 
 // DA2062PromptManager manages prompts specific to DA 2062 processing
 type DA2062PromptManager struct {
-	systemPrompt      string
-	parsingRules      string
-	generationPrompt  string
-	examples          []DA2062Example
+	systemPrompt     string
+	parsingRules     string
+	generationPrompt string
+	examples         []DA2062Example
 }
 
 // DA2062Example represents example items for training
@@ -214,7 +214,9 @@ func (m *DA2062PromptManager) GetGenerationPrompt() string {
 }
 
 // AddCustomSerialPatterns adds unit-specific serial number patterns
+// Currently a no-op as patterns are embedded in prompts, but kept for future extensibility
 func (m *DA2062PromptManager) AddCustomSerialPatterns(patterns []string) {
 	// This can be extended to add unit-specific patterns
 	// For now, patterns are embedded in the prompts
+	_ = patterns // Acknowledge unused parameter
 }

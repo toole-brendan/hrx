@@ -100,4 +100,39 @@ security:
 # Azure OCR configuration
 azure:
   ocr_endpoint: "https://handreceipt-prod-vision.cognitiveservices.azure.com/"
-  ocr_key: "${AZURE_OCR_KEY}"  # Set via environment variable 
+  ocr_key: "${AZURE_OCR_KEY}"  # Set via environment variable
+
+# AI Configuration - Azure OpenAI for DA 2062 enhancement
+ai:
+  provider: "azure_openai"
+  endpoint: "${AZURE_OPENAI_ENDPOINT}"
+  api_key: "${AZURE_OPENAI_KEY}"
+  model: "gpt-4-turbo-preview"  # or your deployment name
+  api_version: "2024-02-15-preview"
+  max_tokens: 4000
+  temperature: 0.1  # Low temperature for consistent DA 2062 parsing
+  timeout_seconds: 30
+  retry_attempts: 3
+  cache_enabled: true
+  cache_ttl: "24h"
+  
+  # DA 2062 Specific Settings
+  da2062:
+    confidence:
+      ocr_weight: 0.4
+      ai_weight: 0.4
+      validation_weight: 0.2
+      minimum_threshold: 0.7
+      review_threshold: 0.85
+    
+    features:
+      ai_parsing: true
+      form_generation: true
+      multi_line_grouping: true
+      handwriting_support: true
+      continuous_learning: false
+    
+    limits:
+      max_requests_per_minute: 60
+      max_tokens_per_day: 500000
+      alert_threshold_usd: 50 

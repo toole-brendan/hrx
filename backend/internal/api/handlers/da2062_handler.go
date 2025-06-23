@@ -1215,6 +1215,16 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 	}
 }
 
+// RegisterAIRoutes registers AI-enhanced DA2062 routes
+func RegisterAIRoutes(router *gin.RouterGroup, da2062AIHandler *DA2062AIHandler) {
+	aiGroup := router.Group("/da2062/ai")
+	{
+		aiGroup.POST("/process", da2062AIHandler.ProcessDA2062WithAI)
+		aiGroup.POST("/generate", da2062AIHandler.GenerateDA2062)
+		aiGroup.POST("/review-confirm", da2062AIHandler.ReviewAndConfirmDA2062)
+	}
+}
+
 // CheckDocumentTable checks if the documents table exists
 func (h *DA2062Handler) CheckDocumentTable(c *gin.Context) {
 	// Try to get document count - if table doesn't exist, it will error

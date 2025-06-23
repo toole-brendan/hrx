@@ -6,10 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/toole-brendan/handreceipt-go/internal/api/handlers"
 	"github.com/toole-brendan/handreceipt-go/internal/api/routes"
 	"github.com/toole-brendan/handreceipt-go/internal/config"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
@@ -18,6 +20,8 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
+	"github.com/toole-brendan/handreceipt-go/internal/services/ai"
+	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 )
 
 // min returns the smaller of two integers (helper function for older Go versions)
@@ -152,25 +156,8 @@ func main() {
 		postgresLedger, err := ledger.NewPostgresLedgerService(db)
 		if err != nil {
 			log.Printf("Failed to initialize PostgreSQL Ledger service: %v", err)
-
-			// Try Azure SQL Ledger as fallback
-			azureConnectionString := os.Getenv("AZURE_SQL_LEDGER_CONNECTION_STRING")
-			if azureConnectionString != "" {
-				log.Println("Attempting to initialize Azure SQL Ledger service as fallback...")
-				azureLedger, err := ledger.NewAzureSqlLedgerService(azureConnectionString)
-				if err != nil {
-					log.Printf("Failed to initialize Azure SQL Ledger service: %v", err)
-					log.Printf("WARNING: No ledger service available - audit trail functionality will be disabled")
-					ledgerService = nil
-				} else {
-					ledgerService = azureLedger
-					log.Println("Successfully initialized Azure SQL Ledger service")
-				}
-			} else {
-				log.Printf("WARNING: No Azure SQL connection string provided")
-				log.Printf("WARNING: No ledger service available - audit trail functionality will be disabled")
-				ledgerService = nil
-			}
+			log.Printf("WARNING: No ledger service available - audit trail functionality will be disabled")
+			ledgerService = nil
 		} else {
 			ledgerService = postgresLedger
 			log.Println("Successfully initialized PostgreSQL Ledger service")
@@ -238,6 +225,80 @@ func main() {
 	go notificationHub.Run()
 	log.Println("WebSocket notification hub started")
 
+	// Initialize Azure OCR service
+	azureOCREndpoint := os.Getenv("AZURE_OCR_ENDPOINT")
+	azureOCRKey := os.Getenv("AZURE_OCR_KEY")
+	var ocrService *ocr.AzureOCRService
+	if azureOCREndpoint != "" && azureOCRKey != "" {
+		ocrService = ocr.NewAzureOCRService(azureOCREndpoint, azureOCRKey)
+		log.Println("Azure OCR service initialized")
+	}
+
+	// Initialize DA2062 AI handler
+	var da2062AIHandler *handlers.DA2062AIHandler
+	if ocrService != nil {
+		// Initialize AI service for DA2062
+		azureOpenAIEndpoint := viper.GetString("azure.openai.endpoint")
+		azureOpenAIKey := viper.GetString("azure.openai.api_key")
+		
+		if azureOpenAIEndpoint != "" && azureOpenAIKey != "" {
+			// Create AI config
+			aiConfig := ai.Config{
+				Provider:       "azure_openai",
+				Endpoint:       azureOpenAIEndpoint,
+				APIKey:         azureOpenAIKey,
+				Model:          viper.GetString("azure.openai.model"),
+				MaxTokens:      viper.GetInt("azure.openai.max_tokens"),
+				Temperature:    viper.GetFloat64("azure.openai.temperature"),
+				TimeoutSeconds: viper.GetInt("azure.openai.timeout_seconds"),
+				RetryAttempts:  viper.GetInt("azure.openai.retry_attempts"),
+				CacheEnabled:   viper.GetBool("azure.openai.cache_enabled"),
+				CacheTTL:       viper.GetDuration("azure.openai.cache_ttl"),
+			}
+			
+			// Set defaults if not configured
+			if aiConfig.Model == "" {
+				aiConfig.Model = "gpt-4-turbo"
+			}
+			if aiConfig.MaxTokens == 0 {
+				aiConfig.MaxTokens = 2000
+			}
+			if aiConfig.Temperature == 0 {
+				aiConfig.Temperature = 0.2
+			}
+			if aiConfig.TimeoutSeconds == 0 {
+				aiConfig.TimeoutSeconds = 60
+			}
+			if aiConfig.RetryAttempts == 0 {
+				aiConfig.RetryAttempts = 3
+			}
+			if aiConfig.CacheTTL == 0 {
+				aiConfig.CacheTTL = 5 * time.Minute
+			}
+			
+			// Create Azure OpenAI service
+			azureAIService, err := ai.NewAzureOpenAIDA2062Service(aiConfig)
+			if err != nil {
+				log.Printf("WARNING: Failed to initialize Azure OpenAI service: %v", err)
+			} else {
+				// Create enhanced DA2062 service
+				enhancedDA2062Service := ocr.NewEnhancedDA2062Service(ocrService, azureAIService)
+				
+				// Create DA2062 AI handler
+				da2062AIHandler = handlers.NewDA2062AIHandler(
+					enhancedDA2062Service,
+					azureAIService,
+					ledgerService,
+					repo,
+					nsnService,
+				)
+				log.Println("DA2062 AI handler initialized successfully with Azure OpenAI")
+			}
+		} else {
+			log.Println("Azure OpenAI not configured - DA2062 AI features will be disabled")
+		}
+	}
+
 	// Create Gin router
 	router := gin.Default()
 
@@ -245,7 +306,7 @@ func main() {
 	router.Use(corsMiddleware())
 
 	// Setup routes, passing the LedgerService interface, Repository, Storage Service, NSN Service, and Notification Hub
-	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService, notificationHub)
+	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService, notificationHub, da2062AIHandler)
 
 	// Get server port, prioritizing environment variable, then config, then default
 	var port int

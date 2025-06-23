@@ -21,7 +21,7 @@ import (
 )
 
 // SetupRoutes configures all the API routes for the application
-func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService storage.StorageService, nsnService *nsn.NSNService, notificationHub *notification.Hub) {
+func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService storage.StorageService, nsnService *nsn.NSNService, notificationHub *notification.Hub, da2062AIHandler *handlers.DA2062AIHandler) {
 	// Health check endpoint (no authentication required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -310,5 +310,10 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 
 		// Register DA2062 routes
 		da2062Handler.RegisterRoutes(protected)
+		
+		// Register AI-enhanced DA2062 routes if handler is available
+		if da2062AIHandler != nil {
+			handlers.RegisterAIRoutes(protected, da2062AIHandler)
+		}
 	}
 }

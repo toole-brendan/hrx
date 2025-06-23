@@ -7,11 +7,9 @@ import (
 	"syscall"
 	"time"
 
-	immuclient "github.com/codenotary/immudb/pkg/client"
 	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/toole-brendan/handreceipt-go/internal/config"
-	"github.com/toole-brendan/handreceipt-go/internal/repositories/immudb"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -37,16 +35,7 @@ func main() {
 		logger.WithError(err).Fatal("Failed to initialize database")
 	}
 
-	// Initialize ImmuDB client for audit operations
-	var auditRepo *immudb.AuditRepository
-	if cfg.ImmuDB.Enabled {
-		immuClient, err := initImmuDB(cfg.ImmuDB, logger)
-		if err != nil {
-			logger.WithError(err).Warn("Failed to initialize ImmuDB, audit operations will be disabled")
-		} else {
-			auditRepo = immudb.NewAuditRepository(immuClient, &cfg.ImmuDB, logger)
-		}
-	}
+	// Audit operations removed - using PostgreSQL ledger instead
 
 	// Initialize NSN service
 	nsnService := nsn.NewNSNService(&cfg.NSN, db, logger)
@@ -70,25 +59,7 @@ func main() {
 		logger.WithError(err).Error("Failed to schedule NSN data refresh")
 	}
 
-	// Schedule audit log compression - weekly on Sunday at 3 AM
-	if auditRepo != nil {
-		_, err = c.AddFunc("0 3 * * 0", func() {
-			logger.Info("Starting scheduled audit log compression")
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
-			defer cancel()
-
-			// Compress logs older than 90 days
-			olderThan := time.Now().AddDate(0, 0, -90)
-			if err := auditRepo.CompressOldLogs(ctx, olderThan); err != nil {
-				logger.WithError(err).Error("Audit log compression failed")
-			} else {
-				logger.Info("Audit log compression completed successfully")
-			}
-		})
-		if err != nil {
-			logger.WithError(err).Error("Failed to schedule audit log compression")
-		}
-	}
+	// Audit log compression removed - using PostgreSQL ledger instead
 
 	// Schedule database maintenance - daily at 1 AM
 	_, err = c.AddFunc("0 1 * * *", func() {
@@ -121,7 +92,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		if err := performHealthChecks(ctx, db, auditRepo, logger); err != nil {
+		if err := performHealthChecks(ctx, db, logger); err != nil {
 			logger.WithError(err).Warn("Health check failed")
 		}
 	})
@@ -176,23 +147,6 @@ func initDatabase(cfg config.DatabaseConfig, logger *logrus.Logger) (*gorm.DB, e
 	return db, nil
 }
 
-func initImmuDB(cfg config.ImmuDBConfig, logger *logrus.Logger) (immuclient.ImmuClient, error) {
-	opts := immuclient.DefaultOptions().
-		WithAddress(cfg.Host).
-		WithPort(cfg.Port)
-
-	client := immuclient.NewClient().WithOptions(opts)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := client.OpenSession(ctx, []byte(cfg.Username), []byte(cfg.Password), cfg.Database); err != nil {
-		return nil, err
-	}
-
-	logger.Info("ImmuDB connection established")
-	return client, nil
-}
 
 func performDatabaseMaintenance(ctx context.Context, db *gorm.DB, logger *logrus.Logger) error {
 	// Analyze tables for better query performance
@@ -228,7 +182,7 @@ func performDatabaseMaintenance(ctx context.Context, db *gorm.DB, logger *logrus
 	return nil
 }
 
-func performHealthChecks(ctx context.Context, db *gorm.DB, auditRepo *immudb.AuditRepository, logger *logrus.Logger) error {
+func performHealthChecks(ctx context.Context, db *gorm.DB, logger *logrus.Logger) error {
 	// Check database connectivity
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -238,15 +192,6 @@ func performHealthChecks(ctx context.Context, db *gorm.DB, auditRepo *immudb.Aud
 	if err := sqlDB.PingContext(ctx); err != nil {
 		logger.WithError(err).Error("Database health check failed")
 		return err
-	}
-
-	// Check ImmuDB connectivity if enabled
-	if auditRepo != nil {
-		// Try to get audit statistics as a health check
-		_, err := auditRepo.GetAuditStatistics(ctx, "", time.Now().AddDate(0, 0, -1), time.Now())
-		if err != nil {
-			logger.WithError(err).Warn("ImmuDB health check failed")
-		}
 	}
 
 	// Log successful health check

@@ -125,19 +125,12 @@ func (s *EnhancedDA2062Service) extractFullText(ocr *DA2062ParsedForm) string {
 	if ocr.DODAAC != "" {
 		lines = append(lines, fmt.Sprintf("DODAAC: %s", ocr.DODAAC))
 	}
-	if ocr.FromUnit != "" {
-		lines = append(lines, fmt.Sprintf("FROM: %s", ocr.FromUnit))
-	}
-	if ocr.ToUnit != "" {
-		lines = append(lines, fmt.Sprintf("TO: %s", ocr.ToUnit))
-	}
+	// FromUnit and ToUnit are not available in the basic OCR result
+	// They would be extracted by the AI service
 	
-	// Add all raw text lines if available
-	if ocr.RawTextLines != nil {
-		lines = append(lines, ocr.RawTextLines...)
-	} else {
-		// Reconstruct from items if raw text not available
-		for _, item := range ocr.Items {
+	// Since raw text lines are not available in the OCR result,
+	// reconstruct from items
+	for _, item := range ocr.Items {
 			line := fmt.Sprintf("%s %s", item.NSN, item.ItemDescription)
 			if item.SerialNumber != "" {
 				line += fmt.Sprintf(" S/N: %s", item.SerialNumber)
@@ -145,8 +138,7 @@ func (s *EnhancedDA2062Service) extractFullText(ocr *DA2062ParsedForm) string {
 			if item.Quantity > 0 {
 				line += fmt.Sprintf(" QTY: %d", item.Quantity)
 			}
-			lines = append(lines, line)
-		}
+		lines = append(lines, line)
 	}
 	
 	return strings.Join(lines, "\n")

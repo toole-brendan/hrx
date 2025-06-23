@@ -1,10 +1,20 @@
 package ledger
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
 	"github.com/toole-brendan/handreceipt-go/internal/domain"
 )
+
+// Event represents a generic ledger event
+type Event struct {
+	Type      string                 `json:"type"`
+	UserID    string                 `json:"userId"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	Timestamp time.Time              `json:"timestamp"`
+}
 
 // LedgerService defines the interface for interacting with an immutable ledger.
 // This allows for different implementations (e.g., QLDB, Azure SQL Ledger, ImmuDB).
@@ -38,6 +48,13 @@ type LedgerService interface {
 
 	// LogCorrectionEvent logs a correction event referencing a previous ledger event.
 	LogCorrectionEvent(originalEventID string, eventType string, reason string, userID uint) error
+
+	// LogEvent logs a generic event for flexibility
+	LogEvent(ctx context.Context, event Event) error
+
+	// LogDA2062Import logs a complete DA2062 import event
+	LogDA2062Import(ctx context.Context, event DA2062Event) error
+
 
 	// GetPropertyHistory retrieves the history of a property based on its ID.
 	GetPropertyHistory(propertyID uint) ([]map[string]interface{}, error)

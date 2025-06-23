@@ -83,4 +83,34 @@ security:
   lockout_duration: "15m"
   cors_allowed_origins:
     - "*"  # Allow all origins for local development
-  rate_limit_enabled: false 
+  rate_limit_enabled: false
+
+# AI Configuration - Azure OpenAI for DA 2062 enhancement (disabled for local)
+ai:
+  provider: "azure_openai"
+  endpoint: "${AZURE_OPENAI_ENDPOINT}"
+  api_key: "${AZURE_OPENAI_KEY}"
+  model: "gpt-4-turbo-preview"
+  api_version: "2024-02-15-preview"
+  max_tokens: 4000
+  temperature: 0.1
+  timeout_seconds: 30
+  retry_attempts: 3
+  cache_enabled: false  # Disabled for local
+  cache_ttl: "24h"
+  
+  # DA 2062 Specific Settings
+  da2062:
+    confidence:
+      ocr_weight: 0.4
+      ai_weight: 0.4
+      validation_weight: 0.2
+      minimum_threshold: 0.7
+      review_threshold: 0.85
+    
+    features:
+      ai_parsing: false  # Disabled for local
+      form_generation: false
+      multi_line_grouping: false
+      handwriting_support: false
+      continuous_learning: false 

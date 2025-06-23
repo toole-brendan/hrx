@@ -596,6 +596,39 @@ func (s *PostgresLedgerService) VerifyChainIntegrity() (bool, []string, error) {
 	return len(errors) == 0, errors, nil
 }
 
+// LogEvent logs a generic event for flexibility
+func (s *PostgresLedgerService) LogEvent(ctx context.Context, event Event) error {
+	eventData := map[string]interface{}{
+		"event_type": event.Type,
+		"user_id":    event.UserID,
+		"metadata":   event.Metadata,
+		"timestamp":  time.Now().UTC(),
+	}
+	
+	return s.storeEvent(fmt.Sprintf("%s_%s_%d", event.Type, event.UserID, time.Now().Unix()), eventData)
+}
+
+// LogDA2062Import logs a complete DA2062 import event
+func (s *PostgresLedgerService) LogDA2062Import(ctx context.Context, event DA2062Event) error {
+	event.Timestamp = time.Now()
+	
+	eventData := map[string]interface{}{
+		"event_type":     "DA2062Import",
+		"form_number":    event.FormNumber,
+		"user_id":        event.UserID,
+		"unit_name":      event.UnitName,
+		"dodaac":         event.DODAAC,
+		"item_count":     event.ItemCount,
+		"import_method":  event.ImportMethod,
+		"confidence":     event.Confidence,
+		"corrections":    event.Corrections,
+		"processing_ms":  event.ProcessingMs,
+		"timestamp":      event.Timestamp,
+	}
+	
+	return s.storeEvent(fmt.Sprintf("da2062_import_%s_%d", event.FormNumber, time.Now().Unix()), eventData)
+}
+
 // Close cleans up resources
 func (s *PostgresLedgerService) Close() error {
 	log.Println("PostgreSQL Ledger Service closed")
