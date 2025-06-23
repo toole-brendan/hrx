@@ -109,7 +109,18 @@ export async function getDocuments(box: 'inbox' | 'sent' | 'all' = 'inbox', stat
     throw new Error('Failed to fetch documents');
   }
 
-  return response.json();
+  const text = await response.text();
+  if (!text) {
+    // Return empty result if no content
+    return { documents: [], unread_count: 0 };
+  }
+  
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error('Failed to parse documents response:', text);
+    throw new Error('Invalid response from server');
+  }
 }
 
 export async function markAsRead(documentId: number): Promise<void> {
@@ -183,7 +194,19 @@ export async function searchDocuments(query: string): Promise<{ documents: Docum
   });
 
   if (!response.ok) throw new Error('Failed to search documents');
-  return response.json();
+  
+  const text = await response.text();
+  if (!text) {
+    // Return empty result if no content
+    return { documents: [], count: 0 };
+  }
+  
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error('Failed to parse search response:', text);
+    throw new Error('Invalid response from server');
+  }
 }
 
 export type BulkOperation = 'read' | 'archive' | 'delete';
