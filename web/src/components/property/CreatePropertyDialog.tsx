@@ -347,7 +347,7 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
             <Button
               type="button"
               variant="outline"
-              className="border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text rounded-lg px-6 py-2.5 font-medium transition-all duration-200"
+              className="text-blue-500 border border-blue-500 hover:bg-blue-500 hover:border-blue-500 hover:text-white rounded-lg px-6 py-2.5 font-medium transition-all duration-200 hover:scale-105"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -355,7 +355,7 @@ const CreatePropertyDialog: React.FC<CreatePropertyDialogProps> = ({
             </Button>
             <Button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-500/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2"
+              className="bg-blue-500 hover:bg-blue-500/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200 flex items-center gap-2 border-0"
               disabled={isSubmitting || isValidatingSerial || !!serialError}
             >
               {isSubmitting ? (

@@ -1276,7 +1276,7 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           <DialogFooter className="border-t border-ios-divider pt-4">
             <Button
               variant="ghost"
-              className="text-ios-tertiary-text hover:text-ios-secondary-text hover:bg-ios-tertiary-background rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+              className="text-blue-500 border border-blue-500 hover:bg-blue-500 hover:border-blue-500 hover:text-white rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-105"
               onClick={() => setShowingAddMenu(false)}
             >
               Cancel

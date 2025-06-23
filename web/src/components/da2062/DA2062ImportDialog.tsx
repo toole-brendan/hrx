@@ -35,7 +35,6 @@ import {
   getConfidenceColor,
   getConfidenceLabel,
   formatNSN,
-  checkAIAvailability,
   DA2062Form,
   EditableDA2062Item,
   BatchImportItem,
@@ -62,17 +61,9 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
   const [editableItems, setEditableItems] = useState<EditableDA2062Item[]>([]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isImporting, setIsImporting] = useState(false);
-  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  // Check AI availability on mount
-  React.useEffect(() => {
-    if (isOpen) {
-      checkAIAvailability().then(setAiAvailable);
-    }
-  }, [isOpen]);
 
   // Reset state when dialog closes
   const handleClose = useCallback(() => {
@@ -122,7 +113,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
     
     setIsProcessing(true);
     try {
-      const result = await uploadDA2062(selectedFile, setUploadProgress, aiAvailable === true);
+      const result = await uploadDA2062(selectedFile, setUploadProgress, true);
       setParsedForm(result);
       
       // Convert to editable items
@@ -150,7 +141,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
         : `Found ${result.items.length} items to import`;
       
       toast({
-        title: aiAvailable ? 'AI-enhanced processing complete' : 'Document processed',
+        title: 'AI-enhanced processing complete',
         description: message,
       });
     } catch (error) {
@@ -163,7 +154,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [selectedFile, toast, aiAvailable]);
+  }, [selectedFile, toast]);
 
   // Toggle item expansion
   const toggleItemExpansion = useCallback((itemId: string) => {
@@ -297,12 +288,10 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
         <p className="text-sm text-ios-secondary-text max-w-md mx-auto">
           Upload a scanned image or PDF of your DA-2062 hand receipt for automatic item extraction
         </p>
-        {aiAvailable && (
-          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            AI-Enhanced Processing Available
-          </div>
-        )}
+        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+          AI-Enhanced Processing
+        </div>
       </div>
       
       <CleanCard className="shadow-sm border border-ios-border">
@@ -350,9 +339,8 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
           
           <div className="space-y-3">
             <Button
-              variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-11 border-ios-border hover:border-ios-accent/30 hover:bg-ios-tertiary-background font-medium transition-all duration-200"
+              className="w-full h-11 bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all duration-200 border-0"
               disabled={isProcessing}
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -425,6 +413,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
           </div>
         </div>
       </div>
+      
     </div>
   );
 
@@ -755,7 +744,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
               variant="outline"
               onClick={handleClose}
               disabled={isProcessing}
-              className="border-ios-border hover:bg-ios-tertiary-background font-medium"
+              className="text-blue-500 border border-blue-500 hover:bg-blue-500 hover:border-blue-500 hover:text-white font-medium transition-all duration-200 hover:scale-105"
             >
               Cancel
             </Button>

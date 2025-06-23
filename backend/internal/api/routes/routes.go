@@ -311,9 +311,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 		// Register DA2062 routes
 		da2062Handler.RegisterRoutes(protected)
 		
-		// Register AI-enhanced DA2062 routes if handler is available
-		if da2062AIHandler != nil {
-			handlers.RegisterAIRoutes(protected, da2062AIHandler)
-		}
+		// Always register AI routes - the handler will show configuration status
+		handlers.RegisterAIRoutes(protected, da2062AIHandler)
 	}
 }

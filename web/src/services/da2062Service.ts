@@ -128,7 +128,7 @@ export async function uploadDA2062(
     // Processing phase
     onProgress?.({ 
       phase: 'processing', 
-      message: useAI ? 'Processing with AI-enhanced OCR...' : 'Processing document with OCR...' 
+      message: 'Processing with AI-enhanced OCR...'
     });
     
     const result = await response.json();
@@ -311,7 +311,13 @@ export async function checkAIAvailability(): Promise<boolean> {
       method: 'GET',
       credentials: 'include',
     });
-    return response.ok;
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.available === true;
+    }
+    
+    return false;
   } catch {
     return false;
   }

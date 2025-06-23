@@ -1219,9 +1219,38 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 func RegisterAIRoutes(router *gin.RouterGroup, da2062AIHandler *DA2062AIHandler) {
 	aiGroup := router.Group("/da2062/ai")
 	{
-		aiGroup.POST("/process", da2062AIHandler.ProcessDA2062WithAI)
-		aiGroup.POST("/generate", da2062AIHandler.GenerateDA2062)
-		aiGroup.POST("/review-confirm", da2062AIHandler.ReviewAndConfirmDA2062)
+		// Always register the health endpoint
+		aiGroup.GET("/health", func(c *gin.Context) {
+			if da2062AIHandler != nil {
+				c.JSON(200, gin.H{
+					"available": true,
+					"provider": "azure_openai",
+					"features": gin.H{
+						"multiLineGrouping": true,
+						"suggestions": true,
+						"validation": true,
+					},
+				})
+			} else {
+				c.JSON(200, gin.H{
+					"available": false,
+					"message": "AI features require Azure OpenAI configuration",
+					"configuration": gin.H{
+						"required": []string{
+							"AZURE_OPENAI_ENDPOINT",
+							"AZURE_OPENAI_KEY",
+						},
+					},
+				})
+			}
+		})
+		
+		// Only register other endpoints if handler is available
+		if da2062AIHandler != nil {
+			aiGroup.POST("/process", da2062AIHandler.ProcessDA2062WithAI)
+			aiGroup.POST("/generate", da2062AIHandler.GenerateDA2062)
+			aiGroup.POST("/review-confirm", da2062AIHandler.ReviewAndConfirmDA2062)
+		}
 	}
 }
 

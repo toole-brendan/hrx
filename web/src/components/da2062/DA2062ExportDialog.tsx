@@ -846,7 +846,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
             variant="ghost"
             onClick={onClose}
             disabled={isGenerating}
-            className="bg-white border-0 text-gray-700 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 font-semibold transition-all duration-200 hover:scale-105"
+            className="text-blue-500 border border-blue-500 hover:bg-blue-500 hover:border-blue-500 hover:text-white font-semibold transition-all duration-200 hover:scale-105"
           >
             Cancel
           </Button>
