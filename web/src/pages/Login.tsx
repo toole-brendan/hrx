@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, Link } from "wouter";
 import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
@@ -29,9 +29,9 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
 
-  // Logo tap feature state
-  const [logoTapCount, setLogoTapCount] = useState(0);
-  const lastTapTimeRef = useRef<Date>(new Date());
+  // Logo tap feature state - DISABLED
+  // const [logoTapCount, setLogoTapCount] = useState(0);
+  // const lastTapTimeRef = useRef<Date>(new Date());
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -64,70 +64,70 @@ const Login: React.FC = () => {
     }
   };
 
-  // Handle logo tap for hidden dev login
-  const handleLogoTap = () => {
-    const now = new Date();
-    const timeSinceLastTap = now.getTime() - lastTapTimeRef.current.getTime();
+  // Handle logo tap for hidden dev login - DISABLED
+  // const handleLogoTap = () => {
+  //   const now = new Date();
+  //   const timeSinceLastTap = now.getTime() - lastTapTimeRef.current.getTime();
 
-    // Reset counter if more than 2 seconds since last tap
-    if (timeSinceLastTap > 2000) {
-      setLogoTapCount(1);
-      console.log("Dev login: Starting new tap sequence");
-    } else {
-      setLogoTapCount(prev => prev + 1);
-      console.log(`Dev login: Tap ${logoTapCount + 1} of 5`);
-    }
+  //   // Reset counter if more than 2 seconds since last tap
+  //   if (timeSinceLastTap > 2000) {
+  //     setLogoTapCount(1);
+  //     console.log("Dev login: Starting new tap sequence");
+  //   } else {
+  //     setLogoTapCount(prev => prev + 1);
+  //     console.log(`Dev login: Tap ${logoTapCount + 1} of 5`);
+  //   }
 
-    lastTapTimeRef.current = now;
+  //   lastTapTimeRef.current = now;
 
-    // Trigger dev login after 5 taps
-    if (logoTapCount + 1 >= 5) {
-      performDevLogin();
-      setLogoTapCount(0);
-    }
-  };
+  //   // Trigger dev login after 5 taps
+  //   if (logoTapCount + 1 >= 5) {
+  //     performDevLogin();
+  //     setLogoTapCount(0);
+  //   }
+  // };
 
-  // Perform development login bypass
-  const performDevLogin = async () => {
-    console.log("🔧 DEV LOGIN ACTIVATED! Using test credentials...");
+  // // Perform development login bypass - DISABLED
+  // const performDevLogin = async () => {
+  //   console.log("🔧 DEV LOGIN ACTIVATED! Using test credentials...");
     
-    // Use test credentials to actually authenticate with the backend
-    form.setValue("email", "toole.brendan@gmail.com");
-    form.setValue("password", "Yankees1!");
+  //   // Use test credentials to actually authenticate with the backend
+  //   form.setValue("email", "toole.brendan@gmail.com");
+  //   form.setValue("password", "Yankees1!");
     
-    // Show loading state
-    setIsLoading(true);
+  //   // Show loading state
+  //   setIsLoading(true);
     
-    try {
-      // Perform actual login with test credentials
-      await login("toole.brendan@gmail.com", "Yankees1!");
-      console.log("✅ Dev login successful via API!");
+  //   try {
+  //     // Perform actual login with test credentials
+  //     await login("toole.brendan@gmail.com", "Yankees1!");
+  //     console.log("✅ Dev login successful via API!");
       
-      toast({
-        title: "🔧 Dev Login Successful",
-        description: "Logged in as Brendan Toole",
-      });
+  //     toast({
+  //       title: "🔧 Dev Login Successful",
+  //       description: "Logged in as Brendan Toole",
+  //     });
       
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("❌ Dev login failed:", error);
+  //     navigate("/dashboard");
+  //   } catch (error) {
+  //     console.error("❌ Dev login failed:", error);
       
-      // More specific error handling
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+  //     // More specific error handling
+  //     const errorMessage = error instanceof Error ? error.message : "Unknown error";
       
-      toast({
-        title: "🔧 Dev Login Failed",
-        description: `Dev credentials failed: ${errorMessage}`,
-        variant: "destructive",
-      });
+  //     toast({
+  //       title: "🔧 Dev Login Failed",
+  //       description: `Dev credentials failed: ${errorMessage}`,
+  //       variant: "destructive",
+  //     });
       
-      // Reset form if dev login fails
-      form.setValue("email", "");
-      form.setValue("password", "");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     // Reset form if dev login fails
+  //     form.setValue("email", "");
+  //     form.setValue("password", "");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   // Handle demo login
   const handleDemoLogin = async () => {
@@ -175,29 +175,13 @@ const Login: React.FC = () => {
       <div className="w-full max-w-[375px]">
         {/* Logo section */}
         <div className="text-center mb-10">
-          <div 
-            className="relative inline-block cursor-pointer"
-            onClick={handleLogoTap}
-          >
+          <div className="relative inline-block">
             <ProgressiveImage 
               src="/hr_logo4.png" 
               alt="HandReceipt Logo" 
               className="h-[200px] w-auto mx-auto"
               loading="eager"
             />
-            {/* Dev login progress indicator */}
-            {logoTapCount > 0 && logoTapCount < 5 && (
-              <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex gap-1">
-                {[...Array(5)].map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      index < logoTapCount ? 'bg-black' : 'bg-[#E0E0E0]'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
           <p className="text-[#4A4A4A] text-base font-normal -mt-6">
             Property Management System
