@@ -18,7 +18,10 @@ import {
   X,
   FileImage,
   Package,
-  Shield
+  Shield,
+  Sparkles,
+  Lightbulb,
+  AlertCircle
 } from 'lucide-react';
 
 // iOS Components
@@ -32,10 +35,12 @@ import {
   getConfidenceColor,
   getConfidenceLabel,
   formatNSN,
+  checkAIAvailability,
   DA2062Form,
   EditableDA2062Item,
   BatchImportItem,
-  UploadProgress
+  UploadProgress,
+  AISuggestion
 } from '@/services/da2062Service';
 
 interface DA2062ImportDialogProps {
@@ -57,9 +62,17 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
   const [editableItems, setEditableItems] = useState<EditableDA2062Item[]>([]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isImporting, setIsImporting] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Check AI availability on mount
+  React.useEffect(() => {
+    if (isOpen) {
+      checkAIAvailability().then(setAiAvailable);
+    }
+  }, [isOpen]);
 
   // Reset state when dialog closes
   const handleClose = useCallback(() => {
@@ -109,7 +122,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
     
     setIsProcessing(true);
     try {
-      const result = await uploadDA2062(selectedFile, setUploadProgress);
+      const result = await uploadDA2062(selectedFile, setUploadProgress, aiAvailable === true);
       setParsedForm(result);
       
       // Convert to editable items
@@ -122,14 +135,23 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
         serialNumber: item.serialNumber || generateSerialNumber(item.itemDescription, index + 1),
         unit: item.unitOfIssue,
         isSelected: true,
+        // AI fields
+        suggestions: item.suggestions,
+        aiGrouped: item.aiGrouped,
+        needsReview: item.needsReview,
+        validationIssues: item.validationIssues,
       }));
       
       setEditableItems(editable);
       setCurrentStep('review');
       
+      const message = result.metadata?.aiConfidence 
+        ? `Found ${result.items.length} items (${result.metadata.groupedItems} AI-grouped)`
+        : `Found ${result.items.length} items to import`;
+      
       toast({
-        title: 'Document processed',
-        description: `Found ${result.items.length} items to import`,
+        title: aiAvailable ? 'AI-enhanced processing complete' : 'Document processed',
+        description: message,
       });
     } catch (error) {
       toast({
@@ -141,7 +163,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [selectedFile, toast]);
+  }, [selectedFile, toast, aiAvailable]);
 
   // Toggle item expansion
   const toggleItemExpansion = useCallback((itemId: string) => {
@@ -275,6 +297,12 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
         <p className="text-sm text-ios-secondary-text max-w-md mx-auto">
           Upload a scanned image or PDF of your DA-2062 hand receipt for automatic item extraction
         </p>
+        {aiAvailable && (
+          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            AI-Enhanced Processing Available
+          </div>
+        )}
       </div>
       
       <CleanCard className="shadow-sm border border-ios-border">
@@ -452,6 +480,27 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                   <span className="text-sm font-medium text-ios-primary-text font-mono">{parsedForm.formNumber}</span>
                 </div>
               )}
+              {parsedForm.metadata && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-ios-secondary-text uppercase tracking-wider">AI Processing</span>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-3 w-3 text-blue-500" />
+                      <span className="text-sm font-medium text-ios-primary-text">
+                        {parsedForm.metadata.groupedItems} multi-line items grouped
+                      </span>
+                    </div>
+                  </div>
+                  {parsedForm.processingTimeMs && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-ios-secondary-text uppercase tracking-wider">Processing Time</span>
+                      <span className="text-sm font-medium text-ios-primary-text font-mono">
+                        {(parsedForm.processingTimeMs / 1000).toFixed(2)}s
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -499,9 +548,23 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-ios-primary-text">
-                            {item.description}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-ios-primary-text">
+                              {item.description}
+                            </h4>
+                            {item.aiGrouped && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                                <Sparkles className="h-3 w-3" />
+                                AI Grouped
+                              </span>
+                            )}
+                            {item.needsReview && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+                                <AlertCircle className="h-3 w-3" />
+                                Review
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap items-center gap-3 mt-2">
                             <span className="inline-flex items-center gap-1 text-xs text-ios-secondary-text">
                               <Package className="h-3 w-3" />
@@ -517,6 +580,11 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                               <Shield className="h-3 w-3" />
                               S/N: <span className="font-mono">{item.serialNumber}</span>
                             </span>
+                            {item.confidence && (
+                              <span className={`inline-flex items-center gap-1 text-xs ${getConfidenceColor(item.confidence)}`}>
+                                {getConfidenceLabel(item.confidence)} confidence
+                              </span>
+                            )}
                           </div>
                         </div>
                         
@@ -534,6 +602,56 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
                       
                     </div>
                   </div>
+                  
+                  {/* AI Suggestions */}
+                  {item.suggestions && item.suggestions.length > 0 && (
+                    <div className="mt-3 ml-9 space-y-2">
+                      {item.suggestions.map((suggestion, idx) => (
+                        <div key={idx} className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg">
+                          <Lightbulb className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 text-xs">
+                            <span className="font-medium text-blue-900">
+                              {suggestion.field}: 
+                            </span>
+                            <span className="text-blue-700 ml-1">
+                              {suggestion.value}
+                            </span>
+                            {suggestion.reasoning && (
+                              <p className="text-blue-600 mt-0.5">{suggestion.reasoning}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              updateItemField(item.id, suggestion.field as any, suggestion.value);
+                              // Remove the suggestion after applying
+                              const newSuggestions = item.suggestions?.filter((_, i) => i !== idx);
+                              updateItemField(item.id, 'suggestions', newSuggestions);
+                            }}
+                            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Validation Issues */}
+                  {item.validationIssues && item.validationIssues.length > 0 && (
+                    <div className="mt-3 ml-9">
+                      <div className="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+                        <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-red-900">Validation Issues:</p>
+                          <ul className="text-xs text-red-700 mt-1 space-y-0.5">
+                            {item.validationIssues.map((issue, idx) => (
+                              <li key={idx}>• {issue}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Expanded edit form */}
                   {isExpanded && (

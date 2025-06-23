@@ -169,7 +169,8 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
   const loadProperties = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/properties', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/property`, {
         credentials: 'include',
       });
       
@@ -178,13 +179,16 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
       }
       
       const data = await response.json();
-      setProperties(data);
+      // Handle both array response and object with items/properties array
+      const propertyList = Array.isArray(data) ? data : (data.items || data.properties || []);
+      setProperties(propertyList);
       
       // If we have initial selected properties, make sure they're in the list
       if (initialSelectedProperties.length > 0) {
         setSelectedPropertyIds(new Set(initialSelectedProperties.map(p => p.id)));
       }
     } catch (error) {
+      console.error('Failed to load properties:', error);
       toast({
         title: 'Error',
         description: 'Failed to load properties',
@@ -421,7 +425,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-gradient-to-b from-white to-gray-50/50 backdrop-blur-xl shadow-2xl border border-gray-200/50">
           <DialogHeader className="border-b border-gray-200/50 pb-4 bg-gradient-to-r from-white to-gray-50/30">
             <DialogTitle className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-ios-accent to-ios-accent/80 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300">
+              <div className="p-2.5 bg-blue-500 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300">
                 <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -621,35 +625,71 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                         </div>
                       ))}
                     </div>
+                  ) : properties.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <Package className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-gray-700">No properties found</p>
+                      <p className="text-xs text-gray-500 mt-1">Add properties to your inventory first</p>
+                    </div>
                   ) : (
-                    <div className="max-h-64 overflow-y-auto border border-gray-200/50 rounded-lg shadow-inner bg-gradient-to-b from-white to-gray-50/30">
-                      {properties.map((property) => (
-                        <div
-                          key={property.id}
-                          className="flex items-center gap-3 p-3 border-b border-gray-200/50 last:border-b-0 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 cursor-pointer transition-all duration-200 group"
-                          onClick={() => togglePropertySelection(property.id)}
-                        >
-                          <Checkbox
-                            checked={selectedPropertyIds.has(property.id)}
-                            onChange={() => togglePropertySelection(property.id)}
-                            className="rounded-sm group-hover:scale-110 transition-transform duration-200 data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-ios-primary-text">{property.name}</div>
-                            <div className="text-xs text-gray-600 font-mono font-medium">
-                              SN: {property.serialNumber}
-                              {property.nsn && ` • NSN: ${property.nsn}`}
-                            </div>
-                          </div>
-                          {property.isSensitive && (
-                            <AlertTriangle className="h-4 w-4 text-orange-500 group-hover:scale-110 transition-transform duration-200" />
-                          )}
-                          <StatusBadge 
-                            status={property.status === 'Operational' ? 'operational' : 'maintenance'} 
-                            size="sm"
-                          />
-                        </div>
-                      ))}
+                    <div className="max-h-64 overflow-y-auto border border-gray-200/50 rounded-lg shadow-inner">
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="w-10 p-3">
+                              <Checkbox
+                                checked={properties.length > 0 && selectedPropertyIds.size === properties.length}
+                                onCheckedChange={() => {
+                                  if (selectedPropertyIds.size === properties.length) {
+                                    clearSelection();
+                                  } else {
+                                    selectAll();
+                                  }
+                                }}
+                                className="rounded-sm data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+                              />
+                            </th>
+                            <th className="text-left p-3 text-xs font-semibold text-gray-700 uppercase tracking-wider font-mono">
+                              Property Name
+                            </th>
+                            <th className="text-left p-3 text-xs font-semibold text-gray-700 uppercase tracking-wider font-mono">
+                              Serial Number
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {properties.map((property, index) => (
+                            <tr
+                              key={property.id}
+                              className={`
+                                cursor-pointer transition-all duration-200 hover:shadow-sm
+                                ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                                ${selectedPropertyIds.has(property.id) ? 'bg-blue-50/30 hover:bg-blue-50/50' : 'hover:bg-gray-100/50'}
+                              `}
+                              onClick={() => togglePropertySelection(property.id)}
+                            >
+                              <td className="p-3">
+                                <Checkbox
+                                  checked={selectedPropertyIds.has(property.id)}
+                                  onChange={() => togglePropertySelection(property.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="rounded-sm data-[state=checked]:bg-ios-accent data-[state=checked]:border-ios-accent"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <div className="font-mono text-sm text-gray-900 font-medium">
+                                  {property.name}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-mono text-sm text-gray-700">
+                                  {property.serialNumber}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
@@ -691,7 +731,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                           onClick={() => setExportMode('download')}
                           className={`text-sm transition-all duration-300 border-0 ${
                             exportMode === 'download' 
-                              ? 'bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105' 
+                              ? 'bg-blue-500 text-white shadow-lg scale-105' 
                               : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 hover:scale-[1.02]'
                           }`}
                         >
@@ -703,7 +743,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                           onClick={() => setExportMode('email')}
                           className={`text-sm transition-all duration-300 border-0 ${
                             exportMode === 'email' 
-                              ? 'bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105' 
+                              ? 'bg-blue-500 text-white shadow-lg scale-105' 
                               : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 hover:scale-[1.02]'
                           }`}
                     >
@@ -715,7 +755,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
                           onClick={() => setExportMode('user')}
                           className={`text-sm transition-all duration-300 border-0 ${
                             exportMode === 'user' 
-                              ? 'bg-gradient-to-r from-ios-accent to-ios-accent/90 text-white shadow-lg scale-105' 
+                              ? 'bg-blue-500 text-white shadow-lg scale-105' 
                               : 'bg-white text-gray-700 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 hover:scale-[1.02]'
                           }`}
                         >
@@ -813,7 +853,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
           <Button
             onClick={handleGenerate}
             disabled={selectedCount === 0 || isGenerating}
-            className="bg-gradient-to-r from-ios-accent to-ios-accent/90 hover:from-ios-accent/90 hover:to-ios-accent/80 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-0"
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-0"
           >
             {isGenerating ? (
               <>

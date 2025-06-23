@@ -9,6 +9,19 @@ export interface DA2062Item {
   confidence: number;
   quantityConfidence: number;
   hasExplicitSerial: boolean;
+  // AI-enhanced fields
+  suggestions?: AISuggestion[];
+  aiGrouped?: boolean;
+  validationIssues?: string[];
+  needsReview?: boolean;
+}
+
+export interface AISuggestion {
+  field: string;
+  type: 'correction' | 'completion' | 'validation';
+  value: string;
+  confidence: number;
+  reasoning: string;
 }
 
 export interface DA2062Form {
@@ -19,6 +32,15 @@ export interface DA2062Form {
   confidence: number;
   pageCount?: number;
   processedAt?: string;
+  // AI-enhanced metadata
+  metadata?: {
+    itemCount: number;
+    groupedItems: number;
+    handwrittenItems: number;
+    ocrConfidence: number;
+    aiConfidence: number;
+  };
+  processingTimeMs?: number;
 }
 
 export interface EditableDA2062Item extends Omit<DA2062Item, 'quantity'> {
@@ -74,7 +96,8 @@ export interface UploadProgress {
 // Upload and process DA-2062 document
 export async function uploadDA2062(
   file: File,
-  onProgress?: (progress: UploadProgress) => void
+  onProgress?: (progress: UploadProgress) => void,
+  useAI: boolean = true
 ): Promise<DA2062Form> {
   try {
     // Upload phase
@@ -83,7 +106,10 @@ export async function uploadDA2062(
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch(`${API_BASE_URL}/da2062/upload`, {
+    // Use AI-enhanced endpoint if available and enabled
+    const endpoint = useAI ? `${API_BASE_URL}/da2062/ai/process` : `${API_BASE_URL}/da2062/upload`;
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
       credentials: 'include',
@@ -91,17 +117,34 @@ export async function uploadDA2062(
 
     if (!response.ok) {
       const error = await response.json();
+      // Fall back to regular OCR if AI endpoint fails
+      if (useAI && response.status === 404) {
+        console.warn('AI endpoint not available, falling back to regular OCR');
+        return uploadDA2062(file, onProgress, false);
+      }
       throw new Error(error.error || 'Failed to upload document');
     }
 
     // Processing phase
-    onProgress?.({ phase: 'processing', message: 'Processing document with OCR...' });
+    onProgress?.({ 
+      phase: 'processing', 
+      message: useAI ? 'Processing with AI-enhanced OCR...' : 'Processing document with OCR...' 
+    });
     
     const result = await response.json();
     
     // The backend returns the parsed DA2062 form directly
     if (result.error) {
       throw new Error(result.error);
+    }
+    
+    // If AI was used, we might get additional processing phases
+    if (useAI && result.processingTimeMs) {
+      onProgress?.({ 
+        phase: 'validating', 
+        message: 'AI validation complete',
+        progress: 100
+      });
     }
     
     onProgress?.({ phase: 'complete', message: 'Document processed successfully' });
@@ -203,4 +246,73 @@ export function getConfidenceLabel(confidence: number): string {
 export function formatNSN(nsn: string): string {
   if (!nsn || nsn.length !== 13) return nsn;
   return `${nsn.slice(0, 4)}-${nsn.slice(4, 6)}-${nsn.slice(6, 9)}-${nsn.slice(9)}`;
+}
+
+// AI-specific functions
+
+// Generate DA2062 from natural language description
+export async function generateDA2062FromDescription(
+  description: string
+): Promise<DA2062Form> {
+  const response = await fetch(`${API_BASE_URL}/da2062/ai/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ description }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to generate DA2062');
+  }
+
+  const result = await response.json();
+  return result.form;
+}
+
+// Review and confirm AI-processed items
+export async function reviewAndConfirmDA2062(
+  formData: {
+    formNumber: string;
+    unitName: string;
+    dodaac: string;
+    items: any[];
+    originalItems: any[];
+  }
+): Promise<{
+  success: boolean;
+  importedCount: number;
+  properties: any[];
+  formNumber: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/da2062/ai/review-confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(formData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to confirm import');
+  }
+
+  return response.json();
+}
+
+// Check if AI features are available
+export async function checkAIAvailability(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/da2062/ai/health`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
