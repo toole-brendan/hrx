@@ -151,8 +151,7 @@ const Sidebar = ({
     { 
       path: "/documents", 
       icon: <Inbox className="sidebar-item-icon" />, 
-      label: "Documents",
-      notificationCount: unreadDocumentCount > 0 ? unreadDocumentCount : undefined
+      label: "Documents"
     }
   ];
   

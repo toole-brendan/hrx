@@ -34,6 +34,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// Helper function to format date as DDMMMYYYY
+const formatMilitaryDate = (date: string | Date) => {
+  const d = new Date(date);
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const year = d.getFullYear();
+  return `${day}${month}${year}`;
+};
+
 interface DocumentsInboxProps {
   viewMode?: 'grid' | 'list';
   selectedCategory?: string;
@@ -343,7 +352,7 @@ const DocumentsTable: React.FC<DocumentsTableProps> = ({ documents, selectedTab,
               </TableCell>
               <TableCell>
                 <span className="text-sm text-ios-secondary-text">
-                  {format(new Date(doc.sentAt), 'MMM d, yyyy')}
+                  {formatMilitaryDate(doc.sentAt)}
                 </span>
               </TableCell>
               <TableCell>
@@ -466,7 +475,7 @@ const DocumentGridCard: React.FC<DocumentGridCardProps> = ({ document, selectedT
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {format(new Date(document.sentAt), 'MMM d')}
+              {formatMilitaryDate(document.sentAt)}
             </span>
           </div>
         </div>
@@ -559,7 +568,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, selectedTab, onVi
               </span>
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-ios-tertiary-text" />
-                <span className="font-medium">{format(new Date(document.sentAt), 'MMM d, yyyy')}</span>
+                <span className="font-medium">{formatMilitaryDate(document.sentAt)}</span>
               </span>
               {attachments.length > 0 && (
                 <span className="flex items-center gap-1.5">
