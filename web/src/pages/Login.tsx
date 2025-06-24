@@ -48,8 +48,8 @@ const Login: React.FC = () => {
     try {
       await login(data.email, data.password);
       
-      // Wait a bit longer to ensure cookies are set
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait longer to ensure auth state is fully propagated
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Now invalidate all queries to ensure they refetch with new auth
       await queryClient.invalidateQueries();
@@ -155,9 +155,9 @@ const Login: React.FC = () => {
       await login("john.smith@example.mil", "password123");
       console.log("[Login.handleDemoLogin] ✅ Login function completed successfully!");
       
-      console.log("[Login.handleDemoLogin] Waiting 500ms for cookies to be set...");
-      // Wait a bit longer to ensure cookies are set
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log("[Login.handleDemoLogin] Waiting 1000ms for auth state to propagate...");
+      // Wait longer to ensure auth state is fully propagated
+      await new Promise(resolve => setTimeout(resolve, 1000));
       console.log("[Login.handleDemoLogin] Wait complete, invalidating queries...");
       
       // Now invalidate all queries to ensure they refetch with new auth

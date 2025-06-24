@@ -38,14 +38,17 @@ function getAuthHeaders(): HeadersInit {
  * Fetch all properties
  */
 export async function fetchProperties(): Promise<Property[]> {
+  const headers = getAuthHeaders();
   console.log('[propertyService.fetchProperties] Starting property fetch...', {
     url: `${API_BASE_URL}/property`,
+    headers,
+    credentials: 'include',
     timestamp: new Date().toISOString()
   });
   
   const response = await fetch(`${API_BASE_URL}/property`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers,
     credentials: 'include',
   });
   

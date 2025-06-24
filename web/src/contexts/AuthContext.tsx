@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     return { data, response };
-  }, []);
+  }, [isAuthenticated, user]);
   
   // --- Check auth status on mount ---
   useEffect(() => {
@@ -220,7 +220,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     
     checkAuthStatus();
-  }, [authedFetch]);
+  }, []); // Only run on mount, not when authedFetch changes
   
   // --- Login function ---
   const login = async (email: string, password: string) => {
@@ -256,6 +256,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         status: response.status,
         ok: response.ok,
         headers: Object.fromEntries(response.headers.entries()),
+        setCookieHeader: response.headers.get('set-cookie'),
         timestamp: new Date().toISOString()
       });
       
@@ -290,6 +291,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           user: mappedUser.email,
           timestamp: new Date().toISOString()
         });
+        
+        // Verify auth by calling /auth/me to ensure cookies are set
+        console.log('[AuthContext.login] Verifying authentication...');
+        try {
+          const verifyResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          console.log('[AuthContext.login] Verification response:', {
+            status: verifyResponse.status,
+            ok: verifyResponse.ok
+          });
+        } catch (verifyError) {
+          console.error('[AuthContext.login] Verification failed:', verifyError);
+        }
       } else {
         console.log('[AuthContext.login] Login failed with non-OK response');
         let errorData: { message: string; details?: unknown; error?: string } = { message: 'Login failed' };
@@ -332,6 +351,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(false);
   };
   
+  // Debug log current auth state
+  useEffect(() => {
+    console.log('[AuthContext] Current auth state:', {
+      isAuthenticated,
+      hasUser: !!user,
+      userEmail: user?.email,
+      isLoading,
+      timestamp: new Date().toISOString()
+    });
+  }, [isAuthenticated, user, isLoading]);
+
   return (
     <AuthContext.Provider 
       value={{ 
