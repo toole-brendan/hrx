@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
@@ -26,6 +27,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const Login: React.FC = () => {
   const { login } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
 
@@ -45,6 +47,10 @@ const Login: React.FC = () => {
     setIsLoading(true);
     try {
       await login(data.email, data.password);
+      
+      // Invalidate all queries to ensure they refetch with new auth
+      await queryClient.invalidateQueries();
+      
       toast({
         title: "Login Successful",
         description: "Welcome to HandReceipt",
@@ -144,6 +150,12 @@ const Login: React.FC = () => {
       // Perform login with demo credentials
       await login("john.smith@example.mil", "password123");
       console.log("✅ Demo login successful!");
+      
+      // Invalidate all queries to ensure they refetch with new auth
+      await queryClient.invalidateQueries();
+      
+      // Small delay to ensure auth state is properly set
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       toast({
         title: "Welcome to HandReceipt Demo",

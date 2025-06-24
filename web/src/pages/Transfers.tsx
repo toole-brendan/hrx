@@ -767,7 +767,7 @@ const Transfers: React.FC<TransfersProps> = ({ id }) => {
                 </div>
                 <Button
                   onClick={() => queryClient.invalidateQueries({ queryKey: ['transfers'] })}
-                  className="bg-ios-accent hover:bg-ios-accent/90 text-white rounded-lg px-6 py-2.5 font-medium shadow-sm transition-all duration-200"
+                  className="bg-blue-500 text-white hover:bg-blue-600 rounded-lg px-4 py-2 font-medium transition-all duration-200 border-0"
                 >
                   Try Again
                 </Button>

@@ -547,7 +547,10 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Property Book</h1>
             <p className="text-gray-600 mb-4">{error?.message || "Unknown error occurred"}</p>
-            <Button onClick={() => window.location.reload()}>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 text-white hover:bg-blue-600 rounded-lg px-4 py-2 font-medium transition-all duration-200 border-0"
+            >
               Reload Page
             </Button>
           </div>
