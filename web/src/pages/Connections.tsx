@@ -788,7 +788,7 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
             size="sm"
             onClick={onReject}
             disabled={isLoading}
-            className="flex-1 border-2 border-ios-border hover:border-red-500/30 hover:bg-red-500/5 text-ios-secondary-text hover:text-red-600 rounded-xl px-5 py-3 font-bold transition-all duration-300 hover:scale-105 active:scale-95 group"
+            className="flex-1 text-red-500 border border-red-500 hover:bg-red-500 hover:border-red-500 hover:text-white rounded-xl px-5 py-3 font-bold transition-all duration-300 hover:scale-105 active:scale-95 group bg-transparent"
           >
             <XCircle className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
             <span className="font-mono uppercase tracking-widest text-xs">Decline</span>
@@ -797,7 +797,7 @@ const PendingRequestCard: React.FC<PendingRequestCardProps> = ({ request, onAcce
             size="sm"
             onClick={onAccept}
             disabled={isLoading}
-            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl px-5 py-3 font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 group relative overflow-hidden"
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl px-5 py-3 font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 group relative overflow-hidden border-0"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
             <CheckCircle className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:scale-110 relative z-10" />
@@ -1242,7 +1242,7 @@ const EnhancedPendingRequestCard: React.FC<PendingRequestCardProps> = ({ request
           size="sm"
           onClick={onReject}
           disabled={isLoading}
-          className="flex-1 border-ios-border hover:bg-ios-tertiary-background text-ios-secondary-text rounded-lg px-4 py-2.5 font-medium transition-all duration-200"
+          className="flex-1 text-red-500 border border-red-500 hover:bg-red-500 hover:border-red-500 hover:text-white rounded-lg px-4 py-2.5 font-medium transition-all duration-200 bg-transparent"
         >
           <XCircle className="h-4 w-4 mr-2" />
           Decline
@@ -1251,7 +1251,7 @@ const EnhancedPendingRequestCard: React.FC<PendingRequestCardProps> = ({ request
           size="sm"
           onClick={onAccept}
           disabled={isLoading}
-          className="flex-1 bg-ios-success hover:bg-ios-success/90 text-white rounded-lg px-4 py-2.5 font-medium shadow-sm transition-all duration-200"
+          className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-lg px-4 py-2.5 font-medium shadow-sm transition-all duration-200 border-0"
         >
           <CheckCircle className="h-4 w-4 mr-2" />
           Accept
@@ -1427,14 +1427,14 @@ const DirectoryContent: React.FC<DirectoryContentProps> = ({
                     Rank
                   </label>
                   <Select
-                    value={searchFilters.rank || ''}
-                    onValueChange={(value) => setSearchFilters({ ...searchFilters, rank: value })}
+                    value={searchFilters.rank || 'all'}
+                    onValueChange={(value) => setSearchFilters({ ...searchFilters, rank: value === 'all' ? undefined : value })}
                   >
                     <SelectTrigger className="border-ios-border bg-ios-tertiary-background/50 rounded-lg h-10 text-sm">
                       <SelectValue placeholder="Select rank" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Ranks</SelectItem>
+                      <SelectItem value="all">All Ranks</SelectItem>
                       <SelectItem value="PVT">Private (PVT)</SelectItem>
                       <SelectItem value="PFC">Private First Class (PFC)</SelectItem>
                       <SelectItem value="SPC">Specialist (SPC)</SelectItem>
