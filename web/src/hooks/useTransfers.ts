@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { fetchTransfers, createTransfer, updateTransferStatus, getTransferById } from '@/services/transferService';
 import { Transfer } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Query keys
 export const transferKeys = {
@@ -14,9 +15,12 @@ export const transferKeys = {
 
 // Fetch all transfers
 export function useTransfers(filters?: { status?: string; direction?: string }) {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  
   return useQuery({
     queryKey: transferKeys.list(filters),
     queryFn: fetchTransfers,
+    enabled: isAuthenticated && !authLoading, // Only run query when authenticated
     staleTime: 2 * 60 * 1000, // 2 minutes - transfers change more frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
   });

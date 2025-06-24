@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { notificationService } from '../services/notificationService';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from './AuthContext';
 
 // 1. Define the Notification Type (Based on plan)
 export interface Notification {
@@ -51,11 +52,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [isInitialized, setIsInitialized] = useState(false);
   const queryClient = useQueryClient();
   const { isConnected } = useWebSocket();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Load notifications from backend on initial render
   useEffect(() => {
     const loadNotifications = async () => {
-      if (isInitialized) return;
+      if (isInitialized || !isAuthenticated || authLoading) return;
       
       setLoading(true);
       try {
@@ -90,7 +92,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     };
 
     loadNotifications();
-  }, [isInitialized]);
+  }, [isInitialized, isAuthenticated, authLoading]);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {

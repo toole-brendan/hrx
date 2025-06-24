@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
@@ -266,16 +267,20 @@ export const propertyKeys = {
 
 // Fetch all properties
 export function useProperties() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  
   return useQuery({
     queryKey: propertyKeys.lists(),
     queryFn: fetchProperties,
+    enabled: isAuthenticated && !authLoading, // Only run query when authenticated
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error: any) => {
-      // Don't retry on 401/403 if (error?.response?.status === 401 || error?.response?.status === 403) {
-      return false;
-      // }
-      // return failureCount < 3;
+      // Don't retry on 401/403
+      if (error?.message?.includes('401') || error?.message?.includes('403')) {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 }

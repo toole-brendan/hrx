@@ -48,7 +48,10 @@ const Login: React.FC = () => {
     try {
       await login(data.email, data.password);
       
-      // Invalidate all queries to ensure they refetch with new auth
+      // Wait a bit longer to ensure cookies are set
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Now invalidate all queries to ensure they refetch with new auth
       await queryClient.invalidateQueries();
       
       toast({
@@ -151,11 +154,11 @@ const Login: React.FC = () => {
       await login("john.smith@example.mil", "password123");
       console.log("✅ Demo login successful!");
       
-      // Invalidate all queries to ensure they refetch with new auth
-      await queryClient.invalidateQueries();
+      // Wait a bit longer to ensure cookies are set
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Small delay to ensure auth state is properly set
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Now invalidate all queries to ensure they refetch with new auth
+      await queryClient.invalidateQueries();
       
       toast({
         title: "Welcome to HandReceipt Demo",

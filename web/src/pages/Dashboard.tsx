@@ -220,7 +220,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, subtitle
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
   const { unreadCount } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -249,6 +249,7 @@ export default function Dashboard() {
   const { data: connections = [] } = useQuery({
     queryKey: ['connections'],
     queryFn: getConnections,
+    enabled: isAuthenticated && !isLoading, // Only run query when authenticated
   });
   
   // Calculate dynamic readiness stats
