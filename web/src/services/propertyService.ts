@@ -38,17 +38,37 @@ function getAuthHeaders(): HeadersInit {
  * Fetch all properties
  */
 export async function fetchProperties(): Promise<Property[]> {
+  console.log('[propertyService.fetchProperties] Starting property fetch...', {
+    url: `${API_BASE_URL}/property`,
+    timestamp: new Date().toISOString()
+  });
+  
   const response = await fetch(`${API_BASE_URL}/property`, {
     method: 'GET',
     headers: getAuthHeaders(),
     credentials: 'include',
   });
   
+  console.log('[propertyService.fetchProperties] Response received:', {
+    status: response.status,
+    ok: response.ok,
+    statusText: response.statusText,
+    headers: Object.fromEntries(response.headers.entries()),
+    timestamp: new Date().toISOString()
+  });
+  
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[propertyService.fetchProperties] Error response body:', errorText);
     throw new Error(`Failed to fetch properties: ${response.statusText}`);
   }
   
   const data = await response.json();
+  console.log('[propertyService.fetchProperties] Properties fetched:', {
+    count: data.properties?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+  
   return (data.properties || []).map(mapPropertyToProperty);
 }
 

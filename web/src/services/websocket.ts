@@ -102,7 +102,7 @@ class WebSocketService extends EventEmitter {
 
   connect(token?: string): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
+      console.log('[WebSocket] Already connected');
       return;
     }
 
@@ -122,11 +122,20 @@ class WebSocketService extends EventEmitter {
       wsUrl = `${protocol}//${host}/api/ws`;
     }
 
+    console.log('[WebSocket] Attempting to connect:', {
+      wsUrl,
+      timestamp: new Date().toISOString(),
+      hasToken: !!token
+    });
+
     try {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('[WebSocket] Connected successfully:', {
+          timestamp: new Date().toISOString(),
+          readyState: this.ws?.readyState
+        });
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.emit('connected');
@@ -143,19 +152,32 @@ class WebSocketService extends EventEmitter {
           }
 
           const message: WebSocketEvent = JSON.parse(event.data);
+          console.log('[WebSocket] Message received:', {
+            type: message.type,
+            timestamp: new Date().toISOString()
+          });
           this.handleMessage(message);
         } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+          console.error('[WebSocket] Failed to parse message:', error);
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('[WebSocket] Error occurred:', {
+          error,
+          timestamp: new Date().toISOString(),
+          readyState: this.ws?.readyState
+        });
         this.emit('error', error);
       };
 
       this.ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
+        console.log('[WebSocket] Disconnected:', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          timestamp: new Date().toISOString()
+        });
         this.isConnected = false;
         this.stopPing();
         this.emit('disconnected');

@@ -103,8 +103,16 @@ export async function getDocuments(box: 'inbox' | 'sent' | 'all' = 'inbox', stat
   const params = new URLSearchParams({ box });
   if (status) params.append('status', status);
   
+  const url = `${API_BASE_URL}/documents?${params}`;
+  console.log('[documentService.getDocuments] Starting document fetch...', {
+    url,
+    box,
+    status,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
-    const response = await fetch(`${API_BASE_URL}/documents?${params}`, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -113,10 +121,11 @@ export async function getDocuments(box: 'inbox' | 'sent' | 'all' = 'inbox', stat
     });
 
     // Log the response details for debugging
-    console.log('Documents API response:', {
+    console.log('[documentService.getDocuments] Documents API response:', {
       status: response.status,
       statusText: response.statusText,
       headers: response.headers.get('content-type'),
+      allHeaders: Object.fromEntries(response.headers.entries()),
       url: response.url
     });
 

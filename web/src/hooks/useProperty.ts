@@ -269,19 +269,46 @@ export const propertyKeys = {
 export function useProperties() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   
+  console.log('[useProperties] Hook called:', {
+    isAuthenticated,
+    authLoading,
+    enabled: isAuthenticated && !authLoading,
+    timestamp: new Date().toISOString()
+  });
+  
   return useQuery({
     queryKey: propertyKeys.lists(),
-    queryFn: fetchProperties,
+    queryFn: () => {
+      console.log('[useProperties] Query function executing...');
+      return fetchProperties();
+    },
     enabled: isAuthenticated && !authLoading, // Only run query when authenticated
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error: any) => {
+      console.log('[useProperties] Retry logic:', {
+        failureCount,
+        error: error?.message,
+        willRetry: !(error?.message?.includes('401') || error?.message?.includes('403')) && failureCount < 3
+      });
       // Don't retry on 401/403
       if (error?.message?.includes('401') || error?.message?.includes('403')) {
         return false;
       }
       return failureCount < 3;
     },
+    onError: (error) => {
+      console.error('[useProperties] Query error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    },
+    onSuccess: (data) => {
+      console.log('[useProperties] Query success:', {
+        itemCount: data.length,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 }
 

@@ -140,7 +140,7 @@ const Login: React.FC = () => {
 
   // Handle demo login
   const handleDemoLogin = async () => {
-    console.log("Demo login initiated...");
+    console.log("[Login.handleDemoLogin] Demo login initiated...");
     
     // Set demo credentials
     form.setValue("email", "john.smith@example.mil");
@@ -150,21 +150,26 @@ const Login: React.FC = () => {
     setIsLoading(true);
     
     try {
+      console.log("[Login.handleDemoLogin] Calling login function...");
       // Perform login with demo credentials
       await login("john.smith@example.mil", "password123");
-      console.log("✅ Demo login successful!");
+      console.log("[Login.handleDemoLogin] ✅ Login function completed successfully!");
       
+      console.log("[Login.handleDemoLogin] Waiting 500ms for cookies to be set...");
       // Wait a bit longer to ensure cookies are set
       await new Promise(resolve => setTimeout(resolve, 500));
+      console.log("[Login.handleDemoLogin] Wait complete, invalidating queries...");
       
       // Now invalidate all queries to ensure they refetch with new auth
       await queryClient.invalidateQueries();
+      console.log("[Login.handleDemoLogin] Queries invalidated, showing toast...");
       
       toast({
         title: "Welcome to HandReceipt Demo",
         description: "Logged in as SSG John Smith",
       });
       
+      console.log("[Login.handleDemoLogin] Navigating to dashboard...");
       navigate("/dashboard");
     } catch (error) {
       console.error("❌ Demo login failed:", error);

@@ -92,6 +92,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ? `${API_BASE_URL}${input}`
       : input.toString();
     
+    console.log('[AuthContext.authedFetch] Making request:', {
+      url,
+      method: init?.method || 'GET',
+      hasBody: !!init?.body,
+      credentials: 'include',
+      timestamp: new Date().toISOString(),
+      authState: { isAuthenticated, user: user?.email }
+    });
+    
     const response = await fetch(url, {
       ...init,
       headers: {
@@ -99,6 +108,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...(init?.headers),
       },
       credentials: 'include',
+    });
+    
+    console.log('[AuthContext.authedFetch] Response received:', {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      timestamp: new Date().toISOString()
     });
     
     if (!response.ok) {
@@ -137,6 +154,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // --- Check auth status on mount ---
   useEffect(() => {
     const checkAuthStatus = async () => {
+      console.log('[AuthContext.checkAuthStatus] Starting auth check...');
       setIsLoading(true);
       
       // In bypass mode, automatically authenticate with mock user
@@ -150,8 +168,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Check real auth status
       try {
+        console.log('[AuthContext.checkAuthStatus] Checking /auth/me endpoint...');
         const { data } = await authedFetch<{ user: any }>('/auth/me');
-        console.log('[AuthContext] User data from /auth/me:', data.user);
+        console.log('[AuthContext.checkAuthStatus] User data from /auth/me:', data.user);
         
         // Map snake_case from backend to camelCase for frontend
         const mappedUser: User = {
@@ -172,16 +191,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           equipmentSummary: data.user.equipmentSummary || data.user.equipment_summary
         };
         
+        console.log('[AuthContext.checkAuthStatus] Setting user:', mappedUser);
         setUser(mappedUser);
         setIsAuthenticated(true);
+        console.log('[AuthContext.checkAuthStatus] Auth check successful, user authenticated');
       } catch (error: unknown) {
         // 401 is expected when not authenticated - don't log as error
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.log('[AuthContext.checkAuthStatus] Auth check failed:', {
+          error: errorMessage,
+          is401: errorMessage.includes('401') || errorMessage.includes('User not authenticated'),
+          timestamp: new Date().toISOString()
+        });
+        
         if (error instanceof Error && !error.message?.includes('401') && !error.message?.includes('User not authenticated')) {
           console.warn("Check auth status failed:", error);
         }
         setUser(null);
         setIsAuthenticated(false);
       } finally {
+        console.log('[AuthContext.checkAuthStatus] Auth check complete:', {
+          isAuthenticated,
+          hasUser: !!user,
+          timestamp: new Date().toISOString()
+        });
         setIsLoading(false);
       }
     };
@@ -191,6 +224,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   // --- Login function ---
   const login = async (email: string, password: string) => {
+    console.log('[AuthContext.login] Login attempt started:', {
+      email,
+      timestamp: new Date().toISOString()
+    });
+    
     setIsLoading(true);
     
     // In bypass mode, simulate successful login
@@ -204,6 +242,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Real login
     try {
+      console.log('[AuthContext.login] Sending login request to backend...');
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -211,6 +250,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
+      });
+      
+      console.log('[AuthContext.login] Login response received:', {
+        status: response.status,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+        timestamp: new Date().toISOString()
       });
       
       if (response.ok) {
@@ -236,9 +282,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           equipmentSummary: data.user.equipmentSummary || data.user.equipment_summary
         };
         
+        console.log('[AuthContext.login] Login successful, setting user:', mappedUser);
         setUser(mappedUser);
         setIsAuthenticated(true);
+        console.log('[AuthContext.login] Auth state updated:', {
+          isAuthenticated: true,
+          user: mappedUser.email,
+          timestamp: new Date().toISOString()
+        });
       } else {
+        console.log('[AuthContext.login] Login failed with non-OK response');
         let errorData: { message: string; details?: unknown; error?: string } = { message: 'Login failed' };
         
         try {

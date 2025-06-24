@@ -166,6 +166,17 @@ const PropertyBook: React.FC<PropertyBookProps> = ({ id }) => {
   const updateComponents = useUpdatePropertyComponents();
   const createProperty = useCreateProperty();
   
+  // Debug logging
+  useEffect(() => {
+    console.log('[PropertyBook] Component state:', {
+      propertiesCount: properties.length,
+      transfersCount: transfers.length,
+      isLoading,
+      error: error?.message,
+      timestamp: new Date().toISOString()
+    });
+  }, [properties, transfers, isLoading, error]);
+  
   // Handle URL parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

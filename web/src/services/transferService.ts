@@ -41,18 +41,38 @@ function mapBackendTransferToFrontend(backendTransfer: BackendTransfer): Transfe
  * Fetches all transfers from the API
  */
 export async function fetchTransfers(): Promise<Transfer[]> {
+  console.log('[transferService.fetchTransfers] Starting transfer fetch...', {
+    url: `${API_BASE_URL}/transfers`,
+    timestamp: new Date().toISOString()
+  });
+  
   const response = await fetch(`${API_BASE_URL}/transfers`, {
     method: 'GET',
     headers: getAuthHeaders(),
     credentials: 'include', // Include cookies for session auth
   });
   
+  console.log('[transferService.fetchTransfers] Response received:', {
+    status: response.status,
+    ok: response.ok,
+    statusText: response.statusText,
+    headers: Object.fromEntries(response.headers.entries()),
+    timestamp: new Date().toISOString()
+  });
+  
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[transferService.fetchTransfers] Error response body:', errorText);
     throw new Error(`Failed to fetch transfers: ${response.statusText}`);
   }
   
   const data = await response.json();
   const transfers = data.transfers || data || [];
+  console.log('[transferService.fetchTransfers] Transfers fetched:', {
+    count: transfers.length,
+    timestamp: new Date().toISOString()
+  });
+  
   return transfers.map(mapBackendTransferToFrontend);
 }
 
