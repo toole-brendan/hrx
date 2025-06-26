@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, Link } from "wouter";
-import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
+import LissajousCurve from "@/components/LissajousCurve";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -196,14 +196,12 @@ const Login: React.FC = () => {
         {/* Logo section */}
         <div className="text-center mb-10">
           <div className="relative inline-block">
-            <ProgressiveImage 
-              src="/hr_logo4.png" 
-              alt="HandReceipt Logo" 
-              className="h-[200px] w-auto mx-auto"
-              loading="eager"
-            />
+            <LissajousCurve />
           </div>
-          <p className="text-[#4A4A4A] text-base font-normal -mt-6">
+          <h1 className="text-[#333333] text-2xl font-['Michroma'] mt-2 mb-1 tracking-wider">
+            HANDRECEIPT
+          </h1>
+          <p className="text-[#4A4A4A] text-base font-normal">
             Property Management System
           </p>
         </div>
