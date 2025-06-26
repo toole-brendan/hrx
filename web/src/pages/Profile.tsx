@@ -90,7 +90,7 @@ export default function Profile() {
         {/* Enhanced Header */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-ios-primary-text">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
               Profile
             </h1>
             <Link href="/profile/edit">
@@ -100,7 +100,7 @@ export default function Profile() {
               </button>
             </Link>
           </div>
-          <p className="text-ios-secondary-text">
+          <p className="text-sm font-medium text-ios-secondary-text">
             Your account information and preferences
           </p>
         </div>

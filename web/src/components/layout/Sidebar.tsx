@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useApp } from "@/contexts/AppContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
+import LissajousIcon from "@/components/icons/LissajousIcon";
 import {
   Home,
   Package,
@@ -177,11 +178,10 @@ const Sidebar = ({
             className="flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
             onClick={handleLogoClick}
           >
-            <ProgressiveImage 
-              src="/hr_logo.png" 
-              alt="HandReceipt"
-              className="h-8 w-auto"
-              loading="eager"
+            <LissajousIcon 
+              width={80}
+              height={48}
+              className="h-12 w-auto"
             />
           </div>
         </div>
@@ -396,11 +396,10 @@ const Sidebar = ({
               className="cursor-pointer hover:opacity-90 transition-opacity"
               onClick={handleLogoClick}
             >
-              <ProgressiveImage 
-                src="/hr_logo.png" 
-                alt="HandReceipt"
-                className="h-8 w-auto"
-                loading="eager"
+              <LissajousIcon 
+                width={80}
+                height={48}
+                className="h-12 w-auto"
               />
             </div>
           ) : (
@@ -410,7 +409,11 @@ const Sidebar = ({
                   className="cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={handleLogoClick}
                 >
-                  <Home className="h-6 w-6 text-gray-600" strokeWidth={2} />
+                  <LissajousIcon 
+                    width={40}
+                    height={32}
+                    className="h-8 w-auto"
+                  />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right" className="animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">

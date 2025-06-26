@@ -314,7 +314,7 @@ const Settings: React.FC = () => {
         {/* Enhanced Header */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-ios-primary-text">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700">
               Settings
             </h1>
             <Button
@@ -327,7 +327,7 @@ const Settings: React.FC = () => {
               Sign Out
             </Button>
           </div>
-          <p className="text-ios-secondary-text">
+          <p className="text-sm font-medium text-ios-secondary-text">
             Manage your security, notifications, and sync preferences
           </p>
         </div>
