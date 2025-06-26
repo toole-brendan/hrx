@@ -31,6 +31,8 @@ const LissajousCurve = () => {
     let animationId: number;
     let startTime = performance.now();
     let lastTime = startTime;
+    let pausedTime = 0; // Track total paused time
+    let lastVisibleTime = startTime;
     
     // Increase segments for smoother curve
     const segmentCount = 500;
@@ -41,7 +43,7 @@ const LissajousCurve = () => {
     const colorSmoothness = 0.2; // Interpolation factor for color changes
     
     // Track recent t values (parametric positions) instead of spatial positions
-    const recentTValues: number[] = [];
+    let recentTValues: number[] = [];
     const maxRecentT = 300; // Much longer trail by tracking many more positions
     const tStep = 0.001; // Even finer sampling for continuous trail
     let lastSampledT = -999;
@@ -67,12 +69,36 @@ const LissajousCurve = () => {
       };
     }
     
+    // Handle visibility changes to fix fragmented trail issue
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Tab became visible again
+        const now = performance.now();
+        const timePaused = now - lastVisibleTime;
+        pausedTime += timePaused;
+        
+        // Clear the trail history to prevent fragments
+        recentTValues = [];
+        lastSampledT = -999;
+        
+        // Reset segment colors to prevent stale trails
+        segmentColors.fill(0);
+        targetColors.fill(0);
+      } else {
+        // Tab became hidden
+        lastVisibleTime = performance.now();
+      }
+    };
+    
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     const animate = (currentTime: number) => {
       const deltaTime = currentTime - lastTime;
       lastTime = currentTime;
       
-      // Use actual elapsed time for perfectly smooth animation
-      const elapsedSeconds = (currentTime - startTime) / 1000;
+      // Use actual elapsed time for perfectly smooth animation, accounting for paused time
+      const elapsedSeconds = (currentTime - startTime - pausedTime) / 1000;
       const time = elapsedSeconds * 0.02; // Much slower, more meditative speed
       
       // Clear canvas with solid background matching login page
@@ -205,6 +231,7 @@ const LissajousCurve = () => {
     
     return () => {
       cancelAnimationFrame(animationId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
   

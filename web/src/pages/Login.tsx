@@ -198,7 +198,7 @@ const Login: React.FC = () => {
           <div className="relative inline-block">
             <LissajousCurve />
           </div>
-          <h1 className="text-[#333333] text-2xl font-['Michroma'] mt-2 mb-1 tracking-wider">
+          <h1 className="text-[#333333] text-2xl font-['Michroma'] mt-6 mb-1 tracking-wider">
             HANDRECEIPT
           </h1>
           <p className="text-[#4A4A4A] text-base font-normal">
