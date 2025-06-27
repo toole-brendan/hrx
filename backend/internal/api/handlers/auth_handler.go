@@ -25,10 +25,14 @@ type AuthHandler struct {
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(repo repository.Repository) *AuthHandler {
 	// Initialize JWT service
+	accessExpiry := viper.GetDuration("jwt.access_expiry")
+	refreshExpiry := viper.GetDuration("jwt.refresh_expiry")
+	log.Printf("JWT Config: AccessExpiry=%v, RefreshExpiry=%v", accessExpiry, refreshExpiry)
+	
 	jwtService := auth.NewJWTService(&config.JWTConfig{
 		SecretKey:      viper.GetString("jwt.secret_key"),
-		AccessExpiry:   viper.GetDuration("jwt.access_expiry"),
-		RefreshExpiry:  viper.GetDuration("jwt.refresh_expiry"),
+		AccessExpiry:   accessExpiry,
+		RefreshExpiry:  refreshExpiry,
 		RefreshEnabled: viper.GetBool("jwt.refresh_enabled"),
 		Issuer:         viper.GetString("jwt.issuer"),
 		Audience:       viper.GetString("jwt.audience"),
@@ -102,6 +106,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		log.Printf("Failed to generate JWT tokens: %v", err)
 		// Continue without tokens - session auth will still work
 		tokenPair = nil
+	} else {
+		log.Printf("Generated JWT token pair: AccessToken length=%d, RefreshToken length=%d, ExpiresAt=%v", 
+			len(tokenPair.AccessToken), len(tokenPair.RefreshToken), tokenPair.ExpiresAt)
 	}
 
 	// Prepare response

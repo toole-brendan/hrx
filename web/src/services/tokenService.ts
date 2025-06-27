@@ -77,12 +77,16 @@ class TokenService {
   }
 
   getAuthHeaders(): HeadersInit {
+    console.log('[tokenService.getAuthHeaders] Called, token:', this.accessToken ? `${this.accessToken.substring(0, 20)}...` : 'null');
     if (!this.accessToken) {
+      console.log('[tokenService.getAuthHeaders] No token available, returning empty headers');
       return {};
     }
-    return {
+    const headers = {
       Authorization: `Bearer ${this.accessToken}`,
     };
+    console.log('[tokenService.getAuthHeaders] Returning headers with token');
+    return headers;
   }
 }
 

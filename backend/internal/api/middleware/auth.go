@@ -62,15 +62,20 @@ func SessionAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Check JWT token FIRST
 		authHeader := c.GetHeader("Authorization")
+		fmt.Printf("[Auth Middleware] Authorization header: '%s'\n", authHeader)
 		if authHeader != "" {
 			parts := strings.Split(authHeader, " ")
 			if len(parts) == 2 && parts[0] == "Bearer" {
+				fmt.Printf("[Auth Middleware] Attempting JWT validation for token: %s...\n", parts[1][:20])
 				claims, err := ValidateToken(parts[1])
 				if err == nil {
 					// Set user ID from JWT claims
+					fmt.Printf("[Auth Middleware] JWT validation successful, userID: %d\n", claims.UserID)
 					c.Set("userID", claims.UserID)
 					c.Next()
 					return
+				} else {
+					fmt.Printf("[Auth Middleware] JWT validation failed: %v\n", err)
 				}
 			}
 		}

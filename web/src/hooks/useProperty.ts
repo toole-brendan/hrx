@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import tokenService from '@/services/tokenService';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
@@ -29,7 +30,8 @@ function mapPropertyToProperty(property: any): Property {
 /** * Get authentication headers */
 function getAuthHeaders(): HeadersInit {
   return {
-    'Content-Type': 'application/json', // Cookie-based auth is handled automatically by fetch with credentials
+    'Content-Type': 'application/json',
+    ...tokenService.getAuthHeaders(), // Include JWT authorization header
   };
 }
 

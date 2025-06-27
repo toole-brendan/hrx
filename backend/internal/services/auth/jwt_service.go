@@ -74,6 +74,7 @@ func (s *JWTService) GenerateTokenPair(user models.User, sessionID string) (*Tok
 func (s *JWTService) generateToken(user models.User, sessionID, tokenType string, expiry time.Duration) (string, time.Time, error) {
 	now := time.Now()
 	expiresAt := now.Add(expiry)
+	fmt.Printf("[JWT] Generating %s token: now=%v, expiry=%v, expiresAt=%v\n", tokenType, now, expiry, expiresAt)
 
 	claims := &Claims{
 		UserID:    user.ID,
