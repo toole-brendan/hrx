@@ -56,32 +56,29 @@ func SetupSession(router *gin.Engine) {
 	router.Use(sessions.Sessions("handreceipt_session", store))
 }
 
-// SessionAuthMiddleware is a middleware for session-based authentication
-// This provides compatibility with the existing frontend
+// SessionAuthMiddleware is a middleware that prioritizes JWT authentication
+// Falls back to session-based authentication for backward compatibility
 func SessionAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		userID := session.Get("userID")
-
-		if userID == nil {
-			// Check if there's a JWT token as backup
-			authHeader := c.GetHeader("Authorization")
-			if authHeader != "" {
-				parts := strings.Split(authHeader, " ")
-				if len(parts) == 2 && parts[0] == "Bearer" {
-					claims, err := ValidateToken(parts[1])
-					if err == nil {
-						// Set user ID from JWT claims
-						c.Set("userID", claims.UserID)
-						// Also set in session
-						session.Set("userID", claims.UserID)
-						session.Save()
-						c.Next()
-						return
-					}
+		// Check JWT token FIRST
+		authHeader := c.GetHeader("Authorization")
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				claims, err := ValidateToken(parts[1])
+				if err == nil {
+					// Set user ID from JWT claims
+					c.Set("userID", claims.UserID)
+					c.Next()
+					return
 				}
 			}
+		}
 
+		// Fall back to session for backward compatibility
+		session := sessions.Default(c)
+		userID := session.Get("userID")
+		if userID == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			c.Abort()
 			return

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { User } from "../types";
+import tokenService from "../services/tokenService";
 
 // Define a type for the authedFetch function
 type AuthedFetch = <T = unknown>(input: RequestInfo | URL, init?: RequestInit) => Promise<{ data: T, response: Response }>;
@@ -65,6 +66,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
+  // Token refresh handler
+  useEffect(() => {
+    const handleTokenRefresh = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include', // Still use cookie for refresh token
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          tokenService.setAccessToken(data.accessToken || data.access_token, data.expiresIn || data.expires_in || 3600);
+          window.dispatchEvent(new Event('token-refreshed'));
+        } else {
+          // Refresh failed, clear auth state
+          tokenService.clearTokens();
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        // Clear auth state on error
+        tokenService.clearTokens();
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    };
+
+    window.addEventListener('token-refresh-needed', handleTokenRefresh);
+    return () => {
+      window.removeEventListener('token-refresh-needed', handleTokenRefresh);
+    };
+  }, []);
+  
   // --- New authedFetch function ---
   const authedFetch = useCallback(async <T = unknown>(
     input: RequestInfo | URL,
@@ -97,6 +135,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       method: init?.method || 'GET',
       hasBody: !!init?.body,
       credentials: 'include',
+      hasAuthToken: !!tokenService.getAccessToken(),
       timestamp: new Date().toISOString(),
       authState: { isAuthenticated, user: user?.email }
     });
@@ -104,6 +143,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const response = await fetch(url, {
       ...init,
       headers: {
+        ...tokenService.getAuthHeaders(),
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
         ...(init?.headers),
       },
@@ -117,6 +157,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ok: response.ok,
       timestamp: new Date().toISOString()
     });
+    
+    // Handle 401 - try refresh
+    if (response.status === 401) {
+      console.log('[AuthContext.authedFetch] Got 401, attempting token refresh...');
+      try {
+        await new Promise<void>((resolve) => {
+          const handler = () => {
+            window.removeEventListener('token-refreshed', handler);
+            resolve();
+          };
+          window.addEventListener('token-refreshed', handler);
+          window.dispatchEvent(new Event('token-refresh-needed'));
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            window.removeEventListener('token-refreshed', handler);
+            resolve();
+          }, 5000);
+        });
+
+        // Retry request with new token
+        console.log('[AuthContext.authedFetch] Retrying request after token refresh...');
+        const retryResponse = await fetch(url, {
+          ...init,
+          headers: {
+            ...tokenService.getAuthHeaders(),
+            ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+            ...(init?.headers),
+          },
+          credentials: 'include',
+        });
+
+        if (!retryResponse.ok) {
+          throw new Error(`HTTP error! status: ${retryResponse.status}`);
+        }
+
+        const text = await retryResponse.text();
+        const data = text ? JSON.parse(text) : null;
+        return { data, response: retryResponse };
+      } catch (refreshError) {
+        console.error('[AuthContext.authedFetch] Token refresh failed:', refreshError);
+      }
+    }
     
     if (!response.ok) {
       let errorPayload: { message: string; details?: unknown; error?: string } = { message: `HTTP error! status: ${response.status}` };
@@ -262,7 +345,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (response.ok) {
         const data = await response.json();
-        console.log('[AuthContext] Login response user data:', data.user);
+        console.log('[AuthContext] Login response:', data);
+        
+        // Store access token
+        if (data.accessToken || data.access_token) {
+          tokenService.setAccessToken(
+            data.accessToken || data.access_token, 
+            data.expiresIn || data.expires_in || 3600
+          );
+        }
         
         // Map snake_case from backend to camelCase for frontend
         const mappedUser: User = {
@@ -289,6 +380,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log('[AuthContext.login] Auth state updated:', {
           isAuthenticated: true,
           user: mappedUser.email,
+          hasToken: !!tokenService.getAccessToken(),
           timestamp: new Date().toISOString()
         });
         
@@ -345,6 +437,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error("Logout error:", error);
       }
     }
+    
+    // Clear tokens
+    tokenService.clearTokens();
     
     setUser(null);
     setIsAuthenticated(false);
