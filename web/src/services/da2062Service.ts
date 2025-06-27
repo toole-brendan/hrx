@@ -133,8 +133,8 @@ export async function uploadDA2062(
     const formData = new FormData();
     formData.append('file', file);
     
-    // Use new Claude-powered import endpoint
-    const endpoint = `${API_BASE_URL}/da2062/import`;
+    // Use Claude-powered upload endpoint (import route may not be deployed)
+    const endpoint = `${API_BASE_URL}/da2062/upload`;
     
     const response = await fetch(endpoint, {
       method: 'POST',
