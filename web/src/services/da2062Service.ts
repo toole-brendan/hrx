@@ -1,5 +1,33 @@
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
+// Helper function to safely parse JSON responses
+async function parseJsonResponse(response: Response): Promise<any> {
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      return await response.json();
+    } catch (e) {
+      throw new Error(`Invalid JSON response: ${response.status} ${response.statusText}`);
+    }
+  }
+  
+  // Non-JSON response
+  let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+  
+  // Provide specific messages for common errors
+  if (response.status === 401) {
+    errorMessage = 'Authentication required. Please log in and try again.';
+  } else if (response.status === 403) {
+    errorMessage = 'Permission denied. You do not have access to this resource.';
+  } else if (response.status === 404) {
+    errorMessage = 'Resource not found. The requested endpoint does not exist.';
+  } else if (response.status === 502 || response.status === 503) {
+    errorMessage = 'Server is temporarily unavailable. Please try again later.';
+  }
+  
+  throw new Error(errorMessage);
+}
+
 export interface DA2062Item {
   stockNumber?: string; // NSN
   itemDescription: string;
@@ -115,7 +143,7 @@ export async function uploadDA2062(
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await parseJsonResponse(response);
       throw new Error(error.error || 'Failed to upload document');
     }
 
@@ -125,7 +153,7 @@ export async function uploadDA2062(
       message: 'Processing with Claude AI...'
     });
     
-    const result = await response.json();
+    const result = await parseJsonResponse(response);
     
     // The backend returns the parsed DA2062 form directly
     if (result.error) {
@@ -200,7 +228,7 @@ export async function exportDA2062(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await parseJsonResponse(response);
     throw new Error(error.error || 'Failed to generate DA2062');
   }
 
@@ -218,7 +246,17 @@ export async function batchImportItems(items: BatchImportItem[]): Promise<BatchI
     body: JSON.stringify({ items }),
   });
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await parseJsonResponse(response);
+  } catch (error) {
+    // If JSON parsing fails on an error response, throw the error
+    if (!response.ok) {
+      throw error;
+    }
+    // If JSON parsing fails on a success response, that's a problem
+    throw new Error('Invalid response format from server');
+  }
   
   // Handle partial success (206) or success (201)
   if (response.status === 206 || response.status === 201) {
@@ -247,7 +285,7 @@ export async function getUnverifiedItems(): Promise<any[]> {
     throw new Error('Failed to fetch unverified items');
   }
 
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 // Verify an imported item
@@ -265,11 +303,11 @@ export async function verifyImportedItem(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await parseJsonResponse(response);
     throw new Error(error.error || 'Failed to verify item');
   }
 
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 // Helper functions
@@ -315,11 +353,11 @@ export async function generateDA2062FromDescription(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await parseJsonResponse(response);
     throw new Error(error.error || 'Failed to generate DA2062');
   }
 
-  const result = await response.json();
+  const result = await parseJsonResponse(response);
   return result.form;
 }
 
@@ -348,11 +386,11 @@ export async function reviewAndConfirmDA2062(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await parseJsonResponse(response);
     throw new Error(error.error || 'Failed to confirm import');
   }
 
-  return response.json();
+  return parseJsonResponse(response);
 }
 
 // Check if AI features are available
@@ -364,7 +402,7 @@ export async function checkAIAvailability(): Promise<boolean> {
     });
     
     if (response.ok) {
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       return data.available === true;
     }
     

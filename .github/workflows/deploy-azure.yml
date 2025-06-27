@@ -424,6 +424,11 @@ jobs:
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --secrets azure-ocr-key="8xV5rQq1XSkAoQmvDMJoGkM5OxsPz6Z4q88wE8j3VN7xhPzPaMUQJQQJ99BFACHYHv6XJ3w3AAAFACOG9Li2"
             
+            az containerapp secret set \
+              --name ${{ env.BACKEND_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --secrets anthropic-api-key="${{ secrets.ANTHROPIC_API_KEY }}"
+            
             az containerapp update \
               --name ${{ env.BACKEND_APP_NAME }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
@@ -447,6 +452,7 @@ jobs:
                 HANDRECEIPT_CONFIG_NAME=config.azure \
                 AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
                 AZURE_OCR_KEY=secretref:azure-ocr-key \
+                ANTHROPIC_API_KEY=secretref:anthropic-api-key \
                 CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
                 CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
                 CORS_ALLOWED_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS" \
@@ -471,6 +477,7 @@ jobs:
                 storage-connection-string="DefaultEndpointsProtocol=https;AccountName=${{ env.AZURE_BASE_NAME }}${{ env.AZURE_ENVIRONMENT }}storage;AccountKey=$STORAGE_ACCOUNT_KEY;EndpointSuffix=core.windows.net" \
                 jwt-secret-key="9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=" \
                 azure-ocr-key="8xV5rQq1XSkAoQmvDMJoGkM5OxsPz6Z4q88wE8j3VN7xhPzPaMUQJQQJ99BFACHYHv6XJ3w3AAAFACOG9Li2" \
+                anthropic-api-key="${{ secrets.ANTHROPIC_API_KEY }}" \
               --env-vars \
                 HANDRECEIPT_DATABASE_HOST="$POSTGRES_FQDN" \
                 HANDRECEIPT_DATABASE_USER=hradmin \
@@ -490,6 +497,7 @@ jobs:
                 HANDRECEIPT_CONFIG_NAME=config.azure \
                 AZURE_OCR_ENDPOINT="https://handreceipt-prod-vision.cognitiveservices.azure.com/" \
                 AZURE_OCR_KEY=secretref:azure-ocr-key \
+                ANTHROPIC_API_KEY=secretref:anthropic-api-key \
                 CORS_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
                 CORS_ALLOWED_ORIGINS="https://www.handreceipt.com,https://handreceipt.com,http://localhost:3000,http://localhost:5001,http://localhost:5002,http://localhost:5003,http://localhost:5173,capacitor://localhost" \
                 CORS_ALLOWED_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS" \
