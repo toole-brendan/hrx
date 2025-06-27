@@ -138,10 +138,15 @@ func GenerateToken(userID uint) (string, error) {
 	}
 
 	// Get JWT secret configuration
-	secret := viper.GetString("auth.jwt_secret")
+	secret := viper.GetString("jwt.secret_key")
 	if secret == "" {
-		// Fallback to environment variable if not in config
-		secret = "your-secret-key" // TODO: Use actual secure secret
+		// Try environment variable with HANDRECEIPT prefix
+		secret = os.Getenv("HANDRECEIPT_JWT_SECRET_KEY")
+	}
+	if secret == "" {
+		// Fallback to default for local development only
+		secret = "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+		fmt.Println("WARNING: Using default JWT secret. Set jwt.secret_key in config or HANDRECEIPT_JWT_SECRET_KEY env var")
 	}
 
 	// Create the claims
@@ -171,10 +176,15 @@ func GenerateToken(userID uint) (string, error) {
 // ValidateToken validates a JWT token and returns the claims
 func ValidateToken(tokenString string) (*Claims, error) {
 	// Get JWT secret configuration
-	secret := viper.GetString("auth.jwt_secret")
+	secret := viper.GetString("jwt.secret_key")
 	if secret == "" {
-		// Fallback to environment variable if not in config
-		secret = "your-secret-key" // TODO: Use actual secure secret
+		// Try environment variable with HANDRECEIPT prefix
+		secret = os.Getenv("HANDRECEIPT_JWT_SECRET_KEY")
+	}
+	if secret == "" {
+		// Fallback to default for local development only
+		secret = "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+		fmt.Println("WARNING: Using default JWT secret. Set jwt.secret_key in config or HANDRECEIPT_JWT_SECRET_KEY env var")
 	}
 
 	// Parse the token
