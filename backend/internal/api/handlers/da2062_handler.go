@@ -24,7 +24,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
 	"github.com/toole-brendan/handreceipt-go/internal/services/ai"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
-	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
+	"github.com/toole-brendan/handreceipt-go/internal/services/documents"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
 )
@@ -33,7 +33,7 @@ import (
 type DA2062Handler struct {
 	Ledger         ledger.LedgerService
 	Repo           repository.Repository
-	PDFGenerator   *pdf.DA2062Generator
+	PDFGenerator   *documents.DA2062Generator
 	EmailService   *email.DA2062EmailService
 	StorageService storage.StorageService
 }
@@ -42,7 +42,7 @@ type DA2062Handler struct {
 func NewDA2062Handler(
 	ledgerService ledger.LedgerService,
 	repo repository.Repository,
-	pdfGenerator *pdf.DA2062Generator,
+	pdfGenerator *documents.DA2062Generator,
 	emailService *email.DA2062EmailService,
 	storageService storage.StorageService,
 ) *DA2062Handler {
@@ -908,36 +908,26 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 	}
 
 	// Convert unit info
-	unitInfo := pdf.UnitInfo{
+	unitInfo := documents.UnitInfo{
 		UnitName:    req.UnitInfo.UnitName,
 		DODAAC:      req.UnitInfo.DODAAC,
 		StockNumber: req.UnitInfo.StockNumber,
 		Location:    req.UnitInfo.Location,
 	}
 
-	// Generate PDF
-	options := pdf.GenerateOptions{
-		GroupByCategory:   req.GroupByCategory,
-		IncludeSignatures: true,
-		IncludeQRCodes:    req.IncludeQRCodes,
-	}
-
-	pdfBuffer, err := h.PDFGenerator.GenerateDA2062(
+	// Generate form number first
+	formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), userID)
+	
+	// Generate HTML for ALL export types
+	htmlContent := h.PDFGenerator.GenerateDA2062HTML(
 		properties,
 		fromUserInfo,
 		toUserInfo,
 		unitInfo,
-		options,
+		formNumber,
 	)
-
-	if err != nil {
-		log.Printf("PDF generation failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate PDF"})
-		return
-	}
-
-	// Generate form number
-	formNumber := fmt.Sprintf("HR-%s-%d", time.Now().Format("20060102"), userID)
+	
+	log.Printf("DA2062 Export: HTML generated, length=%d bytes", len(htmlContent))
 
 	// Store signature data if signatures are included (signatures are always included per options above)
 	if fromUserInfo.SignatureURL != "" || toUserInfo.SignatureURL != "" {
@@ -981,16 +971,16 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Recipient not found"})
 			return
 		}
-		// Upload PDF to storage
+		// Upload HTML to storage
 		ctx := c.Request.Context()
-		fileKey := fmt.Sprintf("da2062/export_%d_%d.pdf", userID, time.Now().UnixNano())
-		err = h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuffer.Bytes()), int64(pdfBuffer.Len()), "application/pdf")
+		fileKey := fmt.Sprintf("da2062/export_%d_%d.html", userID, time.Now().UnixNano())
+		err = h.StorageService.UploadFile(ctx, fileKey, strings.NewReader(htmlContent), int64(len(htmlContent)), "text/html")
 		if err != nil {
-			log.Printf("Failed to upload DA2062 PDF: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store PDF"})
+			log.Printf("Failed to upload DA2062 HTML: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store HTML"})
 			return
 		}
-		// Get a presigned URL for the PDF (for attachments)
+		// Get a presigned URL for the HTML (for attachments)
 		fileURL, err := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour)
 		if err != nil {
 			log.Printf("Warning: could not get presigned URL, proceeding without it: %v", err)
@@ -1079,21 +1069,26 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 			Phone: fromUserInfo.Phone,
 		}
 
-		err = h.EmailService.SendDA2062Email(req.Recipients, pdfBuffer, formNumber, senderInfo)
+		// Convert HTML to buffer for email attachment
+		htmlBuffer := bytes.NewBufferString(htmlContent)
+		
+		// TODO: Update email service to send HTML attachments
+		// For now, we'll use the existing email service but note it needs updating
+		err = h.EmailService.SendDA2062Email(req.Recipients, htmlBuffer, formNumber, senderInfo)
 		if err != nil {
 			log.Printf("Email sending failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
 			return
 		}
 
-		// Upload PDF to storage for sender's Documents inbox
+		// Upload HTML to storage for sender's Documents inbox
 		ctx := c.Request.Context()
-		fileKey := fmt.Sprintf("da2062/email_%d_%d.pdf", userID, time.Now().UnixNano())
-		err = h.StorageService.UploadFile(ctx, fileKey, bytes.NewReader(pdfBuffer.Bytes()), int64(pdfBuffer.Len()), "application/pdf")
+		fileKey := fmt.Sprintf("da2062/email_%d_%d.html", userID, time.Now().UnixNano())
+		err = h.StorageService.UploadFile(ctx, fileKey, strings.NewReader(htmlContent), int64(len(htmlContent)), "text/html")
 		if err != nil {
-			log.Printf("WARNING: Failed to upload PDF for sender's Documents: %v", err)
+			log.Printf("WARNING: Failed to upload HTML for sender's Documents: %v", err)
 		} else {
-			// Get a presigned URL for the PDF
+			// Get a presigned URL for the HTML
 			fileURL, err := h.StorageService.GetPresignedURL(ctx, fileKey, 7*24*time.Hour)
 			if err != nil {
 				log.Printf("Warning: could not get presigned URL for sender's copy: %v", err)
@@ -1122,7 +1117,7 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 				Status:          domain.DocumentStatusRead, // Mark as read since sender created it
 				SentAt:          time.Now(),
 			}
-			// Attach PDF URL if available
+			// Attach HTML URL if available
 			if fileURL != "" {
 				senderDoc.Attachments = domain.JSONStringArray{fileURL}
 			}
@@ -1149,23 +1144,14 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
 		}
 
-		// Generate HTML instead of PDF
-		log.Printf("DA2062 Export: Generating HTML for download, SendEmail=%v, Recipients=%d, ToUserID=%d", 
+		// Return HTML for download
+		log.Printf("DA2062 Export: Returning HTML for download, SendEmail=%v, Recipients=%d, ToUserID=%d", 
 			req.SendEmail, len(req.Recipients), req.ToUserID)
 		
-		htmlContent := h.PDFGenerator.GenerateDA2062HTML(
-			properties,
-			fromUserInfo,
-			toUserInfo,
-			unitInfo,
-			formNumber,
-		)
-		
-		log.Printf("DA2062 Export: HTML generated, length=%d bytes", len(htmlContent))
-
 		htmlFilename := fmt.Sprintf("DA2062_%s.html", time.Now().Format("20060102_150405"))
 		c.Header("Content-Type", "text/html; charset=utf-8")
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", htmlFilename))
+		c.Header("Content-Length", fmt.Sprintf("%d", len(htmlContent)))
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
 	}
 }
@@ -1185,9 +1171,9 @@ type GeneratePDFRequest struct {
 	IncludeQRCodes  bool         `json:"include_qr_codes"`
 	SendEmail       bool         `json:"send_email"`
 	Recipients      []string     `json:"recipients"`
-	FromUser        pdf.UserInfo `json:"from_user" binding:"required"`
-	ToUser          pdf.UserInfo `json:"to_user"`
-	UnitInfo        pdf.UnitInfo `json:"unit_info" binding:"required"`
+	FromUser        documents.UserInfo `json:"from_user" binding:"required"`
+	ToUser          documents.UserInfo `json:"to_user"`
+	UnitInfo        documents.UnitInfo `json:"unit_info" binding:"required"`
 	ToUserID        uint         `json:"to_user_id"`
 }
 
@@ -1357,6 +1343,10 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 		da2062.GET("/unverified", h.GetUnverifiedItems)
 		da2062.PUT("/verify/:id", h.VerifyImportedItem)
 		da2062.GET("/table-check", h.CheckDocumentTable)
+		
+		// Debug endpoints for template verification
+		da2062.GET("/debug/template-check", h.CheckTemplateStatus)
+		da2062.GET("/debug/test-html", h.TestHTMLGeneration)
 	}
 
 	inventory := router.Group("/inventory")
@@ -1415,4 +1405,52 @@ func (h *DA2062Handler) CheckDocumentTable(c *gin.Context) {
 		"timestamp":              time.Now().Format(time.RFC3339),
 		"message":                "Table exists and is accessible",
 	})
+}
+
+// CheckTemplateStatus verifies HTML template is available
+func (h *DA2062Handler) CheckTemplateStatus(c *gin.Context) {
+	hasEmbedded := documents.HasEmbeddedTemplate()
+	c.JSON(http.StatusOK, gin.H{
+		"has_embedded_template": hasEmbedded,
+		"backend_version": "2024-12-html-only",
+		"template_path": "internal/services/documents/templates/da2062.html.tmpl",
+		"generation_mode": "HTML",
+	})
+}
+
+// TestHTMLGeneration tests HTML generation with sample data
+func (h *DA2062Handler) TestHTMLGeneration(c *gin.Context) {
+	// Generate test HTML
+	testProps := []domain.Property{
+		{
+			ID:           1,
+			Name:         "Test Item 1",
+			SerialNumber: "TEST123",
+			Quantity:     1,
+			NSN:          stringPtr("1234-56-789-0123"),
+		},
+		{
+			ID:           2,
+			Name:         "Test Item 2",
+			SerialNumber: "TEST456",
+			Quantity:     2,
+			NSN:          stringPtr("9876-54-321-0987"),
+		},
+	}
+	
+	html := h.PDFGenerator.GenerateDA2062HTML(
+		testProps,
+		documents.UserInfo{Name: "Test User", Rank: "SGT", Title: "Test Title"},
+		documents.UserInfo{Name: "Test Receiver", Rank: "CPT", Title: "Receiver Title"},
+		documents.UnitInfo{UnitName: "Test Unit", DODAAC: "W12345"},
+		"TEST-FORM-001",
+	)
+	
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+// Helper function for creating string pointers
+func stringPtr(s string) *string {
+	return &s
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
-	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
+	"github.com/toole-brendan/handreceipt-go/internal/services/documents"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
 )
@@ -26,7 +26,7 @@ type TransferHandler struct {
 	Ledger               ledger.LedgerService
 	Repo                 repository.Repository
 	ComponentService     services.ComponentService
-	PDFGenerator         *pdf.DA2062Generator
+	PDFGenerator         *documents.DA2062Generator
 	EmailService         *email.DA2062EmailService
 	StorageService       storage.StorageService
 	NotificationService  domain.NotificationService
@@ -37,7 +37,7 @@ func NewTransferHandler(
 	ledgerService ledger.LedgerService,
 	repo repository.Repository,
 	componentService services.ComponentService,
-	pdfGenerator *pdf.DA2062Generator,
+	pdfGenerator *documents.DA2062Generator,
 	emailService *email.DA2062EmailService,
 	storageService storage.StorageService,
 	notificationService domain.NotificationService,
@@ -929,7 +929,7 @@ func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *d
 	}
 
 	// Prepare user info for PDF generation
-	fromInfo := pdf.UserInfo{
+	fromInfo := documents.UserInfo{
 		Name:         fromUser.FirstName + " " + fromUser.LastName,
 		Rank:         fromUser.Rank,
 		Title:        fromUser.Unit, // Use unit as title
@@ -940,7 +940,7 @@ func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *d
 		fromInfo.SignatureURL = *fromUser.SignatureURL
 	}
 
-	toInfo := pdf.UserInfo{
+	toInfo := documents.UserInfo{
 		Name:         toUser.FirstName + " " + toUser.LastName,
 		Rank:         toUser.Rank,
 		Title:        toUser.Unit, // Use unit as title
@@ -952,7 +952,7 @@ func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *d
 	}
 
 	// Prepare unit info (using FROM user's unit)
-	unitInfo := pdf.UnitInfo{
+	unitInfo := documents.UnitInfo{
 		UnitName:    fromUser.Unit,
 		DODAAC:      "", // Could be stored in user profile if needed
 		StockNumber: "", // Could be property book number if available
@@ -960,7 +960,7 @@ func (h *TransferHandler) generateAndSendDA2062(ctx context.Context, transfer *d
 	}
 
 	// Generate PDF options
-	options := pdf.GenerateOptions{
+	options := documents.GenerateOptions{
 		GroupByCategory:   false,
 		IncludeSignatures: true,
 		IncludeQRCodes:    false,
@@ -1054,7 +1054,3 @@ func (h *TransferHandler) createInAppDocumentRecord(ctx context.Context, transfe
 	return nil
 }
 
-// Helper function to create string pointer
-func stringPtr(s string) *string {
-	return &s
-}

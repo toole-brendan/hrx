@@ -14,7 +14,7 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
-	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
+	"github.com/toole-brendan/handreceipt-go/internal/services/documents"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
@@ -39,7 +39,7 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	componentService := services.NewComponentService(repo)
 
 	// Create PDF and email services for DA2062 functionality
-	pdfGenerator := pdf.NewDA2062Generator(repo)
+	pdfGenerator := documents.NewDA2062Generator(repo)
 	emailService := &email.DA2062EmailService{} // TODO: Initialize with proper email service
 
 	// Create handlers

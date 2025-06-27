@@ -391,7 +391,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate PDF');
+        throw new Error(errorData.error || 'Failed to generate hand receipt');
       }
 
       if (exportMode === 'email') {
@@ -409,8 +409,15 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         });
         onClose();
       } else {
-        // Download PDF
+        // Download HTML
         const blob = await response.blob();
+        
+        // Verify it's HTML
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('text/html')) {
+          console.warn('Unexpected content type:', contentType);
+        }
+        
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -422,14 +429,14 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
 
         toast({
           title: 'DA 2062 Generated',
-          description: 'Hand receipt downloaded successfully',
+          description: 'Hand receipt downloaded successfully as HTML',
         });
         onClose();
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to generate PDF',
+        description: error instanceof Error ? error.message : 'Failed to generate hand receipt',
         variant: 'destructive',
       });
     } finally {

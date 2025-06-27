@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"time"
 )
 
 type DA2062EmailService struct {
@@ -16,22 +17,23 @@ func NewDA2062EmailService(emailService EmailService) *DA2062EmailService {
 	}
 }
 
+// SendDA2062Email now handles HTML attachments (buffer contains HTML content)
 func (s *DA2062EmailService) SendDA2062Email(
 	recipients []string,
-	pdfBuffer *bytes.Buffer,
+	htmlBuffer *bytes.Buffer,
 	formNumber string,
 	senderInfo UserInfo,
 ) error {
-	subject := fmt.Sprintf("DA Form 2062 - Hand Receipt #%s", formNumber)
+	subject := fmt.Sprintf("DA Form 2062 - Hand Receipt %s", formNumber)
 
 	// Create email body
 	body := s.generateEmailBody(formNumber, senderInfo)
 
-	// Create attachment
+	// Create HTML attachment
 	attachment := EmailAttachment{
-		Filename:    fmt.Sprintf("DA2062_%s.pdf", formNumber),
-		Content:     base64.StdEncoding.EncodeToString(pdfBuffer.Bytes()),
-		ContentType: "application/pdf",
+		Filename:    fmt.Sprintf("DA2062_%s.html", formNumber),
+		Content:     base64.StdEncoding.EncodeToString(htmlBuffer.Bytes()),
+		ContentType: "text/html",
 	}
 
 	// Send email with attachment
@@ -44,6 +46,17 @@ func (s *DA2062EmailService) SendDA2062Email(
 	}
 
 	return s.emailService.SendEmail(emailRequest)
+}
+
+// SendDA2062EmailHTML is a new method specifically for HTML attachments
+func (s *DA2062EmailService) SendDA2062EmailHTML(
+	recipients []string,
+	htmlBuffer *bytes.Buffer,
+	formNumber string,
+	senderInfo UserInfo,
+) error {
+	// This method calls the updated SendDA2062Email which now handles HTML
+	return s.SendDA2062Email(recipients, htmlBuffer, formNumber, senderInfo)
 }
 
 func (s *DA2062EmailService) generateEmailBody(formNumber string, senderInfo UserInfo) string {
@@ -72,7 +85,7 @@ func (s *DA2062EmailService) generateEmailBody(formNumber string, senderInfo Use
             </ul>
         </div>
         
-        <p>Please find the attached PDF document for your records. This document contains official property accountability information.</p>
+        <p>Please find the attached HTML document for your records. This document contains official property accountability information and can be viewed in any web browser or printed directly.</p>
         
         <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin: 15px 0;">
             <p style="margin: 0;"><strong>Note:</strong> This is an official military document. Please retain for your records and ensure proper handling according to applicable regulations.</p>
@@ -96,8 +109,7 @@ func (s *DA2062EmailService) generateEmailBody(formNumber string, senderInfo Use
 }
 
 func getCurrentDate() string {
-	// This would use proper time formatting
-	return "Current Date" // Placeholder
+	return time.Now().Format("02 Jan 2006") // Military date format
 }
 
 // These structs should match your existing email service interfaces
