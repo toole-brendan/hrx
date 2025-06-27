@@ -39,6 +39,7 @@ import {
   clearLocalSignature 
 } from '@/services/signatureService';
 import { getConnections } from '@/services/connectionService';
+import { exportDA2062 } from '@/services/da2062Service';
 
 interface Property {
   id: string;
@@ -358,7 +359,8 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
     };
 
     try {
-      const endpoint = '/api/da2062/generate-pdf';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const endpoint = `${apiBaseUrl}/api/da2062/generate-pdf`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
