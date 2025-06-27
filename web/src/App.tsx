@@ -43,6 +43,20 @@ interface TransfersProps {
 
 // Make all component props have any type to fix TypeScript errors with wouter
 function Router() {
+  // Debug logging for mobile rendering issues
+  useEffect(() => {
+    console.log('[HandReceipt Debug] App mounted', {
+      userAgent: navigator.userAgent,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio
+      },
+      isMobile: window.innerWidth < 768,
+      url: window.location.href
+    });
+  }, []);
+
   return (
     <AppShell>
       <Switch>

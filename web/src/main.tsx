@@ -2,6 +2,21 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+
+// Global error handler for debugging mobile issues
+window.addEventListener('error', (event) => {
+  console.error('[HandReceipt Debug] Global error:', {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    error: event.error
+  });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[HandReceipt Debug] Unhandled promise rejection:', event.reason);
+});
 // Import Workbox for registration logic
 // Use workbox-window for easier registration and update handling
 // import { Workbox } from 'workbox-window';
@@ -12,8 +27,11 @@ import { seedDatabase } from './lib/seedDB'; // Fix WebSocket connection
 // This injects the proper port into window.__vite_ws_port
 (function injectWebSocketPort() { // Get the current port from the URL const currentPort = window.location.port || '5001'; // Create a global variable that Vite's client will use // @ts-ignore window.__vite_ws_port = currentPort; console.log(`WebSocket port set to: ${currentPort}`); // Monkey patch WebSocket to ensure it uses the correct port const originalWebSocket = window.WebSocket; // @ts-ignore window.WebSocket = function(url, protocols) { if (url.includes('localhost:undefined')) { url = url.replace('localhost:undefined', `localhost:${currentPort}`); console.log(`Fixed WebSocket URL: ${url}`); } return new originalWebSocket(url, protocols); }; // Copy properties from the original WebSocket for (const prop in originalWebSocket) { // @ts-ignore if (originalWebSocket.hasOwnProperty(prop)) { // @ts-ignore window.WebSocket[prop] = originalWebSocket[prop]; } } // @ts-ignore window.WebSocket.prototype = originalWebSocket.prototype;
 })(); // Seed the database with initial data
-seedDatabase().then(() => { console.log('Database seeding completed successfully');
-}).catch(error => { console.error('Database seeding failed:', error);
+seedDatabase().then(() => { 
+  console.log('[HandReceipt Debug] Database seeding completed successfully');
+}).catch(error => { 
+  console.error('[HandReceipt Debug] Database seeding failed:', error);
+  // Don't let database seeding failure prevent app from loading
 }); // Create a valid DOM element to mount the app
 const rootElement = document.getElementById('root');
 if (!rootElement) { const newRoot = document.createElement('div'); newRoot.id = 'root'; document.body.appendChild(newRoot);

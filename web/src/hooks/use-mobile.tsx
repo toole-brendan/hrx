@@ -6,7 +6,13 @@ import { useState, useEffect } from 'react';
  * @returns Boolean indicating if the device is mobile
  */
 export function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    // Initialize with actual window width on first render
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < breakpoint;
+    }
+    return false;
+  });
 
   useEffect(() => {
     // Function to check if screen width is below the breakpoint

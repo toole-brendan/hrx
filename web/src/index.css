@@ -442,7 +442,7 @@
   @media (max-width: 768px) {
     .main-content, .main-content.sidebar-collapsed {
       margin-left: 0;
-      margin-top: -6px; /* Match desktop negative margin */
+      margin-top: 0; /* Remove negative margin for mobile */
       max-width: 100%;
       width: 100%;
       padding-bottom: var(--mobile-nav-height);

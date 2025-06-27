@@ -228,6 +228,16 @@ export default function Dashboard() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
+  // Debug logging for mobile rendering
+  useEffect(() => {
+    console.log('[HandReceipt Debug] Dashboard mounted', {
+      isAuthenticated,
+      isLoading,
+      user: user?.username || 'none',
+      viewport: { width: window.innerWidth, height: window.innerHeight }
+    });
+  }, [isAuthenticated, isLoading, user]);
+  
   // Keyboard shortcut for search (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -352,7 +362,7 @@ export default function Dashboard() {
   }, []);
   
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative overflow-hidden">
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-ios-background via-ios-tertiary-background/30 to-ios-background relative md:overflow-hidden overflow-visible">
       {/* Decorative gradient orbs */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
