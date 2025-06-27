@@ -353,10 +353,14 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         signature_url: userSignature,
       },
       to_user: toUserInfo,
-      to_user_id: toUserId,
       unit_info: unitInfo,
       form_number: generateFormNumber(),
     };
+    
+    // Only include to_user_id if it's defined (when sending to a user)
+    if (toUserId !== undefined) {
+      request.to_user_id = toUserId;
+    }
 
     try {
       const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -367,8 +371,14 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         request,
         exportMode,
         selectedPropertiesCount: request.property_ids.length,
-        hasToUserId: !!request.to_user_id
+        hasToUserId: !!request.to_user_id,
+        to_user_id_value: request.to_user_id,
+        send_email: request.send_email,
+        recipients_length: request.recipients.length
       });
+      
+      // Log the exact JSON being sent
+      console.log('Request JSON:', JSON.stringify(request, null, 2));
 
       const response = await fetch(endpoint, {
         method: 'POST',
