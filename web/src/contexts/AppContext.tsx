@@ -16,13 +16,22 @@ export const useApp = () => useContext(AppContext);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Initialize sidebar state from localStorage or default to expanded
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    const savedState = localStorage.getItem('sidebarCollapsed');
-    return savedState === 'true';
+    try {
+      const savedState = localStorage.getItem('sidebarCollapsed');
+      return savedState === 'true';
+    } catch (error) {
+      console.warn('[AppContext] Failed to read from localStorage:', error);
+      return false;
+    }
   });
   
   // Save sidebar state to localStorage
   useEffect(() => {
-    localStorage.setItem('sidebarCollapsed', sidebarCollapsed.toString());
+    try {
+      localStorage.setItem('sidebarCollapsed', sidebarCollapsed.toString());
+    } catch (error) {
+      console.warn('[AppContext] Failed to write to localStorage:', error);
+    }
   }, [sidebarCollapsed]);
   
   // Toggle sidebar function

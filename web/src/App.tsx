@@ -7,6 +7,7 @@ import { AppProvider } from "@/contexts/AppContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { lazyLoad } from "@/utils/lazyLoad";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AppShell from "./components/layout/AppShell";
 
 // Lazy load all route components for code splitting
@@ -97,20 +98,22 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppProvider>
-          <NotificationProvider>
-            <WebSocketProvider>
-              <WouterRouter>
-                <Router />
-              </WouterRouter>
-              <Toaster />
-            </WebSocketProvider>
-          </NotificationProvider>
-        </AppProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppProvider>
+            <NotificationProvider>
+              <WebSocketProvider>
+                <WouterRouter>
+                  <Router />
+                </WouterRouter>
+                <Toaster />
+              </WebSocketProvider>
+            </NotificationProvider>
+          </AppProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import legacy from "@vitejs/plugin-legacy";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
@@ -10,6 +11,10 @@ const __dirname = process.cwd();
 export default defineConfig({
   plugins: [
     react(),
+    legacy({
+      targets: ['defaults', 'not IE 11'],
+      additionalLegacyPolyfills: ['regenerator-runtime/runtime']
+    }),
     runtimeErrorOverlay(),
     themePlugin(),
     ...(process.env.NODE_ENV !== "production" &&
@@ -31,7 +36,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
-    target: 'esnext',
+    target: 'es2015',
   },
   define: {
     // Define environment variables for build
