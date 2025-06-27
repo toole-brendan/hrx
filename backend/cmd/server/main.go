@@ -41,6 +41,11 @@ func main() {
 	dbUser := viper.GetString("database.user")
 	dbHost := viper.GetString("database.host")
 	log.Printf("Database config: name=%s, user=%s, host=%s", dbName, dbUser, dbHost)
+	
+	// Validate JWT configuration
+	if err := config.ValidateJWTConfig(); err != nil {
+		log.Fatalf("Invalid JWT configuration: %v", err)
+	}
 
 	// Setup environment
 	environment := viper.GetString("server.environment")

@@ -29,8 +29,11 @@ func NewAuthHandler(repo repository.Repository) *AuthHandler {
 	refreshExpiry := viper.GetDuration("jwt.refresh_expiry")
 	log.Printf("JWT Config: AccessExpiry=%v, RefreshExpiry=%v", accessExpiry, refreshExpiry)
 	
+	// Get JWT secret with proper fallback logic
+	secretKey := config.GetJWTSecret()
+	
 	jwtService := auth.NewJWTService(&config.JWTConfig{
-		SecretKey:      viper.GetString("jwt.secret_key"),
+		SecretKey:      secretKey,
 		AccessExpiry:   accessExpiry,
 		RefreshExpiry:  refreshExpiry,
 		RefreshEnabled: viper.GetBool("jwt.refresh_enabled"),

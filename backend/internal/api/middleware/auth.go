@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/viper"
+	"github.com/toole-brendan/handreceipt-go/internal/config"
 )
 
 // SetupSession configures session middleware
@@ -66,7 +67,11 @@ func SessionAuthMiddleware() gin.HandlerFunc {
 		if authHeader != "" {
 			parts := strings.Split(authHeader, " ")
 			if len(parts) == 2 && parts[0] == "Bearer" {
-				fmt.Printf("[Auth Middleware] Attempting JWT validation for token: %s...\n", parts[1][:20])
+				tokenPreview := parts[1]
+				if len(tokenPreview) > 20 {
+					tokenPreview = tokenPreview[:20] + "..."
+				}
+				fmt.Printf("[Auth Middleware] Attempting JWT validation for token: %s\n", tokenPreview)
 				claims, err := ValidateToken(parts[1])
 				if err == nil {
 					// Set user ID from JWT claims
@@ -75,9 +80,21 @@ func SessionAuthMiddleware() gin.HandlerFunc {
 					c.Next()
 					return
 				} else {
+					// Log specific JWT validation errors
 					fmt.Printf("[Auth Middleware] JWT validation failed: %v\n", err)
+					if strings.Contains(err.Error(), "signature is invalid") {
+						fmt.Println("[Auth Middleware] Token signature mismatch - check JWT secret configuration")
+					} else if strings.Contains(err.Error(), "token is expired") {
+						fmt.Println("[Auth Middleware] Token has expired")
+					} else if strings.Contains(err.Error(), "token used before issued") {
+						fmt.Println("[Auth Middleware] Token timestamp issue - check server time sync")
+					}
 				}
+			} else {
+				fmt.Printf("[Auth Middleware] Invalid Authorization header format: %s\n", authHeader)
 			}
+		} else {
+			fmt.Println("[Auth Middleware] No Authorization header present")
 		}
 
 		// Fall back to session for backward compatibility
@@ -142,17 +159,8 @@ func GenerateToken(userID uint) (string, error) {
 		expiry = 24 * time.Hour // Default to 24 hours if not specified or invalid
 	}
 
-	// Get JWT secret configuration
-	secret := viper.GetString("jwt.secret_key")
-	if secret == "" {
-		// Try environment variable with HANDRECEIPT prefix
-		secret = os.Getenv("HANDRECEIPT_JWT_SECRET_KEY")
-	}
-	if secret == "" {
-		// Fallback to default for local development only
-		secret = "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
-		fmt.Println("WARNING: Using default JWT secret. Set jwt.secret_key in config or HANDRECEIPT_JWT_SECRET_KEY env var")
-	}
+	// Get JWT secret using centralized function
+	secret := config.GetJWTSecret()
 
 	// Create the claims
 	claims := &Claims{
@@ -180,17 +188,8 @@ func GenerateToken(userID uint) (string, error) {
 
 // ValidateToken validates a JWT token and returns the claims
 func ValidateToken(tokenString string) (*Claims, error) {
-	// Get JWT secret configuration
-	secret := viper.GetString("jwt.secret_key")
-	if secret == "" {
-		// Try environment variable with HANDRECEIPT prefix
-		secret = os.Getenv("HANDRECEIPT_JWT_SECRET_KEY")
-	}
-	if secret == "" {
-		// Fallback to default for local development only
-		secret = "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
-		fmt.Println("WARNING: Using default JWT secret. Set jwt.secret_key in config or HANDRECEIPT_JWT_SECRET_KEY env var")
-	}
+	// Get JWT secret using centralized function
+	secret := config.GetJWTSecret()
 
 	// Parse the token
 	token, err := jwt.ParseWithClaims(
