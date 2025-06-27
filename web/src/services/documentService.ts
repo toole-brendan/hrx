@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import tokenService from './tokenService';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
@@ -115,7 +116,8 @@ export async function getDocuments(box: 'inbox' | 'sent' | 'all' = 'inbox', stat
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...tokenService.getAuthHeaders()
       },
       credentials: 'include'
     });
@@ -164,7 +166,8 @@ export async function markAsRead(documentId: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/documents/${documentId}/read`, {
     method: 'PATCH',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders()
     },
     credentials: 'include'
   });
@@ -178,7 +181,8 @@ export async function archiveDocument(documentId: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/documents/${documentId}/archive`, {
     method: 'PATCH',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders()
     },
     credentials: 'include'
   });
@@ -192,7 +196,8 @@ export async function deleteDocument(documentId: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
     method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders()
     },
     credentials: 'include'
   });

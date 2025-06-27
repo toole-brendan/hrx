@@ -1,4 +1,5 @@
 import { Transfer, BackendTransfer, TransferOffer, OfferResponse } from '@/types';
+import tokenService from './tokenService';
 
 // Transfer Service API
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
@@ -9,7 +10,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') +
 function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
-    // Cookie-based auth is handled automatically by fetch with credentials
+    ...tokenService.getAuthHeaders()
   };
 }
 

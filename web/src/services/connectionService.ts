@@ -1,3 +1,5 @@
+import tokenService from './tokenService';
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
 export interface UserConnection {
@@ -27,7 +29,8 @@ export async function getConnections(): Promise<UserConnection[]> {
   const response = await fetch(`${API_BASE_URL}/users/connections`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders()
     },
     credentials: 'include',
   });

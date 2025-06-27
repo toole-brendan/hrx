@@ -1,4 +1,5 @@
 import { transformKeys } from '../utils/transformKeys';
+import tokenService from './tokenService';
 
 interface BackendNotification {
   id: number;
@@ -51,6 +52,9 @@ class NotificationService {
     if (params?.unreadOnly) queryParams.append('unread_only', 'true');
 
     const response = await fetch(`${this.baseUrl}?${queryParams.toString()}`, {
+      headers: {
+        ...tokenService.getAuthHeaders()
+      },
       credentials: 'include',
     });
 
@@ -64,6 +68,9 @@ class NotificationService {
 
   async getUnreadCount(): Promise<number> {
     const response = await fetch(`${this.baseUrl}/unread-count`, {
+      headers: {
+        ...tokenService.getAuthHeaders()
+      },
       credentials: 'include',
     });
 
@@ -77,6 +84,9 @@ class NotificationService {
 
   async markAsRead(notificationId: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${notificationId}/read`, {
+      headers: {
+        ...tokenService.getAuthHeaders()
+      },
       method: 'PATCH',
       credentials: 'include',
     });

@@ -1,4 +1,5 @@
 import { Property } from '@/types';
+import tokenService from './tokenService';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
@@ -31,6 +32,7 @@ function mapPropertyToProperty(property: any): Property {
 function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
+    ...tokenService.getAuthHeaders()
   };
 }
 
