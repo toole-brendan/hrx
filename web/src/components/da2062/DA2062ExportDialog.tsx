@@ -63,7 +63,7 @@ interface UserInfo {
   rank: string;
   title: string;
   phone: string;
-  signature?: string;
+  signature_url?: string;
 }
 
 interface Connection {
@@ -136,7 +136,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
     rank: user?.rank || localStorage.getItem('user_rank') || '',
     title: localStorage.getItem('user_title') || 'Property Book Officer',
     phone: user?.phone || localStorage.getItem('user_phone') || '',
-    signature: '',
+    signature_url: '',
   });
 
   // Fetch connections
@@ -350,7 +350,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         : [],
       from_user: {
         ...userInfo,
-        signature: userSignature,
+        signature_url: userSignature,
       },
       to_user: toUserInfo,
       to_user_id: toUserId,
