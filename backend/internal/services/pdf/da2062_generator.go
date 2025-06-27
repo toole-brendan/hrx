@@ -2,8 +2,10 @@ package pdf
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"image"
 	"io"
 	"log"
@@ -833,3 +835,262 @@ func (g *DA2062Generator) validateGeneratedPDF(options GenerateOptions) {
 		log.Printf("INFO: Generated DA2062 PDF is fully compliant with template %s", report.TemplateVersion)
 	}
 }
+
+//go:embed templates/da2062.html.tmpl
+var da2062HTMLTemplate string
+
+// GenerateDA2062HTML generates an HTML version of the DA 2062 form
+func (g *DA2062Generator) GenerateDA2062HTML(
+	properties []domain.Property,
+	fromUser UserInfo,
+	toUser UserInfo,
+	unitInfo UnitInfo,
+	formNumber string,
+) string {
+	// If template is not embedded, use a default template
+	if da2062HTMLTemplate == "" {
+		da2062HTMLTemplate = defaultDA2062HTMLTemplate
+	}
+
+	// Prepare template data
+	type templateData struct {
+		FormNumber   string
+		Today        string
+		UnitInfo     UnitInfo
+		FromUser     UserInfo
+		ToUser       UserInfo
+		Properties   []propertyRow
+		TotalItems   int
+		PageNumber   int
+		TotalPages   int
+		Signatures   bool
+	}
+
+	// Convert properties to template rows
+	var rows []propertyRow
+	for i, prop := range properties {
+		row := propertyRow{
+			LineNumber:   i + 1,
+			NSN:          getValueOrEmpty(prop.NSN),
+			Description:  prop.Name,
+			SerialNumber: prop.SerialNumber,
+			Quantity:     prop.Quantity,
+			UnitOfIssue:  g.determineUnitOfIssue(prop),
+		}
+		rows = append(rows, row)
+	}
+
+	data := templateData{
+		FormNumber:   formNumber,
+		Today:        time.Now().Format("2006-01-02"),
+		UnitInfo:     unitInfo,
+		FromUser:     fromUser,
+		ToUser:       toUser,
+		Properties:   rows,
+		TotalItems:   len(properties),
+		PageNumber:   1,
+		TotalPages:   1,
+		Signatures:   fromUser.SignatureURL != "" || toUser.SignatureURL != "",
+	}
+
+	// Parse and execute template
+	t := template.Must(template.New("da2062").Parse(da2062HTMLTemplate))
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		log.Printf("Error executing HTML template: %v", err)
+		return "<html><body>Error generating DA 2062</body></html>"
+	}
+
+	return buf.String()
+}
+
+type propertyRow struct {
+	LineNumber   int
+	NSN          string
+	Description  string
+	SerialNumber string
+	Quantity     int
+	UnitOfIssue  string
+}
+
+func getValueOrEmpty(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+// Default HTML template if embedded template is not available
+const defaultDA2062HTMLTemplate = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DA Form 2062 - {{.FormNumber}}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0.5in;
+        }
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+            .page-break { page-break-after: always; }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.2;
+            margin: 0;
+            padding: 20px;
+        }
+        .form-container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            background: white;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            border: 1px solid #000;
+            padding: 5px;
+        }
+        .info-label {
+            font-weight: bold;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 9pt;
+        }
+        td {
+            font-size: 9pt;
+        }
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .signature-box {
+            border: 1px solid #000;
+            padding: 10px;
+            min-height: 100px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 8pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="header">
+            <div>HAND RECEIPT/ANNEX NUMBER</div>
+            <div class="title">DA FORM 2062</div>
+            <div>For use of this form, see DA PAM 710-2-1; the proponent agency is DCS, G-4</div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">FROM:</div>
+                <div>{{.FromUser.Rank}} {{.FromUser.Name}}</div>
+                <div>{{.UnitInfo.UnitName}}</div>
+                <div>{{.UnitInfo.DODAAC}}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">TO:</div>
+                <div>{{.ToUser.Rank}} {{.ToUser.Name}}</div>
+                <div>{{.ToUser.Title}}</div>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">HAND RECEIPT NUMBER:</div>
+                <div>{{.FormNumber}}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">DATE:</div>
+                <div>{{.Today}}</div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%">ITEM<br>NO.</th>
+                    <th style="width: 15%">STOCK NUMBER</th>
+                    <th style="width: 35%">ITEM DESCRIPTION</th>
+                    <th style="width: 20%">SERIAL NUMBER</th>
+                    <th style="width: 10%">QTY</th>
+                    <th style="width: 10%">U/I</th>
+                    <th style="width: 5%">END ITEM</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Properties}}
+                <tr>
+                    <td>{{.LineNumber}}</td>
+                    <td>{{.NSN}}</td>
+                    <td>{{.Description}}</td>
+                    <td>{{.SerialNumber}}</td>
+                    <td>{{.Quantity}}</td>
+                    <td>{{.UnitOfIssue}}</td>
+                    <td></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+
+        <div class="signatures">
+            <div class="signature-box">
+                <div class="info-label">HAND RECEIPT HOLDER'S SIGNATURE</div>
+                {{if .ToUser.SignatureURL}}
+                <img src="{{.ToUser.SignatureURL}}" style="max-width: 200px; max-height: 50px;">
+                {{end}}
+                <div style="margin-top: 10px;">{{.ToUser.Rank}} {{.ToUser.Name}}</div>
+                <div>Date: {{.Today}}</div>
+            </div>
+            <div class="signature-box">
+                <div class="info-label">ISSUER'S SIGNATURE</div>
+                {{if .FromUser.SignatureURL}}
+                <img src="{{.FromUser.SignatureURL}}" style="max-width: 200px; max-height: 50px;">
+                {{end}}
+                <div style="margin-top: 10px;">{{.FromUser.Rank}} {{.FromUser.Name}}</div>
+                <div>Date: {{.Today}}</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div>DA FORM 2062, {{.Today}}</div>
+            <div>Page {{.PageNumber}} of {{.TotalPages}}</div>
+        </div>
+    </div>
+</body>
+</html>`

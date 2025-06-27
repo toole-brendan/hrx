@@ -394,15 +394,15 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `DA2062_${generateFormNumber()}.pdf`;
+        a.download = `DA2062_${generateFormNumber()}.html`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
         toast({
-          title: 'PDF Generated',
-          description: 'DA 2062 downloaded successfully',
+          title: 'DA 2062 Generated',
+          description: 'Hand receipt downloaded successfully',
         });
         onClose();
       }
@@ -873,7 +873,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Download PDF
+                Download DA 2062
               </>
             )}
           </Button>

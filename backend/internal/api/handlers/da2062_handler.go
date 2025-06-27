@@ -22,8 +22,8 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
 	"github.com/toole-brendan/handreceipt-go/internal/models"
 	"github.com/toole-brendan/handreceipt-go/internal/repository"
+	"github.com/toole-brendan/handreceipt-go/internal/services/ai"
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
-	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 	"gorm.io/gorm"
@@ -35,7 +35,6 @@ type DA2062Handler struct {
 	Repo           repository.Repository
 	PDFGenerator   *pdf.DA2062Generator
 	EmailService   *email.DA2062EmailService
-	OCRService     *ocr.AzureOCRService
 	StorageService storage.StorageService
 }
 
@@ -45,7 +44,6 @@ func NewDA2062Handler(
 	repo repository.Repository,
 	pdfGenerator *pdf.DA2062Generator,
 	emailService *email.DA2062EmailService,
-	ocrService *ocr.AzureOCRService,
 	storageService storage.StorageService,
 ) *DA2062Handler {
 	return &DA2062Handler{
@@ -53,7 +51,6 @@ func NewDA2062Handler(
 		Repo:           repo,
 		PDFGenerator:   pdfGenerator,
 		EmailService:   emailService,
-		OCRService:     ocrService,
 		StorageService: storageService,
 	}
 }
@@ -376,6 +373,10 @@ func (h *DA2062Handler) GetUnverifiedItems(c *gin.Context) {
 	})
 }
 
+/* ------------------------------------------------------------------
+   ⚠️ Legacy OCR upload removed – preserved for reference only
+------------------------------------------------------------------ */
+/*
 // UploadDA2062 handles DA2062 form upload with Azure OCR processing
 func (h *DA2062Handler) UploadDA2062(c *gin.Context) {
 	userIDVal, exists := c.Get("userID")
@@ -450,6 +451,133 @@ func (h *DA2062Handler) UploadDA2062(c *gin.Context) {
 	documentURL := fmt.Sprintf("/storage/%s", objectName)
 	h.respondWithParsedForm(c, parsedForm, userID, documentURL)
 }
+*/
+
+/* ------------------------------------------------------------------
+   ⭐ NEW: ImportDA2062 – upload + parse with Claude
+------------------------------------------------------------------ */
+func (h *DA2062Handler) ImportDA2062(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	// Get uploaded file
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	contentType := header.Header.Get("Content-Type")
+	if !isValidImageType(contentType) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only images and PDFs are supported"})
+		return
+	}
+
+	// Read file data
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+
+	// Upload to storage for record keeping
+	ctx := context.Background()
+	objectName := fmt.Sprintf("da2062-scans/%d/%d-%s", userID, time.Now().Unix(), header.Filename)
+	err = h.StorageService.UploadFile(ctx, objectName, bytes.NewReader(fileData), int64(len(fileData)), contentType)
+	if err != nil {
+		log.Printf("Failed to upload file to storage: %v", err)
+		// Continue anyway - storage is not critical for import
+	}
+
+	// Parse with Claude AI
+	items, meta, err := ai.ParseDA2062WithRetry(bytes.NewReader(fileData), contentType, 3)
+	if err != nil {
+		log.Printf("Claude AI parsing failed: %v", err)
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to parse DA 2062: " + err.Error()})
+		return
+	}
+
+	// Convert parsed items to API format
+	documentURL := fmt.Sprintf("/storage/%s", objectName)
+	var importItems []models.DA2062ImportItem
+	for _, item := range items {
+		importMetadata := models.ImportMetadata{
+			Source:               "claude_ai",
+			FormNumber:           meta.FormNumber,
+			ScanConfidence:       item.Confidence,
+			SerialSource:         "ai_extracted",
+			OriginalQuantity:     item.Quantity,
+			RequiresVerification: item.Confidence < 0.8,
+			VerificationReasons:  []string{},
+			SourceDocumentURL:    documentURL,
+		}
+
+		if item.SerialNumber == "" || item.SerialNumber == "N/A" {
+			importMetadata.VerificationReasons = append(importMetadata.VerificationReasons, "missing_serial_number")
+			importMetadata.RequiresVerification = true
+		}
+
+		importItem := models.DA2062ImportItem{
+			Name:           item.Name,
+			Description:    item.Name,
+			SerialNumber:   item.SerialNumber,
+			NSN:            item.NSN,
+			Quantity:       item.Quantity,
+			SourceRef:      meta.FormNumber,
+			ImportMetadata: &importMetadata,
+		}
+		importItems = append(importItems, importItem)
+	}
+
+	// Log the import with monitoring
+	log.Printf("Claude API DA2062 import: %d items extracted, confidence avg: %.2f", 
+		len(items), calculateAverageConfidence(items))
+
+	// Build response
+	response := gin.H{
+		"success": true,
+		"form_info": gin.H{
+			"from_unit":   meta.From,
+			"to_unit":     meta.To,
+			"date":        meta.Date,
+			"form_number": meta.FormNumber,
+		},
+		"items":       importItems,
+		"total_items": len(importItems),
+		"metadata": gin.H{
+			"parsed_by": "claude_ai",
+			"timestamp": time.Now().Format(time.RFC3339),
+		},
+		"next_steps": gin.H{
+			"verification_needed":  countItemsNeedingReview(importItems),
+			"suggested_action":     "Review items and submit for creation",
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// calculateAverageConfidence calculates the average confidence score
+func calculateAverageConfidence(items []ai.ParsedItem) float64 {
+	if len(items) == 0 {
+		return 0
+	}
+	total := 0.0
+	for _, item := range items {
+		total += item.Confidence
+	}
+	return total / float64(len(items))
+}
 
 // isValidImageType checks if the content type is supported
 func isValidImageType(contentType string) bool {
@@ -470,6 +598,10 @@ func isValidImageType(contentType string) bool {
 	return false
 }
 
+/* ------------------------------------------------------------------
+   ⚠️ Legacy OCR helper functions - preserved for reference
+------------------------------------------------------------------ */
+/*
 // respondWithParsedForm converts OCR results to API response format
 func (h *DA2062Handler) respondWithParsedForm(c *gin.Context, parsedForm *ocr.DA2062ParsedForm, userID uint, sourceDocumentURL string) {
 	// Convert OCR parsed items to API format
@@ -559,6 +691,7 @@ func getSerialSource(item ocr.DA2062ParsedItem) string {
 	}
 	return "ocr_inferred"
 }
+*/
 
 // SearchDA2062Forms searches for DA2062 forms
 func (h *DA2062Handler) SearchDA2062Forms(c *gin.Context) {
@@ -653,8 +786,10 @@ func (h *DA2062Handler) GetDA2062Items(c *gin.Context) {
 	})
 }
 
-// GenerateDA2062PDF generates a PDF from selected properties
-func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
+/* ------------------------------------------------------------------
+   ⭐ NEW: ExportDA2062 – generate printable HTML + return as download
+------------------------------------------------------------------ */
+func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 	// Version check for debugging deployment issues
 	if c.Query("version_check") == "true" {
 		c.JSON(http.StatusOK, gin.H{
@@ -1008,17 +1143,25 @@ func (h *DA2062Handler) GenerateDA2062PDF(c *gin.Context) {
 			"item_count":  len(properties),
 		})
 	} else {
-		// Return PDF for download
-		filename := fmt.Sprintf("DA2062_%s.pdf", time.Now().Format("20060102_150405"))
-
+		// Return HTML for download
 		// Log to ledger
 		if err := h.Ledger.LogDA2062Export(userID, len(properties), "download", ""); err != nil {
 			log.Printf("WARNING: Failed to log DA2062 export to ledger: %v", err)
 		}
 
-		c.Header("Content-Type", "application/pdf")
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
-		c.Data(http.StatusOK, "application/pdf", pdfBuffer.Bytes())
+		// Generate HTML instead of PDF
+		htmlContent := h.PDFGenerator.GenerateDA2062HTML(
+			properties,
+			fromUserInfo,
+			toUserInfo,
+			unitInfo,
+			formNumber,
+		)
+
+		htmlFilename := fmt.Sprintf("DA2062_%s.html", time.Now().Format("20060102_150405"))
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", htmlFilename))
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
 	}
 }
 
@@ -1200,8 +1343,10 @@ func isValidNSNFormat(nsn string) bool {
 func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 	da2062 := router.Group("/da2062")
 	{
-		da2062.POST("/upload", h.UploadDA2062)
-		da2062.POST("/generate-pdf", h.GenerateDA2062PDF)
+		da2062.POST("/import", h.ImportDA2062) // New Claude-powered import
+		da2062.POST("/upload", h.ImportDA2062) // Keep old route for compatibility
+		da2062.POST("/generate-pdf", h.ExportDA2062) // Keep old route name for compatibility
+		da2062.GET("/:id/export", h.ExportDA2062) // New export endpoint
 		da2062.GET("/search", h.SearchDA2062Forms)
 		da2062.GET("/:reference/items", h.GetDA2062Items)
 		da2062.GET("/unverified", h.GetUnverifiedItems)
@@ -1216,41 +1361,18 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 // RegisterAIRoutes registers AI-enhanced DA2062 routes
-func RegisterAIRoutes(router *gin.RouterGroup, da2062AIHandler *DA2062AIHandler) {
+func RegisterAIRoutes(router *gin.RouterGroup) {
 	aiGroup := router.Group("/da2062/ai")
 	{
 		// Always register the health endpoint
 		aiGroup.GET("/health", func(c *gin.Context) {
-			if da2062AIHandler != nil {
-				c.JSON(200, gin.H{
-					"available": true,
-					"provider": "azure_openai",
-					"features": gin.H{
-						"multiLineGrouping": true,
-						"suggestions": true,
-						"validation": true,
-					},
-				})
-			} else {
-				c.JSON(200, gin.H{
-					"available": false,
-					"message": "AI features require Azure OpenAI configuration",
-					"configuration": gin.H{
-						"required": []string{
-							"AZURE_OPENAI_ENDPOINT",
-							"AZURE_OPENAI_KEY",
-						},
-					},
-				})
-			}
+			// AI is now handled by Claude in the main import endpoint
+			c.JSON(200, gin.H{
+				"available": false,
+				"message": "AI features are now integrated into the main import endpoint",
+				"note": "Use POST /api/da2062/import for Claude AI processing",
+			})
 		})
-		
-		// Only register other endpoints if handler is available
-		if da2062AIHandler != nil {
-			aiGroup.POST("/process", da2062AIHandler.ProcessDA2062WithAI)
-			aiGroup.POST("/generate", da2062AIHandler.GenerateDA2062)
-			aiGroup.POST("/review-confirm", da2062AIHandler.ReviewAndConfirmDA2062)
-		}
 	}
 }
 

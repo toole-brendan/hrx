@@ -93,11 +93,10 @@ export interface UploadProgress {
   progress?: number;
 }
 
-// Upload and process DA-2062 document
+// Upload and process DA-2062 document with Claude AI
 export async function uploadDA2062(
   file: File,
-  onProgress?: (progress: UploadProgress) => void,
-  useAI: boolean = true
+  onProgress?: (progress: UploadProgress) => void
 ): Promise<DA2062Form> {
   try {
     // Upload phase
@@ -106,8 +105,8 @@ export async function uploadDA2062(
     const formData = new FormData();
     formData.append('file', file);
     
-    // Use AI-enhanced endpoint if available and enabled
-    const endpoint = useAI ? `${API_BASE_URL}/da2062/ai/process` : `${API_BASE_URL}/da2062/upload`;
+    // Use new Claude-powered import endpoint
+    const endpoint = `${API_BASE_URL}/da2062/import`;
     
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -117,18 +116,13 @@ export async function uploadDA2062(
 
     if (!response.ok) {
       const error = await response.json();
-      // Fall back to regular OCR if AI endpoint fails
-      if (useAI && response.status === 404) {
-        console.warn('AI endpoint not available, falling back to regular OCR');
-        return uploadDA2062(file, onProgress, false);
-      }
       throw new Error(error.error || 'Failed to upload document');
     }
 
     // Processing phase
     onProgress?.({ 
       phase: 'processing', 
-      message: 'Processing with AI-enhanced OCR...'
+      message: 'Processing with Claude AI...'
     });
     
     const result = await response.json();
@@ -138,22 +132,79 @@ export async function uploadDA2062(
       throw new Error(result.error);
     }
     
-    // If AI was used, we might get additional processing phases
-    if (useAI && result.processingTimeMs) {
-      onProgress?.({ 
-        phase: 'validating', 
-        message: 'AI validation complete',
-        progress: 100
-      });
-    }
+    // Transform the response to match expected format
+    const form: DA2062Form = {
+      unitName: result.form_info?.from_unit || '',
+      dodaac: result.form_info?.dodaac || '',
+      formNumber: result.form_info?.form_number || '',
+      confidence: 0.85, // Default confidence
+      items: result.items.map((item: any) => ({
+        stockNumber: item.nsn,
+        itemDescription: item.name,
+        quantity: item.quantity,
+        serialNumber: item.serialNumber,
+        confidence: item.importMetadata?.scanConfidence || 0.85,
+        quantityConfidence: 0.9,
+        hasExplicitSerial: item.serialNumber && item.serialNumber !== 'N/A',
+        needsReview: item.importMetadata?.requiresVerification || false
+      })),
+      metadata: {
+        itemCount: result.total_items,
+        groupedItems: 0,
+        handwrittenItems: 0,
+        ocrConfidence: 0.85,
+        aiConfidence: 0.85
+      }
+    };
     
     onProgress?.({ phase: 'complete', message: 'Document processed successfully' });
     
-    return result;
+    return form;
   } catch (error) {
     onProgress?.({ phase: 'error', message: error instanceof Error ? error.message : 'Processing failed' });
     throw error;
   }
+}
+
+// Export DA2062 as HTML
+export async function exportDA2062(
+  propertyIds: number[],
+  options: {
+    groupByCategory?: boolean;
+    includeQRCodes?: boolean;
+    sendEmail?: boolean;
+    recipients?: string[];
+    fromUser: any;
+    toUser: any;
+    unitInfo: any;
+    toUserId?: number;
+  }
+): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/da2062/generate-pdf`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      property_ids: propertyIds,
+      group_by_category: options.groupByCategory || false,
+      include_qr_codes: options.includeQRCodes || false,
+      send_email: options.sendEmail || false,
+      recipients: options.recipients || [],
+      from_user: options.fromUser,
+      to_user: options.toUser,
+      unit_info: options.unitInfo,
+      to_user_id: options.toUserId
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to generate DA2062');
+  }
+
+  return response.blob();
 }
 
 // Batch import items from DA-2062

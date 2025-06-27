@@ -113,7 +113,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
     
     setIsProcessing(true);
     try {
-      const result = await uploadDA2062(selectedFile, setUploadProgress, true);
+      const result = await uploadDA2062(selectedFile, setUploadProgress);
       setParsedForm(result);
       
       // Convert to editable items
@@ -136,13 +136,9 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
       setEditableItems(editable);
       setCurrentStep('review');
       
-      const message = result.metadata?.aiConfidence 
-        ? `Found ${result.items.length} items (${result.metadata.groupedItems} AI-grouped)`
-        : `Found ${result.items.length} items to import`;
-      
       toast({
-        title: 'AI-enhanced processing complete',
-        description: message,
+        title: 'Claude AI processing complete',
+        description: `Found ${result.items.length} items to import`,
       });
     } catch (error) {
       toast({
@@ -405,7 +401,7 @@ export const DA2062ImportDialog: React.FC<DA2062ImportDialogProps> = ({
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-ios-secondary-text">OCR extracts item details automatically</p>
+            <p className="text-xs text-ios-secondary-text">Claude AI extracts item details with high accuracy</p>
           </div>
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 flex-shrink-0" />

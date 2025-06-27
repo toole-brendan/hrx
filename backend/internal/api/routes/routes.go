@@ -2,7 +2,6 @@ package routes
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -15,13 +14,12 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services/email"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
-	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 	"github.com/toole-brendan/handreceipt-go/internal/services/pdf"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
 )
 
 // SetupRoutes configures all the API routes for the application
-func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService storage.StorageService, nsnService *nsn.NSNService, notificationHub *notification.Hub, da2062AIHandler *handlers.DA2062AIHandler) {
+func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo repository.Repository, storageService storage.StorageService, nsnService *nsn.NSNService, notificationHub *notification.Hub) {
 	// Health check endpoint (no authentication required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -56,15 +54,8 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 	userHandler := handlers.NewUserHandler(repo, storageService, notificationService)  // Added User handler with storage and notification service
 	photoHandler := handlers.NewPhotoHandler(storageService, repo, ledgerService) // Add photo handler
 
-	// Initialize Azure OCR service
-	azureOCREndpoint := os.Getenv("AZURE_OCR_ENDPOINT")
-	azureOCRKey := os.Getenv("AZURE_OCR_KEY")
-	var ocrService *ocr.AzureOCRService
-	if azureOCREndpoint != "" && azureOCRKey != "" {
-		ocrService = ocr.NewAzureOCRService(azureOCREndpoint, azureOCRKey)
-	}
-
-	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService, ocrService, storageService)
+	// Create DA2062 handler without OCR service
+	da2062Handler := handlers.NewDA2062Handler(ledgerService, repo, pdfGenerator, emailService, storageService)
 
 	// Add component handler
 	componentHandler := handlers.NewComponentHandler(componentService, ledgerService)
@@ -312,6 +303,6 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 		da2062Handler.RegisterRoutes(protected)
 		
 		// Always register AI routes - the handler will show configuration status
-		handlers.RegisterAIRoutes(protected, da2062AIHandler)
+		handlers.RegisterAIRoutes(protected)
 	}
 }

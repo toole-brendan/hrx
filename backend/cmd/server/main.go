@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/toole-brendan/handreceipt-go/internal/api/handlers"
 	"github.com/toole-brendan/handreceipt-go/internal/api/routes"
 	"github.com/toole-brendan/handreceipt-go/internal/config"
 	"github.com/toole-brendan/handreceipt-go/internal/ledger"
@@ -20,8 +19,6 @@ import (
 	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 	"github.com/toole-brendan/handreceipt-go/internal/services/nsn"
 	"github.com/toole-brendan/handreceipt-go/internal/services/storage"
-	"github.com/toole-brendan/handreceipt-go/internal/services/ai"
-	"github.com/toole-brendan/handreceipt-go/internal/services/ocr"
 	"github.com/toole-brendan/handreceipt-go/internal/services"
 )
 
@@ -226,7 +223,8 @@ func main() {
 	go notificationHub.Run()
 	log.Println("WebSocket notification hub started")
 
-	// Initialize Azure OCR service
+	// Azure OCR service removed - Claude AI is now used for document processing
+	/*
 	azureOCREndpoint := os.Getenv("AZURE_OCR_ENDPOINT")
 	azureOCRKey := os.Getenv("AZURE_OCR_KEY")
 	var ocrService *ocr.AzureOCRService
@@ -234,8 +232,10 @@ func main() {
 		ocrService = ocr.NewAzureOCRService(azureOCREndpoint, azureOCRKey)
 		log.Println("Azure OCR service initialized")
 	}
+	*/
 
-	// Initialize DA2062 AI handler
+	// DA2062 AI handler removed - Claude AI is now integrated in the main import endpoint
+	/*
 	var da2062AIHandler *handlers.DA2062AIHandler
 	if ocrService != nil {
 		// Initialize AI service for DA2062
@@ -299,6 +299,7 @@ func main() {
 			log.Println("Azure OpenAI not configured - DA2062 AI features will be disabled")
 		}
 	}
+	*/
 
 	// Initialize Demo Refresh Service (only in production)
 	if environment == "production" {
@@ -322,7 +323,7 @@ func main() {
 	router.Use(corsMiddleware())
 
 	// Setup routes, passing the LedgerService interface, Repository, Storage Service, NSN Service, and Notification Hub
-	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService, notificationHub, da2062AIHandler)
+	routes.SetupRoutes(router, ledgerService, repo, storageService, nsnService, notificationHub)
 
 	// Get server port, prioritizing environment variable, then config, then default
 	var port int
