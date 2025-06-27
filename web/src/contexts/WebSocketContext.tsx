@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import webSocketService, { WebSocketEvent } from '@/services/websocket';
+import tokenService from '@/services/tokenService';
 
 interface WebSocketContextType {
   isConnected: boolean;
@@ -33,8 +34,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       return;
     }
 
-    // Connect to WebSocket when authenticated
-    webSocketService.connect();
+    // Connect to WebSocket when authenticated with JWT token
+    const token = tokenService.getAccessToken();
+    webSocketService.connect(token || undefined);
 
     const handleConnected = () => {
       setIsConnected(true);

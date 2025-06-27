@@ -8,6 +8,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/toole-brendan/handreceipt-go/internal/api/middleware"
 	"github.com/toole-brendan/handreceipt-go/internal/services/notification"
 )
 
@@ -31,26 +32,39 @@ func NewWebSocketHandler(hub *notification.Hub) *WebSocketHandler {
 }
 
 func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
-	// Authenticate the user from the session
-	session := sessions.Default(c)
-	userIDInterface := session.Get("userID")
-	if userIDInterface == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	// Convert userID to int
+	// Try to authenticate from JWT token first (from query param for WebSocket)
 	var userID int
-	switch v := userIDInterface.(type) {
-	case int:
-		userID = v
-	case uint:
-		userID = int(v)
-	case float64:
-		userID = int(v)
-	default:
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID type"})
-		return
+	token := c.Query("token")
+	
+	if token != "" {
+		// Validate JWT token
+		claims, err := middleware.ValidateToken(token)
+		if err == nil {
+			userID = int(claims.UserID)
+		}
+	}
+	
+	// Fall back to session authentication if no JWT
+	if userID == 0 {
+		session := sessions.Default(c)
+		userIDInterface := session.Get("userID")
+		if userIDInterface == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		// Convert userID to int
+		switch v := userIDInterface.(type) {
+		case int:
+			userID = v
+		case uint:
+			userID = int(v)
+		case float64:
+			userID = int(v)
+		default:
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID type"})
+			return
+		}
 	}
 
 	// Upgrade the connection

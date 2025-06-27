@@ -94,19 +94,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (response.ok) {
           const data = await response.json();
           
-          // Calculate expires in seconds from expires_at timestamp
+          // Calculate expires in seconds from ExpiresAt timestamp (backend returns capital E)
           let expiresIn = 3600; // default 1 hour
-          if (data.expires_at) {
-            const expiresAt = new Date(data.expires_at);
+          if (data.ExpiresAt || data.expires_at) {
+            const expiresAt = new Date(data.ExpiresAt || data.expires_at);
             const now = new Date();
             expiresIn = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
           }
           
-          tokenService.setAccessToken(data.accessToken || data.access_token, expiresIn);
+          tokenService.setAccessToken(data.AccessToken || data.accessToken || data.access_token, expiresIn);
           
-          // Update refresh token if provided
-          if (data.refreshToken || data.refresh_token) {
-            setRefreshToken(data.refreshToken || data.refresh_token);
+          // Update refresh token if provided (backend returns capital R)
+          if (data.RefreshToken || data.refreshToken || data.refresh_token) {
+            setRefreshToken(data.RefreshToken || data.refreshToken || data.refresh_token);
           }
           
           window.dispatchEvent(new Event('token-refreshed'));
@@ -377,25 +377,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const data = await response.json();
         console.log('[AuthContext] Login response:', data);
         
-        // Store access token
-        if (data.accessToken || data.access_token) {
-          // Calculate expires in seconds from expires_at timestamp
+        // Store access token (backend returns with capital A)
+        if (data.AccessToken || data.accessToken || data.access_token) {
+          // Calculate expires in seconds from ExpiresAt timestamp
           let expiresIn = 3600; // default 1 hour
-          if (data.expires_at) {
-            const expiresAt = new Date(data.expires_at);
+          if (data.ExpiresAt || data.expires_at) {
+            const expiresAt = new Date(data.ExpiresAt || data.expires_at);
             const now = new Date();
             expiresIn = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
           }
           
           tokenService.setAccessToken(
-            data.accessToken || data.access_token, 
+            data.AccessToken || data.accessToken || data.access_token, 
             expiresIn
           );
         }
         
-        // Store refresh token
-        if (data.refreshToken || data.refresh_token) {
-          setRefreshToken(data.refreshToken || data.refresh_token);
+        // Store refresh token (backend returns with capital R)
+        if (data.RefreshToken || data.refreshToken || data.refresh_token) {
+          setRefreshToken(data.RefreshToken || data.refreshToken || data.refresh_token);
         }
         
         // Map snake_case from backend to camelCase for frontend
@@ -427,14 +427,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           timestamp: new Date().toISOString()
         });
         
-        // Verify auth by calling /auth/me to ensure cookies are set
+        // Verify auth by calling /auth/me with JWT token
         console.log('[AuthContext.login] Verifying authentication...');
         try {
           const verifyResponse = await fetch(`${API_BASE_URL}/auth/me`, {
             method: 'GET',
             credentials: 'include',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              ...tokenService.getAuthHeaders()
             }
           });
           console.log('[AuthContext.login] Verification response:', {

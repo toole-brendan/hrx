@@ -122,8 +122,14 @@ class WebSocketService extends EventEmitter {
       wsUrl = `${protocol}//${host}/api/ws`;
     }
 
+    // Add token as query parameter if provided
+    if (token) {
+      const separator = wsUrl.includes('?') ? '&' : '?';
+      wsUrl = `${wsUrl}${separator}token=${encodeURIComponent(token)}`;
+    }
+
     console.log('[WebSocket] Attempting to connect:', {
-      wsUrl,
+      wsUrl: wsUrl.replace(/token=[^&]+/, 'token=***'), // Hide token in logs
       timestamp: new Date().toISOString(),
       hasToken: !!token
     });
