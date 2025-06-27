@@ -1150,6 +1150,9 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 		}
 
 		// Generate HTML instead of PDF
+		log.Printf("DA2062 Export: Generating HTML for download, SendEmail=%v, Recipients=%d, ToUserID=%d", 
+			req.SendEmail, len(req.Recipients), req.ToUserID)
+		
 		htmlContent := h.PDFGenerator.GenerateDA2062HTML(
 			properties,
 			fromUserInfo,
@@ -1157,6 +1160,8 @@ func (h *DA2062Handler) ExportDA2062(c *gin.Context) {
 			unitInfo,
 			formNumber,
 		)
+		
+		log.Printf("DA2062 Export: HTML generated, length=%d bytes", len(htmlContent))
 
 		htmlFilename := fmt.Sprintf("DA2062_%s.html", time.Now().Format("20060102_150405"))
 		c.Header("Content-Type", "text/html; charset=utf-8")
