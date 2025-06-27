@@ -66,9 +66,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
+  // Store refresh token in state
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+
   // Token refresh handler
   useEffect(() => {
     const handleTokenRefresh = async () => {
+      if (!refreshToken) {
+        console.error('No refresh token available');
+        // Clear auth state
+        tokenService.clearTokens();
+        setUser(null);
+        setIsAuthenticated(false);
+        return;
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
@@ -76,15 +88,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           headers: {
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ refresh_token: refreshToken }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          tokenService.setAccessToken(data.accessToken || data.access_token, data.expiresIn || data.expires_in || 3600);
+          
+          // Calculate expires in seconds from expires_at timestamp
+          let expiresIn = 3600; // default 1 hour
+          if (data.expires_at) {
+            const expiresAt = new Date(data.expires_at);
+            const now = new Date();
+            expiresIn = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
+          }
+          
+          tokenService.setAccessToken(data.accessToken || data.access_token, expiresIn);
+          
+          // Update refresh token if provided
+          if (data.refreshToken || data.refresh_token) {
+            setRefreshToken(data.refreshToken || data.refresh_token);
+          }
+          
           window.dispatchEvent(new Event('token-refreshed'));
         } else {
           // Refresh failed, clear auth state
           tokenService.clearTokens();
+          setRefreshToken(null);
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -92,6 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('Token refresh failed:', error);
         // Clear auth state on error
         tokenService.clearTokens();
+        setRefreshToken(null);
         setUser(null);
         setIsAuthenticated(false);
       }
@@ -101,7 +131,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       window.removeEventListener('token-refresh-needed', handleTokenRefresh);
     };
-  }, []);
+  }, [refreshToken]);
   
   // --- New authedFetch function ---
   const authedFetch = useCallback(async <T = unknown>(
@@ -349,10 +379,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Store access token
         if (data.accessToken || data.access_token) {
+          // Calculate expires in seconds from expires_at timestamp
+          let expiresIn = 3600; // default 1 hour
+          if (data.expires_at) {
+            const expiresAt = new Date(data.expires_at);
+            const now = new Date();
+            expiresIn = Math.floor((expiresAt.getTime() - now.getTime()) / 1000);
+          }
+          
           tokenService.setAccessToken(
             data.accessToken || data.access_token, 
-            data.expiresIn || data.expires_in || 3600
+            expiresIn
           );
+        }
+        
+        // Store refresh token
+        if (data.refreshToken || data.refresh_token) {
+          setRefreshToken(data.refreshToken || data.refresh_token);
         }
         
         // Map snake_case from backend to camelCase for frontend
@@ -440,6 +483,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Clear tokens
     tokenService.clearTokens();
+    setRefreshToken(null);
     
     setUser(null);
     setIsAuthenticated(false);
