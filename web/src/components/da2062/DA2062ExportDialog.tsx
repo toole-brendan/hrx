@@ -79,7 +79,7 @@ interface Connection {
 }
 
 interface GeneratePDFRequest {
-  property_ids: string[];
+  property_ids: number[];
   group_by_category: boolean;
   include_qr_codes: boolean;
   send_email: boolean;
@@ -341,7 +341,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
     }
 
     const request: GeneratePDFRequest = {
-      property_ids: Array.from(selectedPropertyIds),
+      property_ids: Array.from(selectedPropertyIds).map(id => parseInt(id, 10)),
       group_by_category: groupByCategory,
       include_qr_codes: false,  // QR codes disabled
       send_email: exportMode === 'email',
@@ -361,6 +361,14 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
     try {
       const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const endpoint = `${apiBaseUrl}/api/da2062/generate-pdf`;
+
+      console.log('DA2062 Export Request:', {
+        endpoint,
+        request,
+        exportMode,
+        selectedPropertiesCount: request.property_ids.length,
+        hasToUserId: !!request.to_user_id
+      });
 
       const response = await fetch(endpoint, {
         method: 'POST',
