@@ -279,10 +279,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
       
-      // Check real auth status
+      // Check if we have a stored token
+      const token = tokenService.getAccessToken();
+      if (!token) {
+        console.log('[AuthContext.checkAuthStatus] No token found, user not authenticated');
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check real auth status using direct fetch (not authedFetch to avoid circular dependency)
       try {
         console.log('[AuthContext.checkAuthStatus] Checking /auth/me endpoint...');
-        const { data } = await authedFetch<{ user: any }>('/auth/me');
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          method: 'GET',
+          headers: {
+            ...tokenService.getAuthHeaders(),
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Token is invalid, clear it
+            console.log('[AuthContext.checkAuthStatus] Token invalid, clearing...');
+            tokenService.clearTokens();
+            setRefreshToken(null);
+          }
+          throw new Error(`Auth check failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
         console.log('[AuthContext.checkAuthStatus] User data from /auth/me:', data.user);
         
         // Map snake_case from backend to camelCase for frontend
@@ -313,18 +342,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.log('[AuthContext.checkAuthStatus] Auth check failed:', {
           error: errorMessage,
-          is401: errorMessage.includes('401') || errorMessage.includes('User not authenticated'),
           timestamp: new Date().toISOString()
         });
         
-        if (error instanceof Error && !error.message?.includes('401') && !error.message?.includes('User not authenticated')) {
-          console.warn("Check auth status failed:", error);
-        }
         setUser(null);
         setIsAuthenticated(false);
       } finally {
         console.log('[AuthContext.checkAuthStatus] Auth check complete:', {
-          isAuthenticated,
+          isAuthenticated: user !== null,
           hasUser: !!user,
           timestamp: new Date().toISOString()
         });
@@ -333,7 +358,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     
     checkAuthStatus();
-  }, []); // Only run on mount, not when authedFetch changes
+  }, []); // Only run on mount
   
   // --- Login function ---
   const login = async (email: string, password: string) => {
@@ -427,24 +452,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           timestamp: new Date().toISOString()
         });
         
-        // Verify auth by calling /auth/me with JWT token
-        console.log('[AuthContext.login] Verifying authentication...');
-        try {
-          const verifyResponse = await fetch(`${API_BASE_URL}/auth/me`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              ...tokenService.getAuthHeaders()
-            }
-          });
-          console.log('[AuthContext.login] Verification response:', {
-            status: verifyResponse.status,
-            ok: verifyResponse.ok
-          });
-        } catch (verifyError) {
-          console.error('[AuthContext.login] Verification failed:', verifyError);
-        }
+        // Emit auth complete event
+        window.dispatchEvent(new CustomEvent('auth-state-changed', { 
+          detail: { isAuthenticated: true, user: mappedUser } 
+        }));
       } else {
         console.log('[AuthContext.login] Login failed with non-OK response');
         let errorData: { message: string; details?: unknown; error?: string } = { message: 'Login failed' };
@@ -489,6 +500,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setIsAuthenticated(false);
     setIsLoading(false);
+    
+    // Emit auth state change event
+    window.dispatchEvent(new CustomEvent('auth-state-changed', { 
+      detail: { isAuthenticated: false, user: null } 
+    }));
   };
   
   // Debug log current auth state

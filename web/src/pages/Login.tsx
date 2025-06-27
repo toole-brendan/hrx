@@ -46,10 +46,29 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
+      // Create a promise that resolves when auth state is confirmed
+      const authCompletePromise = new Promise<void>((resolve) => {
+        const handler = (event: Event) => {
+          const customEvent = event as CustomEvent;
+          if (customEvent.detail?.isAuthenticated) {
+            window.removeEventListener('auth-state-changed', handler);
+            resolve();
+          }
+        };
+        window.addEventListener('auth-state-changed', handler);
+        
+        // Timeout after 5 seconds to prevent hanging
+        setTimeout(() => {
+          window.removeEventListener('auth-state-changed', handler);
+          resolve();
+        }, 5000);
+      });
+      
+      // Perform login
       await login(data.email, data.password);
       
-      // Wait longer to ensure auth state is fully propagated
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for auth state to be confirmed
+      await authCompletePromise;
       
       // Now invalidate all queries to ensure they refetch with new auth
       await queryClient.invalidateQueries();
@@ -150,15 +169,33 @@ const Login: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Create a promise that resolves when auth state is confirmed
+      const authCompletePromise = new Promise<void>((resolve) => {
+        const handler = (event: Event) => {
+          const customEvent = event as CustomEvent;
+          if (customEvent.detail?.isAuthenticated) {
+            window.removeEventListener('auth-state-changed', handler);
+            resolve();
+          }
+        };
+        window.addEventListener('auth-state-changed', handler);
+        
+        // Timeout after 5 seconds to prevent hanging
+        setTimeout(() => {
+          window.removeEventListener('auth-state-changed', handler);
+          resolve();
+        }, 5000);
+      });
+      
       console.log("[Login.handleDemoLogin] Calling login function...");
       // Perform login with demo credentials
       await login("john.smith@example.mil", "password123");
       console.log("[Login.handleDemoLogin] ✅ Login function completed successfully!");
       
-      console.log("[Login.handleDemoLogin] Waiting 1000ms for auth state to propagate...");
-      // Wait longer to ensure auth state is fully propagated
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("[Login.handleDemoLogin] Wait complete, invalidating queries...");
+      console.log("[Login.handleDemoLogin] Waiting for auth state confirmation...");
+      // Wait for auth state to be confirmed
+      await authCompletePromise;
+      console.log("[Login.handleDemoLogin] Auth state confirmed, invalidating queries...");
       
       // Now invalidate all queries to ensure they refetch with new auth
       await queryClient.invalidateQueries();
