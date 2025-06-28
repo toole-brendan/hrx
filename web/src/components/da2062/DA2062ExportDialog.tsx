@@ -386,6 +386,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...tokenService.getAuthHeaders(),
         },
         credentials: 'include',
         body: JSON.stringify(request),

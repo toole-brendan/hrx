@@ -366,6 +366,7 @@ export async function generateDA2062FromDescription(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
     body: JSON.stringify({ description }),
@@ -399,6 +400,7 @@ export async function reviewAndConfirmDA2062(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
     body: JSON.stringify(formData),
@@ -417,6 +419,7 @@ export async function checkAIAvailability(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/da2062/ai/health`, {
       method: 'GET',
+      headers: tokenService.getAuthHeaders(),
       credentials: 'include',
     });
     
