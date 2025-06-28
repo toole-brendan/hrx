@@ -591,3 +591,17 @@ func (r *gormRepository) CheckUserConnection(userID1, userID2 uint) (bool, error
 		Count(&count).Error
 	return count > 0, err
 }
+
+// ListUnitOfIssueCodes returns all unit of issue codes
+func (r *gormRepository) ListUnitOfIssueCodes() ([]domain.UnitOfIssueCode, error) {
+	var codes []domain.UnitOfIssueCode
+	err := r.db.Order("sort_order, code").Find(&codes).Error
+	return codes, err
+}
+
+// ListPropertyCategories returns all property categories
+func (r *gormRepository) ListPropertyCategories() ([]domain.PropertyCategory, error) {
+	var categories []domain.PropertyCategory
+	err := r.db.Order("sort_order, name").Find(&categories).Error
+	return categories, err
+}
