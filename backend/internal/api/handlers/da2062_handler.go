@@ -1337,12 +1337,13 @@ func (h *DA2062Handler) RegisterRoutes(router *gin.RouterGroup) {
 		da2062.POST("/import", h.ImportDA2062) // New Claude-powered import
 		da2062.POST("/upload", h.ImportDA2062) // Keep old route for compatibility
 		da2062.POST("/generate-pdf", h.ExportDA2062) // Keep old route name for compatibility
-		da2062.GET("/:id/export", h.ExportDA2062) // New export endpoint
 		da2062.GET("/search", h.SearchDA2062Forms)
-		da2062.GET("/:reference/items", h.GetDA2062Items)
 		da2062.GET("/unverified", h.GetUnverifiedItems)
 		da2062.PUT("/verify/:id", h.VerifyImportedItem)
 		da2062.GET("/table-check", h.CheckDocumentTable)
+		// Export routes moved to avoid conflict
+		da2062.GET("/export/:id", h.ExportDA2062) // Changed from /:id/export
+		da2062.GET("/items/:reference", h.GetDA2062Items) // Changed from /:reference/items
 		
 		// Debug endpoints for template verification
 		da2062.GET("/debug/template-check", h.CheckTemplateStatus)
