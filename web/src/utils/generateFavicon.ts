@@ -30,7 +30,7 @@ export function generateLissajousFavicon(size: number = 32): string {
   // Draw the Lissajous curve
   ctx.beginPath();
   ctx.strokeStyle = '#111827'; // gray-900
-  ctx.lineWidth = Math.max(2, size / 16);
+  ctx.lineWidth = Math.max(1.5, size / 20); // Thinner line weight
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
