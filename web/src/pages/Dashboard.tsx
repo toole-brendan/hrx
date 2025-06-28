@@ -25,7 +25,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
-import { getConnections } from '@/services/connectionService';
 import { cn } from '@/lib/utils';
 import { useDashboardStats, useReadinessPercentage } from '@/hooks/useDashboardStats';
 
@@ -233,7 +232,7 @@ export default function Dashboard() {
     console.log('[HandReceipt Debug] Dashboard mounted', {
       isAuthenticated,
       isLoading,
-      user: user?.username || 'none',
+      user: user?.email || 'none',
       viewport: { width: window.innerWidth, height: window.innerHeight }
     });
   }, [isAuthenticated, isLoading, user]);
@@ -254,13 +253,6 @@ export default function Dashboard() {
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const readinessPercentage = useReadinessPercentage(stats);
-  
-  // Fetch connections data separately (already included in stats)
-  const { data: connections = [] } = useQuery({
-    queryKey: ['connections'],
-    queryFn: getConnections,
-    enabled: isAuthenticated && !isLoading, // Only run query when authenticated
-  });
   
   // Calculate dynamic readiness stats
   const readinessStats = useMemo(() => {
@@ -587,7 +579,7 @@ export default function Dashboard() {
           <CleanCard className="p-6 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                {connections === undefined ? (
+                {statsLoading ? (
                   <>
                     <Skeleton className="h-9 w-16 mb-1 mx-auto bg-ios-tertiary-background" />
                     <Skeleton className="h-3 w-20 mx-auto bg-ios-tertiary-background" />
@@ -602,7 +594,7 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="text-center">
-                {connections === undefined ? (
+                {statsLoading ? (
                   <>
                     <Skeleton className="h-9 w-16 mb-1 mx-auto bg-ios-tertiary-background" />
                     <Skeleton className="h-3 w-20 mx-auto bg-ios-tertiary-background" />
@@ -657,7 +649,7 @@ export default function Dashboard() {
             </Button>
           </div>
           <CleanCard className="p-0 bg-gradient-to-br from-white to-ios-secondary-background/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-            <RecentActivity activities={[]} />
+            <RecentActivity activities={stats?.recentActivities || []} />
           </CleanCard>
         </div>
         

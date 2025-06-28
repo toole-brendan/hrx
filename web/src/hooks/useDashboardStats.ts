@@ -3,6 +3,34 @@ import { useQuery } from '@tanstack/react-query';
 import { useProperties } from './useProperty';
 import { useTransfers } from './useTransfers';
 import { useDocuments } from './useDocuments';
+import { getConnections } from '@/services/connectionService';
+
+// Helper function to calculate time ago
+function getTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  
+  let interval = Math.floor(seconds / 31536000);
+  if (interval > 1) return `${interval} years ago`;
+  if (interval === 1) return '1 year ago';
+  
+  interval = Math.floor(seconds / 2592000);
+  if (interval > 1) return `${interval} months ago`;
+  if (interval === 1) return '1 month ago';
+  
+  interval = Math.floor(seconds / 86400);
+  if (interval > 1) return `${interval} days ago`;
+  if (interval === 1) return '1 day ago';
+  
+  interval = Math.floor(seconds / 3600);
+  if (interval > 1) return `${interval} hours ago`;
+  if (interval === 1) return '1 hour ago';
+  
+  interval = Math.floor(seconds / 60);
+  if (interval > 1) return `${interval} minutes ago`;
+  if (interval === 1) return '1 minute ago';
+  
+  return 'Just now';
+}
 
 export interface DashboardStats {
   totalProperties: number;
@@ -19,6 +47,12 @@ export interface DashboardStats {
   pendingConnectionRequests: number;
   unreadDocuments: number;
   totalDocuments: number;
+  recentActivities: Array<{
+    id: string;
+    description: string;
+    timeAgo: string;
+    type: string;
+  }>;
 }
 
 export const useDashboardStats = () => {
@@ -29,6 +63,11 @@ export const useDashboardStats = () => {
   const { data: transfers = [], isLoading: transfersLoading } = useTransfers();
   
   const { data: documentsData, isLoading: documentsLoading } = useDocuments('inbox', 'unread');
+  
+  const { data: connections = [], isLoading: connectionsLoading } = useQuery({
+    queryKey: ['connections'],
+    queryFn: getConnections,
+  });
   
   // Calculate statistics
   const stats = useMemo<DashboardStats>(() => {
@@ -51,13 +90,41 @@ export const useDashboardStats = () => {
       new Date(t.approvedDate).toDateString() === today
     ).length;
     
-    // Connection statistics - will be fetched separately in Dashboard
-    const totalConnections = 0;
-    const pendingConnectionRequests = 0;
+    // Connection statistics
+    const totalConnections = connections.filter(c => c.connectionStatus === 'accepted').length;
+    const pendingConnectionRequests = connections.filter(c => c.connectionStatus === 'pending').length;
     
     // Document statistics
     const unreadDocuments = documentsData?.unread_count || 0;
     const totalDocuments = documentsData?.documents?.length || 0;
+    
+    // Recent activities from transfers
+    const recentActivities = transfers
+      .slice(0, 10) // Get most recent 10
+      .map(transfer => {
+        const timeAgo = getTimeAgo(new Date(transfer.date));
+        let description = '';
+        let type = '';
+        
+        if (transfer.status === 'pending') {
+          description = `Transfer request: ${transfer.name} from ${transfer.from} to ${transfer.to}`;
+          type = 'transfer-pending';
+        } else if (transfer.status === 'approved') {
+          description = `Transfer approved: ${transfer.name} to ${transfer.to}`;
+          type = 'transfer-approved';
+        } else if (transfer.status === 'rejected') {
+          description = `Transfer rejected: ${transfer.name}`;
+          type = 'transfer-rejected';
+        }
+        
+        return {
+          id: transfer.id,
+          description,
+          timeAgo,
+          type
+        };
+      })
+      .filter(activity => activity.description); // Filter out any empty activities
     
     return {
       totalProperties,
@@ -74,11 +141,12 @@ export const useDashboardStats = () => {
       pendingConnectionRequests,
       unreadDocuments,
       totalDocuments,
+      recentActivities,
     };
-  }, [properties, transfers, documentsData]);
+  }, [properties, transfers, documentsData, connections]);
   
   // Overall loading state
-  const isLoading = propertiesLoading || transfersLoading || documentsLoading;
+  const isLoading = propertiesLoading || transfersLoading || documentsLoading || connectionsLoading;
   
   return {
     data: stats,
