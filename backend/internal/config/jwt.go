@@ -18,10 +18,9 @@ func GetJWTSecret() string {
 		secret = os.Getenv("HANDRECEIPT_JWT_SECRET_KEY")
 	}
 	
-	// If still empty, use default for development
+	// No default fallback - fail fast if not configured
 	if secret == "" {
-		secret = "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
-		log.Println("WARNING: Using default JWT secret. Set jwt.secret_key in config or HANDRECEIPT_JWT_SECRET_KEY env var")
+		log.Fatal("JWT secret not configured. Set jwt.secret_key in config or HANDRECEIPT_JWT_SECRET_KEY env var")
 	}
 	
 	return secret
@@ -31,18 +30,13 @@ func GetJWTSecret() string {
 func ValidateJWTConfig() error {
 	secret := GetJWTSecret()
 	
-	// Log the JWT configuration (without exposing the full secret)
-	if len(secret) > 10 {
-		log.Printf("JWT Configuration: secret=%s...%s (length=%d)", 
-			secret[:5], secret[len(secret)-5:], len(secret))
-	} else {
-		log.Printf("JWT Configuration: secret=***** (length=%d)", len(secret))
-	}
+	// Log the JWT secret length for debugging
+	log.Printf("JWT secret loaded; len=%d", len(secret))
 	
-	// Check if using default in production
+	// Additional check for production
 	isProduction := viper.GetString("server.environment") == "production"
-	if isProduction && secret == "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc=" {
-		log.Println("ERROR: Using default JWT secret in production! This is a security risk!")
+	if isProduction && len(secret) < 32 {
+		log.Println("WARNING: JWT secret length is less than 32 characters in production")
 	}
 	
 	return nil

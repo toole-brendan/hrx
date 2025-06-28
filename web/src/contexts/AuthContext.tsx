@@ -155,10 +155,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     
     // Production mode - use real fetch
-    // Convert relative URLs to absolute URLs using API_BASE_URL
-    const url = input.toString().startsWith('/')
-      ? `${API_BASE_URL}${input}`
-      : input.toString();
+    // Handle URL construction properly
+    let url: string;
+    const inputStr = input.toString();
+    
+    if (inputStr.startsWith('http://') || inputStr.startsWith('https://')) {
+      // Already a full URL
+      url = inputStr;
+    } else if (inputStr.startsWith('/api/')) {
+      // Already has /api prefix, just prepend the base domain
+      const baseWithoutApi = API_BASE_URL.replace(/\/api$/, '');
+      url = `${baseWithoutApi}${inputStr}`;
+    } else if (inputStr.startsWith('/')) {
+      // Relative path without /api, prepend full API_BASE_URL
+      url = `${API_BASE_URL}${inputStr}`;
+    } else {
+      // Relative path without leading slash
+      url = `${API_BASE_URL}/${inputStr}`;
+    }
     
     console.log('[AuthContext.authedFetch] Making request:', {
       url,

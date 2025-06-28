@@ -159,7 +159,7 @@ func GenerateToken(userID uint) (string, error) {
 		expiry = 24 * time.Hour // Default to 24 hours if not specified or invalid
 	}
 
-	// Get JWT secret using centralized function
+	// Get JWT secret using centralized function (will fail fast if not configured)
 	secret := config.GetJWTSecret()
 
 	// Create the claims
@@ -205,6 +205,14 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	)
 
 	if err != nil {
+		// Log specific JWT validation errors for debugging
+		if strings.Contains(err.Error(), "signature is invalid") {
+			fmt.Printf("[JWT Validation] CRITICAL: Token signature is invalid - JWT secret mismatch!\n")
+		} else if strings.Contains(err.Error(), "token is expired") {
+			fmt.Printf("[JWT Validation] Token is expired\n")
+		} else {
+			fmt.Printf("[JWT Validation] Token validation failed: %v\n", err)
+		}
 		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 
