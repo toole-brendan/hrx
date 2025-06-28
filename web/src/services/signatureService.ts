@@ -1,3 +1,5 @@
+import tokenService from './tokenService';
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
 export interface SignatureData {
@@ -11,6 +13,7 @@ export async function uploadSignature(signatureData: string): Promise<void> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
     body: JSON.stringify({ signature: signatureData }),
@@ -26,6 +29,7 @@ export async function getSignature(): Promise<string | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/users/signature`, {
       method: 'GET',
+      headers: tokenService.getAuthHeaders(),
       credentials: 'include',
     });
 

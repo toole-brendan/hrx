@@ -38,6 +38,7 @@ import {
   getLocalSignature,
   clearLocalSignature 
 } from '@/services/signatureService';
+import tokenService from '@/services/tokenService';
 import { getConnections } from '@/services/connectionService';
 import { exportDA2062 } from '@/services/da2062Service';
 
@@ -172,6 +173,7 @@ export const DA2062ExportDialog: React.FC<DA2062ExportDialogProps> = ({
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const response = await fetch(`${apiUrl}/api/property`, {
+        headers: tokenService.getAuthHeaders(),
         credentials: 'include',
       });
       
