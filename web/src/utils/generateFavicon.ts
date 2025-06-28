@@ -21,8 +21,8 @@ export function generateLissajousFavicon(size: number = 32): string {
   // Curve parameters - adjusted for square favicon
   const centerX = size / 2;
   const centerY = size / 2;
-  const A = size * 0.35;  // Amplitude (slightly smaller for padding)
-  const B = size * 0.35;
+  const A = size * 0.28;  // Amplitude (smaller to fit within circle)
+  const B = size * 0.28;
   const a = 3;           // Horizontal frequency
   const b = 2;           // Vertical frequency  
   const delta = Math.PI / 2;  // Phase shift
