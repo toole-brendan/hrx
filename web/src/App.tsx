@@ -9,6 +9,7 @@ import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { lazyLoad } from "@/utils/lazyLoad";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AppShell from "./components/layout/AppShell";
+import { setLissajousFavicon } from "@/utils/generateFavicon";
 
 // Lazy load all route components for code splitting
 const NotFound = lazyLoad(() => import("@/pages/not-found"));
@@ -86,6 +87,9 @@ function Router() {
 
 const App: React.FC = () => {
   useEffect(() => {
+    // Set the Lissajous favicon on app load
+    setLissajousFavicon();
+    
     // Start periodic sync and set up connectivity listeners
     startPeriodicSync();
     const cleanupConnectivity = setupConnectivityListeners();

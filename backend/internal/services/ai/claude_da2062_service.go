@@ -2,12 +2,18 @@ package ai
 
 import (
 	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
 // ParsedItem represents a single item extracted from DA 2062
@@ -38,7 +44,7 @@ type DA2062Response struct {
 // ParseDA2062 streams the PDF/PNG/JPG file to Claude and returns items
 func ParseDA2062(r io.Reader, contentType string) ([]ParsedItem, ParseMeta, error) {
 	// Read file data
-	_, err := io.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, ParseMeta{}, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -51,34 +57,134 @@ func ParseDA2062(r io.Reader, contentType string) ([]ParsedItem, ParseMeta, erro
 		return getMockData()
 	}
 
-	// TODO: Implement actual Claude API call here
-	// The Anthropic SDK v1.4.0 has a different API structure than expected
-	// You'll need to:
-	// 1. Base64 encode the image data
-	// 2. Create the proper message structure for the SDK
-	// 3. Parse the response JSON
-	
-	// Example structure (needs to be adapted to SDK v1.4.0):
-	/*
-	import (
-		"encoding/base64"
-		"encoding/json"
-		"github.com/anthropics/anthropic-sdk-go"
-		"github.com/anthropics/anthropic-sdk-go/option"
-	)
-	
+	// Initialize Claude client
 	client := anthropic.NewClient(option.WithAPIKey(apiKey))
 	
-	// Base64 encode the data
-	b64 := base64.StdEncoding.EncodeToString(data)
+	// Check if content is PDF - Claude doesn't support PDF directly
+	if strings.Contains(contentType, "pdf") {
+		log.Printf("PDF upload detected - Claude API doesn't support PDF directly, would need PDF to image conversion")
+		return nil, ParseMeta{}, fmt.Errorf("PDF files need to be converted to images first")
+	}
 	
-	// Create message with image and prompt
-	// Parse response and extract JSON
-	// Return parsed items
-	*/
+	// Base64 encode the image data
+	b64Image := base64.StdEncoding.EncodeToString(data)
 	
-	log.Printf("Claude API integration pending - returning mock data")
-	return getMockData()
+	// Determine media type
+	mediaType := determineMediaType(contentType)
+	
+	log.Printf("Processing DA 2062 with Claude API - content type: %s, media type: %s, data size: %d bytes", contentType, mediaType, len(data))
+	
+	// Create the prompt for Claude
+	prompt := `You are analyzing a DA Form 2062 (Hand Receipt/Annex Number). Extract all items from the form and return them as JSON.
+
+For each item, extract:
+- NSN (National Stock Number) - format: XXXX-XX-XXX-XXXX
+- Name/Description of the item
+- Serial number(s) if present
+- Quantity
+- Any other relevant details
+
+Also extract form metadata:
+- From (issuing unit/person)
+- To (receiving unit/person)
+- Date
+- Form number
+
+Return the data in this exact JSON format:
+{
+  "meta": {
+    "from": "string",
+    "to": "string",
+    "date": "YYYY-MM-DD",
+    "formNumber": "string"
+  },
+  "items": [
+    {
+      "nsn": "string or empty",
+      "name": "string",
+      "serialNumber": "string or empty",
+      "quantity": number,
+      "ownerId": "",
+      "assignedToId": "",
+      "confidence": 0.0-1.0
+    }
+  ]
+}
+
+Be thorough and extract ALL items listed on the form. If you cannot read a field clearly, use an empty string but still include the item.`
+
+	// Create the message request
+	ctx := context.Background()
+	
+	// Create the image block based on media type
+	var imageBlock anthropic.ContentBlockParamUnion
+	switch mediaType {
+	case "image/jpeg":
+		imageBlock = anthropic.NewImageBlockBase64(string(anthropic.Base64ImageSourceMediaTypeImageJPEG), b64Image)
+	case "image/png":
+		imageBlock = anthropic.NewImageBlockBase64(string(anthropic.Base64ImageSourceMediaTypeImagePNG), b64Image)
+	default:
+		imageBlock = anthropic.NewImageBlockBase64(string(anthropic.Base64ImageSourceMediaTypeImageJPEG), b64Image)
+	}
+	
+	messageReq := anthropic.MessageNewParams{
+		Model:     anthropic.ModelClaude3_5Sonnet20241022,
+		MaxTokens: 4096,
+		Messages: []anthropic.MessageParam{
+			anthropic.NewUserMessage(
+				imageBlock,
+				anthropic.NewTextBlock(prompt),
+			),
+		},
+	}
+	
+	// Call Claude API
+	response, err := client.Messages.New(ctx, messageReq)
+	if err != nil {
+		log.Printf("Claude API error: %v", err)
+		return nil, ParseMeta{}, fmt.Errorf("Claude API error: %w", err)
+	}
+	
+	// Extract the text response
+	if len(response.Content) == 0 {
+		return nil, ParseMeta{}, fmt.Errorf("empty response from Claude")
+	}
+	
+	// Get the text content from the response
+	var responseText string
+	for _, content := range response.Content {
+		// Check if this is a text block
+		if content.Type == "text" && content.Text != "" {
+			responseText = content.Text
+			break
+		}
+	}
+	
+	if responseText == "" {
+		return nil, ParseMeta{}, fmt.Errorf("no text content in Claude response")
+	}
+	
+	// Extract JSON from the response
+	jsonStr := extractJSON(responseText)
+	
+	// Parse the JSON response
+	var da2062Response DA2062Response
+	if err := json.Unmarshal([]byte(jsonStr), &da2062Response); err != nil {
+		log.Printf("Failed to parse Claude response as JSON: %v", err)
+		log.Printf("Raw response: %s", responseText)
+		return nil, ParseMeta{}, fmt.Errorf("failed to parse response: %w", err)
+	}
+	
+	// Set confidence scores based on Claude's extraction
+	for i := range da2062Response.Items {
+		if da2062Response.Items[i].Confidence == 0 {
+			// Default confidence if not set
+			da2062Response.Items[i].Confidence = 0.85
+		}
+	}
+	
+	log.Printf("Successfully parsed %d items from DA 2062", len(da2062Response.Items))
+	return da2062Response.Items, da2062Response.Meta, nil
 }
 
 // getMockData returns mock data for testing
@@ -150,7 +256,8 @@ func determineMediaType(contentType string) string {
 	case strings.Contains(contentType, "png"):
 		return "image/png"
 	case strings.Contains(contentType, "pdf"):
-		return "application/pdf"
+		// Claude doesn't support PDF directly, we'll need to handle this differently
+		return "image/jpeg"
 	default:
 		// Default to JPEG if unknown
 		return "image/jpeg"
