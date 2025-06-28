@@ -1,3 +1,5 @@
+import tokenService from './tokenService';
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api';
 
 // Helper function to safely parse JSON responses
@@ -138,6 +140,7 @@ export async function uploadDA2062(
     
     const response = await fetch(endpoint, {
       method: 'POST',
+      headers: tokenService.getAuthHeaders(),
       body: formData,
       credentials: 'include',
     });
@@ -212,6 +215,7 @@ export async function exportDA2062(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
     body: JSON.stringify({
@@ -241,6 +245,7 @@ export async function batchImportItems(items: BatchImportItem[]): Promise<BatchI
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
     body: JSON.stringify({ items }),
@@ -277,6 +282,7 @@ export async function getUnverifiedItems(): Promise<any[]> {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
   });
@@ -297,6 +303,7 @@ export async function verifyImportedItem(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      ...tokenService.getAuthHeaders(),
     },
     credentials: 'include',
     body: JSON.stringify(data),
