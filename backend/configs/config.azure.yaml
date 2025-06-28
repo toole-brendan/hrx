@@ -17,6 +17,13 @@ database:
   name: ""  # Uses HANDRECEIPT_DATABASE_NAME env var
   ssl_mode: "require"
 
+# Auth configuration - Override to ensure env vars are used
+jwt:
+  secret_key: ""  # MUST use HANDRECEIPT_JWT_SECRET_KEY env var
+  
+auth:
+  session_secret: ""  # MUST use HANDRECEIPT_AUTH_SESSION_SECRET env var
+
 # Storage Configuration - Use Azure Blob instead of MinIO
 storage:
   type: "azure_blob"

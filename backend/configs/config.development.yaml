@@ -28,7 +28,7 @@ database:
 
 # Auth configuration
 jwt:
-  secret_key: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+  secret_key: ""  # REQUIRED: Set via HANDRECEIPT_JWT_SECRET_KEY env var
   access_expiry: "24h"
   refresh_expiry: "168h"
   issuer: "handreceipt-go"
@@ -38,7 +38,7 @@ jwt:
 
 # Auth session configuration
 auth:
-  session_secret: "9xr/uSKNDqOfSPkVOpujQUW3nzll5ykcT8nzu9W9Cvc="
+  session_secret: ""  # REQUIRED: Set via HANDRECEIPT_AUTH_SESSION_SECRET env var
 
 # Ledger configuration - Disable for local development
 ledger:
