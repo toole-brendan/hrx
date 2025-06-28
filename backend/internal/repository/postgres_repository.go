@@ -548,3 +548,17 @@ func (r *PostgresRepository) SearchDocuments(userID uint, query string) ([]domai
 	
 	return documents, err
 }
+
+// ListUnitOfIssueCodes returns all unit of issue codes
+func (r *PostgresRepository) ListUnitOfIssueCodes() ([]domain.UnitOfIssueCode, error) {
+	var codes []domain.UnitOfIssueCode
+	err := r.db.Order("sort_order, code").Find(&codes).Error
+	return codes, err
+}
+
+// ListPropertyCategories returns all property categories
+func (r *PostgresRepository) ListPropertyCategories() ([]domain.PropertyCategory, error) {
+	var categories []domain.PropertyCategory
+	err := r.db.Order("sort_order, name").Find(&categories).Error
+	return categories, err
+}

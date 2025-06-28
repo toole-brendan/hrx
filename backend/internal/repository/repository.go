@@ -43,6 +43,10 @@ type Repository interface {
 	GetPropertyModelByNSN(nsn string) (*domain.PropertyModel, error)
 	ListPropertyModels(typeID *uint) ([]domain.PropertyModel, error) // List all or by type
 
+	// Reference data operations
+	ListUnitOfIssueCodes() ([]domain.UnitOfIssueCode, error)
+	ListPropertyCategories() ([]domain.PropertyCategory, error)
+
 	// Transfer operations
 	CreateTransfer(transfer *domain.Transfer) error
 	GetTransferByID(id uint) (*domain.Transfer, error)

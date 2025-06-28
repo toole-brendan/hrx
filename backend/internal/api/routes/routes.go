@@ -189,6 +189,8 @@ func SetupRoutes(router *gin.Engine, ledgerService ledger.LedgerService, repo re
 			reference.GET("/types", referenceDBHandler.ListPropertyTypes)
 			reference.GET("/models", referenceDBHandler.ListPropertyModels)
 			reference.GET("/models/nsn/:nsn", referenceDBHandler.GetPropertyModelByNSN)
+			reference.GET("/unit-of-issue", referenceDBHandler.ListUnitOfIssueCodes)
+			reference.GET("/categories", referenceDBHandler.ListPropertyCategories)
 		}
 
 		// User management routes

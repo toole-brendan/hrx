@@ -81,6 +81,13 @@ export interface EditableDA2062Item extends Omit<DA2062Item, 'quantity'> {
   serialNumber: string;
   unit?: string;
   isSelected: boolean;
+  // DA 2062 fields
+  unitOfIssue: string;
+  conditionCode: string;
+  category?: string;
+  manufacturer?: string;
+  partNumber?: string;
+  securityClassification: string;
 }
 
 export interface BatchImportItem {
@@ -90,6 +97,11 @@ export interface BatchImportItem {
   quantity: number;
   description?: string;
   unitOfIssue?: string;
+  conditionCode?: string;
+  category?: string;
+  manufacturer?: string;
+  partNumber?: string;
+  securityClassification?: string;
   importMetadata?: {
     source: string;
     formReference?: string;

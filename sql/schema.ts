@@ -60,6 +60,13 @@ export const properties = pgTable("properties", {
   isAttachable: boolean("is_attachable").default(false),
   attachmentPoints: jsonb("attachment_points"), // ["rail_top", "rail_side", "barrel"]
   compatibleWith: jsonb("compatible_with"), // ["M4", "M16", "AR15"]
+  // DA 2062 required fields
+  unitOfIssue: text("unit_of_issue").default("EA"),
+  conditionCode: text("condition_code").default("A"),
+  category: text("category"),
+  manufacturer: text("manufacturer"),
+  partNumber: text("part_number"),
+  securityClassification: text("security_classification").default("U"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -165,6 +172,36 @@ export const catalogUpdates = pgTable("catalog_updates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Unit of Issue Codes Table
+export const unitOfIssueCodes = pgTable("unit_of_issue_codes", {
+  code: text("code").primaryKey(),
+  description: text("description").notNull(),
+  category: text("category"),
+  sortOrder: integer("sort_order").default(0),
+});
+
+// Property Categories Table
+export const propertyCategories = pgTable("property_categories", {
+  code: text("code").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isSensitive: boolean("is_sensitive").default(false),
+  defaultSecurityClass: text("default_security_class").default("U"),
+  sortOrder: integer("sort_order").default(0),
+});
+
+// Property Condition History Table
+export const propertyConditionHistory = pgTable("property_condition_history", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  previousCondition: text("previous_condition"),
+  newCondition: text("new_condition").notNull(),
+  changedBy: integer("changed_by").references(() => users.id),
+  changedAt: timestamp("changed_at").defaultNow(),
+  reason: text("reason"),
+  notes: text("notes"),
+});
+
 // DA2062 Import Tables
 export const da2062Imports = pgTable("da2062_imports", {
   id: bigint("id", { mode: "number" }).primaryKey(),
@@ -253,9 +290,20 @@ export type LedgerReference = typeof ledgerReferences.$inferSelect;
 export type InsertLedgerReference = typeof ledgerReferences.$inferInsert;
 
 // Catalog Update Types
-
 export type CatalogUpdate = typeof catalogUpdates.$inferSelect;
 export type InsertCatalogUpdate = typeof catalogUpdates.$inferInsert;
+
+// Unit of Issue Types
+export type UnitOfIssueCode = typeof unitOfIssueCodes.$inferSelect;
+export type InsertUnitOfIssueCode = typeof unitOfIssueCodes.$inferInsert;
+
+// Property Category Types
+export type PropertyCategory = typeof propertyCategories.$inferSelect;
+export type InsertPropertyCategory = typeof propertyCategories.$inferInsert;
+
+// Property Condition History Types
+export type PropertyConditionHistory = typeof propertyConditionHistory.$inferSelect;
+export type InsertPropertyConditionHistory = typeof propertyConditionHistory.$inferInsert;
 
 // DA2062 Import Types
 export type Da2062Import = typeof da2062Imports.$inferSelect;

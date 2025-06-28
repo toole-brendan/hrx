@@ -112,6 +112,23 @@ export interface CalibrationInfo {
 }
 // --- End Calibration Types ---
 
+// Reference Data Types
+export interface UnitOfIssueCode {
+  code: string;
+  description: string;
+  category: string;
+  sortOrder: number;
+}
+
+export interface PropertyCategory {
+  code: string;
+  name: string;
+  description: string;
+  isSensitive: boolean;
+  defaultSecurityClass: string;
+  sortOrder: number;
+}
+
 // Inventory Types
 export interface Property {
   id: string;
@@ -119,7 +136,8 @@ export interface Property {
   description: string;
   serialNumber: string;
   nsn?: string;
-  category: string; // Weapon, Vehicle, Comms, Optics, Other
+  lin?: string; // Line Item Number
+  category?: string; // Property category code
   location: string; // Building/Room or Grid Coordinates
   status: 'Operational' | 'Deadline - Maintenance' | 'Deadline - Supply' | 'Lost' | 'Non-Operational' | 'Damaged' | 'In Repair'; // Updated to include new military-specific status options
   assignedTo?: string; // User ID or Name
@@ -128,13 +146,19 @@ export interface Property {
   acquisitionDate?: string; // ISO 8601 date string
   value?: number;
   isSensitive?: boolean;
-  position?: LatLngExpression; // For map display
-  requiresCalibration?: boolean;
-  calibrationInfo?: CalibrationInfo;
-  components?: Component[];
-  isComponent?: boolean; // Flag if the item itself is a component
-  parentItemId?: string; // Link to parent if it's a component
-  lin?: string; // Line Item Number
+  // DA 2062 required fields
+  unitOfIssue: string; // Default 'EA'
+  conditionCode: string; // A, B, or C
+  manufacturer?: string;
+  partNumber?: string;
+  securityClassification: string; // U, FOUO, C, S
+  // Fields to be removed
+  // position?: LatLngExpression; // REMOVED - not needed for hand receipts
+  // requiresCalibration?: boolean; // REMOVED
+  // calibrationInfo?: CalibrationInfo; // REMOVED
+  // components?: Component[]; // REMOVED - handled separately
+  // isComponent?: boolean; // REMOVED
+  // parentItemId?: string; // REMOVED
   updatedAt?: string; // ISO 8601 date string for last update
 }
 

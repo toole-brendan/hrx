@@ -115,6 +115,14 @@ type Property struct {
 	AttachmentPoints *string `json:"attachmentPoints" gorm:"column:attachment_points;type:jsonb"` // ["rail_top", "rail_side", "barrel"]
 	CompatibleWith   *string `json:"compatibleWith" gorm:"column:compatible_with;type:jsonb"`     // ["M4", "M16", "AR15"]
 
+	// DA 2062 required fields
+	UnitOfIssue            string  `json:"unitOfIssue" gorm:"column:unit_of_issue;default:'EA'"`
+	ConditionCode          string  `json:"conditionCode" gorm:"column:condition_code;default:'A'"`
+	Category               *string `json:"category" gorm:"column:category"`
+	Manufacturer           *string `json:"manufacturer" gorm:"column:manufacturer"`
+	PartNumber             *string `json:"partNumber" gorm:"column:part_number"`
+	SecurityClassification string  `json:"securityClassification" gorm:"column:security_classification;default:'U'"`
+
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
 
@@ -225,6 +233,45 @@ type TransferOfferRecipient struct {
 	TransferOffer *TransferOffer `json:"transferOffer,omitempty" gorm:"foreignKey:TransferOfferID"`
 	RecipientUser *User          `json:"recipientUser,omitempty" gorm:"foreignKey:RecipientUserID"`
 }
+
+// UnitOfIssueCode represents a unit of issue reference
+type UnitOfIssueCode struct {
+	Code        string `json:"code" gorm:"primaryKey"`
+	Description string `json:"description" gorm:"not null"`
+	Category    string `json:"category"`
+	SortOrder   int    `json:"sortOrder" gorm:"column:sort_order;default:0"`
+}
+
+// PropertyCategory represents a property category reference
+type PropertyCategory struct {
+	Code                 string `json:"code" gorm:"primaryKey"`
+	Name                 string `json:"name" gorm:"not null"`
+	Description          string `json:"description"`
+	IsSensitive          bool   `json:"isSensitive" gorm:"column:is_sensitive;default:false"`
+	DefaultSecurityClass string `json:"defaultSecurityClass" gorm:"column:default_security_class;default:'U'"`
+	SortOrder            int    `json:"sortOrder" gorm:"column:sort_order;default:0"`
+}
+
+// PropertyConditionHistory tracks changes to property conditions
+type PropertyConditionHistory struct {
+	ID                uint       `json:"id" gorm:"primaryKey"`
+	PropertyID        uint       `json:"propertyId" gorm:"column:property_id;not null"`
+	PreviousCondition *string    `json:"previousCondition" gorm:"column:previous_condition"`
+	NewCondition      string     `json:"newCondition" gorm:"column:new_condition;not null"`
+	ChangedBy         *uint      `json:"changedBy" gorm:"column:changed_by"`
+	ChangedAt         time.Time  `json:"changedAt" gorm:"column:changed_at;default:CURRENT_TIMESTAMP"`
+	Reason            *string    `json:"reason"`
+	Notes             *string    `json:"notes"`
+
+	// Relationships
+	Property      *Property `json:"property,omitempty" gorm:"foreignKey:PropertyID"`
+	ChangedByUser *User     `json:"changedByUser,omitempty" gorm:"foreignKey:ChangedBy"`
+}
+
+// TableName methods for new reference tables
+func (UnitOfIssueCode) TableName() string { return "unit_of_issue_codes" }
+func (PropertyCategory) TableName() string { return "property_categories" }
+func (PropertyConditionHistory) TableName() string { return "property_condition_history" }
 
 // Activity represents a system activity or event (consider replacing with specific ledger events)
 type Activity struct {

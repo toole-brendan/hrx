@@ -71,3 +71,23 @@ func (h *ReferenceDBHandler) GetPropertyModelByNSN(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"model": model})
 }
+
+// ListUnitOfIssueCodes handles GET requests for listing all unit of issue codes
+func (h *ReferenceDBHandler) ListUnitOfIssueCodes(c *gin.Context) {
+	codes, err := h.Repo.ListUnitOfIssueCodes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch unit of issue codes: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"codes": codes})
+}
+
+// ListPropertyCategories handles GET requests for listing all property categories
+func (h *ReferenceDBHandler) ListPropertyCategories(c *gin.Context) {
+	categories, err := h.Repo.ListPropertyCategories()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch property categories: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
+}

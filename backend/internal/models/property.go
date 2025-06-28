@@ -67,6 +67,14 @@ type Property struct {
 	AttachmentPoints StringArray `json:"attachment_points" gorm:"type:jsonb"`
 	CompatibleWith   StringArray `json:"compatible_with" gorm:"type:jsonb"`
 
+	// DA 2062 required fields
+	UnitOfIssue            string `json:"unit_of_issue" gorm:"default:EA"`
+	ConditionCode          string `json:"condition_code" gorm:"default:A"`
+	Category               string `json:"category"`
+	Manufacturer           string `json:"manufacturer"`
+	PartNumber             string `json:"part_number"`
+	SecurityClassification string `json:"security_classification" gorm:"default:U"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
